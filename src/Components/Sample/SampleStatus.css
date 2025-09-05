@@ -1,0 +1,222 @@
+.samplestatus-container {
+  max-width: fit-content;
+  margin: 0 auto;
+  padding: 30px;
+  font-family: "Times New Roman", serif;
+  font-size: 1.2em;
+  color: #3d3d3d;
+  background-color: #fafafa;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+h2 {
+  text-align: center;
+  color: #2c3e50;
+  font-weight: 700;
+  font-size: 1.6em;
+  margin-bottom: 25px;
+}
+.date-search-container {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Adjust spacing between elements */
+  justify-content: center;
+  margin-bottom: 15px;
+}
+.date-picker-container,
+.search-container {
+  display: flex;
+  align-items: center;
+}
+.btn,
+.btn-update,
+.btn-save-all,
+.sample-status-button {
+  padding: 12px 18px;
+  font-size: 0.9em;
+  font-family: "Times New Roman", serif;
+  color: #f8f8f8;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  background-color: #db9bb9;
+}
+.btn:hover,
+.btn-update:hover,
+.btn-save-all:hover,
+.sample-status-button:hover {
+  background-color: #db9bb9;
+}
+.btn-update:disabled,
+.btn-save-all:disabled {
+  background-color: #b5b5b5;
+  color: #f1f1f1;
+  cursor: not-allowed;
+}
+.alert {
+  padding: 12px;
+  font-weight: 600;
+  border-radius: 5px;
+  text-align: center;
+  width: 100%;
+}
+.alert-success {
+  background-color: #e9f5e9;
+  color: #2d6b2d;
+}
+.alert-danger {
+  background-color: #fdecec;
+  color: #a94442;
+}
+.table-container {
+  max-height: 500px; /* Limit height to 300px */
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: auto; /* Enable horizontal scrolling if needed */
+  border: 1px solid #ddd; /* Optional: Adds a border */
+  scrollbar-width: thin;
+}
+.sample-status-update-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.sample-status-update-table th,
+.sample-status-update-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+.sample-status-update-table thead {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+thead {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+th,
+td {
+  border: 1px solid #e0e0e0;
+  padding: 12px;
+  text-align: center;
+  min-width: 140px; /* Set a consistent minimum width */
+}
+input[type="text"],
+input[type="date"],
+select {
+  width: 100%;
+  padding: 10px;
+  font-family: "Times New Roman", serif;
+  font-size: 0.9em;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.2s ease;
+}
+input[type="text"]:focus,
+input[type="date"]:focus,
+select:focus {
+  border-color: #4a7c94;
+  outline: none;
+}
+/* Checkbox and Radio Groups */
+.radio-group,
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+}
+.checkbox-group input[type="checkbox"] {
+  margin-right: 8px;
+  accent-color: #4a7c94;
+}
+/* Modal */
+.open-model {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 250px;
+  width: 82%;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 30px;
+  font-size: 0.8em;
+}
+.modal-content {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 30px;
+  width: 100%; /* Adjust width to increase size */
+  max-width: 1200px; /* Adjust max-width to make the modal larger */
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  height: auto; /* Allow the content to determine the height */
+  max-height: 80vh; /* Limit max height to 80% of the viewport height */
+  overflow-y: auto; /* Enable scrolling if content overflows */
+}
+.close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.close:hover {
+  color: #000;
+}
+/* Test Details Table */
+.test-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+.test-details-table th,
+.test-details-table td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+  font-size: 0.9em;
+}
+.btn:hover,
+.sample-status-button:hover,
+.btn-update:hover,
+.btn-save-all:hover {
+  background-color: #db9bb9;
+  color: white;
+}
+.current-status {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 5px;
+}
+.button-container {
+  display: flex;
+  justify-content: flex-end; /* Aligns buttons to the right */
+  gap: 10px; /* Optional: adds space between the buttons */
+  margin-top: 20px; /* Optional: adds margin above the buttons */
+}
+.search-container {
+  border: 1px solid #ccc;
+  padding: 5px;
+  border-radius: 5px;
+}
+.search-icon {
+  margin-right: 5px;
+}
+.search-input {
+  border: none;
+  outline: none;
+  padding: 5px;
+}
