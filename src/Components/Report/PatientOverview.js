@@ -421,6 +421,7 @@ const PatientOverview = () => {
   const [refByOptions, setRefByOptions] = useState([]);
   const [clinicalNames, setClinicalNames] = useState([]);
   const [branch, setBranch] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [B2B, setB2B] = useState("");
   const [refBy, setRefBy] = useState("");
   const [patientId, setPatientId] = useState("");
@@ -567,6 +568,7 @@ const PatientOverview = () => {
         patientDate >= startOfDay &&
         patientDate <= endOfDay &&
         (!branch || patient.branch === branch) &&
+        (!barcode || patient.barcode === barcode) &&
         (!B2B || patient.b2b === B2B) &&
         (!refBy || patient.refby === refBy) &&
         (!patientId || patient.patient_id.includes(patientId)) &&
@@ -583,6 +585,7 @@ const PatientOverview = () => {
     endDate,
     patients,
     branch,
+    barcode,
     B2B,
     refBy,
     patientId,
@@ -595,6 +598,7 @@ const PatientOverview = () => {
     setStartDate(new Date());
     setEndDate(new Date());
     setBranch("");
+    setBarcode("");
     setB2B("");
     setRefBy("");
     setPatientId("");
@@ -955,6 +959,7 @@ const PatientOverview = () => {
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "N/A" },
+        { label: "Barcode", value: patientDetails.barcode || "N/A" },
         { label: "Source", value: patientDetails.B2B || "N/A" },
       ];
 
@@ -1706,6 +1711,15 @@ const PatientOverview = () => {
                 placeholder="Enter patient ID"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
+              />
+            </FilterGroup>
+            <FilterGroup>
+              <FilterLabel>Barcode</FilterLabel>
+              <FilterInput
+                type="text"
+                placeholder="Enter Barcode"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
               />
             </FilterGroup>
 

@@ -416,6 +416,7 @@ function TestDetails() {
             originalTestname: testName,
             test_id: test.test_id,
             department: test.department,
+            NABL: test.NABL,
             specimen_type: test.specimen_type || "N/A",
             method: test.method,
             sample_status: test.sample_status,
@@ -661,6 +662,7 @@ function TestDetails() {
             dispatch: false,
             dispatch_time: "null",
             department: test.department || "",
+            NABL: test.NABL || "",
             remarks: parameterRemarks || "",
             verified_by: verified_by,
             parameters: test.parameters.map((param) => {
@@ -685,6 +687,7 @@ function TestDetails() {
             reference_range: test.reference_range || "",
             method: test.method || "",
             department: test.department || "",
+            NABL: test.NABL || "",
             remarks: remarks[test.testname] || "",
             rerun: editMode[test.testname] ? false : test.rerun,
             approve: false,
