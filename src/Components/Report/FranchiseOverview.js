@@ -460,8 +460,11 @@ const FranchiseOverview = () => {
       const formattedEndDate = endDate.toISOString().split("T")[0];
 
       try {
-        const response = await axios.get(
+        const response = await apiRequest(
           `${Labbaseurl}franchise_overall_report/`,
+          "GET",
+          null,
+          {},
           {
             params: {
               from_date: formattedStartDate,
@@ -470,24 +473,35 @@ const FranchiseOverview = () => {
           }
         );
 
-        const patientData = response.data;
+        if (response.success) {
+          const patientData = response.data;
 
-        // Set the full and filtered patient list
-        setPatients(patientData);
-        setFilteredPatients(patientData);
+          // Set the full and filtered patient list
+          setPatients(patientData);
+          setFilteredPatients(patientData);
 
-        // Optional: extract and store status/barcode mappings if needed separately
-        const statusMap = {};
-        patientData.forEach((patient) => {
-          statusMap[patient.patient_id] = {
-            status: patient.status,
-            barcode: patient.barcode,
-          };
-        });
-        setStatuses(statusMap); // if you're maintaining a separate `statuses` state
+          // Optional: extract and store status/barcode mappings if needed separately
+          const statusMap = {};
+          patientData.forEach((patient) => {
+            statusMap[patient.patient_id] = {
+              status: patient.status,
+              barcode: patient.barcode,
+            };
+          });
+          setStatuses(statusMap); // if you're maintaining a separate `statuses` state
+        } else {
+          console.error("API Error:", response.error);
+          setError(response.error || "Failed to load patient data");
+
+          // Optional: Show toast notification
+          toast.error(response.error || "Failed to load patient data");
+        }
       } catch (error) {
-        console.error("Error fetching combined patient data:", error);
-        setError("Failed to load patient data");
+        console.error("Unexpected error in fetchCombinedPatientData:", error);
+        setError("An unexpected error occurred");
+
+        // Optional: Show toast notification
+        toast.error("An unexpected error occurred");
       } finally {
         setLoading(false);
       }

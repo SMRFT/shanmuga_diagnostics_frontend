@@ -359,6 +359,7 @@ const TestSorting = ({ patient, onClose }) => {
     }
 
     try {
+      console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
@@ -370,13 +371,31 @@ const TestSorting = ({ patient, onClose }) => {
         return;
       }
 
-      const patientDetails = response.data;
+      console.log("API Response:", response.data);
+      let patientDetails = response.data;
+      if (Array.isArray(response.data)) {
+        // Merge testdetails from all records
+        patientDetails = {
+          ...response.data[0], // Use first record for base patient info
+          testdetails: response.data.flatMap(
+            (record) => record.testdetails || []
+          ),
+        };
+      }
 
+      console.log("Processed Patient Details:", patientDetails);
+      console.log("Selected Tests:", selectedTests);
       const orderedTests = selectedTests
         .map((test) =>
           patientDetails.testdetails.find((t) => t.testname === test.testname)
         )
         .filter((test) => test);
+
+      console.log("Ordered Tests:", orderedTests);
+      if (!orderedTests.length) {
+        toast.error("No matching tests found for the selected tests.");
+        return;
+      }
 
       const unicodeMap = {
         μ: "µ",

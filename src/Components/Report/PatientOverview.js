@@ -809,15 +809,14 @@ const PatientOverview = () => {
 
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
-      // setLoading(true)
+      // setLoading(true);
 
-      // Use apiRequest instead of direct axios call
+      console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
       );
 
-      // Handle the response based on the apiRequest return format
       if (!response.success) {
         console.error("Failed to fetch patient details:", response.error);
         toast.error(response.error || "Failed to fetch patient details");
@@ -825,15 +824,27 @@ const PatientOverview = () => {
         return null;
       }
 
-      const patientDetails = response.data;
+      console.log("API Response:", response.data);
+      let patientDetails = response.data;
+      if (Array.isArray(response.data)) {
+        // Merge testdetails from all records
+        patientDetails = {
+          ...response.data[0], // Use first record for base patient info
+          testdetails: response.data.flatMap(
+            (record) => record.testdetails || []
+          ),
+        };
+      }
 
+      console.log("Processed Patient Details:", patientDetails);
       if (
         !patientDetails.testdetails ||
         patientDetails.testdetails.length === 0
       ) {
         console.error("No test details found for the patient.");
         toast.error("No test details found for the patient.");
-        return;
+        setLoading(false);
+        return null;
       }
 
       // Enhanced Unicode character mapping for medical units
@@ -928,7 +939,7 @@ const PatientOverview = () => {
       // FIXED: Consistent header and footer heights regardless of letterpad
       const headerHeight = 30; // Always reserve space for header
       const footerHeight = 20; // Always reserve space for footer
-      const contentYStart = headerHeight + 20; // Start content below the header area
+      const contentYStart = headerHeight + 15; // Start content below the header area
       const signatureHeight = 25; // Height needed for signatures
       const disclaimerHeight = 0; // No disclaimer needed
       const tableHeaderHeight = 10; // Height needed for table header
@@ -959,7 +970,6 @@ const PatientOverview = () => {
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "N/A" },
-        { label: "Barcode", value: patientDetails.barcode || "N/A" },
         { label: "Source", value: patientDetails.B2B || "N/A" },
       ];
 
@@ -1000,7 +1010,61 @@ const PatientOverview = () => {
       let pageCount = 1;
       let isTableStarted = false; // Track if we're in the table section
 
-      // FIXED: Function to add header and footer with consistent positioning
+      // Add Patient Info function
+      const addPatientInfo = (yPos) => {
+        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+        const centerPoint = (leftMargin + rightMargin) / 2;
+        const leftLabelX = leftMargin;
+        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+        const leftValueX = leftColonX + 3;
+        const rightLabelX = centerPoint + 28;
+        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+        const rightValueX = rightColonX + 1;
+
+        doc.setFontSize(10);
+        let patientInfoY = yPos;
+
+        for (let i = 0; i < leftDetails.length; i++) {
+          const left = leftDetails[i];
+          const right = rightDetails[i];
+
+          doc.setFont("helvetica", "bold");
+          doc.text(left.label, leftLabelX, patientInfoY);
+          doc.text(":", leftColonX, patientInfoY);
+          doc.setFont("helvetica", "bold");
+          doc.text(left.value, leftValueX, patientInfoY);
+
+          if (right) {
+            doc.setFont("helvetica", "bold");
+            doc.text(right.label, rightLabelX, patientInfoY);
+            doc.text(":", rightColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
+            doc.text(right.value, rightValueX, patientInfoY);
+
+            if (
+              right.label === "Patient Ref.No" &&
+              patientRefNoNumber !== "N/A" &&
+              barcodeImage
+            ) {
+              doc.addImage(
+                barcodeImage,
+                "PNG",
+                rightValueX + doc.getTextWidth(right.value) - 10,
+                patientInfoY + 2,
+                25,
+                8
+              );
+            }
+          }
+
+          patientInfoY += 5;
+        }
+
+        return patientInfoY;
+      };
+
+      // Function to add header and footer with consistent positioning
       const addHeaderFooter = () => {
         if (withLetterpad) {
           // Position header at the very top of the page with no left margin
@@ -1102,7 +1166,7 @@ const PatientOverview = () => {
         return yPos;
       };
 
-      // UPDATED: Function to wrap text and return height with improved line height
+      // Function to wrap text and return height with improved line height
       const wrapText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
         if (!text) return 0;
         const splitText = doc.splitTextToSize(text, maxWidth);
@@ -1112,7 +1176,7 @@ const PatientOverview = () => {
         return splitText.length * lineHeight;
       };
 
-      // FIXED: Function to add signatures with consistent positioning
+      // Function to add signatures with consistent positioning
       const addSignatures = () => {
         const pageHeight = doc.internal.pageSize.height;
         // Calculate signature position with more space from footer
@@ -1134,7 +1198,7 @@ const PatientOverview = () => {
               "PNG",
               xPosition,
               signaturesY,
-              signatureWidth, // Reduced from 40 to 30
+              signatureWidth,
               15
             );
           }
@@ -1142,18 +1206,16 @@ const PatientOverview = () => {
           // Print name below the signature with REDUCED spacing
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
-          doc.text(consultant[0], xPosition, signaturesY + 15); // Reduced from 20 to 17
+          doc.text(consultant[0], xPosition, signaturesY + 15);
 
           // Print qualification below the name with REDUCED spacing
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
-          doc.text(consultant[1], xPosition, signaturesY + 20); // Reduced from 25 to 22
+          doc.text(consultant[1], xPosition, signaturesY + 20);
         });
-
-        // Removed disclaimer - no longer needed
       };
 
-      // FIXED: Function to check if we need to add a new page with consistent calculations
+      // Function to check if we need to add a new page with consistent calculations
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
         // Use consistent footer space calculation for both versions
@@ -1170,6 +1232,7 @@ const PatientOverview = () => {
           addHeaderFooter(); // Add header/footer
 
           let newYPos = contentYStart;
+          newYPos = addPatientInfo(newYPos); // Add patient info on new page
 
           // If we're in the table section, add table header on new page
           if (isTableStarted) {
@@ -1230,67 +1293,8 @@ const PatientOverview = () => {
       // Start generating the actual PDF
       addHeaderFooter();
 
-      // FIXED: Use consistent starting position for both versions
-      let currentYPosition = contentYStart;
-
-      // Better alignment for patient details
-      const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-      const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-
-      // Calculate positions for patient details aligned with the margins
-      const centerPoint = (leftMargin + rightMargin) / 2;
-
-      // Left side details positioning
-      const leftLabelX = leftMargin;
-      const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-      const leftValueX = leftColonX + 3;
-
-      // Right side details positioning
-      const rightLabelX = centerPoint + 28;
-      const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-      const rightValueX = rightColonX + 1;
-
-      // Uniform font size for patient details
-      doc.setFontSize(10);
-
-      for (let i = 0; i < leftDetails.length; i++) {
-        const left = leftDetails[i];
-        const right = rightDetails[i];
-
-        // Left Side
-        doc.setFont("helvetica", "bold");
-        doc.text(left.label, leftLabelX, currentYPosition);
-        doc.text(":", leftColonX, currentYPosition);
-        doc.setFont("helvetica", "bold");
-        doc.text(left.value, leftValueX, currentYPosition);
-
-        if (right) {
-          // Right Side
-          doc.setFont("helvetica", "bold");
-          doc.text(right.label, rightLabelX, currentYPosition);
-          doc.text(":", rightColonX, currentYPosition);
-          doc.setFont("helvetica", "normal");
-          doc.text(right.value, rightValueX, currentYPosition);
-
-          // Only add barcode if there's a valid reference number
-          if (
-            right.label === "Patient Ref.No" &&
-            patientRefNoNumber !== "N/A" &&
-            barcodeImage
-          ) {
-            doc.addImage(
-              barcodeImage,
-              "PNG",
-              rightValueX + doc.getTextWidth(right.value) - 10,
-              currentYPosition + 2,
-              25,
-              8
-            );
-          }
-        }
-
-        currentYPosition += 5; // Reduced spacing between rows
-      }
+      // Use addPatientInfo function
+      let currentYPosition = addPatientInfo(contentYStart);
 
       // Test rendering logic with better page break handling and consistent alignment
       if (patientDetails.testdetails.length) {
@@ -1348,7 +1352,7 @@ const PatientOverview = () => {
 
             testsToRender.forEach((currentTest, index) => {
               // UPDATED: Increased estimated height for better text wrapping display
-              const estimatedHeight = 18; // Increased from 15 to 18
+              const estimatedHeight = 18;
 
               // Check if we need a new page with better height estimation
               yPos = checkForNewPage(yPos, estimatedHeight);
@@ -1359,21 +1363,27 @@ const PatientOverview = () => {
               // Start positions for each column
               let xPos = leftMargin;
 
-              // MODIFIED: Test Name should be in bold, parameter names normal
+              // Test Name should be in bold, parameter names normal
               if (index === 0) {
                 doc.setFont("helvetica", "bold"); // Bold for main test
               } else {
                 doc.setFont("helvetica", "normal"); // Normal for parameters
               }
 
-              // UPDATED: Test Description with improved line height
+              // Test Description with * for NABL tests
+              const testNameText =
+                index === 0 && currentTest.NABL
+                  ? `${currentTest.testname}*`
+                  : index === 0
+                  ? currentTest.testname
+                  : `${currentTest.name}`;
               const testNameHeight = wrapText(
                 doc,
-                index === 0 ? currentTest.testname : `${currentTest.name}`,
+                testNameText,
                 colWidths[0] - 2,
                 xPos,
                 yPos,
-                4 // Increased line height from 3 to 4
+                4
               );
               xPos += colWidths[0];
 
@@ -1387,7 +1397,7 @@ const PatientOverview = () => {
               // Extra Gap
               xPos += colWidths[2];
 
-              // Value(s) - MODIFIED: Show indicator after the value
+              // Value(s) - Show indicator after the value
               const statusIndicator = currentTest.isHigh
                 ? "H"
                 : currentTest.isLow
@@ -1399,7 +1409,7 @@ const PatientOverview = () => {
 
               const valueText = currentTest.value || "";
 
-              // FIXED: Keep value bold when there's an indicator
+              // Keep value bold when there's an indicator
               if (statusIndicator) {
                 doc.setFont("helvetica", "bold");
                 if (statusIndicator === "H") {
@@ -1428,18 +1438,18 @@ const PatientOverview = () => {
               renderUnicodeText(currentTest.unit || "", xPos, yPos);
               xPos += colWidths[4];
 
-              // UPDATED: Reference Range with improved line height
+              // Reference Range with improved line height
               const referenceRangeHeight = wrapText(
                 doc,
                 currentTest.reference_range || "",
                 colWidths[5] - 2,
                 xPos,
                 yPos,
-                4 // Increased line height from 3 to 4
+                4
               );
               xPos += colWidths[5];
 
-              // UPDATED: Method with improved line height
+              // Method with improved line height
               doc.setTextColor(0, 0, 0);
 
               // Remove "Method" from the method name
@@ -1454,20 +1464,20 @@ const PatientOverview = () => {
                 colWidths[6] - 2,
                 xPos,
                 yPos,
-                4 // Increased line height from 3 to 4
+                4
               );
 
               doc.setTextColor(0, 0, 0); // Reset to black
 
-              // UPDATED: Calculate row height based on maximum content height
+              // Calculate row height based on maximum content height
               const maxContentHeight = Math.max(
                 testNameHeight,
                 referenceRangeHeight,
                 methodHeight
               );
 
-              // UPDATED: Increased minimum row spacing
-              yPos += Math.max(maxContentHeight, 6) + 2; // Increased base height and spacing
+              // Increased minimum row spacing
+              yPos += Math.max(maxContentHeight, 6) + 2;
 
               // Reset styling
               doc.setFont("helvetica", "normal");
@@ -1482,14 +1492,14 @@ const PatientOverview = () => {
               leftMargin,
               yPos
             );
-            yPos += 8; // Reduced space after verified by from 6 to 5
+            yPos += 8;
 
             // Reset font
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
           });
 
-          yPos += 4; // Reduced space between departments from 5 to 4
+          yPos += 4;
         });
 
         currentYPosition = yPos;
@@ -1498,19 +1508,18 @@ const PatientOverview = () => {
       // Mark that we're no longer in the table section
       isTableStarted = false;
 
-      // FIXED: Consistent space checking for both versions
+      // Consistent space checking for both versions
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart =
-          pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12); // Added extra space
+          pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
 
-        if (currentYPosition + 5 >= footerStart) {
-          // Reduced from 10 to 5
+        if (currentYPosition + 10 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
           addHeaderFooter();
-          return contentYStart;
+          return addPatientInfo(contentYStart);
         }
         return currentYPosition;
       };
@@ -1518,21 +1527,33 @@ const PatientOverview = () => {
       // Use this function before adding final content
       currentYPosition = ensureSpaceForFooter(currentYPosition);
 
-      // Add signatures at the bottom of the last page
-      addSignatures();
+      // Check for NABL tests
+      const hasNABLTests = patientDetails.testdetails.some(
+        (test) => test.NABL === true
+      );
+
+      if (hasNABLTests) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text("*Test under NABL Scope", leftMargin, currentYPosition);
+        currentYPosition += 5;
+      }
 
       // End of report - Center within content margins
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
-      doc.text("**End Of Report**", centerX, currentYPosition, {
+      doc.text("**End of the Report**", centerX, currentYPosition, {
         align: "center",
       });
 
-      // CRITICAL: Get the final page count AFTER all content is rendered
+      // Add signatures at the bottom of the last page
+      addSignatures();
+
+      // Get the final page count AFTER all content is rendered
       const finalPageCount = pageCount;
 
-      // FIXED: Add page numbers with consistent positioning for both versions
+      // Add page numbers with consistent positioning for both versions
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
 
@@ -1549,12 +1570,20 @@ const PatientOverview = () => {
         });
       }
 
-      // Generate the PDF as a Blob
+      // Generate the PDF as a Blob and set file name with patientID
+      const patientID = patientDetails.patient_id || "Unknown";
+      const pdfFileName = `PatientReport_${patientID}.pdf`;
       const pdfBlob = doc.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      // Open the PDF in a new tab for preview
-      window.open(pdfUrl, "_blank");
+      // Create a temporary link to trigger download
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = pdfFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(pdfUrl); // Clean up the URL
 
       setLoading(false);
       return pdfBlob;
