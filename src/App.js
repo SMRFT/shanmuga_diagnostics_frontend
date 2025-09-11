@@ -31,6 +31,8 @@ import HMSPatientOverview from "./Components/HMSReport/HMSPatientOverview";
 import MIS from "./Components/MIS/MIS";
 import ShanmugaMIS from "./Components/MIS/ShanmugaMIS";
 import FranchiseMIS from "./Components/MIS/FranchiseMIS";
+import HMSBarcodeGeneration from "./Components/Barcode/HMSBarcodeGeneration";
+import HMSBarcodeTestDetails from "./Components/Barcode/HMSBarcodeTestDetails";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -198,6 +200,11 @@ function App() {
             <Route
               path="/BarcodeTestDetails"
               element={<BarcodeTestDetails />}
+            />
+            <Route path="/HMSBarcodeGeneration" element={<HMSBarcodeGeneration />} />
+            <Route
+              path="/HMSBarcodeTestDetails"
+              element={<HMSBarcodeTestDetails />}
             />
             {/* Sample Status */}
             <Route path="/SampleStatus" element={<SampleStatus />} />
