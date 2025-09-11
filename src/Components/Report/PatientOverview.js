@@ -439,24 +439,24 @@ const PatientOverview = () => {
 
   // Set active tab based on current route
   useEffect(() => {
-    if (location.pathname === "/PatientOverview") {
-      setActiveTab("reference");
-    } else if (location.pathname === "/FranchiseOverview") {
-      setActiveTab("franchise");
-      } else if (location.pathname === "/HMSPatientOverview") {
+    if (location.pathname === "/HMSPatientOverview") {
       setActiveTab("hms");
+    } else if (location.pathname === "/PatientOverview") {
+      setActiveTab("reference");
+      } else if (location.pathname === "/FranchiseOverview") {
+      setActiveTab("franchise");
     }
   }, [location.pathname]);
 
   // Handle tab navigation
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === "reference") {
-      navigate("/PatientOverview");
-    } else if (tab === "franchise") {
-      navigate("/FranchiseOverview");
-       } else if (tab === "hms") {
+    if (tab === "hms") {
       navigate("/HMSPatientOverview");
+    } else if (tab === "reference") {
+      navigate("/PatientOverview");
+       } else if (tab === "franchise") {
+      navigate("/FranchiseOverview");
     }
   };
 
@@ -612,63 +612,64 @@ const PatientOverview = () => {
   };
 
   const handleDispatch = async (patient) => {
-    try {
-      // Use the test_created_date field from the patient object
-      const createdDate = patient.test_created_date || new Date().toISOString();
+  try {
+    const response = await apiRequest(
+      `${Labbaseurl}update_dispatch_status/${patient.barcode}/`,
+      "PATCH",
+      {
+        // Remove created_date parameter - now updating all records with this barcode
+        // Only send auth-user-id if your backend expects it
+      },
+      {
+        "Content-Type": "application/json",
+      }
+    );
 
-      const response = await apiRequest(
-        `${Labbaseurl}update_dispatch_status/${patient.barcode}/`,
-        "PATCH",
-        {
-          created_date: createdDate, // Send the test_created_date as created_date parameter
-        },
-        {
-          "Content-Type": "application/json",
-        }
+    if (response.success) {
+      // Show detailed success message with counts
+      const message = response.data.documents_updated 
+        ? `Dispatch updated successfully for Patient: ${patient.barcode}\nUpdated ${response.data.unique_testnames_processed} unique testname(s) in ${response.data.documents_updated} document(s) with ${response.data.total_tests_updated} test(s)`
+        : `Dispatch updated for Patient: ${patient.barcode}`;
+      
+      toast.success(message);
+
+      // Refresh the data
+      const formattedStartDate = startDate.toISOString().split("T")[0];
+      const formattedEndDate = endDate.toISOString().split("T")[0];
+
+      const reportResponse = await apiRequest(
+        `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`,
+        "GET"
       );
 
-      if (response.success) {
-        toast.success(
-          `Dispatch updated successfully for Patient: ${patient.barcode}`
-        );
+      if (reportResponse.success) {
+        setPatients(reportResponse.data);
+        setFilteredPatients(reportResponse.data);
 
-        // Refresh the data
-        const formattedStartDate = startDate.toISOString().split("T")[0];
-        const formattedEndDate = endDate.toISOString().split("T")[0];
-
-        const reportResponse = await apiRequest(
-          `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`,
-          "GET"
-        );
-
-        if (reportResponse.success) {
-          setPatients(reportResponse.data);
-          setFilteredPatients(reportResponse.data);
-
-          // Update the statuses as well
-          const statusMap = {};
-          reportResponse.data.forEach((p) => {
-            statusMap[p.patient_id] = {
-              status: p.status,
-              barcode: p.barcode,
-            };
-          });
-          setStatuses(statusMap);
-        } else {
-          toast.error("Failed to refresh patient data");
-        }
+        // Update the statuses as well
+        const statusMap = {};
+        reportResponse.data.forEach((p) => {
+          statusMap[p.patient_id] = {
+            status: p.status,
+            barcode: p.barcode,
+          };
+        });
+        setStatuses(statusMap);
       } else {
-        toast.error(
-          `Failed to update dispatch status for Patient: ${patient.patient_name} - ${response.error}`
-        );
+        toast.error("Failed to refresh patient data");
       }
-    } catch (error) {
-      console.error("Error updating dispatch status:", error);
+    } else {
       toast.error(
-        `Failed to update dispatch status for Patient: ${patient.patient_name}`
+        `Failed to update dispatch status for Patient: ${patient.patient_name} - ${response.error}`
       );
     }
-  };
+  } catch (error) {
+    console.error("Error updating dispatch status:", error);
+    toast.error(
+      `Failed to update dispatch status for Patient: ${patient.patient_name}`
+    );
+  }
+};
 
   const handleWhatsAppShare = async (patient) => {
     if (!patient || !patient.phone) {

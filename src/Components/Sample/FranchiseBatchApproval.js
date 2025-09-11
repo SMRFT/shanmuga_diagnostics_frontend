@@ -20,6 +20,9 @@ import {
   FileText,
   XCircle,
   MessageSquare,
+  Activity,
+  AlertCircle,
+  Tag,
 } from "lucide-react";
 
 const GlobalStyle = createGlobalStyle`
@@ -438,6 +441,24 @@ const ActionButton = styled.button`
       background: rgba(239, 68, 68, 0.2);
     }
   `
+      : props.variant === "success"
+      ? `
+    background: rgba(34, 197, 94, 0.1);
+    color: #059669;
+    
+    &:hover:not(:disabled) {
+      background: rgba(34, 197, 94, 0.2);
+    }
+  `
+      : props.variant === "secondary"
+      ? `
+    background: rgba(156, 163, 175, 0.1);
+    color: #6b7280;
+    
+    &:hover:not(:disabled) {
+      background: rgba(156, 163, 175, 0.2);
+    }
+  `
       : `
     background: rgba(156, 163, 175, 0.1);
     color: #6b7280;
@@ -537,7 +558,7 @@ const ModalContent = styled.div`
   background: white;
   border-radius: 20px;
   width: 100%;
-  max-width: 800px;
+  max-width: 1200px;
   max-height: 90vh;
   overflow-y: auto;
   animation: ${fadeIn} 0.3s ease-out;
@@ -585,6 +606,20 @@ const ModalBody = styled.div`
 
   @media (max-width: 768px) {
     padding: 1.5rem;
+  }
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #f3f4f6;
+  background: #f9fafb;
+
+  @media (max-width: 768px) {
+    padding: 1rem 1.5rem;
+    flex-direction: column;
   }
 `;
 
@@ -681,6 +716,84 @@ const SuccessMessage = styled.div`
   text-align: center;
 `;
 
+const PatientInfoCard = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 12px;
+`;
+
+const PatientInfoItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+`;
+
+const PatientInfoLabel = styled.span`
+  font-weight: 600;
+  color: #6b7280;
+`;
+
+const PatientInfoValue = styled.span`
+  color: #1f2937;
+`;
+
+const Select = styled.select`
+  width: fit-content;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background-color: white;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+`;
+
+const SampleStatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 20px;
+
+  ${(props) =>
+    props.status === "Transferred" &&
+    `
+    background: rgba(245, 158, 11, 0.2);
+    color: #d97706;
+  `}
+
+  ${(props) =>
+    props.status === "Received" &&
+    `
+    background: rgba(34, 197, 94, 0.2);
+    color: #059669;
+  `}
+  
+  ${(props) =>
+    props.status === "Rejected" &&
+    `
+    background: rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+  `}
+  
+  ${(props) =>
+    props.status === "Outsource" &&
+    `
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+  `}
+`;
+
 const RemarkModal = styled(Modal)``;
 
 const RemarkModalContent = styled(ModalContent)`
@@ -697,12 +810,19 @@ const FranchiseBatchApproval = () => {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showRemarkModal, setShowRemarkModal] = useState(false);
+  const [showSampleDetails, setShowSampleDetails] = useState(false);
+  const [sampleData, setSampleData] = useState(null);
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const [statusChanges, setStatusChanges] = useState({});
+  const [remarks, setRemarks] = useState({});
+  const [savedTests, setSavedTests] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [processingBatch, setProcessingBatch] = useState(null);
   const [rejectionRemark, setRejectionRemark] = useState("");
   const [currentAction, setCurrentAction] = useState(null);
   const navigate = useNavigate();
+  const storedName = localStorage.getItem("name");
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -751,6 +871,152 @@ const FranchiseBatchApproval = () => {
     }
   };
 
+  // Fetch sample details for a specific batch
+  const fetchSampleDetails = async (batchNumber) => {
+  setSampleLoading(true);
+  setError(""); // Clear previous errors
+  
+  try {
+    console.log('Fetching sample details for batch:', batchNumber);
+    
+    const result = await apiRequest(
+      `${Labbaseurl}get_franchise_Transferred/${batchNumber}/`,
+      "GET"
+    );
+
+    console.log('Sample details API result:', result);
+
+    if (result.success) {
+      // Handle both array and object responses
+      let samples = [];
+      if (result.data) {
+        if (Array.isArray(result.data)) {
+          samples = result.data;
+        } else if (result.data.data && Array.isArray(result.data.data)) {
+          samples = result.data.data;
+        } else if (typeof result.data === 'object') {
+          samples = [result.data];
+        }
+      }
+      
+      console.log('Processed samples:', samples);
+      setSampleData(samples);
+      
+      if (samples.length === 0) {
+        setError("No samples found for this batch");
+      }
+    } else {
+      setError(result.error || "Failed to fetch sample details");
+      setSampleData([]);
+    }
+  } catch (error) {
+    console.error("Error fetching sample details:", error);
+    setError("Failed to fetch sample details. Please try again.");
+    setSampleData([]);
+  } finally {
+    setSampleLoading(false);
+  }
+};
+
+  const handleStatusChange = (sampleIndex, testIndex, newStatus) => {
+    const key = `${sampleIndex}-${testIndex}`;
+    setStatusChanges((prev) => ({
+      ...prev,
+      [key]: newStatus,
+    }));
+
+    if (newStatus !== "Rejected") {
+      setRemarks((prev) => {
+        const updatedRemarks = { ...prev };
+        if (updatedRemarks[key]) {
+          delete updatedRemarks[key];
+        }
+        return updatedRemarks;
+      });
+    }
+  };
+
+  const handleRemarksChange = (sampleIndex, testIndex, value) => {
+    const key = `${sampleIndex}-${testIndex}`;
+    setRemarks((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const updateTestStatus = async (sampleIndex, testIndex) => {
+    if (!sampleData || !sampleData[sampleIndex]) return;
+
+    const key = `${sampleIndex}-${testIndex}`;
+    const updatedStatus = statusChanges[key];
+    const sample = sampleData[sampleIndex];
+    const testDetails = sample.testdetails[testIndex];
+    const updatedRemarks = remarks[key];
+
+    if (!updatedStatus) {
+      setError("Please select a status for the test before updating.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}update_franchise_sample/${sample.barcode}/`,
+        "PUT",
+        {
+          updates: [
+            {
+              test_id: testDetails.test_id,
+              testname: testDetails.testname,
+              samplestatus: updatedStatus,
+              remarks: updatedRemarks || null,
+              received_by: updatedStatus === "Received" ? storedName : null,
+              rejected_by: updatedStatus === "Rejected" ? storedName : null,
+              outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+              batch_number: sample.batch_number,
+            },
+          ],
+        }
+      );
+
+      if (response.success && response.status === 200) {
+        setSuccess("Sample status updated successfully!");
+        setTimeout(() => setSuccess(""), 3000);
+
+        setSavedTests((prev) => ({
+          ...prev,
+          [key]: true,
+        }));
+
+        // Update the local sampleData
+        setSampleData((prevData) => 
+          prevData.map((sampleItem, sIdx) =>
+            sIdx === sampleIndex
+              ? {
+                  ...sampleItem,
+                  testdetails: sampleItem.testdetails.map((detail, tIdx) =>
+                    tIdx === testIndex
+                      ? {
+                          ...detail,
+                          samplestatus: updatedStatus,
+                          remarks: updatedRemarks || null,
+                        }
+                      : detail
+                  ),
+                }
+              : sampleItem
+          )
+        );
+      } else {
+        setError(response.error || "Failed to update sample status");
+        setTimeout(() => setError(""), 3000);
+      }
+    } catch (err) {
+      setError("Failed to update sample status");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
   useEffect(() => {
     const filtered = batches.filter((batch) => {
       const searchFields = [
@@ -776,7 +1042,6 @@ const FranchiseBatchApproval = () => {
     setSuccess("");
 
     try {
-      // Make API request to update batch received status
       const result = await apiRequest(
         `${Labbaseurl}franchise-receive/${batchNumber}/`,
         "PATCH",
@@ -785,15 +1050,10 @@ const FranchiseBatchApproval = () => {
         }
       );
 
-      // Check if the request was successful
       if (!result.success) {
         throw new Error(result.error || `HTTP error! status: ${result.status}`);
       }
 
-      console.log("Success response:", result.data);
-
-      // Update the batch in the local state
-      // Make sure to match the correct field name from your MongoDB document
       setBatches((prev) =>
         prev.map((batch) =>
           batch.batch_number === batchNumber
@@ -801,24 +1061,24 @@ const FranchiseBatchApproval = () => {
                 ...batch,
                 received: true,
                 lastmodified_date: new Date().toISOString(),
-                lastmodified_by: "current_user", // You might want to get this from user context
+                lastmodified_by: "current_user",
               }
             : batch
         )
       );
 
-      // Show success messages
       setSuccess("Batch received successfully!");
       toast.success("Batch received successfully!");
 
-      // Navigate to next page after delay
+      // Close the modal after successful action
+      setShowDetails(false);
+      setSelectedBatch(null);
+
       setTimeout(() => {
-        navigate("/FranchiseSampleUpdate");
-      }, 1500);
+              }, 1500);
     } catch (error) {
       console.error("Error receiving batch:", error);
 
-      // Handle different types of errors
       let errorMessage = "An unexpected error occurred";
 
       if (error.message.includes("not found")) {
@@ -832,10 +1092,8 @@ const FranchiseBatchApproval = () => {
       setError(`Failed to receive batch: ${errorMessage}`);
       toast.error(`Failed to receive batch: ${errorMessage}`);
 
-      // Clear error after 5 seconds
       setTimeout(() => setError(""), 5000);
     } finally {
-      // Reset processing states
       setProcessingBatch(null);
       setCurrentAction(null);
     }
@@ -873,9 +1131,6 @@ const FranchiseBatchApproval = () => {
         throw new Error(result.error || `HTTP error! status: ${result.status}`);
       }
 
-      console.log("Success response:", result.data);
-
-      // Update the batch in the local state
       setBatches((prev) =>
         prev.map((batch) =>
           batch.batch_number === batchNumber
@@ -891,6 +1146,10 @@ const FranchiseBatchApproval = () => {
 
       setSuccess("Batch rejected successfully!");
       toast.success("Batch rejected successfully!");
+
+      // Close the detail modal after successful action
+      setShowDetails(false);
+      setSelectedBatch(null);
     } catch (error) {
       console.error("Error rejecting batch:", error);
       setError(`Failed to reject batch: ${error.message}`);
@@ -906,6 +1165,16 @@ const FranchiseBatchApproval = () => {
   const showBatchDetails = (batch) => {
     setSelectedBatch(batch);
     setShowDetails(true);
+  };
+
+  const showBatchSampleDetails = async (batch) => {
+    setSelectedBatch(batch);
+    setShowSampleDetails(true);
+    
+    // Fetch sample details for this batch
+    if (batch.batch_number) {
+      await fetchSampleDetails(batch.batch_number);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -930,6 +1199,53 @@ const FranchiseBatchApproval = () => {
     } else {
       return { status: "pending", text: "Pending" };
     }
+  };
+
+  const getSampleStatusBadge = (status) => {
+    switch (status) {
+      case "Transferred":
+        return (
+          <SampleStatusBadge status="Transferred">
+            <Clock size={12} /> Transferred
+          </SampleStatusBadge>
+        );
+      case "Received":
+        return (
+          <SampleStatusBadge status="Received">
+            <CheckCircle size={12} /> Received
+          </SampleStatusBadge>
+        );
+      case "Rejected":
+        return (
+          <SampleStatusBadge status="Rejected">
+            <X size={12} /> Rejected
+          </SampleStatusBadge>
+        );
+      case "Outsource":
+        return (
+          <SampleStatusBadge status="Outsource">
+            <Activity size={12} /> Outsourced
+          </SampleStatusBadge>
+        );
+      default:
+        return (
+          <SampleStatusBadge>
+            <Clock size={12} /> {status}
+          </SampleStatusBadge>
+        );
+    }
+  };
+
+  const closeModal = () => {
+    setShowDetails(false);
+    setShowSampleDetails(false);
+    setSelectedBatch(null);
+    setSampleData(null);
+    setStatusChanges({});
+    setRemarks({});
+    setSavedTests({});
+    setError("");
+    setSuccess("");
   };
 
   // Fetch batches when component mounts or when dates are initialized
@@ -1157,40 +1473,13 @@ const FranchiseBatchApproval = () => {
                               <Eye size={16} />
                               View Details
                             </ActionButton>
-                            {statusInfo.status === "pending" && (
-                              <>
-                                <ActionButton
-                                  variant="approve"
-                                  onClick={() =>
-                                    handleReceive(batch.batch_number)
-                                  }
-                                  disabled={
-                                    processingBatch === batch.batch_number
-                                  }
-                                >
-                                  <CheckCircle size={16} />
-                                  {processingBatch === batch.batch_number &&
-                                  currentAction?.type === "receive"
-                                    ? "Receiving..."
-                                    : "Receive"}
-                                </ActionButton>
-                                <ActionButton
-                                  variant="reject"
-                                  onClick={() =>
-                                    handleReject(batch.batch_number)
-                                  }
-                                  disabled={
-                                    processingBatch === batch.batch_number
-                                  }
-                                >
-                                  <XCircle size={16} />
-                                  {processingBatch === batch.batch_number &&
-                                  currentAction?.type === "reject"
-                                    ? "Rejecting..."
-                                    : "Reject"}
-                                </ActionButton>
-                              </>
-                            )}
+                            <ActionButton
+                              variant="view"
+                              onClick={() => showBatchSampleDetails(batch)}
+                            >
+                              <TestTube size={16} />
+                              View Samples
+                            </ActionButton>
                           </ActionButtonGroup>
                         </td>
                       </tr>
@@ -1207,11 +1496,25 @@ const FranchiseBatchApproval = () => {
               <ModalContent>
                 <ModalHeader>
                   <h2>Batch Details - #{selectedBatch.batch_number}</h2>
-                  <button onClick={() => setShowDetails(false)}>
+                  <button onClick={closeModal}>
                     <X size={24} />
                   </button>
                 </ModalHeader>
                 <ModalBody>
+                  {error && (
+                    <ErrorMessage>
+                      <AlertCircle size={16} />
+                      {error}
+                    </ErrorMessage>
+                  )}
+
+                  {success && (
+                    <SuccessMessage>
+                      <CheckCircle size={16} />
+                      {success}
+                    </SuccessMessage>
+                  )}
+
                   <DetailSection>
                     <h3>
                       <Package size={20} />
@@ -1322,9 +1625,270 @@ const FranchiseBatchApproval = () => {
                     </DetailGrid>
                   </DetailSection>
                 </ModalBody>
+                
+                {/* Modal Actions - Only show if status is pending */}
+                {getStatusInfo(selectedBatch).status === "pending" && (
+                  <ModalActions>
+                    <ActionButton
+                      variant="reject"
+                      onClick={() => handleReject(selectedBatch.batch_number)}
+                      disabled={processingBatch === selectedBatch.batch_number}
+                    >
+                      <XCircle size={16} />
+                      {processingBatch === selectedBatch.batch_number &&
+                      currentAction?.type === "reject"
+                        ? "Rejecting..."
+                        : "Reject Batch"}
+                    </ActionButton>
+                    <ActionButton
+                      variant="approve"
+                      onClick={() => handleReceive(selectedBatch.batch_number)}
+                      disabled={processingBatch === selectedBatch.batch_number}
+                    >
+                      <CheckCircle size={16} />
+                      {processingBatch === selectedBatch.batch_number &&
+                      currentAction?.type === "receive"
+                        ? "Receiving..."
+                        : "Receive Batch"}
+                    </ActionButton>
+                  </ModalActions>
+                )}
               </ModalContent>
             </Modal>
           )}
+
+          {/* Sample Details Modal */}
+         {/* Sample Details Modal */}
+{showSampleDetails && selectedBatch && (
+  <Modal>
+    <ModalContent>
+      <ModalHeader>
+        <h2>Sample Details - Batch #{selectedBatch.batch_number}</h2>
+        <button onClick={closeModal}>
+          <X size={24} />
+        </button>
+      </ModalHeader>
+      <ModalBody>
+        {error && (
+          <ErrorMessage>
+            <AlertCircle size={16} />
+            {error}
+          </ErrorMessage>
+        )}
+
+        {success && (
+          <SuccessMessage>
+            <CheckCircle size={16} />
+            {success}
+          </SuccessMessage>
+        )}
+
+        {sampleLoading ? (
+          <LoadingContainer>
+            <div className="spinner"></div>
+            <div className="text">Loading sample details...</div>
+          </LoadingContainer>
+        ) : sampleData && sampleData.length > 0 ? (
+          <>
+            <div style={{ marginBottom: "1rem", color: "#6b7280", fontSize: "1rem" }}>
+              Found {sampleData.length} samples in this batch
+            </div>
+            
+            {sampleData.map((sample, sampleIndex) => {
+              console.log('Rendering sample:', sample); // Debug log
+              return (
+                <div key={`sample-${sampleIndex}-${sample.barcode || sampleIndex}`} style={{ marginBottom: "3rem" }}>
+                  <PatientInfoCard>
+                    <PatientInfoItem>
+                      <User size={16} />
+                      <PatientInfoLabel>Patient:</PatientInfoLabel>
+                      <PatientInfoValue>
+                        {sample.patientname || 'N/A'}
+                      </PatientInfoValue>
+                    </PatientInfoItem>
+                    <PatientInfoItem>
+                      <Tag size={16} />
+                      <PatientInfoLabel>ID:</PatientInfoLabel>
+                      <PatientInfoValue>
+                        {sample.patient_id || 'N/A'}
+                      </PatientInfoValue>
+                    </PatientInfoItem>
+                    <PatientInfoItem>
+                      <Calendar size={16} />
+                      <PatientInfoLabel>Date:</PatientInfoLabel>
+                      <PatientInfoValue>
+                        {sample.date ? new Date(sample.date).toLocaleDateString("en-GB") : 'N/A'}
+                      </PatientInfoValue>
+                    </PatientInfoItem>
+                    <PatientInfoItem>
+                      <Tag size={16} />
+                      <PatientInfoLabel>Barcode:</PatientInfoLabel>
+                      <PatientInfoValue>{sample.barcode || 'N/A'}</PatientInfoValue>
+                    </PatientInfoItem>
+                    <PatientInfoItem>
+                      <User size={16} />
+                      <PatientInfoLabel>Age:</PatientInfoLabel>
+                      <PatientInfoValue>{sample.age || 'N/A'}</PatientInfoValue>
+                    </PatientInfoItem>
+                    <PatientInfoItem>
+                      <Tag size={16} />
+                      <PatientInfoLabel>From:</PatientInfoLabel>
+                      <PatientInfoValue>
+                        {sample.locationId || 'N/A'}
+                      </PatientInfoValue>
+                    </PatientInfoItem>
+                  </PatientInfoCard>
+
+                  {sample.testdetails && sample.testdetails.length > 0 ? (
+                    <TableContainer>
+                      <Table>
+                        <TableHeader>
+                          <tr>
+                            <th>Test Name</th>
+                            <th>Container Type</th>
+                            <th>Department</th>
+                            <th>Current Status</th>
+                            <th>Update Status</th>
+                            <th>Sample Collector</th>
+                            <th>Reason for Rejection</th>
+                            <th>Actions</th>
+                          </tr>
+                        </TableHeader>
+                        <TableBody>
+                          {sample.testdetails.map((detail, testIndex) => {
+                            const key = `${sampleIndex}-${testIndex}`;
+                            const isStatusRejected = statusChanges[key] === "Rejected";
+                            const isTestSaved = savedTests[key];
+                            
+                            return (
+                              <tr key={`test-${sampleIndex}-${testIndex}-${detail.test_id || testIndex}`}>
+                                <td style={{ fontWeight: '600' }}>
+                                  {detail.testname || 'N/A'}
+                                </td>
+                                <td>{detail.container || 'N/A'}</td>
+                                <td>{detail.department || 'N/A'}</td>
+                                <td>
+                                  {getSampleStatusBadge(detail.samplestatus || 'Unknown')}
+                                </td>
+                                <td>
+                                  <Select
+                                    value={statusChanges[key] || ""}
+                                    onChange={(e) =>
+                                      handleStatusChange(
+                                        sampleIndex,
+                                        testIndex,
+                                        e.target.value
+                                      )
+                                    }
+                                    disabled={isTestSaved}
+                                    style={{
+                                      backgroundColor: isTestSaved ? '#f3f4f6' : 'white',
+                                      cursor: isTestSaved ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    <option value="">Select New Status</option>
+                                    <option value="Received">Received</option>
+                                    <option value="Rejected">Rejected</option>
+                                    <option value="Outsource">Outsource</option>
+                                  </Select>
+                                </td>
+                                <td>{detail.samplecollector || 'N/A'}</td>
+                                <td>
+                                  {isStatusRejected && !isTestSaved && (
+                                    <TextArea
+                                      value={remarks[key] || ""}
+                                      onChange={(e) =>
+                                        handleRemarksChange(
+                                          sampleIndex,
+                                          testIndex,
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Enter rejection reason..."
+                                      style={{ minHeight: '60px' }}
+                                    />
+                                  )}
+                                  {detail.remarks && (
+                                    <div
+                                      style={{
+                                        fontSize: "0.8rem",
+                                        color: "#dc2626",
+                                        marginTop: "0.25rem",
+                                        fontStyle: "italic",
+                                        padding: "0.5rem",
+                                        backgroundColor: "#fef2f2",
+                                        borderRadius: "4px",
+                                        border: "1px solid #fecaca"
+                                      }}
+                                    >
+                                      <strong>Previous remarks:</strong> {detail.remarks}
+                                    </div>
+                                  )}
+                                </td>
+                                <td>
+                                  <ActionButton
+                                    variant={isTestSaved ? "secondary" : "success"}
+                                    onClick={() => updateTestStatus(sampleIndex, testIndex)}
+                                    disabled={isTestSaved || !statusChanges[key]}
+                                    title={
+                                      isTestSaved 
+                                        ? "Status already updated" 
+                                        : !statusChanges[key] 
+                                        ? "Please select a new status first" 
+                                        : "Click to update status"
+                                    }
+                                  >
+                                    {isTestSaved ? (
+                                      <>
+                                        <CheckCircle size={16} />
+                                        Updated
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Activity size={16} />
+                                        Update
+                                      </>
+                                    )}
+                                  </ActionButton>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  ) : (
+                    <div style={{ 
+                      padding: '2rem', 
+                      textAlign: 'center', 
+                      color: '#6b7280',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '12px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <TestTube size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
+                      <div>No test details found for this sample</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <EmptyState>
+            <AlertCircle size={48} color="#6b7280" />
+            <div className="title">No sample data found</div>
+            <div className="description">
+              {sampleData === null 
+                ? "Click 'View Samples' to load sample details for this batch."
+                : "No samples are available for this batch."}
+            </div>
+          </EmptyState>
+        )}
+      </ModalBody>
+    </ModalContent>
+  </Modal>
+)}
 
           {/* Rejection Remarks Modal */}
           {showRemarkModal && currentAction?.type === "reject" && (

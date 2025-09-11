@@ -417,7 +417,7 @@ function TestDetails() {
             test_id: test.test_id,
             department: test.department,
             NABL: test.NABL,
-            specimen_type: test.specimen_type || "N/A",
+            specimen_type: test.specimen_type || "",
             method: test.method,
             sample_status: test.sample_status,
             device_id: deviceId, // Keep device_id as separate property if needed for other logic
@@ -839,7 +839,7 @@ function TestDetails() {
                         <Label>Specimen Type</Label>
                         <Input
                           type="text"
-                          value={test.specimen_type || "N/A"}
+                          value={test.specimen_type || ""}
                           disabled
                         />
                       </FormGroup>
@@ -847,7 +847,7 @@ function TestDetails() {
                         <Label>Unit</Label>
                         <Input
                           type="text"
-                          value={test.unit || "N/A"}
+                          value={test.unit || ""}
                           disabled
                         />
                       </FormGroup>
@@ -855,7 +855,7 @@ function TestDetails() {
                         <Label>Reference Range</Label>
                         <Input
                           type="text"
-                          value={test.reference_range || "N/A"}
+                          value={test.reference_range || ""}
                           disabled
                         />
                       </FormGroup>
@@ -979,7 +979,7 @@ function TestDetails() {
                               <Label>Specimen Type</Label>
                               <Input
                                 type="text"
-                                value={test.specimen_type || "N/A"}
+                                value={test.specimen_type || ""}
                                 disabled
                               />
                             </FormGroup>
@@ -1017,7 +1017,7 @@ function TestDetails() {
                               <Label>Unit</Label>
                               <Input
                                 type="text"
-                                value={param.unit || "N/A"}
+                                value={param.unit || ""}
                                 disabled
                               />
                             </FormGroup>
@@ -1025,7 +1025,7 @@ function TestDetails() {
                               <Label>Reference Range</Label>
                               <Input
                                 type="text"
-                                value={param.reference_range || "N/A"}
+                                value={param.reference_range || ""}
                                 disabled
                               />
                             </FormGroup>

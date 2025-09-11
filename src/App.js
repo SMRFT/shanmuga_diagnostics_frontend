@@ -24,11 +24,13 @@ import TestSorting from "./Components/Report/TestSorting";
 import PatientOverview from "./Components/Report/PatientOverview";
 import PatientOverallReport from "./Components/Finance/PatientOverallReport";
 import FranchiseOverview from "./Components/Report/FranchiseOverview";
-import FranchiseSampleUpdate from "./Components/Sample/FranchiseSampleUpdate";
 import FranchiseBatchApproval from "./Components/Sample/FranchiseBatchApproval";
 import FranchiseTestSorting from "./Components/Report/FranchiseTestSorting";
 import HMSTestSorting from "./Components/HMSReport/HMSTestSorting";
 import HMSPatientOverview from "./Components/HMSReport/HMSPatientOverview";
+import MIS from "./Components/MIS/MIS";
+import ShanmugaMIS from "./Components/MIS/ShanmugaMIS";
+import FranchiseMIS from "./Components/MIS/FranchiseMIS";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -223,12 +225,14 @@ function App() {
               path="/PatientOverallReport"
               element={<PatientOverallReport />}
             />
-          {/* Franchise Report */}
-            <Route path="/FranchiseSampleUpdate" element={<FranchiseSampleUpdate />} />
+          {/* Franchise Report */}            
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
             <Route path="/FranchiseTestSorting" element={<FranchiseTestSorting />} />
-
+          {/* MIS */}
+            <Route path="/MIS" element={<MIS/>} />
+            <Route path="/ShanmugaMIS" element={<ShanmugaMIS/>} />
+            <Route path="/FranchiseMIS" element={<FranchiseMIS/>} />
           </Routes>
         </ContentWrapper>
       )}

@@ -434,24 +434,24 @@ const FranchiseOverview = () => {
 
  // Set active tab based on current route
   useEffect(() => {
-    if (location.pathname === "/PatientOverview") {
-      setActiveTab("reference");
-    } else if (location.pathname === "/FranchiseOverview") {
-      setActiveTab("franchise");
-      } else if (location.pathname === "/HMSPatientOverview") {
+    if (location.pathname === "/HMSPatientOverview") {
       setActiveTab("hms");
+    } else if (location.pathname === "/PatientOverview") {
+      setActiveTab("reference");
+      } else if (location.pathname === "/FranchiseOverview") {
+      setActiveTab("franchise");
     }
   }, [location.pathname]);
 
   // Handle tab navigation
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === "reference") {
-      navigate("/PatientOverview");
-    } else if (tab === "franchise") {
-      navigate("/FranchiseOverview");
-       } else if (tab === "hms") {
+    if (tab === "hms") {
       navigate("/HMSPatientOverview");
+    } else if (tab === "reference") {
+      navigate("/PatientOverview");
+       } else if (tab === "franchise") {
+      navigate("/FranchiseOverview");
     }
   };
 
