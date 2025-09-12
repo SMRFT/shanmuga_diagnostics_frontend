@@ -33,6 +33,7 @@ import ShanmugaMIS from "./Components/MIS/ShanmugaMIS";
 import FranchiseMIS from "./Components/MIS/FranchiseMIS";
 import HMSBarcodeGeneration from "./Components/Barcode/HMSBarcodeGeneration";
 import HMSBarcodeTestDetails from "./Components/Barcode/HMSBarcodeTestDetails";
+import CorporateBatchApproval from "./Components/Sample/CorporateBatchApproval";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -234,6 +235,7 @@ function App() {
             />
           {/* Franchise Report */}            
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
+            <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
             <Route path="/FranchiseTestSorting" element={<FranchiseTestSorting />} />
           {/* MIS */}
