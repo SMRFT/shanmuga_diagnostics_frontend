@@ -376,7 +376,7 @@ const LogisticManagementApproval = () => {
   const [alert, setAlert] = useState({ message: "", type: "", visible: false })
   const [loading, setLoading] = useState(true)
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
-  const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "AIzaSyDjW5Ryg_Of6RG2kGxV85-voG2sXHq0XZk"
+  const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY
 
   // Enhanced tracking state
   const [isTracking, setIsTracking] = useState(() => {
