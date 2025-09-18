@@ -1,0 +1,83 @@
+.test-details-container {
+  max-width: 1100px;
+  padding: 30px;
+  background-color: #f4f6f9; /* Light background for the container */
+  border-radius: 12px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: "Arial", sans-serif;
+}
+.test-details-container h4 {
+  font-size: 1.5em;
+  color: #0178a1;
+  text-align: center;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+.no-data {
+  text-align: center;
+  font-size: 1.2em;
+  color: #888;
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+}
+.test-details-form {
+  display: flex;
+  flex-direction: column;
+}
+.test-info {
+  background-color: #eef2f5; /* Background color for test info */
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+}
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.form-group {
+  flex: 1;
+  min-width: 120px;
+}
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #0178a1; /* Label color matching the theme */
+}
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+}
+.readonly-field:disabled {
+  background-color: #f2f2f2; /* Light gray background */
+  border: 1px solid #ddd; /* Lighter border */
+  color: #777; /* Dimmed text color */
+  pointer-events: none; /* Prevent interaction */
+}
+.form-group input:focus {
+  border-color: #0178a1; /* Highlight border on focus */
+  outline: none;
+}
+.editable-field {
+  background-color: #ffffff; /* Editable fields remain white */
+}
+.readonly-field {
+  background-color: #f2f2f2; /* Readonly fields styled for clarity */
+  border: none;
+  color: #777;
+  font-weight: 500;
+  pointer-events: none;
+}
+.button-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
