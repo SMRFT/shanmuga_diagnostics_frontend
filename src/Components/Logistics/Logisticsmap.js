@@ -773,7 +773,7 @@ const LiveTrackingDashboard = () => {
 
   // Environment variables
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-  const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "AIzaSyDjW5Ryg_Of6RG2kGxV85-voG2sXHq0XZk";
+  const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY ;
 
   // Fetch tracking data
   const fetchCollectorsByDate = async (date) => {
