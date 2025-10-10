@@ -151,7 +151,7 @@ export default function TestSummary() {
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   // Fetch filtered data from API
   useEffect(() => {
     const params = {};
@@ -159,7 +159,7 @@ export default function TestSummary() {
     if (fromDate) params.from_date = fromDate;
     if (toDate) params.to_date = toDate;
 
-    axios.get("http://127.0.0.1:1071/_b_a_c_k_e_n_d/LIS/test-summary/", { params })
+    axios.get(`${Labbaseurl}test-summary/`, { params })
       .then(res => setData(res.data))
       .catch(err => console.error(err));
   }, [search, fromDate, toDate]);

@@ -7,8 +7,7 @@ import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
-import FranchiseTestSorting from "./FranchiseTestSorting";
-import PatientOverallReport from "../Finance/PatientOverallReport";
+import CorporateTestSorting from "./CorporateTestSorting";
 import {
   Calendar,
   Search,
@@ -25,9 +24,8 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { IoIosFemale, IoIosMale, IoMdClose } from "react-icons/io";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-// Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
 import Vijayan from "../Images/Vijayan.png";
@@ -315,16 +313,6 @@ const ActionButton = styled.button`
   }
 `;
 
-const CreditAmount = styled.span`
-  font-weight: 600;
-  color: var(--primary);
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 const GenderIcon = styled.div`
   display: inline-flex;
   align-items: center;
@@ -410,16 +398,18 @@ const NavigationTab = styled.button`
   }
 `;
 
-const FranchiseOverview = () => {
+const CorporatePatientOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
-  const [branch, setBranch] = useState("");
+  const [refByOptions, setRefByOptions] = useState([]);
+  const [barcode, setBarcode] = useState("");
   const [refBy, setRefBy] = useState("");
   const [patientId, setPatientId] = useState("");
+  const [IPNumber, setIPNumber] = useState("");
   const [patientName, setPatientName] = useState("");
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -432,28 +422,58 @@ const FranchiseOverview = () => {
   const [activeTab, setActiveTab] = useState("hms");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
- // Set active tab based on current route
-  useEffect(() => {
-    if (location.pathname === "/HMSPatientOverview") {
-      setActiveTab("hms");
-    } else if (location.pathname === "/PatientOverview") {
-      setActiveTab("reference");
-      } else if (location.pathname === "/FranchiseOverview") {
-      setActiveTab("franchise");
-    }
-  }, [location.pathname]);
+   // Set active tab based on current route
+    useEffect(() => {
+      if (location.pathname === "/HMSPatientOverview") {
+        setActiveTab("hms");
+      } else if (location.pathname === "/PatientOverview") {
+        setActiveTab("reference");
+        } else if (location.pathname === "/FranchiseOverview") {
+        setActiveTab("franchise");
+      }else if (location.pathname === "/CorporateOverview") {
+        setActiveTab("corporate");
+      }
+    }, [location.pathname]);
+  
+    // Handle tab navigation
+    const handleTabChange = (tab) => {
+      setActiveTab(tab);
+      if (tab === "hms") {
+        navigate("/HMSPatientOverview");
+      } else if (tab === "reference") {
+        navigate("/PatientOverview");
+         } else if (tab === "franchise") {
+        navigate("/FranchiseOverview");
+      }
+      else if (tab === "corporate") {
+        navigate("/CorporateOverview");
+      }
+    };
 
-  // Handle tab navigation
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === "hms") {
-      navigate("/HMSPatientOverview");
-    } else if (tab === "reference") {
-      navigate("/PatientOverview");
-       } else if (tab === "franchise") {
-      navigate("/FranchiseOverview");
-    }
-  };
+  // Fetch Refby
+  useEffect(() => {
+    const fetchRefby = async () => {
+      console.log("Fetching Refby from:", `${Labbaseurl}refby/`);
+      const result = await apiRequest(`${Labbaseurl}refby/`, "GET");
+
+      if (result.success) {
+        setRefByOptions(result.data);
+      } else {
+        console.error(
+          "Error fetching Refby:",
+          result.error,
+          "Status:",
+          result.status
+        );
+        setError("Failed to load referral options");
+        toast.error(result.error || "Failed to load referral options");
+      }
+    };
+
+    fetchRefby();
+  }, []);
+
+  
 
   // Fetch patients when component mounts
   useEffect(() => {
@@ -462,52 +482,31 @@ const FranchiseOverview = () => {
       const formattedStartDate = startDate.toISOString().split("T")[0];
       const formattedEndDate = endDate.toISOString().split("T")[0];
 
-      try {
-        const response = await apiRequest(
-          `${Labbaseurl}franchise_overall_report/`,
-          "GET",
-          null,
-          {},
-          {
-            params: {
-              from_date: formattedStartDate,
-              to_date: formattedEndDate,
-            },
-          }
-        );
+      const url = `${Labbaseurl}corporate_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
 
-        if (response.success) {
-          const patientData = response.data;
+      const result = await apiRequest(url, "GET");
 
-          // Set the full and filtered patient list
-          setPatients(patientData);
-          setFilteredPatients(patientData);
+      if (result.success) {
+        const patientData = result.data;
 
-          // Optional: extract and store status/barcode mappings if needed separately
-          const statusMap = {};
-          patientData.forEach((patient) => {
-            statusMap[patient.patient_id] = {
-              status: patient.status,
-              barcode: patient.barcode,
-            };
-          });
-          setStatuses(statusMap); // if you're maintaining a separate `statuses` state
-        } else {
-          console.error("API Error:", response.error);
-          setError(response.error || "Failed to load patient data");
+        // Set the full and filtered patient list
+        setPatients(patientData);
+        setFilteredPatients(patientData);
 
-          // Optional: Show toast notification
-          toast.error(response.error || "Failed to load patient data");
-        }
-      } catch (error) {
-        console.error("Unexpected error in fetchCombinedPatientData:", error);
-        setError("An unexpected error occurred");
-
-        // Optional: Show toast notification
-        toast.error("An unexpected error occurred");
-      } finally {
-        setLoading(false);
+        const statusMap = {};
+        patientData.forEach((patient) => {
+          statusMap[patient.patient_id] = {
+            status: patient.status,
+            barcode: patient.barcode,
+          };
+        });
+        setStatuses(statusMap);
+      } else {
+        console.error("Error fetching combined patient data:", result.error);
+        setError("Failed to load patient data");
       }
+
+      setLoading(false);
     };
 
     if (startDate && endDate) {
@@ -526,211 +525,47 @@ const FranchiseOverview = () => {
     status === "Dispatched";
   const isDispatchEnabled = (status) => status === "Approved";
 
-  // Filter patients based on multiple criteria
   useEffect(() => {
-    const startOfDay = new Date(startDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(endDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    const filtered = patients.filter((patient) => {
-      const patientDate = new Date(patient.date);
-      const patientStatus = statuses[patient.patient_id]?.status || "";
-      return (
-        patientDate >= startOfDay &&
-        patientDate <= endOfDay &&
-        (!branch || patient.branch === branch) &&
-        (!refBy || patient.refby === refBy) &&
-        (!patientId || patient.patient_id.includes(patientId)) &&
-        (!patientName ||
-          patient.patient_name
-            ?.toLowerCase()
-            .includes(patientName.toLowerCase())) &&
-        (!statusFilter || patientStatus === statusFilter)
-      );
-    });
-    setFilteredPatients(filtered);
-  }, [
-    startDate,
+     const startOfDay = new Date(startDate);
+     startOfDay.setHours(0, 0, 0, 0);
+     const endOfDay = new Date(endDate);
+     endOfDay.setHours(23, 59, 59, 999);
+     const filtered = patients.filter((patient) => {
+       const patientDate = new Date(patient.date);
+       const patientStatus = statuses[patient.patient_id]?.status || '';
+       return (
+         patientDate >= startOfDay &&
+         patientDate <= endOfDay &&        
+         (!refBy || patient.refby === refBy) &&
+         (!patientId || patient.patient_id.includes(patientId)) &&
+         (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
+         (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
+         (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
+         (!statusFilter || patientStatus === statusFilter)
+       );
+     });
+     setFilteredPatients(filtered);
+   }, [startDate,
     endDate,
-    patients,
-    branch,
+    patients,    
     refBy,
     patientId,
+    barcode,
+    IPNumber,
     patientName,
     statusFilter,
-    statuses,
-  ]);
+    statuses,]);
   // Update the clearFilters function to reset the status filter
   const clearFilters = () => {
     setStartDate(new Date());
-    setEndDate(new Date());
-    setBranch("");
+    setEndDate(new Date());    
+    setBarcode("");
     setRefBy("");
     setPatientId("");
+    setIPNumber("");
     setPatientName("");
     setStatusFilter("");
     setFilteredPatients(patients);
-  };
-
-  const handleDispatch = async (patient) => {
-    try {
-      const response = await axios.patch(
-        `${Labbaseurl}update_dispatch_status/${patient.patient_id}/`
-      );
-
-      if (response.status === 200) {
-        alert(
-          `Dispatch updated successfully for Patient: ${patient.patient_name}`
-        );
-        // Refresh the data
-        const formattedStartDate = startDate.toISOString().split("T")[0];
-        const formattedEndDate = endDate.toISOString().split("T")[0];
-
-        axios
-          .get(`${Labbaseurl}overall_report/`, {
-            params: {
-              from_date: formattedStartDate,
-              to_date: formattedEndDate,
-            },
-          })
-          .then((response) => {
-            setPatients(response.data);
-            setFilteredPatients(response.data);
-          });
-      }
-    } catch (error) {
-      console.error("Error updating dispatch status:", error);
-      alert(
-        `Failed to update dispatch status for Patient: ${patient.patientname}`
-      );
-    }
-  };
-  const handleWhatsAppShare = async (patient) => {
-    // console.log("handleWhatsAppShare called with patient:", patient);
-
-    if (!patient || !patient.phone) {
-      toast.error("Patient phone number is missing");
-      return;
-    }
-
-    // Ensure phone number starts with +91
-    let phoneNumber = patient.phone.startsWith("+91")
-      ? patient.phone
-      : `+91${patient.phone}`;
-    // console.log("Updated Phone Number:", phoneNumber);
-
-    try {
-      // console.log("Uploading PDF...");
-
-      // **Open a blank tab first (avoids popup blocking)**
-      const whatsappWindow = window.open("about:blank", "_blank");
-
-      // Generate the PDF file
-      const pdfBlob = await handlePrint(patient, true);
-      if (!pdfBlob) {
-        toast.error("Failed to generate the PDF");
-        return;
-      }
-
-      // Prepare FormData for file upload
-      const formData = new FormData();
-      formData.append(
-        "file",
-        new File(
-          [pdfBlob],
-          `${patient.patient_name || "Patient"}_TestDetails.pdf`,
-          {
-            type: "application/pdf",
-          }
-        )
-      );
-
-      // Upload PDF file
-      const uploadResponse = await axios.post(
-        `${Labbaseurl}upload-pdf/`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
-      // Get the uploaded file URL
-      const fileUrl = uploadResponse.data.file_url;
-      if (!fileUrl) {
-        toast.error("File upload failed");
-        return;
-      }
-
-      // **Formatted WhatsApp Message**
-      const labName = "Shanmuga Diagnostic"; // Replace with actual lab name
-      const labPhone = "+91 98765 43210"; // Replace with actual lab contact number
-      const address = "24, Saratha Clg Rd, Salem, PIN-636007"; // Replace with actual address
-      const footerNote = "_For any queries, please contact our lab._"; // Italicized message for support
-
-      const message = encodeURIComponent(
-        `🧪 *${labName}* 🏥\n` +
-          `📍 *Address:* ${address}\n` +
-          `📞 *Contact:* ${labPhone}\n\n` +
-          `👤 *Patient Name:* ${patient.patient_name || "N/A"}\n` +
-          `🆔 *Patient ID:* ${patient.patient_id || "N/A"}\n\n` +
-          `📝 *Test Details:*\n` +
-          `📄 Your test report is ready!\n` +
-          `🔗 *Download Report:* ${fileUrl}\n\n` +
-          `${footerNote}`
-      );
-
-      // **Generate the final WhatsApp Web URL**
-      const finalWhatsAppUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
-      // console.log("Opening WhatsApp Web:", finalWhatsAppUrl);
-
-      // **Update the previously opened tab with the WhatsApp Web URL**
-      if (whatsappWindow) {
-        whatsappWindow.location.href = finalWhatsAppUrl;
-      } else {
-        window.open(finalWhatsAppUrl, "_blank");
-      }
-
-      toast.success("WhatsApp message sent successfully!");
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to share via WhatsApp.");
-    }
-  };
-
-  const handleSendEmail = async (patient) => {
-    try {
-      const pdfBlob = await handlePrint(patient, true); // Generate PDF with letterpad
-      if (!pdfBlob) {
-        toast.error(":x: Failed to generate the PDF.");
-        return;
-      }
-      if (!patient.email) {
-        toast.warning(":warning: Patient email is missing.");
-        return;
-      }
-      const formData = new FormData();
-      formData.append("subject", `Test Details for ${patient.patient_name}`);
-      formData.append(
-        "message",
-        `Dear ${
-          patient.patient_name || "Recipient"
-        },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
-          patient.patient_name || "the patient"
-        }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
-      );
-      formData.append("recipients", patient.email);
-      formData.append(
-        "attachments",
-        new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
-          type: "application/pdf",
-        })
-      );
-      await axios.post(`${Labbaseurl}send-email/`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success(":white_check_mark: Email sent successfully!");
-    } catch (error) {
-      console.error("Error sending email:", error);
-      toast.error(":x: Failed to send email.");
-    }
   };
 
   const handlePrint = async (patient, withLetterpad = true) => {
@@ -739,7 +574,7 @@ const FranchiseOverview = () => {
 
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
-        `${Labbaseurl}franchise_patient_test_details/?barcode=${patient.barcode}`,
+        `${Labbaseurl}corporate_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
       );
 
@@ -835,7 +670,7 @@ const FranchiseOverview = () => {
       const consultants = [
         ["Dr. S. Brindha M.D.", "Consultant Pathologist"],
         ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. R. VIJAYAN Ph.D.", "Consultant Biochemist", Vijayan],
+        ["Dr. R. Vijayan Ph.D.", "Consultant Biochemist", Vijayan],
       ];
 
       const patientRefNo =
@@ -883,20 +718,18 @@ const FranchiseOverview = () => {
 
       // Patient information (left and right sides)
       const leftDetails = [
-        { label: "Reg.ID", value: patientDetails.patient_id || "N/A" },
+        { label: "UHID", value: patientDetails.patient_id || "N/A" },
         {
           label: "Name",
           value: patientDetails.patientname || "No name provided",
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} / ${
+          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${
             patientDetails.gender || "N/A"
           }`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
-        { label: "Branch", value: patientDetails.branch || "N/A" },
-        { label: "Source", value: patientDetails.B2B || "N/A" },
       ];
 
       const rightDetails = [
@@ -989,6 +822,7 @@ const FranchiseOverview = () => {
 
         return patientInfoY;
       };
+      
 
       // Function to add header and footer with consistent positioning
       const addHeaderFooter = () => {
@@ -1143,32 +977,36 @@ const FranchiseOverview = () => {
 
       // Function to check if we need to add a new page with consistent calculations
       const checkForNewPage = (yPos, estimatedHeight) => {
-        const pageHeight = doc.internal.pageSize.height;
-        // Use consistent footer space calculation for both versions
-        const footerStart =
-          pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12); // Added extra space
+  const pageHeight = doc.internal.pageSize.height;
+  // Use consistent footer space calculation for both versions
+  const footerStart =
+    pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12); // Added extra space
 
-        // If content is approaching footer, move to a new page
-        if (yPos + estimatedHeight >= footerStart) {
-          // Add signatures to current page before creating new page
-          addSignatures();
+  // If content is approaching footer, move to a new page
+  if (yPos + estimatedHeight >= footerStart) {
+    // Add signatures to current page before creating new page
+    addSignatures();
 
-          doc.addPage();
-          pageCount++;
-          addHeaderFooter(); // Add header/footer
+    doc.addPage();
+    pageCount++;
+    addHeaderFooter(); // Add header/footer
 
-          let newYPos = contentYStart;
-          newYPos = addPatientInfo(newYPos); // Add patient info on new page
+    let newYPos = contentYStart;
+    newYPos = addPatientInfo(newYPos); // Add patient info on new page
+    
+    // ADD THIS LINE: Add extra space after patient info on new pages too
+    newYPos += 10; // Same spacing as first page
 
-          // If we're in the table section, add table header on new page
-          if (isTableStarted) {
-            newYPos = drawTableHeader(newYPos);
-          }
+    // If we're in the table section, add table header on new page
+    if (isTableStarted) {
+      newYPos = drawTableHeader(newYPos);
+    }
 
-          return newYPos; // Reset Y position for new page
-        }
-        return yPos;
-      };
+    return newYPos; // Reset Y position for new page
+  }
+  return yPos;
+};
+
 
       // Function to determine whether a value is high or low compared to reference range
       const getHighLowStatus = (value, reference) => {
@@ -1221,6 +1059,7 @@ const FranchiseOverview = () => {
 
       // Use addPatientInfo function
       let currentYPosition = addPatientInfo(contentYStart);
+      currentYPosition += 10; 
 
       // Test rendering logic with better page break handling and consistent alignment
       if (patientDetails.testdetails.length) {
@@ -1296,11 +1135,9 @@ const FranchiseOverview = () => {
                 doc.setFont("helvetica", "normal"); // Normal for parameters
               }
 
-              // Test Description with * for NABL tests
+              // Test Description - removed NABL * logic
               const testNameText =
-                index === 0 && currentTest.NABL
-                  ? `${currentTest.testname}*`
-                  : index === 0
+                index === 0
                   ? currentTest.testname
                   : `${currentTest.name}`;
               const testNameHeight = wrapText(
@@ -1453,18 +1290,6 @@ const FranchiseOverview = () => {
       // Use this function before adding final content
       currentYPosition = ensureSpaceForFooter(currentYPosition);
 
-      // Check for NABL tests
-      const hasNABLTests = patientDetails.testdetails.some(
-        (test) => test.NABL === true
-      );
-
-      if (hasNABLTests) {
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text("*Test under NABL Scope", leftMargin, currentYPosition);
-        currentYPosition += 5;
-      }
-
       // End of report - Center within content margins
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
@@ -1485,7 +1310,7 @@ const FranchiseOverview = () => {
 
         // Calculate position below signatures consistently
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 10;
+        const pageNumberY = pageHeight - footerHeight - 5;
 
         // Add the page number centered below signatures
         doc.setFont("helvetica", "normal");
@@ -1552,6 +1377,10 @@ const FranchiseOverview = () => {
       case "Collected":
         return "#007BFF"; // Blue for Collected
       case "Partially Collected":
+        return "#c24296ff"; // Yellow for Partially Collected
+      case "Transferred":
+        return "#c681b0ff"; // Blue for Collected
+      case "Partially Transferred":
         return "#FFC107"; // Yellow for Partially Collected
       case "Received":
         return "#28A745"; // Green for Received
@@ -1562,13 +1391,13 @@ const FranchiseOverview = () => {
       case "Partially Tested":
         return "#FFA500"; // Orange for Partially Tested
       case "Approved":
-        return "#00C851"; // Bright Green for Approved
+        return "#a5633aff"; // Bright Green for Approved
       case "Partially Approved":
         return "#FFBB33"; // Light Orange for Partially Approved
       case "Dispatched":
-        return "#808080"; // Grey for Dispatched
+        return "#2a6e19ff"; // Grey for Dispatched
       default:
-        return "#6C757D"; // Default Gray
+        return "#0f999eff"; // Default Gray
     }
   };
 
@@ -1604,24 +1433,11 @@ const FranchiseOverview = () => {
               Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
-          <Title>Franchise Patient Status</Title>
+          <Title>CHC Status</Title>
         </CardHeader>
 
         <FiltersContainer>
           <FilterRow>
-            <FilterGroup>
-              <FilterLabel>Branch</FilterLabel>
-              <FilterSelect
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-              >
-                <option value="">Select a Branch</option>
-                <option value="Shanmuga Reference Lab">
-                  Shanmuga Reference Lab
-                </option>
-              </FilterSelect>
-            </FilterGroup>
-
             <FilterGroup>
               <FilterLabel>Start Date</FilterLabel>
               <FilterInput
@@ -1638,23 +1454,33 @@ const FranchiseOverview = () => {
                 value={endDate.toISOString().split("T")[0]}
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
-            </FilterGroup>
-
+            </FilterGroup>           
+                      
             <FilterGroup>
-              <FilterLabel>Patient ID</FilterLabel>
+              <FilterLabel>Employee ID</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter patient ID"
+                placeholder="Enter Employee ID"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
+              />
+            
+            </FilterGroup>
+            <FilterGroup>
+              <FilterLabel>Barcode</FilterLabel>
+              <FilterInput
+                type="text"
+                placeholder="Enter Barcode"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
               />
             </FilterGroup>
 
             <FilterGroup>
-              <FilterLabel>Patient Name</FilterLabel>
+              <FilterLabel>Employee Name</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter patient name"
+                placeholder="Enter employee name"
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
               />
@@ -1669,6 +1495,8 @@ const FranchiseOverview = () => {
                 <option value="Registered">Registered</option>
                 <option value="Collected">Collected</option>
                 <option value="Partially Collected">Partially Collected</option>
+                <option value="Transferred">Transferred</option>
+                <option value="Partially Transferred">Partially Transferred</option>
                 <option value="Received">Received</option>
                 <option value="Partially Received">Partially Received</option>
                 <option value="Tested">Tested</option>
@@ -1693,13 +1521,10 @@ const FranchiseOverview = () => {
             <TableHead>
               <tr>
                 <th>Date</th>
-                <th>Patient ID</th>
+                <th>Employee ID</th>
                 <th>Barcode</th>
-                <th>Patient Name</th>
-                <th>Franchise ID</th>
-                <th>Referral</th>
+                <th>Employee Name</th> 
                 <th>Status</th>
-                <th>Credit</th>
                 <th>Actions</th>
               </tr>
             </TableHead>
@@ -1757,16 +1582,9 @@ const FranchiseOverview = () => {
                           {patient.patient_name}
                         </div>
                       </td>
-                      <td>{patient.branch || "N/A"}</td>
-                      <td>{patient.refby || "N/A"}</td>
                       <td>
                         <Badge color={badgeColor}>{status}</Badge>
-                      </td>
-                      <td>
-                        <CreditAmount onClick={() => openModal(patient)}>
-                          {patient.credit_amount || "0"}
-                        </CreditAmount>
-                      </td>
+                      </td>                      
                       <td>
                         <ActionContainer>
                           <ActionButton
@@ -1810,35 +1628,6 @@ const FranchiseOverview = () => {
                               </DropdownMenu>
                             )}
                           </PrintDropdown>
-
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleWhatsAppShare(patient)
-                            }
-                            title="Share via WhatsApp"
-                          >
-                            <MessageCircle size={16} />
-                          </ActionButton>
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleSendEmail(patient)
-                            }
-                            title="Send Email"
-                          >
-                            <Mail size={16} />
-                          </ActionButton>
-
-                          <ActionButton
-                            disabled={!isDispatchEnabledFlag}
-                            onClick={() =>
-                              isDispatchEnabledFlag && handleDispatch(patient)
-                            }
-                            title="Dispatch"
-                          >
-                            <Flag size={16} />
-                          </ActionButton>
                         </ActionContainer>
                       </td>
                     </tr>
@@ -1858,7 +1647,7 @@ const FranchiseOverview = () => {
 
       {/* Test Sorting Modal */}
       {isTestModalOpen && (
-        <FranchiseTestSorting
+        <CorporateTestSorting
           patient={selectedPatient}
           onClose={() => setIsTestModalOpen(false)}
         />
@@ -1917,15 +1706,11 @@ const FranchiseOverview = () => {
               alignItems: "center",
             }}
           >
-            <PatientOverallReport
-              patient_id={selectedPatient.patient_id}
-              date={selectedPatient.date}
-            />
-          </div>
+                     </div>
         )}
       </Modal>
     </Container>
   );
 };
 
-export default FranchiseOverview;
+export default CorporatePatientOverview;

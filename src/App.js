@@ -34,13 +34,11 @@ import SalesVisitLog from "./Components/Sales/Salesvisitlog";
 import ShanmugaMIS from "./Components/Mis/ShanmugaMIS";
 import MIS from "./Components/Mis/MIS";
 import FranchiseMIS from "./Components/Mis/FranchiseMIS";
-
+import CorporateOverview from "./Components/Corparate/CorporatePatientOverview";
+import CorporateTestSorting from "./Components/Corparate/CorporateTestSorting";
 import Testcount from "./Components/Report/Testcount";
-
-
 import HmsBilling from "./Components/HMS/HmsBilling";
 import Hmssamplestatus from "./Components/HMS/Hmssamplestatus";
-
 import HmsSampleStatusUpdate from "./Components/HMS/HmsSampleStatusUpdate";
 import HMSBarcodeGeneration from "./Components/HMS/HMSBarcodeGeneration";
 import HMSBarcodeTestDetails from "./Components/HMS/HMSBarcodeTestDetails";
@@ -48,6 +46,11 @@ import HMSPatientDetails from "./Components/HMS/HMSPatientDetails";
 import HmsTestDetails from "./Components/HMS/HmsTestDetails";
 import PrintBill from "./Components/Patients/PrintBill";
 import Logisticsmap from "./Components/Logistics/Logisticsmap";
+import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
+import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
+import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
+import CHCReport from "./Components/Report/CHCReport";
+
 
 
 
@@ -216,8 +219,8 @@ const navigateRole = (userRole) => {
             {/* Test Approval */}
             <Route path="/PatientList" element={<PatientList />} />
             <Route path="/DoctorForm" element={<DoctorForm />} />
-
-
+            
+            {/* Sales */}
             <Route path="/SalesVisit" element={<SalesVisitLog />} />
 
             {/* Diagnostics Report */}
@@ -225,19 +228,30 @@ const navigateRole = (userRole) => {
             <Route path="/Testcount" element={<Testcount />} />     
             <Route path="/TestSorting" element={<TestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
-
-          {/* Franchise Report */}            
+            <Route path="/Batchapproval" element={<CorporateBatchApproval />} />
+          {/* Franchise Report */}
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
+            <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
             <Route path="/FranchiseTestSorting" element={<FranchiseTestSorting />} />
+          {/* Corporate Report */}
+            <Route path="/CorporateOverview" element={<CorporateOverview />} />
+            <Route path="/CHCReport" element={<CHCReport />} />
+
+            <Route path="/CorporateTestSorting" element={<CorporateTestSorting />} />
+
 
           {/* MIS */}
             <Route path="/MIS" element={<MIS/>} />
             <Route path="/ShanmugaMIS" element={<ShanmugaMIS/>} />
             <Route path="/FranchiseMIS" element={<FranchiseMIS/>} />
 
-
+          {/* Logistics */}
+            <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval/>} />
+            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin/>} />  // was missing import of
             <Route path="/LogisticMap" element={<Logisticsmap/>} />
+
+
 
           {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling/>} />
