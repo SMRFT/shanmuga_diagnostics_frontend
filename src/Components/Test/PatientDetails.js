@@ -452,11 +452,15 @@ const PatientDetails = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   // Handle barcode from navigation state
-  useEffect(() => {
-    if (location.state?.barcode) {
-      setSearchQuery(location.state.barcode);
-    }
-  }, [location.state]);
+useEffect(() => {
+  if (location.state?.barcode) {
+    setSearchQuery(location.state.barcode);
+  }
+  if (location.state?.date) {
+    setFromDate(new Date(location.state.date));  // ensure proper Date object
+  }
+}, [location.state]);
+
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
@@ -492,25 +496,37 @@ const PatientDetails = () => {
     fetchPatientDetails();
   }, [fromDate, toDate]);
 
-  const handlePatientClick = (
-    patientId,
-    patientname,
-    age,
-    barcode,
-    franchise_id,
-    testName,
-    patientDate // Add patientDate as a parameter
-  ) => {
-    // Use the individual patient's date instead of fromDate
-    const formattedPatientDate = format(new Date(patientDate), "yyyy-MM-dd");
-    const encodedTestName = encodeURIComponent(testName);
-    const encodedBarcode = encodeURIComponent(barcode);
-    navigate(
-      `/TestDetails?date=${formattedPatientDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
-        franchise_id || "Shanmuga Referrence Lab"
-      }&test_name=${encodedTestName}`
-    );
-  };
+const handlePatientClick = (
+  patientId,
+  patientname,
+  age,
+  barcode,
+  franchise_id,
+  testName,
+  patientDate,
+  createdDate,
+  created_date
+) => {
+  const formattedPatientDate = patientDate
+    ? format(new Date(patientDate), "yyyy-MM-dd")
+    : "";
+  
+  const rawCreated = createdDate || created_date || "";
+  const formattedCreatedDate = rawCreated
+    ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd")
+    : "";
+
+  const encodedTestName = encodeURIComponent(testName || "");
+  const encodedBarcode = encodeURIComponent(barcode || "");
+
+  navigate(
+    `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
+      franchise_id || "Shanmuga Referrence Lab"
+    }&test_name=${encodedTestName}`
+  );
+};
+
+
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -636,14 +652,16 @@ const PatientDetails = () => {
                 {filteredPatients.map((patient, index) => {
                   return (
                     <Tr key={index}>
-                      <Td>
-                        <PatientInfo>
-                          <Calendar size={14} />
-                          {patient.date
-                            ? format(new Date(patient.date), "MMM dd, yyyy")
-                            : "N/A"}
-                        </PatientInfo>
-                      </Td>
+<Td>
+  <PatientInfo>
+    <Calendar size={14} />
+    {patient.date
+      ? format(new Date(patient.date), "MMM dd, yyyy")
+      : patient.created_date
+      ? format(new Date(patient.created_date), "MMM dd, yyyy")
+      : "N/A"}
+  </PatientInfo>
+</Td>
                       <Td>
                         <div
                           style={{

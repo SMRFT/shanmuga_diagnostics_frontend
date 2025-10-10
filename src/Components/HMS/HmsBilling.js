@@ -484,7 +484,7 @@ const HmsBilling = () => {
 const [formData, setFormData] = useState({
   patient_id: "",
   ipnumber: "",
-  salutation: "",   // added field
+  salutation: "Mr",   // added field
   patientname: "",
   age: "",
   age_type: "years",

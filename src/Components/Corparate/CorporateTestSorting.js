@@ -284,7 +284,7 @@ const PrintOption = styled.div`
 `;
 
 // **Main Component**
-const HMSTestSorting = ({ patient, onClose }) => {
+const CorporateTestSorting = ({ patient, onClose }) => {
   const [tests, setTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
   const [selectAllChecked, setSelectAllChecked] = useState(false);
@@ -365,7 +365,7 @@ const handlePrint = async (withLetterpad) => {
  try {
  console.log("Fetching patient details for barcode:", patient.barcode);
  const response = await apiRequest(
- `${Labbaseurl}get_hms_patient_test_details/?barcode=${patient.barcode}`,
+ `${Labbaseurl}corporate_patient_test_details/?barcode=${patient.barcode}`,
  "GET"
  );
 
@@ -475,7 +475,7 @@ const handlePrint = async (withLetterpad) => {
  const contentWidth = rightMargin - leftMargin;
  const headerHeight = 30;
  const footerHeight = 20;
- const contentYStart = headerHeight + 25;
+ const contentYStart = headerHeight + 15;
  const signatureHeight = 25;
  const disclaimerHeight = 0;
  const tableHeaderHeight = 10;
@@ -599,7 +599,7 @@ const handlePrint = async (withLetterpad) => {
  headerImage,
  "PNG",
  0,
- 10,
+ 5,
  doc.internal.pageSize.width,
  headerHeight
  );
@@ -1090,4 +1090,4 @@ const handlePrint = async (withLetterpad) => {
   );
 };
 
-export default HMSTestSorting;
+export default CorporateTestSorting;

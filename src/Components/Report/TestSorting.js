@@ -476,7 +476,7 @@ const handlePrint = async (withLetterpad) => {
     const contentWidth = rightMargin - leftMargin;
     const headerHeight = 30;
     const footerHeight = 20;
-    const contentYStart = headerHeight + 15;
+    const contentYStart = headerHeight + 20;
     const signatureHeight = 25;
     const disclaimerHeight = 0;
     const tableHeaderHeight = 10;
@@ -602,7 +602,7 @@ const handlePrint = async (withLetterpad) => {
           headerImage,
           "PNG",
           0,
-          5,
+          10,
           doc.internal.pageSize.width,
           headerHeight
         );
@@ -949,7 +949,7 @@ const handlePrint = async (withLetterpad) => {
     for (let i = 1; i <= finalPageCount; i++) {
       doc.setPage(i);
       const pageHeight = doc.internal.pageSize.height;
-      const pageNumberY = pageHeight - footerHeight - 5;
+      const pageNumberY = pageHeight - footerHeight - 10;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       const centerX = leftMargin + contentWidth / 2;
