@@ -445,6 +445,8 @@ const PatientOverview = () => {
       setActiveTab("reference");
       } else if (location.pathname === "/FranchiseOverview") {
       setActiveTab("franchise");
+    }else if (location.pathname === "/CorporateOverview") {
+      setActiveTab("corporate");
     }
   }, [location.pathname]);
 
@@ -457,6 +459,8 @@ const PatientOverview = () => {
       navigate("/PatientOverview");
        } else if (tab === "franchise") {
       navigate("/FranchiseOverview");
+    }else if (tab === "corporate") {
+      navigate("/CorporateOverview");
     }
   };
 
@@ -559,44 +563,29 @@ const PatientOverview = () => {
     status === "Dispatched";
   const isDispatchEnabled = (status) => status === "Approved";
 
-  // Filter patients based on multiple criteria
-  useEffect(() => {
-    const startOfDay = new Date(startDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(endDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    const filtered = patients.filter((patient) => {
-      const patientDate = new Date(patient.date);
-      const patientStatus = statuses[patient.patient_id]?.status || "";
-      return (
-        patientDate >= startOfDay &&
-        patientDate <= endOfDay &&
-        (!branch || patient.branch === branch) &&
-        (!barcode || patient.barcode === barcode) &&
-        (!B2B || patient.b2b === B2B) &&
-        (!refBy || patient.refby === refBy) &&
-        (!patientId || patient.patient_id.includes(patientId)) &&
-        (!patientName ||
-          patient.patient_name
-            ?.toLowerCase()
-            .includes(patientName.toLowerCase())) &&
-        (!statusFilter || patientStatus === statusFilter)
-      );
-    });
-    setFilteredPatients(filtered);
-  }, [
-    startDate,
-    endDate,
-    patients,
-    branch,
-    barcode,
-    B2B,
-    refBy,
-    patientId,
-    patientName,
-    statusFilter,
-    statuses,
-  ]);
+   // Filter patients based on multiple criteria
+ useEffect(() => {
+   const startOfDay = new Date(startDate);
+   startOfDay.setHours(0, 0, 0, 0);
+   const endOfDay = new Date(endDate);
+   endOfDay.setHours(23, 59, 59, 999);
+   const filtered = patients.filter((patient) => {
+     const patientDate = new Date(patient.date);
+     const patientStatus = statuses[patient.patient_id]?.status || '';
+     return (
+       patientDate >= startOfDay &&
+       patientDate <= endOfDay &&
+       (!branch || patient.b2b === branch) &&
+       (!B2B || patient.b2b === B2B) &&
+       (!refBy || patient.refby === refBy) &&
+       (!patientId || patient.patient_id.includes(patientId)) &&
+       (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
+       (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
+       (!statusFilter || patientStatus === statusFilter)
+     );
+   });
+   setFilteredPatients(filtered);
+ }, [startDate, endDate, patients, branch, B2B, refBy, patientId,barcode, patientName, statusFilter, statuses]);
   // Update the clearFilters function to reset the status filter
   const clearFilters = () => {
     setStartDate(new Date());
@@ -909,7 +898,7 @@ const handleWhatsAppShare = async (patient) => {
       // FIXED: Consistent header and footer heights regardless of letterpad
       const headerHeight = 30; // Always reserve space for header
       const footerHeight = 20; // Always reserve space for footer
-      const contentYStart = headerHeight + 15; // Start content below the header area
+      const contentYStart = headerHeight + 20; // Start content below the header area
       const signatureHeight = 25; // Height needed for signatures
       const disclaimerHeight = 0; // No disclaimer needed
       const tableHeaderHeight = 10; // Height needed for table header
@@ -1040,7 +1029,7 @@ const handleWhatsAppShare = async (patient) => {
             headerImage,
             "PNG",
             0,
-            5,
+            10,
             doc.internal.pageSize.width,
             headerHeight
           );
@@ -1513,7 +1502,7 @@ const handleWhatsAppShare = async (patient) => {
 
         // Calculate position below signatures consistently
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 5;
+        const pageNumberY = pageHeight - footerHeight - 10;
 
         // Add the page number centered below signatures
         doc.setFont("helvetica", "normal");
@@ -1625,6 +1614,12 @@ const handleWhatsAppShare = async (patient) => {
               onClick={() => handleTabChange("franchise")}
             >
               Franchise
+            </NavigationTab>
+             <NavigationTab
+              active={activeTab === "corporate"}
+              onClick={() => handleTabChange("corporate")}
+            >
+              Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
           <Title>Diagnostics Patient Status</Title>

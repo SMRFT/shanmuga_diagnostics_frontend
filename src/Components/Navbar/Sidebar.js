@@ -398,7 +398,6 @@ const Sidebar = () => {
            </>
           )}
 
-          
           {role === "Sample Collector" && (
             <>
               <DropdownHeader
@@ -451,6 +450,56 @@ const Sidebar = () => {
 
           {role === "Technician" && (
             <>
+            <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink
+                  to="/PatientBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Diagnostics Billing
+                </SubLink>
+                <SubLink
+                  to="/HmsBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  HMS Billing
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader
+                isOpen={dropdowns.barcodeDetails}
+                onClick={() => toggleDropdown("barcodeDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink
+                  to="/HMSBarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  HMS Barcode
+                </SubLink>
+              </DropdownContent>
+
               <DropdownHeader
                 isOpen={dropdowns.sampleDetails}
                 onClick={() => toggleDropdown("sampleDetails")}
@@ -473,12 +522,27 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
+             <DropdownContent isOpen={dropdowns.sampleDetails}>
+                <SubLink
+                  to="/Hmssamplestatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Hms Sample Collection
+                </SubLink>
+              </DropdownContent>
+
               <DropdownContent isOpen={dropdowns.sampleDetails}>
                 <SubLink
                   to="/HmsSampleStatusUpdate"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Hms Sample Accessioning
+                </SubLink>
+                                                <SubLink
+                  to="/Batchapproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Batch Apporval
                 </SubLink>
               </DropdownContent>
 
@@ -500,17 +564,9 @@ const Sidebar = () => {
                   to="/PatientDetails"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Diagnostics Report Generation
+                  Report Generation
                 </SubLink>
-              </DropdownContent>
 
-              <DropdownContent isOpen={dropdowns.reportDetails}>
-                <SubLink
-                  to="/HMSPatientDetails"
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  Hms Report Generation
-                </SubLink>
               </DropdownContent>
 
               <SidebarNavLink
@@ -522,7 +578,26 @@ const Sidebar = () => {
                 </IconWrapper>
                  Diagnostics Report Dashboard
               </SidebarNavLink>
+                                <SidebarNavLink
+                to="/CHCReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                  Corporate Health Report
+              </SidebarNavLink>          
+              <SidebarNavLink
+                to="/MIS"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                MIS Report
+              </SidebarNavLink>
             </>
+            
           )}
 
           {role === "Doctor" && (
@@ -542,6 +617,15 @@ const Sidebar = () => {
 
               <DropdownContent isOpen={dropdowns.reportDetails}>
                 <SubLink
+                  to="/PatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Report Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownContent isOpen={dropdowns.reportDetails}>
+                <SubLink
                   to="/PatientList"
                   onClick={() => setIsSidebarOpen(false)}
                 >
@@ -557,6 +641,24 @@ const Sidebar = () => {
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
+              </SidebarNavLink>
+                                              <SidebarNavLink
+                to="/CHCReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                  Corporate Health Report
+              </SidebarNavLink>   
+                            <SidebarNavLink
+                to="/MIS"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                MIS Report
               </SidebarNavLink>
             </>
           )}

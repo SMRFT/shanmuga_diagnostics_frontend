@@ -338,19 +338,22 @@ function TestDetails() {
   const verified_by = localStorage.getItem("name") || "";
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  const fetchTestDetails = async (
-    barcode,
-    deviceId = null,
-    testName = null
-  ) => {
+  const fetchTestDetails = async (barcode, deviceId = null, testName = null) => {
     try {
       setLoading(true);
       setError(null);
 
-      let queryParams = `barcode=${barcode}`;
+      // Build query parameters - IMPORTANT: Include test_name for filtering
+      let queryParams = `barcode=${encodeURIComponent(barcode)}`;
       if (deviceId) {
-        queryParams += `&device_id=${deviceId}`;
+        queryParams += `&device_id=${encodeURIComponent(deviceId)}`;
       }
+      // ADD TEST NAME FILTER TO API CALL
+      if (testName) {
+        queryParams += `&test_name=${encodeURIComponent(testName)}`;
+      }
+
+      console.log(`DEBUG: Fetching test details with query: ${queryParams}`);
 
       const response = await apiRequest(
         `${Labbaseurl}compare_test_details/?${queryParams}`,
@@ -367,6 +370,12 @@ function TestDetails() {
       if (!actualResponse.success) {
         throw new Error(actualResponse.error || "Failed to fetch test details");
       }
+
+      // Log filtering information
+      if (actualResponse.filtered_by_test) {
+        console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
+      }
+
       if (
         actualResponse.processed_records &&
         Array.isArray(actualResponse.processed_records)
@@ -400,9 +409,13 @@ function TestDetails() {
         return;
       }
 
+      // The backend now does the filtering, so we don't need to filter again here
+      // But we can add an extra safety check
       const filteredTests = testName
         ? allTests.filter((test) => test.testname === testName)
         : allTests;
+
+      console.log(`DEBUG: Processing ${filteredTests.length} tests after filtering`);
 
       const groupedTests = filteredTests.reduce((acc, test) => {
         const testName = test.testname;
@@ -411,8 +424,7 @@ function TestDetails() {
 
         if (!acc[groupKey]) {
           acc[groupKey] = {
-            // Remove device ID from displayed test name
-            testname: testName, // Just use the original test name without device ID
+            testname: testName,
             originalTestname: testName,
             test_id: test.test_id,
             department: test.department,
@@ -420,7 +432,7 @@ function TestDetails() {
             specimen_type: test.specimen_type || "",
             method: test.method,
             sample_status: test.sample_status,
-            device_id: deviceId, // Keep device_id as separate property if needed for other logic
+            device_id: deviceId,
             parameters: [],
           };
         }
@@ -456,7 +468,7 @@ function TestDetails() {
 
       let tempValues = {};
       let tempEditMode = {};
-      let tempInitialValues = {}; // Track initial values
+      let tempInitialValues = {};
 
       transformedTests.forEach((test) => {
         if (test.parameters && test.parameters.length > 0) {
@@ -465,19 +477,19 @@ function TestDetails() {
             const uniqueKey = `${test.testname}_${paramName}`;
             const paramValue = param.value || "";
             tempValues[uniqueKey] = paramValue;
-            tempInitialValues[uniqueKey] = paramValue; // Store initial value
+            tempInitialValues[uniqueKey] = paramValue;
           });
         } else {
           const testValue = test.test_value || "";
           tempValues[test.testname] = testValue;
           tempEditMode[test.testname] = false;
-          tempInitialValues[test.testname] = testValue; // Store initial value
+          tempInitialValues[test.testname] = testValue;
         }
       });
 
       setValues(tempValues);
       setEditMode(tempEditMode);
-      setInitialValues(tempInitialValues); // Set initial values
+      setInitialValues(tempInitialValues);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching test details:", error);
@@ -488,8 +500,10 @@ function TestDetails() {
 
   useEffect(() => {
     if (barcode && testName) {
+      // Pass the specific test name to fetch only that test's data
       fetchTestDetails(barcode, null, testName);
     } else if (barcode) {
+      // Fallback to all tests if no specific test name
       fetchTestDetails(barcode);
     } else {
       setError("No barcode provided");
@@ -733,9 +747,9 @@ function TestDetails() {
       alert("An error occurred while saving test details. Please try again.");
     }
   };
-  const handleBack = () => {
-    navigate("/PatientDetails", { state: { barcode } });
-  };
+const handleBack = () => {
+  navigate("/PatientDetails", { state: { barcode, date } });
+};
 
   if (loading) {
     return (
