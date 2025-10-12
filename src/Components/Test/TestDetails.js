@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
-import { ArrowLeft, Save, Edit } from "lucide-react";
+import { ArrowLeft, Save, Edit, ChevronDown } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
 // Global styles
@@ -39,7 +39,7 @@ const GlobalStyle = createGlobalStyle`
   }
 `;
 
-// Styled components (keeping your existing styles)
+// Styled components
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
@@ -312,6 +312,62 @@ const RemarksSection = styled.div`
   border-top: 1px solid var(--gray-light);
 `;
 
+const SubtitleSection = styled.div`
+  margin-bottom: 2rem;
+  &:last-child { margin-bottom: 0; }
+`;
+
+const SubtitleHeader = styled.div`
+  background: linear-gradient(135deg, var(--secondary), var(--primary));
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const ParameterGrid = styled.div`
+  display: grid;
+  gap: 1rem;
+`;
+
+const SelectWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  padding-right: 2.5rem;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+  appearance: none;
+  background-color: white;
+  cursor: pointer;
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+  }
+  &:disabled {
+    background-color: var(--gray-light);
+    cursor: not-allowed;
+  }
+`;
+
+const SelectIcon = styled(ChevronDown)`
+  position: absolute;
+  right: 0.75rem;
+  pointer-events: none;
+  color: var(--gray);
+`;
+
 function TestDetails() {
   const [testDetails, setTestDetails] = useState([]);
   const [values, setValues] = useState({});
@@ -322,7 +378,7 @@ function TestDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [patientName, setPatientName] = useState("");
-  const [initialValues, setInitialValues] = useState({}); // Track initial values from API
+  const [initialValues, setInitialValues] = useState({});
   const [processedRecords, setProcessedRecords] = useState([]);
 
   const location = useLocation();
@@ -343,12 +399,10 @@ function TestDetails() {
       setLoading(true);
       setError(null);
 
-      // Build query parameters - IMPORTANT: Include test_name for filtering
       let queryParams = `barcode=${encodeURIComponent(barcode)}`;
       if (deviceId) {
         queryParams += `&device_id=${encodeURIComponent(deviceId)}`;
       }
-      // ADD TEST NAME FILTER TO API CALL
       if (testName) {
         queryParams += `&test_name=${encodeURIComponent(testName)}`;
       }
@@ -371,7 +425,6 @@ function TestDetails() {
         throw new Error(actualResponse.error || "Failed to fetch test details");
       }
 
-      // Log filtering information
       if (actualResponse.filtered_by_test) {
         console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
       }
@@ -409,21 +462,17 @@ function TestDetails() {
         return;
       }
 
-      // The backend now does the filtering, so we don't need to filter again here
-      // But we can add an extra safety check
-      const filteredTests = testName
-        ? allTests.filter((test) => test.testname === testName)
+      // FIX: Define filteredTests properly
+      const filteredTests = testName 
+        ? allTests.filter(test => test.testname === testName)
         : allTests;
 
-      console.log(`DEBUG: Processing ${filteredTests.length} tests after filtering`);
+      const groupedTests = {};
 
-      const groupedTests = filteredTests.reduce((acc, test) => {
+      filteredTests.forEach((test) => {
         const testName = test.testname;
-        const deviceId = test.device_id || "";
-        const groupKey = `${testName}_${deviceId}`;
-
-        if (!acc[groupKey]) {
-          acc[groupKey] = {
+        if (!groupedTests[testName]) {
+          groupedTests[testName] = {
             testname: testName,
             originalTestname: testName,
             test_id: test.test_id,
@@ -432,8 +481,8 @@ function TestDetails() {
             specimen_type: test.specimen_type || "",
             method: test.method,
             sample_status: test.sample_status,
-            device_id: deviceId,
-            parameters: [],
+            device_id: test.device_id || "",
+            parametersBySubtitle: {},
           };
         }
 
@@ -442,7 +491,12 @@ function TestDetails() {
           test.parameter_name !== null &&
           test.parameter_name !== "N/A"
         ) {
-          acc[groupKey].parameters.push({
+          const subtitle = test.sub_title || "";
+          if (!groupedTests[testName].parametersBySubtitle[subtitle]) {
+            groupedTests[testName].parametersBySubtitle[subtitle] = [];
+          }
+
+          groupedTests[testName].parametersBySubtitle[subtitle].push({
             name: test.parameter_name,
             test_name: test.parameter_name,
             test_code: test.test_code,
@@ -450,18 +504,18 @@ function TestDetails() {
             reference_range: test.reference_range,
             method: test.method,
             value: test.test_value,
+            value_option: test.value_option || [],
+            sub_title: subtitle,
             processing_status: test.processing_status,
           });
         } else if (!test.parameter_name || test.parameter_name === null) {
-          acc[groupKey].unit = test.unit;
-          acc[groupKey].reference_range = test.reference_range;
-          acc[groupKey].test_value = test.test_value;
-          acc[groupKey].test_code = test.test_code;
-          acc[groupKey].processing_status = test.processing_status;
+          groupedTests[testName].unit = test.unit;
+          groupedTests[testName].reference_range = test.reference_range;
+          groupedTests[testName].test_value = test.test_value;
+          groupedTests[testName].test_code = test.test_code;
+          groupedTests[testName].processing_status = test.processing_status;
         }
-
-        return acc;
-      }, {});
+      });
 
       const transformedTests = Object.values(groupedTests);
       setTestDetails(transformedTests);
@@ -471,8 +525,8 @@ function TestDetails() {
       let tempInitialValues = {};
 
       transformedTests.forEach((test) => {
-        if (test.parameters && test.parameters.length > 0) {
-          test.parameters.forEach((param) => {
+        if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
+          Object.values(test.parametersBySubtitle).flat().forEach((param) => {
             const paramName = param.name || param.test_name;
             const uniqueKey = `${test.testname}_${paramName}`;
             const paramValue = param.value || "";
@@ -500,10 +554,8 @@ function TestDetails() {
 
   useEffect(() => {
     if (barcode && testName) {
-      // Pass the specific test name to fetch only that test's data
       fetchTestDetails(barcode, null, testName);
     } else if (barcode) {
-      // Fallback to all tests if no specific test name
       fetchTestDetails(barcode);
     } else {
       setError("No barcode provided");
@@ -550,18 +602,15 @@ function TestDetails() {
     setParameterEditMode(!parameterEditMode);
   };
 
-  // Updated save button validation - all values must be filled and remarks required for edited fields
   const isSaveButtonEnabled = () => {
-    // Check if all required values are filled
     let allValuesFilled = true;
     let remarksRequiredForEditedFields = true;
 
     testDetails.forEach((test) => {
-      if (test.parameters && test.parameters.length > 0) {
-        // For parameterized tests, check each parameter value
+      if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
         let hasEditedParameters = false;
 
-        test.parameters.forEach((param) => {
+        Object.values(test.parametersBySubtitle).flat().forEach((param) => {
           const paramName = param.name || param.test_name;
           const uniqueKey = `${test.testname}_${paramName}`;
           const paramValue = values[uniqueKey];
@@ -571,7 +620,6 @@ function TestDetails() {
             allValuesFilled = false;
           }
 
-          // Check if this parameter was edited (initially empty and now has value)
           if (
             (!initialValue || initialValue.trim() === "") &&
             paramValue &&
@@ -581,7 +629,6 @@ function TestDetails() {
           }
         });
 
-        // If any parameters were edited, parameter remarks are required
         if (
           hasEditedParameters &&
           (!parameterRemarks || parameterRemarks.trim() === "")
@@ -589,7 +636,6 @@ function TestDetails() {
           remarksRequiredForEditedFields = false;
         }
       } else {
-        // For non-parameterized tests, check the test value
         const testValue = values[test.testname];
         const initialValue = initialValues[test.testname];
 
@@ -597,7 +643,6 @@ function TestDetails() {
           allValuesFilled = false;
         }
 
-        // Check if this test was edited and remarks are required
         if (
           (!initialValue || initialValue.trim() === "") &&
           testValue &&
@@ -627,11 +672,10 @@ function TestDetails() {
 
       testDetails.forEach((test) => {
         if (
-          test.parameters &&
-          Array.isArray(test.parameters) &&
-          test.parameters.length > 0
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
         ) {
-          test.parameters.forEach((param) => {
+          Object.values(test.parametersBySubtitle).flat().forEach((param) => {
             const paramName = param.name || param.test_name;
             const uniqueKey = `${test.testname}_${paramName}`;
             const paramValue = values[uniqueKey];
@@ -664,10 +708,26 @@ function TestDetails() {
 
       const testDetailsData = testDetails.map((test) => {
         if (
-          test.parameters &&
-          Array.isArray(test.parameters) &&
-          test.parameters.length > 0
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
         ) {
+          const parameters = [];
+          Object.entries(test.parametersBySubtitle).forEach(([subtitle, params]) => {
+            params.forEach((param) => {
+              const paramName = param.name || param.test_name;
+              const uniqueKey = `${test.testname}_${paramName}`;
+              parameters.push({
+                name: paramName,
+                value: values[uniqueKey] || "",
+                unit: param.unit || "",
+                specimen_type: test.specimen_type || "",
+                reference_range: param.reference_range || "",
+                method: param.method || "",
+                sub_title: subtitle,
+              });
+            });
+          });
+
           return {
             testname: test.testname,
             rerun: parameterEditMode ? false : test.rerun,
@@ -679,18 +739,7 @@ function TestDetails() {
             NABL: test.NABL || "",
             remarks: parameterRemarks || "",
             verified_by: verified_by,
-            parameters: test.parameters.map((param) => {
-              const paramName = param.name || param.test_name;
-              const uniqueKey = `${test.testname}_${paramName}`;
-              return {
-                name: paramName,
-                value: values[uniqueKey] || "",
-                unit: param.unit || "",
-                specimen_type: test.specimen_type || "",
-                reference_range: param.reference_range || "",
-                method: param.method || "",
-              };
-            }),
+            parameters: parameters,
           };
         } else {
           return {
@@ -747,9 +796,10 @@ function TestDetails() {
       alert("An error occurred while saving test details. Please try again.");
     }
   };
-const handleBack = () => {
-  navigate("/PatientDetails", { state: { barcode, date } });
-};
+
+  const handleBack = () => {
+    navigate("/PatientDetails", { state: { barcode } });
+  };
 
   if (loading) {
     return (
@@ -843,10 +893,8 @@ const handleBack = () => {
             <TestCard key={index}>
               <TestHeader>{test.testname}</TestHeader>
               <TestContent>
-                {/* Test without parameters */}
-                {!test.parameters ||
-                !Array.isArray(test.parameters) ||
-                test.parameters.length === 0 ? (
+                {!test.parametersBySubtitle ||
+                Object.keys(test.parametersBySubtitle).length === 0 ? (
                   <>
                     <FormRow>
                       <FormGroup>
@@ -897,7 +945,6 @@ const handleBack = () => {
                       </FormGroup>
                     </FormRow>
 
-                    {/* Show remarks section if value was edited (initially empty and now has value) */}
                     {(!initialValues[test.testname] ||
                       initialValues[test.testname].trim() === "") &&
                       values[test.testname] &&
@@ -925,127 +972,112 @@ const handleBack = () => {
                           </FormGroup>
                         </RemarksSection>
                       )}
-
-                    <FormRow>
-                      <FormGroup style={{ alignSelf: "flex-end" }}>
-                        {/* <EditButton
-                          type="button"
-                          onClick={() => toggleEditMode(test.testname)}
-                        >
-                          <Edit size={16} />
-                          {editMode[test.testname] ? "Cancel Edit" : "Edit"}
-                        </EditButton> */}
-                      </FormGroup>
-                    </FormRow>
-
-                    {editMode[test.testname] && (
-                      <RemarksSection>
-                        <FormGroup>
-                          <Label>Remarks</Label>
-                          <TextArea
-                            value={remarks[test.testname] || ""}
-                            onChange={(e) =>
-                              handleRemarksChange(test.testname, e)
-                            }
-                            placeholder="Enter remarks"
-                          />
-                        </FormGroup>
-                      </RemarksSection>
-                    )}
                   </>
                 ) : (
-                  /* Test with parameters */
                   <ParameterSection>
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        marginBottom: "1rem",
+                        marginBottom: "1.5rem",
                       }}
                     >
                       <ParameterTitle>
-                        Parameters ({test.parameters.length})
+                        Parameters ({Object.values(test.parametersBySubtitle).flat().length})
                       </ParameterTitle>
                     </div>
 
-                    {test.parameters.map((param, paramIndex) => {
-                      const paramName = param.name || param.test_name;
-                      const uniqueKey = `${test.testname}_${paramName}`;
+                    <FormRow style={{ marginBottom: "1.5rem" }}>
+                      <FormGroup>
+                        <Label>Specimen Type</Label>
+                        <Input type="text" value={test.specimen_type || ""} disabled />
+                      </FormGroup>
+                      <FormGroup>
+                        <Label>Department</Label>
+                        <Input type="text" value={test.department || ""} disabled />
+                      </FormGroup>
+                      <FormGroup>
+                        <Label>NABL</Label>
+                        <Input type="text" value={test.NABL ? "Yes" : "No"} disabled />
+                      </FormGroup>
+                    </FormRow>
 
-                      return (
-                        <ParameterCard key={`${uniqueKey}-${paramIndex}`}>
-                          <FormRow>
-                            <FormGroup>
-                              <Label>Parameter Name</Label>
-                              <WrappedInput
-                                as="textarea"
-                                value={paramName}
-                                disabled
-                                style={{ resize: "none" }}
-                              />
-                            </FormGroup>
-                            <FormGroup>
-                              <Label>Specimen Type</Label>
-                              <Input
-                                type="text"
-                                value={test.specimen_type || ""}
-                                disabled
-                              />
-                            </FormGroup>
+                    {Object.entries(test.parametersBySubtitle).map(([subtitle, parameters], subtitleIndex) => (
+                      <SubtitleSection key={subtitleIndex}>
+                        <SubtitleHeader>{subtitle}</SubtitleHeader>
+                        <ParameterGrid>
+                          {parameters.map((param, paramIndex) => {
+                            const paramName = param.name || param.test_name;
+                            const uniqueKey = `${test.testname}_${paramName}`;
+                            const hasValueOptions = param.value_option && param.value_option.length > 0;
+                            const isDisabled = initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
 
-                            <FormGroup>
-                              <Label>Value</Label>
-                              <Input
-                                type="text"
-                                value={values[uniqueKey] || ""}
-                                onChange={
-                                  !initialValues[uniqueKey] ||
-                                  initialValues[uniqueKey].trim() === ""
-                                    ? (e) =>
-                                        handleParameterValueChange(
-                                          test.testname,
-                                          paramName,
-                                          e
-                                        )
-                                    : undefined
-                                }
-                                disabled={
-                                  initialValues[uniqueKey] &&
-                                  initialValues[uniqueKey].trim() !== ""
-                                }
-                                placeholder={
-                                  !initialValues[uniqueKey] ||
-                                  initialValues[uniqueKey].trim() === ""
-                                    ? "Enter value"
-                                    : "Value available"
-                                }
-                              />
-                            </FormGroup>
+                            return (
+                              <ParameterCard key={paramIndex}>
+                                <FormRow>
+                                  <FormGroup>
+                                    <Label>Parameter Name</Label>
+                                    <WrappedInput
+                                      as="textarea"
+                                      value={paramName}
+                                      disabled
+                                      style={{ resize: "none" }}
+                                    />
+                                  </FormGroup>
 
-                            <FormGroup>
-                              <Label>Unit</Label>
-                              <Input
-                                type="text"
-                                value={param.unit || ""}
-                                disabled
-                              />
-                            </FormGroup>
-                            <FormGroup>
-                              <Label>Reference Range</Label>
-                              <Input
-                                type="text"
-                                value={param.reference_range || ""}
-                                disabled
-                              />
-                            </FormGroup>
-                          </FormRow>
-                        </ParameterCard>
-                      );
-                    })}
+                                  <FormGroup>
+                                    <Label>Value {!isDisabled && <span style={{ color: "red" }}>*</span>}</Label>
+                                    {hasValueOptions && !isDisabled ? (
+                                      <SelectWrapper>
+                                        <Select
+                                          value={values[uniqueKey] || ""}
+                                          onChange={(e) => handleParameterValueChange(test.testname, paramName, e)}
+                                          disabled={isDisabled}
+                                        >
+                                          <option value="">Select value</option>
+                                          {param.value_option.map((option, optIndex) => (
+                                            <option key={optIndex} value={option}>
+                                              {option}
+                                            </option>
+                                          ))}
+                                        </Select>
+                                        <SelectIcon size={18} />
+                                      </SelectWrapper>
+                                    ) : (
+                                      <Input
+                                        type="text"
+                                        value={values[uniqueKey] || ""}
+                                        onChange={!isDisabled ? (e) => handleParameterValueChange(test.testname, paramName, e) : undefined}
+                                        disabled={isDisabled}
+                                        placeholder={!isDisabled ? "Enter value" : "Value available"}
+                                      />
+                                    )}
+                                  </FormGroup>
 
-                    {/* Check if any parameters were edited and show parameter remarks section */}
-                    {test.parameters.some((param) => {
+                                  <FormGroup>
+                                    <Label>Unit</Label>
+                                    <Input type="text" value={param.unit || ""} disabled />
+                                  </FormGroup>
+
+                                  <FormGroup>
+                                    <Label>Reference Range</Label>
+                                    <Input type="text" value={param.reference_range || ""} disabled />
+                                  </FormGroup>
+
+                                  <FormGroup>
+                                    <Label>Method</Label>
+                                    <Input type="text" value={param.method || ""} disabled />
+                                  </FormGroup>
+                                </FormRow>
+                              </ParameterCard>
+                            );
+                          })}
+                        </ParameterGrid>
+                      </SubtitleSection>
+                    ))}
+
+                    {Object.values(test.parametersBySubtitle).flat().some((param) => {
                       const paramName = param.name || param.test_name;
                       const uniqueKey = `${test.testname}_${paramName}`;
                       const initialValue = initialValues[uniqueKey];
@@ -1073,26 +1105,6 @@ const handleBack = () => {
                                   ? "red"
                                   : undefined,
                             }}
-                          />
-                        </FormGroup>
-                      </RemarksSection>
-                    )}
-
-                    {/* <EditButton type="button" onClick={toggleParameterEditMode}>
-                      <Edit size={16} />
-                      {parameterEditMode ? "Cancel Edit" : "Edit Remarks"}
-                    </EditButton> */}
-
-                    {parameterEditMode && (
-                      <RemarksSection>
-                        <FormGroup>
-                          <Label>
-                            Parameter Remarks (Common for all parameters)
-                          </Label>
-                          <TextArea
-                            value={parameterRemarks || ""}
-                            onChange={handleParameterRemarksChange}
-                            placeholder="Enter common remarks for all parameters"
                           />
                         </FormGroup>
                       </RemarksSection>
