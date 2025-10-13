@@ -336,6 +336,23 @@ const BadgeContainer = styled.div`
   gap: 0.25rem;
   margin-top: 0.25rem;
 `;
+const SubTitleRow = styled.tr`
+  background-color: rgba(67, 97, 238, 0.08) !important;
+
+  &:hover {
+    background-color: rgba(67, 97, 238, 0.12) !important;
+  }
+`;
+
+const SubTitleCell = styled.td`
+  font-weight: 600 !important;
+  font-size: 0.95rem;
+  color: var(--secondary);
+  padding: 0.75rem 1rem !important;
+  padding-left: 2rem !important;
+  font-style: italic;
+  border-left: 3px solid var(--secondary);
+`;
 
 function DoctorForm() {
   const [testValues, setTestValues] = useState([]);
@@ -350,10 +367,8 @@ function DoctorForm() {
   const queryParams = new URLSearchParams(location.search);
   const selectedDate = queryParams.get("date");
   const patientId = queryParams.get("patient_id");
-  const testName = queryParams.get("testname");
 
   useEffect(() => {
-    // Fetch data when date or patientId changes
     if (selectedDate && patientId) {
       fetchTestData(selectedDate, patientId);
     } else {
@@ -365,11 +380,9 @@ function DoctorForm() {
     setLoading(true);
 
     try {
-      // Build query parameters for filtering
       const queryParams = new URLSearchParams();
       queryParams.append("patient_id", patientId);
       queryParams.append("date", date);
-      queryParams.append("testname", testName);
 
       const url = `${Labbaseurl}test-values/?${queryParams.toString()}`;
 
@@ -379,13 +392,12 @@ function DoctorForm() {
         throw new Error(response.error || "Failed to fetch test data");
       }
 
-      // Parse testdetails if it's a string
+      // DON'T group - keep separate records to maintain correct indices
       const processedData = response.data.map((item) => ({
         ...item,
-        testdetails:
-          typeof item.testdetails === "string"
-            ? JSON.parse(item.testdetails)
-            : item.testdetails,
+        testdetails: typeof item.testdetails === "string"
+          ? JSON.parse(item.testdetails)
+          : item.testdetails,
       }));
 
       setTestValues(processedData);
@@ -398,15 +410,14 @@ function DoctorForm() {
     }
   };
 
-  // Handle approve for a test (affects all parameters of that test)
-  const handleTestApprove = async (patientId, testIndex, approve_by) => {
+  const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
     console.log("Requesting approval for:", {
-      patientId,
+      recordIndex,
       testIndex,
       approve_by,
     });
     try {
-      const test = testValues.find((test) => test.patient_id === patientId);
+      const test = testValues[recordIndex];
       const testDetail = test?.testdetails[testIndex];
 
       if (!test || !testDetail) {
@@ -414,13 +425,13 @@ function DoctorForm() {
       }
 
       const response = await apiRequest(
-        `${Labbaseurl}test-approval/${patientId}/${testIndex}/approve/`,
+        `${Labbaseurl}test-approval/${test.patient_id}/${testIndex}/approve/`,
         "PATCH",
         {
           approve: true,
           approve_by,
-          barcode: test.barcode, // Document-level barcode
-          created_date: test.created_date, // Document-level created_date
+          barcode: test.barcode,
+          created_date: test.created_date,
         }
       );
 
@@ -434,24 +445,24 @@ function DoctorForm() {
           response.data.message.includes("Test detail approved successfully"))
       ) {
         setTestValues((prevValues) => {
-          return prevValues.map((test) => {
-            if (test.patient_id === patientId) {
+          return prevValues.map((record, idx) => {
+            if (idx === recordIndex) {
               return {
-                ...test,
-                testdetails: test.testdetails.map((detail, idx) =>
-                  idx === testIndex
+                ...record,
+                testdetails: record.testdetails.map((detail, detailIdx) =>
+                  detailIdx === testIndex
                     ? {
                         ...detail,
                         approve: true,
                         approve_by,
-                        barcode: test.barcode, // Store at testdetail level
-                        created_date: test.created_date, // Store at testdetail level
+                        barcode: record.barcode,
+                        created_date: record.created_date,
                       }
                     : detail
                 ),
               };
             }
-            return test;
+            return record;
           });
         });
         alert("Test approved successfully!");
@@ -464,11 +475,9 @@ function DoctorForm() {
     }
   };
 
-  // Handle rerun for a test (affects all parameters of that test)
-  const handleTestRerun = async (patientId, testIndex) => {
+  const handleTestRerun = async (recordIndex, testIndex) => {
     try {
-      // Find the test details to get barcode and created_date
-      const test = testValues.find((test) => test.patient_id === patientId);
+      const test = testValues[recordIndex];
       const testDetail = test?.testdetails[testIndex];
 
       if (!testDetail) {
@@ -476,12 +485,12 @@ function DoctorForm() {
       }
 
       const response = await apiRequest(
-        `${Labbaseurl}test-rerun/${patientId}/${testIndex}/rerun/`,
+        `${Labbaseurl}test-rerun/${test.patient_id}/${testIndex}/rerun/`,
         "PATCH",
         {
           rerun: true,
-          barcode: test.barcode, // ✅ use document-level
-          created_date: test.created_date, // ✅ use document-level
+          barcode: test.barcode,
+          created_date: test.created_date,
         }
       );
 
@@ -490,23 +499,23 @@ function DoctorForm() {
       }
 
       setTestValues((prevValues) => {
-        return prevValues.map((test) => {
-          if (test.patient_id === patientId) {
+        return prevValues.map((record, idx) => {
+          if (idx === recordIndex) {
             return {
-              ...test,
-              testdetails: test.testdetails.map((detail, idx) =>
-                idx === testIndex
+              ...record,
+              testdetails: record.testdetails.map((detail, detailIdx) =>
+                detailIdx === testIndex
                   ? {
                       ...detail,
                       rerun: true,
-                      barcode: detail.barcode, // Preserve barcode
-                      created_date: detail.created_date, // Preserve created_date
+                      barcode: detail.barcode,
+                      created_date: detail.created_date,
                     }
                   : detail
               ),
             };
           }
-          return test;
+          return record;
         });
       });
       alert("Test rerun initiated successfully!");
@@ -515,6 +524,7 @@ function DoctorForm() {
       alert("Error during rerun: " + error.message);
     }
   };
+
   const getStatusBadge = (value, referenceRange) => {
     if (!value || !referenceRange) return null;
 
@@ -550,12 +560,9 @@ function DoctorForm() {
   };
 
   const handleBack = () => {
-    // Extract barcode from testValues (assuming it's consistent across testValues)
-    const barcode = testValues.length > 0 ? testValues[0].barcode : "";
-    navigate("/PatientList", { state: { barcode } });
+    navigate("/PatientList");
   };
 
-  // Convert Roman numerals for parameter numbering
   const getRomanNumeral = (num) => {
     const romanNumerals = [
       "i",
@@ -582,17 +589,15 @@ function DoctorForm() {
     return romanNumerals[num] || (num + 1).toString();
   };
 
-  // Generate rows for hierarchical display
   const generateTableRows = () => {
     const rows = [];
     let testNumber = 1;
 
-    testValues.forEach((test, testIndex) => {
+    testValues.forEach((test, recordIndex) => {
       test.testdetails.forEach((detail, detailIndex) => {
-        // Add test title row with approve/rerun buttons and remarks
         if (detail.parameters && detail.parameters.length > 0) {
           rows.push(
-            <TestHeaderRow key={`test-${testIndex}-${detailIndex}`}>
+            <TestHeaderRow key={`test-${recordIndex}-${detailIndex}`}>
               <TestTitleCell colSpan="2">
                 <strong>
                   {testNumber}. {detail.testname || "N/A"}
@@ -605,7 +610,7 @@ function DoctorForm() {
               <TestRemarksCell>{detail.remarks || "N/A"}</TestRemarksCell>
               <td>
                 <RerunButton
-                  onClick={() => handleTestRerun(test.patient_id, detailIndex)}
+                  onClick={() => handleTestRerun(recordIndex, detailIndex)}
                   disabled={detail.approve || detail.rerun}
                 >
                   <RotateCcw size={14} />
@@ -615,7 +620,7 @@ function DoctorForm() {
               <td>
                 <ApproveButton
                   onClick={() =>
-                    handleTestApprove(test.patient_id, detailIndex, approved_by)
+                    handleTestApprove(recordIndex, detailIndex, approved_by)
                   }
                   disabled={detail.approve || detail.rerun}
                 >
@@ -626,47 +631,72 @@ function DoctorForm() {
             </TestHeaderRow>
           );
 
-          // Add parameter rows (without approve/rerun buttons)
-          detail.parameters.forEach((parameter, paramIndex) => {
-            rows.push(
-              <ParameterRow
-                key={`param-${testIndex}-${detailIndex}-${paramIndex}`}
-              >
-                <td></td>
-                <ParameterNameCell>
-                  {getRomanNumeral(paramIndex)}. {parameter.name || "N/A"}
-                </ParameterNameCell>
-                <td>{parameter.specimen_type || "N/A"}</td>
-                <ValueCell>
-                  <ValueContainer>
-                    <ValueText>{parameter.value || "N/A"}</ValueText>
-                    <BadgeContainer>
-                      {getStatusBadge(
-                        parameter.value,
-                        parameter.reference_range
-                      )}
-                      {parameter.remarks && (
-                        <EditedBadge>
-                          <FileText size={12} /> Edited
-                        </EditedBadge>
-                      )}
-                    </BadgeContainer>
-                  </ValueContainer>
-                </ValueCell>
-                <td>{parameter.unit || "N/A"}</td>
-                <td>{parameter.reference_range || "N/A"}</td>
-                <td colSpan="3"></td>{" "}
-                {/* Empty cells for approve/rerun columns */}
-              </ParameterRow>
-            );
+          // Group parameters by sub_title
+          const groupedParams = {};
+          detail.parameters.forEach((param) => {
+            const subtitle = param.sub_title || "Other";
+            if (!groupedParams[subtitle]) {
+              groupedParams[subtitle] = [];
+            }
+            groupedParams[subtitle].push(param);
+          });
+
+          // Render grouped parameters
+          let paramCounter = 0;
+          Object.entries(groupedParams).forEach(([subtitle, params]) => {
+            // Add subtitle row if subtitle exists
+            if (subtitle && subtitle !== "Other" && subtitle !== "") {
+              rows.push(
+                <SubTitleRow key={`subtitle-${recordIndex}-${detailIndex}-${subtitle}`}>
+                  <td></td>
+                  <SubTitleCell colSpan="7">
+                    {subtitle}
+                  </SubTitleCell>
+                  <td></td>
+                </SubTitleRow>
+              );
+            }
+
+            // Add parameter rows
+            params.forEach((parameter, paramIndex) => {
+              rows.push(
+                <ParameterRow
+                  key={`param-${recordIndex}-${detailIndex}-${paramCounter}`}
+                >
+                  <td></td>
+                  <ParameterNameCell>
+                    {getRomanNumeral(paramCounter)}. {parameter.name || "N/A"}
+                  </ParameterNameCell>
+                  <td>{parameter.specimen_type || "N/A"}</td>
+                  <ValueCell>
+                    <ValueContainer>
+                      <ValueText>{parameter.value || "N/A"}</ValueText>
+                      <BadgeContainer>
+                        {getStatusBadge(
+                          parameter.value,
+                          parameter.reference_range
+                        )}
+                        {parameter.remarks && (
+                          <EditedBadge>
+                            <FileText size={12} /> Edited
+                          </EditedBadge>
+                        )}
+                      </BadgeContainer>
+                    </ValueContainer>
+                  </ValueCell>
+                  <td>{parameter.unit || "N/A"}</td>
+                  <td>{parameter.reference_range || "N/A"}</td>
+                  <td colSpan="3"></td>
+                </ParameterRow>
+              );
+              paramCounter++;
+            });
           });
 
           testNumber++;
         } else {
-          // If no parameters, show test with its actual values and buttons using TestHeaderRow for consistency
-          // Merge the first two columns (Sl. No and Test Name) for tests without parameters
           rows.push(
-            <TestHeaderRow key={`test-no-params-${testIndex}-${detailIndex}`}>
+            <TestHeaderRow key={`test-no-params-${recordIndex}-${detailIndex}`}>
               <TestTitleCellMerged colSpan="2">
                 <strong>
                   {testNumber}. {detail.testname || "N/A"}
@@ -691,7 +721,7 @@ function DoctorForm() {
               <TestRemarksCell>{detail.remarks || "N/A"}</TestRemarksCell>
               <td>
                 <RerunButton
-                  onClick={() => handleTestRerun(test.patient_id, detailIndex)}
+                  onClick={() => handleTestRerun(recordIndex, detailIndex)}
                   disabled={detail.approve || detail.rerun}
                 >
                   <RotateCcw size={14} />
@@ -701,7 +731,7 @@ function DoctorForm() {
               <td>
                 <ApproveButton
                   onClick={() =>
-                    handleTestApprove(test.patient_id, detailIndex, approved_by)
+                    handleTestApprove(recordIndex, detailIndex, approved_by)
                   }
                   disabled={detail.approve || detail.rerun}
                 >
@@ -718,7 +748,6 @@ function DoctorForm() {
 
     return rows;
   };
-
   if (loading) {
     return (
       <Container>

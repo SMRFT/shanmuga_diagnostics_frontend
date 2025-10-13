@@ -835,7 +835,7 @@ const FranchiseOverview = () => {
       const consultants = [
         ["Dr. S. Brindha M.D.", "Consultant Pathologist"],
         ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. R. Vijayan Ph.D.", "Consultant Biochemist", Vijayan],
+        ["Dr. R. VIJAYAN Ph.D.", "Consultant Biochemist", Vijayan],
       ];
 
       const patientRefNo =
@@ -865,7 +865,7 @@ const FranchiseOverview = () => {
       // FIXED: Consistent header and footer heights regardless of letterpad
       const headerHeight = 30; // Always reserve space for header
       const footerHeight = 20; // Always reserve space for footer
-      const contentYStart = headerHeight + 15; // Start content below the header area
+      const contentYStart = headerHeight + 20; // Start content below the header area
       const signatureHeight = 25; // Height needed for signatures
       const disclaimerHeight = 0; // No disclaimer needed
       const tableHeaderHeight = 10; // Height needed for table header
@@ -998,7 +998,7 @@ const FranchiseOverview = () => {
             headerImage,
             "PNG",
             0,
-            5,
+            10,
             doc.internal.pageSize.width,
             headerHeight
           );
@@ -1485,7 +1485,7 @@ const FranchiseOverview = () => {
 
         // Calculate position below signatures consistently
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 5;
+        const pageNumberY = pageHeight - footerHeight - 10;
 
         // Add the page number centered below signatures
         doc.setFont("helvetica", "normal");
@@ -1596,6 +1596,12 @@ const FranchiseOverview = () => {
               onClick={() => handleTabChange("franchise")}
             >
               Franchise
+            </NavigationTab>
+             <NavigationTab
+              active={activeTab === "corporate"}
+              onClick={() => handleTabChange("corporate")}
+            >
+              Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
           <Title>Franchise Patient Status</Title>

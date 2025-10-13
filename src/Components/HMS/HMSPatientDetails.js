@@ -466,7 +466,7 @@ const PatientDetails = () => {
         const formattedToDate = format(toDate, "yyyy-MM-dd");
 
         const patientResponse = await apiRequest(
-          `${Labbaseurl}get_hmssamplestatus_testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
+          `${Labbaseurl}chc_samplestatus_testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
           "GET"
         );
 

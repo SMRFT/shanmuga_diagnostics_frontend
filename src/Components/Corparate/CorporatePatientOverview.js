@@ -7,7 +7,7 @@ import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
-import HMSTestSorting from "./HMSTestSorting";
+import CorporateTestSorting from "./CorporateTestSorting";
 import {
   Calendar,
   Search,
@@ -26,10 +26,8 @@ import {
 import { IoIosFemale, IoIosMale, IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-// Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-// import Savitha from "../Images/Savitha.png";
 import Vijayan from "../Images/Vijayan.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
@@ -53,13 +51,13 @@ const GlobalStyle = createGlobalStyle`
     --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
   }
- 
+  
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
- 
+  
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -315,16 +313,6 @@ const ActionButton = styled.button`
   }
 `;
 
-const CreditAmount = styled.span`
-  font-weight: 600;
-  color: var(--primary);
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 const GenderIcon = styled.div`
   display: inline-flex;
   align-items: center;
@@ -410,7 +398,7 @@ const NavigationTab = styled.button`
   }
 `;
 
-const HMSPatientOverview = () => {
+const CorporatePatientOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
@@ -418,7 +406,6 @@ const HMSPatientOverview = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
   const [refByOptions, setRefByOptions] = useState([]);
-  const [branch, setBranch] = useState("");
   const [barcode, setBarcode] = useState("");
   const [refBy, setRefBy] = useState("");
   const [patientId, setPatientId] = useState("");
@@ -447,7 +434,7 @@ const HMSPatientOverview = () => {
         setActiveTab("corporate");
       }
     }, [location.pathname]);
- 
+  
     // Handle tab navigation
     const handleTabChange = (tab) => {
       setActiveTab(tab);
@@ -486,7 +473,7 @@ const HMSPatientOverview = () => {
     fetchRefby();
   }, []);
 
- 
+  
 
   // Fetch patients when component mounts
   useEffect(() => {
@@ -495,7 +482,7 @@ const HMSPatientOverview = () => {
       const formattedStartDate = startDate.toISOString().split("T")[0];
       const formattedEndDate = endDate.toISOString().split("T")[0];
 
-      const url = `${Labbaseurl}hms_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
+      const url = `${Labbaseurl}corporate_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
 
       const result = await apiRequest(url, "GET");
 
@@ -581,179 +568,13 @@ const HMSPatientOverview = () => {
     setFilteredPatients(patients);
   };
 
-  const handleDispatch = async (patient) => {
-    try {
-      // Use the test_created_date field from the patient object
-      const createdDate = patient.test_created_date || new Date().toISOString();
-
-      const response = await apiRequest(
-        `${Labbaseurl}hms_update_dispatch_status/${patient.barcode}/`,
-        "PATCH",
-        {
-          created_date: createdDate, // Send the test_created_date as created_date parameter
-        },
-        {
-          "Content-Type": "application/json",
-        }
-      );
-
-      if (response.success) {
-        toast.success(
-          `Dispatch updated successfully for Patient: ${patient.barcode}`
-        );
-
-        // Refresh the data
-        const formattedStartDate = startDate.toISOString().split("T")[0];
-        const formattedEndDate = endDate.toISOString().split("T")[0];
-
-        const reportResponse = await apiRequest(
-          `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`,
-          "GET"
-        );
-
-        if (reportResponse.success) {
-          setPatients(reportResponse.data);
-          setFilteredPatients(reportResponse.data);
-
-          // Update the statuses as well
-          const statusMap = {};
-          reportResponse.data.forEach((p) => {
-            statusMap[p.patient_id] = {
-              status: p.status,
-              barcode: p.barcode,
-            };
-          });
-          setStatuses(statusMap);
-        } else {
-          toast.error("Failed to refresh patient data");
-        }
-      } else {
-        toast.error(
-          `Failed to update dispatch status for Patient: ${patient.patient_name} - ${response.error}`
-        );
-      }
-    } catch (error) {
-      console.error("Error updating dispatch status:", error);
-      toast.error(
-        `Failed to update dispatch status for Patient: ${patient.patient_name}`
-      );
-    }
-  };
-
-const handleWhatsAppShare = async (patient) => {
-  if (!patient || !patient.phone) {
-    toast.error("Patient phone number is missing");
-    return;
-  }
-
-  const phoneNumber = patient.phone.startsWith("+91")
-    ? patient.phone.replace("+", "")
-    : `91${patient.phone}`;
-
-  try {
-    const pdfBlob = await handlePrint(patient, true);
-    if (!pdfBlob) {
-      toast.error("Failed to generate the PDF");
-      return;
-    }
-
-    const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
-    const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
-
-    // Upload PDF to server
-    const formData = new FormData();
-    formData.append("file", pdfFile);
-
-    const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    const fileUrl = uploadResponse.data.file_url;
-    if (!fileUrl) {
-      toast.error("File upload failed");
-      return;
-    }
-
-    // Call Django proxy instead of Botify directly
-    const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
-      patient_name: patient.patient_name || "Valued Patient",
-      phone: phoneNumber,
-      collection_time: patient.collection_time || "N/A",
-      collected_date: patient.collected_date || "N/A",
-      file_url: fileUrl,
-      pdf_name: pdfName,
-    });
-
-    if (res.data.success) {
-      toast.success("WhatsApp PDF message sent successfully!");
-    } else {
-      toast.error("Failed to send WhatsApp template message.");
-      console.error("Backend error:", res.data.error);
-    }
-  } catch (error) {
-    console.error("Error sending WhatsApp message:", error);
-    toast.error("Error sending WhatsApp message.");
-  }
-};
-
-
-   const handleSendEmail = async (patient) => {
-    try {
-      const pdfBlob = await handlePrint(patient, true); // Generate PDF with letterpad
-      if (!pdfBlob) {
-        toast.error("Failed to generate the PDF.");
-        return;
-      }
-
-      if (!patient.email) {
-        toast.warning("Patient email is missing.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("subject", `Test Details for ${patient.patient_name}`);
-      formData.append(
-        "message",
-        `Dear ${
-          patient.patient_name || "Recipient"
-        },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
-          patient.patient_name || "the patient"
-        }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
-      );
-      formData.append("recipients", patient.email);
-      formData.append(
-        "attachments",
-        new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
-          type: "application/pdf",
-        })
-      );
-
-      const emailResponse = await apiRequest(
-        `${Labbaseurl}send-email/`,
-        "POST",
-        formData,
-        { "Content-Type": "multipart/form-data" }
-      );
-
-      if (emailResponse.success) {
-        toast.success("Email sent successfully!");
-      } else {
-        toast.error(`Failed to send email: ${emailResponse.error}`);
-      }
-    } catch (error) {
-      console.error("Error sending email:", error);
-      toast.error("Failed to send email.");
-    }
-  };
-
-
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
       // setLoading(true);
 
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
-        `${Labbaseurl}get_hms_patient_test_details/?barcode=${patient.barcode}`,
+        `${Labbaseurl}corporate_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
       );
 
@@ -1001,7 +822,7 @@ const handleWhatsAppShare = async (patient) => {
 
         return patientInfoY;
       };
-     
+      
 
       // Function to add header and footer with consistent positioning
       const addHeaderFooter = () => {
@@ -1172,7 +993,7 @@ const handleWhatsAppShare = async (patient) => {
 
     let newYPos = contentYStart;
     newYPos = addPatientInfo(newYPos); // Add patient info on new page
-   
+    
     // ADD THIS LINE: Add extra space after patient info on new pages too
     newYPos += 10; // Same spacing as first page
 
@@ -1238,7 +1059,7 @@ const handleWhatsAppShare = async (patient) => {
 
       // Use addPatientInfo function
       let currentYPosition = addPatientInfo(contentYStart);
-      currentYPosition += 10;
+      currentYPosition += 10; 
 
       // Test rendering logic with better page break handling and consistent alignment
       if (patientDetails.testdetails.length) {
@@ -1290,7 +1111,7 @@ const handleWhatsAppShare = async (patient) => {
   testsByDepartment[department].forEach((test) => {
     // Group parameters by sub_title
     const parametersBySubtitle = {};
-   
+    
     if (test.parameters && test.parameters.length > 0) {
       test.parameters.forEach((param) => {
         const subtitle = param.sub_title || ""; // Use empty string if no subtitle
@@ -1444,7 +1265,7 @@ const handleWhatsAppShare = async (patient) => {
       if (subtitle && subtitle.trim() !== "") {
         const subtitleWithParamHeight = 25; // Height for subtitle + one parameter row
         yPos = checkForNewPage(yPos, subtitleWithParamHeight);
-       
+        
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text(subtitle, leftMargin, yPos);
@@ -1717,6 +1538,10 @@ const handleWhatsAppShare = async (patient) => {
       case "Collected":
         return "#007BFF"; // Blue for Collected
       case "Partially Collected":
+        return "#c24296ff"; // Yellow for Partially Collected
+      case "Transferred":
+        return "#c681b0ff"; // Blue for Collected
+      case "Partially Transferred":
         return "#FFC107"; // Yellow for Partially Collected
       case "Received":
         return "#28A745"; // Green for Received
@@ -1727,7 +1552,7 @@ const handleWhatsAppShare = async (patient) => {
       case "Partially Tested":
         return "#FFA500"; // Orange for Partially Tested
       case "Approved":
-        return "#00C851"; // Bright Green for Approved
+        return "#a5633aff"; // Bright Green for Approved
       case "Partially Approved":
         return "#FFBB33"; // Light Orange for Partially Approved
       case "Dispatched":
@@ -1769,7 +1594,7 @@ const handleWhatsAppShare = async (patient) => {
               Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
-          <Title>Shanmuga Patient Status</Title>
+          <Title>CHC Status</Title>
         </CardHeader>
 
         <FiltersContainer>
@@ -1790,38 +1615,17 @@ const handleWhatsAppShare = async (patient) => {
                 value={endDate.toISOString().split("T")[0]}
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
-            </FilterGroup>          
+            </FilterGroup>           
+                      
             <FilterGroup>
-              <FilterLabel>Select Referral</FilterLabel>
-              <FilterSelect
-                value={refBy}
-                onChange={(e) => setRefBy(e.target.value)}
-              >
-                <option value="">Select Refby</option>
-                {refByOptions.map((refby, index) => (
-                  <option key={index} value={refby.name}>
-                    {refby.name}
-                  </option>
-                ))}
-              </FilterSelect>
-            </FilterGroup>            
-            <FilterGroup>
-              <FilterLabel>OP Number</FilterLabel>
+              <FilterLabel>Employee ID</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter OP Number"
+                placeholder="Enter Employee ID"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
               />
-            </FilterGroup>
-             <FilterGroup>
-              <FilterLabel>IP Number</FilterLabel>
-              <FilterInput
-                type="text"
-                placeholder="Enter IP Number"
-                value={IPNumber}
-                onChange={(e) => setIPNumber(e.target.value)}
-              />
+            
             </FilterGroup>
             <FilterGroup>
               <FilterLabel>Barcode</FilterLabel>
@@ -1834,10 +1638,10 @@ const handleWhatsAppShare = async (patient) => {
             </FilterGroup>
 
             <FilterGroup>
-              <FilterLabel>Patient Name</FilterLabel>
+              <FilterLabel>Employee Name</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter patient name"
+                placeholder="Enter employee name"
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
               />
@@ -1852,6 +1656,8 @@ const handleWhatsAppShare = async (patient) => {
                 <option value="Registered">Registered</option>
                 <option value="Collected">Collected</option>
                 <option value="Partially Collected">Partially Collected</option>
+                <option value="Transferred">Transferred</option>
+                <option value="Partially Transferred">Partially Transferred</option>
                 <option value="Received">Received</option>
                 <option value="Partially Received">Partially Received</option>
                 <option value="Tested">Tested</option>
@@ -1876,11 +1682,9 @@ const handleWhatsAppShare = async (patient) => {
             <TableHead>
               <tr>
                 <th>Date</th>
-                <th>OP Number</th>
-                <th>IP Number</th>
+                <th>Employee ID</th>
                 <th>Barcode</th>
-                <th>Patient Name</th>                
-                <th>Referral</th>
+                <th>Employee Name</th> 
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1926,7 +1730,6 @@ const handleWhatsAppShare = async (patient) => {
                           : "N/A"}
                       </td>
                       <td>{patient.patient_id}</td>
-                      <td>{patient.ipnumber}</td>
                       <td>{barcode}</td>
                       <td>
                         <div style={{ display: "flex", alignItems: "center" }}>
@@ -1940,7 +1743,6 @@ const handleWhatsAppShare = async (patient) => {
                           {patient.patient_name}
                         </div>
                       </td>
-                      <td>{patient.refby || "N/A"}</td>
                       <td>
                         <Badge color={badgeColor}>{status}</Badge>
                       </td>                      
@@ -1987,35 +1789,6 @@ const handleWhatsAppShare = async (patient) => {
                               </DropdownMenu>
                             )}
                           </PrintDropdown>
-
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleWhatsAppShare(patient)
-                            }
-                            title="Share via WhatsApp"
-                          >
-                            <MessageCircle size={16} />
-                          </ActionButton>
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleSendEmail(patient)
-                            }
-                            title="Send Email"
-                          >
-                            <Mail size={16} />
-                          </ActionButton>
-
-                          <ActionButton
-                            disabled={!isDispatchEnabledFlag}
-                            onClick={() =>
-                              isDispatchEnabledFlag && handleDispatch(patient)
-                            }
-                            title="Dispatch"
-                          >
-                            <Flag size={16} />
-                          </ActionButton>
                         </ActionContainer>
                       </td>
                     </tr>
@@ -2035,7 +1808,7 @@ const handleWhatsAppShare = async (patient) => {
 
       {/* Test Sorting Modal */}
       {isTestModalOpen && (
-        <HMSTestSorting
+        <CorporateTestSorting
           patient={selectedPatient}
           onClose={() => setIsTestModalOpen(false)}
         />
@@ -2101,4 +1874,4 @@ const handleWhatsAppShare = async (patient) => {
   );
 };
 
-export default HMSPatientOverview;
+export default CorporatePatientOverview;

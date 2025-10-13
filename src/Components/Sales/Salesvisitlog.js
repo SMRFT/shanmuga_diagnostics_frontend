@@ -461,12 +461,10 @@ const SalesVisitLog = () => {
   const [isClosingAlert, setIsClosingAlert] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [clinicalNames, setClinicalNames] = useState([]);
-  const [hospitals, setHospitals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const resultsRef = useRef(null);
-
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const [formData, setFormData] = useState({
     username: "",
@@ -481,99 +479,65 @@ const SalesVisitLog = () => {
     comments: "",
   });
 
-  const handleShowModal = () => setShowModal(true);
-  const handleCloseModal = () => setShowModal(false);
-
-  // Update current time every second
+  // Fetch current time every second
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
+  // Set username from localStorage
   useEffect(() => {
     const storedName = localStorage.getItem("name");
     if (storedName) {
       setUsername(storedName);
-      setFormData((prevData) => ({
-        ...prevData,
-        username: storedName,
-        salesMapping: storedName,
-      }));
+      setFormData(prev =>
+        ({ ...prev, username: storedName, salesMapping: storedName })
+      );
     }
   }, []);
 
- 
-
+  // Fetch clinical names
   useEffect(() => {
-  const fetchClinicalAndHospital = async () => {
-    const result = await apiRequest(`${Labbaseurl}get_all_clinicalnames/`);
-    if (result.success) {
-      setClinicalNames(result.data?.data || result.data); // this is already merged list
-    } else {
-      console.error("Error fetching names:", result.error);
-    }
-  };
-  fetchClinicalAndHospital();
-}, []);
+    axios.get(`${Labbaseurl}get_all_clinicalnames/`)
+      .then(res => {
+        const data = res.data?.data || res.data;
+        setClinicalNames(Array.isArray(data) ? data : []);
+      })
+      .catch(err => {
+        setClinicalNames([]);
+        console.error("Error fetching names:", err.message || err);
+      });
+  }, []);
 
-
-
-  // useEffect(() => {
-  //   const fetchHospitals = async () => {
-  //     const result = await apiRequest(`${Labbaseurl}hospitallabform/`);
-     
-  //     if (result.success) {
-  //       setHospitals(result.data?.data || result.data);
-  //     } else {
-  //       console.error("Error fetching hospitals:", result.error);
-  //     }
-  //   };
-
-  //   fetchHospitals();
-  // }, []);
-
-  // Scroll selected item into view
+  // Search drop-down scrolling
   useEffect(() => {
     if (selectedIndex >= 0 && resultsRef.current) {
       const selectedElement = resultsRef.current.children[selectedIndex];
-      if (selectedElement) {
-        selectedElement.scrollIntoView({ block: "nearest" });
-      }
+      if (selectedElement) selectedElement.scrollIntoView({ block: "nearest" });
     }
   }, [selectedIndex]);
 
-  // Combined data source for search
   const combinedData = useMemo(() => clinicalNames, [clinicalNames]);
 
-  // Filtered results based on search term
   const filteredResults = useMemo(() => {
     if (!searchTerm.trim()) return [];
-
-    const lowerCaseSearch = searchTerm.toLowerCase().trim();
-
-    return combinedData.filter((item) => {
+    const lower = searchTerm.toLowerCase().trim();
+    return combinedData.filter(item => {
       const name = (item.clinicalname || item.hospitalName || "").toLowerCase();
-      return name.includes(lowerCaseSearch);
+      return name.includes(lower);
     });
   }, [searchTerm, combinedData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Determine whether the name is clinicalname or hospitalName and set form data accordingly
-    const selectedData =
-      name === "clinicalname" || name === "hospitalName"
-        ? combinedData.find(
-            (item) => item.clinicalname === value || item.hospitalName === value
-          )
-        : null;
+    const selectedData = name === "clinicalname" || name === "hospitalName"
+      ? combinedData.find(
+          item => item.clinicalname === value || item.hospitalName === value
+        )
+      : null;
     if (selectedData) {
-      setFormData((prevData) => ({
-        ...prevData,
+      setFormData(prev => ({
+        ...prev,
         [name]: value,
         personMet: selectedData?.contactPerson || "",
         phoneNumber: selectedData?.contactNumber || "",
@@ -582,18 +546,14 @@ const SalesVisitLog = () => {
         salesMapping: selectedData?.salesMapping || "",
       }));
     } else {
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: value,
-      }));
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  // Handle selecting an item from search results
   const handleSelectResult = (item) => {
     const name = item.clinicalname || item.hospitalName;
-    setFormData((prevData) => ({
-      ...prevData,
+    setFormData(prev => ({
+      ...prev,
       clinicalname: name,
       personMet: item?.contactPerson || "",
       phoneNumber: item?.contactNumber || "",
@@ -603,42 +563,23 @@ const SalesVisitLog = () => {
     }));
     setSearchTerm(name);
     setIsSearchFocused(false);
+    setSelectedIndex(-1);
   };
 
-  // Handle keyboard navigation in search results
   const handleKeyDown = (e) => {
     if (!filteredResults.length) return;
-
-    // Arrow down
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex((prev) =>
-        prev < filteredResults.length - 1 ? prev + 1 : prev
-      );
-    }
-    // Arrow up
-    else if (e.key === "ArrowUp") {
+      setSelectedIndex(prev => (prev < filteredResults.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
-    }
-    // Enter
-    else if (e.key === "Enter" && selectedIndex >= 0) {
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === "Enter" && selectedIndex >= 0) {
       e.preventDefault();
       handleSelectResult(filteredResults[selectedIndex]);
-    }
-    // Escape
-    else if (e.key === "Escape") {
+    } else if (e.key === "Escape") {
       setIsSearchFocused(false);
     }
-  };
-
-  const formatTimeWithSeconds = (date) => {
-    return date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-    });
   };
 
   const handleCloseAlert = () => {
@@ -649,10 +590,10 @@ const SalesVisitLog = () => {
     }, 300);
   };
 
+  // ✔️ This function actually makes the API request using axios
   const handleSubmitSalesVisitLog = async (e) => {
     e.preventDefault();
     try {
-      // Use current time from the live timer for submission
       const combinedDateTime = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -661,30 +602,24 @@ const SalesVisitLog = () => {
         currentTime.getMinutes(),
         currentTime.getSeconds()
       );
-
-      // Convert the selected date and time to IST
       const timezone = "Asia/Kolkata";
       const zonedDate = toZonedTime(combinedDateTime, timezone);
       const formattedDate = format(zonedDate, "yyyy-MM-dd");
-      const formattedTime = format(zonedDate, "hh:mm:ss a");
+      const formattedTime = format(zonedDate, "HH:mm:ss");
 
-      // Send the formatted date and time to the backend using apiRequest
-      const result = await apiRequest(`${Labbaseurl}SalesVisitLog/`, {
-          ...formData,
-          date: formattedDate,
-          time: formattedTime,
-        });
+      const postData = {
+        ...formData,
+        date: formattedDate,
+        time: formattedTime,
+      };
 
-      if (result.success) {
-        setMessage({
-          type: "success",
-          text: "Sales Visit form submitted successfully!",
-        });
-        setTimeout(() => {
-          handleCloseAlert();
-        }, 3000);
+      // API call with axios; adjust if your backend needs token headers
+      const response = await axios.post(`${Labbaseurl}SalesVisitLog/`, postData);
 
-        // Reset form data but keep username
+      if (response.status === 200 || response.status === 201) {
+        setMessage({ type: "success", text: "Sales Visit form submitted successfully!" });
+        setTimeout(() => { handleCloseAlert(); }, 3000);
+
         setFormData({
           username: username,
           clinicalname: "",
@@ -699,31 +634,22 @@ const SalesVisitLog = () => {
         });
         setSearchTerm("");
       } else {
-        console.error("Error submitting form:", result.error);
-        setMessage({
-          type: "danger",
-          text: "Failed to submit Sales Visit form.",
-        });
-        setTimeout(() => {
-          handleCloseAlert();
-        }, 3000);
+        setMessage({ type: "danger", text: "Failed to submit Sales Visit form." });
+        setTimeout(() => { handleCloseAlert(); }, 3000);
       }
     } catch (error) {
+      setMessage({ type: "danger", text: "Failed to submit Sales Visit form." });
+      setTimeout(() => { handleCloseAlert(); }, 3000);
       console.error("Error submitting form:", error);
-      setMessage({
-        type: "danger",
-        text: "Failed to submit Sales Visit form.",
-      });
-      setTimeout(() => {
-        handleCloseAlert();
-      }, 3000);
     }
   };
 
-  // Clear search input
+  const handleShowModal = () => setShowModal(true);
+  const handleCloseModal = () => setShowModal(false);
+
   const handleClearSearch = () => {
     setSearchTerm("");
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       clinicalname: "",
       personMet: "",
@@ -744,7 +670,6 @@ const SalesVisitLog = () => {
             <FaUser /> {username}
           </SalespersonName>
         </Header>
-
         {message.text && (
           <AlertContainer type={message.type} isClosing={isClosingAlert}>
             <AlertText>{message.text}</AlertText>
@@ -753,7 +678,6 @@ const SalesVisitLog = () => {
             </CloseButton>
           </AlertContainer>
         )}
-
         <Form onSubmit={handleSubmitSalesVisitLog}>
           <FormSection>
             <FormGroup>
@@ -768,7 +692,6 @@ const SalesVisitLog = () => {
                 />
               </DatePickerWrapper>
             </FormGroup>
-
             <FormGroup>
               <Label>
                 <FaBuilding /> Clinical Name
@@ -784,9 +707,7 @@ const SalesVisitLog = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
-                    onBlur={() => {
-                      setTimeout(() => setIsSearchFocused(false), 200);
-                    }}
+                    onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                     onKeyDown={handleKeyDown}
                     hasValue={searchTerm}
                   />
@@ -801,9 +722,7 @@ const SalesVisitLog = () => {
                         filteredResults.map((item, index) => (
                           <ResultItem
                             key={index}
-                            className={
-                              index === selectedIndex ? "selected" : ""
-                            }
+                            className={index === selectedIndex ? "selected" : ""}
                             onClick={() => handleSelectResult(item)}
                             onMouseEnter={() => setSelectedIndex(index)}
                           >
@@ -821,7 +740,6 @@ const SalesVisitLog = () => {
                 </AddButton>
               </SearchWrapper>
             </FormGroup>
-
             <FormGroup>
               <Label>
                 <FaUser /> Salesperson Name
@@ -829,13 +747,11 @@ const SalesVisitLog = () => {
               <Input
                 type="text"
                 name="salesMapping"
-                value={formData.salesMapping || username}  // :white_check_mark: show username if salesMapping is empty
-                readOnly // optional: make it read-only if salesperson shouldn't edit
+                value={formData.salesMapping || username}
+                readOnly
               />
             </FormGroup>
-
           </FormSection>
-
           <FormSection>
             <FormGroup>
               <Label>
@@ -849,7 +765,6 @@ const SalesVisitLog = () => {
                 onChange={handleChange}
               />
             </FormGroup>
-
             <FormGroup>
               <Label>
                 <FaUser /> Person You Met
@@ -861,7 +776,6 @@ const SalesVisitLog = () => {
                 onChange={handleChange}
               />
             </FormGroup>
-
             <FormGroup>
               <Label>
                 <FaUser /> Designation
@@ -874,7 +788,6 @@ const SalesVisitLog = () => {
               />
             </FormGroup>
           </FormSection>
-
           <FormSection>
             <FormGroup>
               <Label>
@@ -887,7 +800,6 @@ const SalesVisitLog = () => {
                 onChange={handleChange}
               />
             </FormGroup>
-
             <FormGroup>
               <Label>
                 <FaPhone /> Phone Number
@@ -899,7 +811,6 @@ const SalesVisitLog = () => {
                 onChange={handleChange}
               />
             </FormGroup>
-
             <FormGroup>
               <Label>Number of Visits</Label>
               <Input
@@ -910,7 +821,6 @@ const SalesVisitLog = () => {
               />
             </FormGroup>
           </FormSection>
-
           <FormSection>
             <FormGroup>
               <Label>
@@ -924,10 +834,8 @@ const SalesVisitLog = () => {
               />
             </FormGroup>
           </FormSection>
-
           <Button type="submit">Submit</Button>
         </Form>
-
         <HospitalLabForm
           show={showModal}
           handleClose={handleCloseModal}

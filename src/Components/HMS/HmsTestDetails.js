@@ -353,7 +353,7 @@ function TestDetails() {
       }
 
       const response = await apiRequest(
-        `${Labbaseurl}hmscompare_test_details/?${queryParams}`,
+        `${Labbaseurl}chc_compare_test_details/?${queryParams}`,
         "GET"
       );
 
@@ -734,7 +734,7 @@ function TestDetails() {
     }
   };
   const handleBack = () => {
-    navigate("/HmsPatientDetails", { state: { barcode } });
+    navigate("/HmsPatientDetails");
   };
 
   if (loading) {

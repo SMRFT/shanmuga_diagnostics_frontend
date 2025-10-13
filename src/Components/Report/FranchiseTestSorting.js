@@ -167,12 +167,12 @@ const TestName = styled.span`
   font-size: 15px;
   color: #333;
   font-weight: ${(props) => (props.selected ? "600" : "400")};
-`;
-
-const TestNumber = styled.span`
-  font-size: 13px;
-  color: #888;
-  margin-left: 8px;
+  
+  .nabl-asterisk {
+    color: #DB9BB9;
+    font-weight: bold;
+    margin-left: 4px;
+  }
 `;
 
 const ModalFooter = styled.div`
@@ -315,7 +315,10 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
               return numA - numB;
             });
 
-            setTests(sortedTests.map((test) => ({ testname: test.testname })));
+            setTests(sortedTests.map((test) => ({ 
+            testname: test.testname,
+            NABL: test.NABL || false // Include NABL status
+          })));
           } else {
             console.log("No test data found for this barcode");
             setTests([]);
@@ -445,7 +448,7 @@ const handlePrint = async (withLetterpad) => {
       const consultants = [
         ["Dr. S. Brindha M.D.", "Consultant Pathologist"],
         ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. R. Vijayan Ph.D.", "Consultant Biochemist", Vijayan],
+        ["Dr. R. VIJAYAN Ph.D.", "Consultant Biochemist", Vijayan],
       ];
 
       const patientRefNo =
@@ -471,7 +474,7 @@ const handlePrint = async (withLetterpad) => {
       const contentWidth = rightMargin - leftMargin;
       const headerHeight = 30;
       const footerHeight = 20;
-      const contentYStart = headerHeight + 15;
+      const contentYStart = headerHeight + 20;
       const signatureHeight = 25;
       const disclaimerHeight = 0;
       const tableHeaderHeight = 10;
@@ -597,7 +600,7 @@ const handlePrint = async (withLetterpad) => {
             headerImage,
             "PNG",
             0,
-            5,
+            10,
             doc.internal.pageSize.width,
             headerHeight
           );
@@ -950,7 +953,7 @@ const handlePrint = async (withLetterpad) => {
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 5;
+        const pageNumberY = pageHeight - footerHeight - 10;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const centerX = leftMargin + contentWidth / 2;
@@ -1043,9 +1046,9 @@ const handlePrint = async (withLetterpad) => {
                       {isSelected && <Check size={14} color="white" />}
                     </CheckboxContainer>
                     <TestName selected={isSelected}>
-                      {test.testname}
-                      {testNumber && <TestNumber>#{testNumber}</TestNumber>}
-                    </TestName>
+  {test.testname}
+  {test.NABL && <span className="nabl-asterisk">*</span>} 
+</TestName>
                   </TestInfo>
                 </TestItem>
               );
