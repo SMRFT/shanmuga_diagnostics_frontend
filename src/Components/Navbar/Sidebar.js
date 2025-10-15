@@ -642,6 +642,60 @@ const Sidebar = () => {
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
+                                             
+                            <SidebarNavLink
+                to="/MIS"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                MIS Report
+              </SidebarNavLink>
+            </>
+          )}
+{role === "CEO" && (
+            <>
+              <DropdownHeader
+                isOpen={dropdowns.reportDetails}
+                onClick={() => toggleDropdown("reportDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileAlt />
+                  </IconWrapper>
+                  Report
+                </div>
+                <ChevronIcon isOpen={dropdowns.reportDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.reportDetails}>
+                <SubLink
+                  to="/PatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Report Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownContent isOpen={dropdowns.reportDetails}>
+                <SubLink
+                  to="/PatientList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Report Authorization
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink
+                to="/PatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
                                               <SidebarNavLink
                 to="/CHCReport"
                 onClick={() => setIsSidebarOpen(false)}
@@ -649,7 +703,7 @@ const Sidebar = () => {
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                  Corporate Health Report
+                  Corporate Report Approval
               </SidebarNavLink>   
                             <SidebarNavLink
                 to="/MIS"
