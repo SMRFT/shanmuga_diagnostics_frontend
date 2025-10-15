@@ -336,6 +336,23 @@ const BadgeContainer = styled.div`
   gap: 0.25rem;
   margin-top: 0.25rem;
 `;
+const SubTitleRow = styled.tr`
+  background-color: rgba(67, 97, 238, 0.08) !important;
+
+  &:hover {
+    background-color: rgba(67, 97, 238, 0.12) !important;
+  }
+`;
+
+const SubTitleCell = styled.td`
+  font-weight: 600 !important;
+  font-size: 0.95rem;
+  color: var(--secondary);
+  padding: 0.75rem 1rem !important;
+  padding-left: 2rem !important;
+  font-style: italic;
+  border-left: 3px solid var(--secondary);
+`;
 
 function DoctorForm() {
   const [testValues, setTestValues] = useState([]);
@@ -614,37 +631,66 @@ function DoctorForm() {
             </TestHeaderRow>
           );
 
-          detail.parameters.forEach((parameter, paramIndex) => {
-            rows.push(
-              <ParameterRow
-                key={`param-${recordIndex}-${detailIndex}-${paramIndex}`}
-              >
-                <td></td>
-                <ParameterNameCell>
-                  {getRomanNumeral(paramIndex)}. {parameter.name || "N/A"}
-                </ParameterNameCell>
-                <td>{parameter.specimen_type || "N/A"}</td>
-                <ValueCell>
-                  <ValueContainer>
-                    <ValueText>{parameter.value || "N/A"}</ValueText>
-                    <BadgeContainer>
-                      {getStatusBadge(
-                        parameter.value,
-                        parameter.reference_range
-                      )}
-                      {parameter.remarks && (
-                        <EditedBadge>
-                          <FileText size={12} /> Edited
-                        </EditedBadge>
-                      )}
-                    </BadgeContainer>
-                  </ValueContainer>
-                </ValueCell>
-                <td>{parameter.unit || "N/A"}</td>
-                <td>{parameter.reference_range || "N/A"}</td>
-                <td colSpan="3"></td>
-              </ParameterRow>
-            );
+          // Group parameters by sub_title
+          const groupedParams = {};
+          detail.parameters.forEach((param) => {
+            const subtitle = param.sub_title || "Other";
+            if (!groupedParams[subtitle]) {
+              groupedParams[subtitle] = [];
+            }
+            groupedParams[subtitle].push(param);
+          });
+
+          // Render grouped parameters
+          let paramCounter = 0;
+          Object.entries(groupedParams).forEach(([subtitle, params]) => {
+            // Add subtitle row if subtitle exists
+            if (subtitle && subtitle !== "Other" && subtitle !== "") {
+              rows.push(
+                <SubTitleRow key={`subtitle-${recordIndex}-${detailIndex}-${subtitle}`}>
+                  <td></td>
+                  <SubTitleCell colSpan="7">
+                    {subtitle}
+                  </SubTitleCell>
+                  <td></td>
+                </SubTitleRow>
+              );
+            }
+
+            // Add parameter rows
+            params.forEach((parameter, paramIndex) => {
+              rows.push(
+                <ParameterRow
+                  key={`param-${recordIndex}-${detailIndex}-${paramCounter}`}
+                >
+                  <td></td>
+                  <ParameterNameCell>
+                    {getRomanNumeral(paramCounter)}. {parameter.name || "N/A"}
+                  </ParameterNameCell>
+                  <td>{parameter.specimen_type || "N/A"}</td>
+                  <ValueCell>
+                    <ValueContainer>
+                      <ValueText>{parameter.value || "N/A"}</ValueText>
+                      <BadgeContainer>
+                        {getStatusBadge(
+                          parameter.value,
+                          parameter.reference_range
+                        )}
+                        {parameter.remarks && (
+                          <EditedBadge>
+                            <FileText size={12} /> Edited
+                          </EditedBadge>
+                        )}
+                      </BadgeContainer>
+                    </ValueContainer>
+                  </ValueCell>
+                  <td>{parameter.unit || "N/A"}</td>
+                  <td>{parameter.reference_range || "N/A"}</td>
+                  <td colSpan="3"></td>
+                </ParameterRow>
+              );
+              paramCounter++;
+            });
           });
 
           testNumber++;
@@ -702,7 +748,6 @@ function DoctorForm() {
 
     return rows;
   };
-
   if (loading) {
     return (
       <Container>
