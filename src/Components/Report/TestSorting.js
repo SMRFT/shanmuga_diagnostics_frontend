@@ -788,133 +788,347 @@ const handlePrint = async (withLetterpad) => {
       }, {});
 
       Object.keys(testsByDepartment).forEach((department) => {
-        const departmentHeight = 15;
-        yPos = checkForNewPage(yPos, departmentHeight);
+  // Check if we need a new page for the department with at least one test row
+  const departmentHeight = 25; // Height for department header + minimum content
+  yPos = checkForNewPage(yPos, departmentHeight);
+
+  // Department Title with Underline - Center within content margins
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  const textWidth = doc.getTextWidth(department.toUpperCase());
+
+  // Center within content margins
+  const centerX = leftMargin + contentWidth / 2;
+  doc.text(department.toUpperCase(), centerX, yPos, {
+    align: "center",
+  });
+  doc.line(
+    centerX - textWidth / 2,
+    yPos + 2,
+    centerX + textWidth / 2,
+    yPos + 2
+  );
+
+  yPos += 10;
+
+  // Render each test and its parameters
+  testsByDepartment[department].forEach((test) => {
+    // Group parameters by sub_title
+    const parametersBySubtitle = {};
+    
+    if (test.parameters && test.parameters.length > 0) {
+      test.parameters.forEach((param) => {
+        const subtitle = param.sub_title || ""; // Use empty string if no subtitle
+        if (!parametersBySubtitle[subtitle]) {
+          parametersBySubtitle[subtitle] = [];
+        }
+        parametersBySubtitle[subtitle].push(param);
+      });
+    }
+
+    // Check if we need a new page for the test name with at least one parameter
+    const testHeaderHeight = 20; // Height for test name + minimum content
+    yPos = checkForNewPage(yPos, testHeaderHeight);
+
+    // Render main test first
+    doc.setFontSize(10);
+
+    // Start positions for each column
+    let xPos = leftMargin;
+
+    // Main test name in bold
+    doc.setFont("helvetica", "bold");
+    const testNameText = test.testname;
+    const testNameHeight = wrapText(
+      doc,
+      testNameText,
+      colWidths[0] - 2,
+      xPos,
+      yPos,
+      4
+    );
+    xPos += colWidths[0];
+
+    // Reset font to normal for other columns
+    doc.setFont("helvetica", "normal");
+
+    // Specimen Type with word wrap
+    const specimenHeight = wrapText(
+      doc,
+      test.specimen_type || "",
+      colWidths[1] - 2,
+      xPos,
+      yPos,
+      4
+    );
+    xPos += colWidths[1];
+
+    // Extra Gap
+    xPos += colWidths[2];
+
+    // Value(s) - Show indicator after the value with word wrap
+    const statusIndicator = test.isHigh
+      ? "H"
+      : test.isLow
+      ? "L"
+      : getHighLowStatus(test.value, test.reference_range);
+
+    const valueText = test.value || "";
+
+    // Keep value bold when there's an indicator
+    if (statusIndicator) {
+      doc.setFont("helvetica", "bold");
+      if (statusIndicator === "H") {
+        doc.setTextColor(255, 0, 0); // Red for high
+      } else if (statusIndicator === "L") {
+        doc.setTextColor(0, 0, 255); // Blue for low
+      }
+      const valueHeight = wrapText(
+        doc,
+        valueText,
+        colWidths[3] - 2,
+        xPos,
+        yPos,
+        4
+      );
+
+      // Display indicator AFTER the value
+      const valueWidth = doc.getTextWidth(valueText);
+      if (statusIndicator === "H") {
+        drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+      } else if (statusIndicator === "L") {
+        drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+      }
+      doc.setTextColor(0, 0, 0); // Reset to black
+      doc.setFont("helvetica", "normal");
+    } else {
+      const valueHeight = wrapText(
+        doc,
+        valueText,
+        colWidths[3] - 2,
+        xPos,
+        yPos,
+        4
+      );
+    }
+    xPos += colWidths[3];
+
+    // Unit with word wrap
+    const unitHeight = wrapText(
+      doc,
+      processUnicodeText(test.unit || ""),
+      colWidths[4] - 2,
+      xPos,
+      yPos,
+      4
+    );
+    xPos += colWidths[4];
+
+    // Reference Range with word wrap
+    const referenceRangeHeight = wrapText(
+      doc,
+      test.reference_range || "",
+      colWidths[5] - 2,
+      xPos,
+      yPos,
+      4
+    );
+    xPos += colWidths[5];
+
+    // Method with word wrap
+    doc.setTextColor(0, 0, 0);
+    const methodText = (test.method || "")
+      .replace(/\bMethod\b/i, "")
+      .trim();
+    const methodHeight = wrapText(
+      doc,
+      methodText,
+      colWidths[6] - 2,
+      xPos,
+      yPos,
+      4
+    );
+
+    // Calculate row height
+    const maxContentHeight = Math.max(
+      testNameHeight,
+      specimenHeight,
+      referenceRangeHeight,
+      methodHeight,
+      unitHeight
+    );
+    yPos += Math.max(maxContentHeight, 6) + 2;
+
+    // Reset styling
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+
+    // Now render parameters grouped by sub_title
+    Object.keys(parametersBySubtitle).forEach((subtitle) => {
+      // If subtitle exists and is not empty, check if we can fit subtitle + at least one parameter
+      if (subtitle && subtitle.trim() !== "") {
+        const subtitleWithParamHeight = 25; // Height for subtitle + one parameter row
+        yPos = checkForNewPage(yPos, subtitleWithParamHeight);
+        
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
-        const textWidth = doc.getTextWidth(department.toUpperCase());
-        const centerX = leftMargin + contentWidth / 2;
-        doc.text(department.toUpperCase(), centerX, yPos, {
-          align: "center",
-        });
-        doc.line(
-          centerX - textWidth / 2,
-          yPos + 2,
-          centerX + textWidth / 2,
-          yPos + 2
-        );
-        yPos += 10;
+        doc.text(subtitle, leftMargin, yPos);
+        yPos += 6;
+      }
 
-        testsByDepartment[department].forEach((test) => {
-          const testsToRender =
-            test.parameters && test.parameters.length > 0
-              ? [test, ...test.parameters]
-              : [test];
-          testsToRender.forEach((currentTest, index) => {
-            const estimatedHeight = 18;
-            yPos = checkForNewPage(yPos, estimatedHeight);
-            doc.setFontSize(10);
-            let xPos = leftMargin;
-            if (index === 0) {
-              doc.setFont("helvetica", "bold");
-            } else {
-              doc.setFont("helvetica", "normal");
-            }
-            
-            // Test Description - removed NABL * logic
-            const testNameText =
-              index === 0
-                ? currentTest.testname
-                : `${currentTest.name}`;
-            const testNameHeight = wrapText(
-              doc,
-              testNameText,
-              colWidths[0] - 2,
-              xPos,
-              yPos,
-              4
+      // Render all parameters under this subtitle
+      parametersBySubtitle[subtitle].forEach((currentTest) => {
+        const estimatedHeight = 18;
+        yPos = checkForNewPage(yPos, estimatedHeight);
+
+        doc.setFontSize(10);
+        let xPos = leftMargin;
+
+        // Parameter name (normal font) with word wrap
+        doc.setFont("helvetica", "normal");
+        const testNameText = currentTest.name;
+        const testNameHeight = wrapText(
+          doc,
+          testNameText,
+          colWidths[0] - 2,
+          xPos,
+          yPos,
+          4
+        );
+        xPos += colWidths[0];
+
+        // Specimen Type with word wrap
+        const specimenHeight = wrapText(
+          doc,
+          currentTest.specimen_type || "",
+          colWidths[1] - 2,
+          xPos,
+          yPos,
+          4
+        );
+        xPos += colWidths[1];
+
+        // Extra Gap
+        xPos += colWidths[2];
+
+        // Value(s) with indicator and word wrap
+        const statusIndicator = currentTest.isHigh
+          ? "H"
+          : currentTest.isLow
+          ? "L"
+          : getHighLowStatus(
+              currentTest.value,
+              currentTest.reference_range
             );
-            xPos += colWidths[0];
-            doc.setFont("helvetica", "normal");
-            doc.text(currentTest.specimen_type || "", xPos, yPos);
-            xPos += colWidths[1];
-            xPos += colWidths[2];
-            const statusIndicator = currentTest.isHigh
-              ? "H"
-              : currentTest.isLow
-              ? "L"
-              : getHighLowStatus(
-                  currentTest.value,
-                  currentTest.reference_range
-                );
-            const valueText = currentTest.value || "";
-            if (statusIndicator) {
-              doc.setFont("helvetica", "bold");
-              if (statusIndicator === "H") {
-                doc.setTextColor(255, 0, 0);
-              } else if (statusIndicator === "L") {
-                doc.setTextColor(0, 0, 255);
-              }
-              doc.text(valueText, xPos, yPos);
-              const valueWidth = doc.getTextWidth(valueText);
-              if (statusIndicator === "H") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-              } else if (statusIndicator === "L") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
-              }
-              doc.setTextColor(0, 0, 0);
-              doc.setFont("helvetica", "normal");
-            } else {
-              doc.text(valueText, xPos, yPos);
-            }
-            xPos += colWidths[3];
-            doc.setFont("helvetica", "normal");
-            renderUnicodeText(currentTest.unit || "", xPos, yPos);
-            xPos += colWidths[4];
-            const referenceRangeHeight = wrapText(
-              doc,
-              currentTest.reference_range || "",
-              colWidths[5] - 2,
-              xPos,
-              yPos,
-              4
-            );
-            xPos += colWidths[5];
-            doc.setTextColor(0, 0, 0);
-            const methodText = (currentTest.method || "")
-              .replace(/\bMethod\b/i, "")
-              .trim();
-            const methodHeight = wrapText(
-              doc,
-              methodText,
-              colWidths[6] - 2,
-              xPos,
-              yPos,
-              4
-            );
-            doc.setTextColor(0, 0, 0);
-            const maxContentHeight = Math.max(
-              testNameHeight,
-              referenceRangeHeight,
-              methodHeight
-            );
-            yPos += Math.max(maxContentHeight, 6) + 2;
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(0, 0, 0);
-          });
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-          doc.text(
-            `Verified by: ${test.verified_by || "N/A"}`,
-            leftMargin,
-            yPos
+
+        const valueText = currentTest.value || "";
+        let valueHeight = 0;
+
+        if (statusIndicator) {
+          doc.setFont("helvetica", "bold");
+          if (statusIndicator === "H") {
+            doc.setTextColor(255, 0, 0);
+          } else if (statusIndicator === "L") {
+            doc.setTextColor(0, 0, 255);
+          }
+          valueHeight = wrapText(
+            doc,
+            valueText,
+            colWidths[3] - 2,
+            xPos,
+            yPos,
+            4
           );
-          yPos += 8;
+
+          const valueWidth = doc.getTextWidth(valueText);
+          if (statusIndicator === "H") {
+            drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+          } else if (statusIndicator === "L") {
+            drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+          }
+          doc.setTextColor(0, 0, 0);
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-        });
-        yPos += 4;
+        } else {
+          valueHeight = wrapText(
+            doc,
+            valueText,
+            colWidths[3] - 2,
+            xPos,
+            yPos,
+            4
+          );
+        }
+        xPos += colWidths[3];
+
+        // Unit with word wrap
+        const unitHeight = wrapText(
+          doc,
+          processUnicodeText(currentTest.unit || ""),
+          colWidths[4] - 2,
+          xPos,
+          yPos,
+          4
+        );
+        xPos += colWidths[4];
+
+        // Reference Range with word wrap
+        const referenceRangeHeight = wrapText(
+          doc,
+          currentTest.reference_range || "",
+          colWidths[5] - 2,
+          xPos,
+          yPos,
+          4
+        );
+        xPos += colWidths[5];
+
+        // Method with word wrap
+        const methodText = (currentTest.method || "")
+          .replace(/\bMethod\b/i, "")
+          .trim();
+        const methodHeight = wrapText(
+          doc,
+          methodText,
+          colWidths[6] - 2,
+          xPos,
+          yPos,
+          4
+        );
+
+        // Calculate row height
+        const maxContentHeight = Math.max(
+          testNameHeight,
+          specimenHeight,
+          valueHeight,
+          unitHeight,
+          referenceRangeHeight,
+          methodHeight
+        );
+        yPos += Math.max(maxContentHeight, 6) + 2;
+
+        // Reset styling
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
       });
+    });
+
+    // Add "Verified by" under each test
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(
+      `Verified by: ${test.verified_by || "N/A"}`,
+      leftMargin,
+      yPos
+    );
+    yPos += 8;
+
+    // Reset font
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+  });
+
+  yPos += 4;
+});
       currentYPosition = yPos;
     }
 
