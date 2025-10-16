@@ -50,6 +50,7 @@ import LogisticManagementApproval from "./Components/Logistics/LogisticManagemen
 import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
 import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
+import CHCApproval from "./Components/Report/CHCApproval";
 
 
 
@@ -94,6 +95,9 @@ const navigateRole = (userRole) => {
         break;
       case "Doctor":
         navigate("/PatientList");
+        break;
+      case "CEO":
+        navigate("/CHCreport");
         break;
       default:
         navigate("/PatientForm"); // Default fallback
@@ -199,7 +203,6 @@ const navigateRole = (userRole) => {
             <Route path="/PatientBilling" element={<PatientBilling />} />
             <Route path="/PrintBill" element={<PrintBill />} />
 
-
             {/* Barcode */}
             <Route path="/BarcodeGeneration" element={<BarcodeGeneration />} />
             <Route path="/BarcodeTestDetails" element={<BarcodeTestDetails />} />
@@ -237,7 +240,7 @@ const navigateRole = (userRole) => {
           {/* Corporate Report */}
             <Route path="/CorporateOverview" element={<CorporateOverview />} />
             <Route path="/CHCReport" element={<CHCReport />} />
-
+            <Route path="/CHCApproval" element={<CHCApproval/>} />
             <Route path="/CorporateTestSorting" element={<CorporateTestSorting />} />
 
 
@@ -253,6 +256,7 @@ const navigateRole = (userRole) => {
 
 
 
+
           {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling/>} />
             <Route path="/Hmssamplestatus" element={<Hmssamplestatus/>} />
@@ -261,6 +265,7 @@ const navigateRole = (userRole) => {
             <Route path="/HMSBarcodeTestDetails" element={<HMSBarcodeTestDetails/>} />
             <Route path="/HMSPatientDetails" element={<HMSPatientDetails/>} />
             <Route path="/HmsTestDetails" element={<HmsTestDetails/>} />
+
 
 
 

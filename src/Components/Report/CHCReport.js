@@ -7,6 +7,7 @@ import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
 import * as pdfjsLib from 'pdfjs-dist';
 import CHCApproval from "./CHCApproval";
+import * as XLSX from 'xlsx';
 import {
   Calendar,
   Search,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   CreditCard,
   MessageCircle,
+  Download,
 } from "lucide-react";
 import { IoIosFemale, IoIosMale, IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
@@ -52,13 +54,13 @@ const GlobalStyle = createGlobalStyle`
     --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
   }
-  
+ 
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
-  
+ 
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -399,6 +401,14 @@ const NavigationTab = styled.button`
   }
 `;
 
+const ExportButton = styled(Button)`
+  background-color: #10b981;
+ 
+  &:hover:not(:disabled) {
+    background-color: #059669;
+  }
+`;
+
 const CHCReport = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -518,59 +528,59 @@ useEffect(() => {
 
 
 // Set PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 
+pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // Helper function to convert PDF to images
 const convertPdfToImages = async (base64Data) => {
   try {
     console.log("Converting PDF to images, data length:", base64Data?.length);
-    
+   
     // Remove any data URL prefix if present
     const cleanBase64 = base64Data.replace(/^data:.*?;base64,/, '');
-    
+   
     // Decode base64 to binary
     const binaryString = atob(cleanBase64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-    
+   
     console.log("PDF decoded, byte length:", bytes.length);
-    
+   
     // Load PDF document with error handling
-    const loadingTask = pdfjsLib.getDocument({ 
+    const loadingTask = pdfjsLib.getDocument({
       data: bytes,
       // Add these options for better error handling:
       verbosity: pdfjsLib.VerbosityLevel.ERRORS,
       cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
       cMapPacked: true,
     });
-    
+   
     const pdf = await loadingTask.promise;
     console.log("PDF loaded, number of pages:", pdf.numPages);
-    
+   
     const images = [];
-    
+   
     // Convert each page to image
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const viewport = page.getViewport({ scale: 2.0 });
-      
+     
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.height = viewport.height;
       canvas.width = viewport.width;
-      
+     
       await page.render({
         canvasContext: context,
         viewport: viewport
       }).promise;
-      
+     
       images.push(canvas.toDataURL('image/png'));
       console.log(`Converted page ${pageNum} to image`);
     }
-    
+   
     return images;
   } catch (error) {
     console.error('Error converting PDF to images:', error);
@@ -582,27 +592,27 @@ const convertPdfToImages = async (base64Data) => {
 
 const fetchInvestigationFile = async (fileId) => {
   if (!fileId) return null;
-  
+ 
   try {
     console.log(`Fetching file with ID: ${fileId}`);
-    
+   
     const result = await apiRequest(
       `${Labbaseurl}get_investigation_file/?file_id=${fileId}`,
       'GET'
     );
-    
+   
     if (!result.success) {
       console.error(`Failed to fetch file ${fileId}:`, result.error);
       return null;
     }
-    
+   
     // Assuming the backend now returns JSON with base64 data
     return {
       data: result.data.data, // base64 string
       contentType: result.data.contentType,
       filename: result.data.filename
     };
-    
+   
   } catch (error) {
     console.error(`Error fetching file ${fileId}:`, error);
     return null;
@@ -613,7 +623,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
   try {
     setLoading(true);
     console.log("Fetching patient details for barcode:", patient.barcode);
-    
+   
     const response = await apiRequest(
       `${Labbaseurl}corporate_health_report/?barcode=${patient.barcode}`,
       "GET"
@@ -642,7 +652,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
     // Fetch investigation files using file IDs
     const fileIds = patientDetails.investigation_file_ids || {};
     const investigationFiles = {};
-    
+   
     console.log("Fetching investigation files...");
     const filePromises = Object.entries(fileIds).map(async ([key, fileId]) => {
       if (fileId) {
@@ -654,7 +664,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
         }
       }
     });
-    
+   
     await Promise.all(filePromises);
     patientDetails.investigation_files = investigationFiles;
     console.log("All files fetched:", Object.keys(investigationFiles));
@@ -662,7 +672,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
     // Create PDF
     const doc = new jsPDF();
     let pageCount = 1;
-    
+   
     const leftMargin = 15;
     const rightMargin = leftMargin + 180;
     const contentWidth = rightMargin - leftMargin;
@@ -681,7 +691,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
     const checkForNewPage = (yPos, estimatedHeight) => {
       const pageHeight = doc.internal.pageSize.height;
       const footerStart = pageHeight - footerHeight - 30;
-      
+     
       if (yPos + estimatedHeight >= footerStart) {
         doc.addPage();
         pageCount++;
@@ -695,21 +705,21 @@ const handlePrint = async (patient, withLetterpad = true) => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       yPos += 15;
-      
+     
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      
+     
       const leftCol = [
         { label: "Name", value: patientDetails.patientname || "N/A" },
         { label: "Age / Sex", value: `${patientDetails.age} / ${patientDetails.gender}` }
       ];
-      
+     
       const rightCol = [
         { label: "Date", value: format(new Date(), "dd/MM/yyyy") },
         { label: "Ref. By", value: patientDetails.company_name || "N/A" },
         { label: "Barcode", value: patientDetails.barcode || "N/A" },
       ];
-      
+     
       for (let i = 0; i < Math.max(leftCol.length, rightCol.length); i++) {
         if (leftCol[i]) {
           doc.text(leftCol[i].label, leftMargin, yPos);
@@ -718,7 +728,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
           doc.text(leftCol[i].value, leftMargin + 45, yPos);
           doc.setFont("helvetica", "bold");
         }
-        
+       
         if (rightCol[i]) {
           doc.text(rightCol[i].label, leftMargin + 100, yPos);
           doc.text(":", leftMargin + 125, yPos);
@@ -742,25 +752,25 @@ const handlePrint = async (patient, withLetterpad = true) => {
 
     const addMedicalHistory = (yPos) => {
       yPos = checkForNewPage(yPos, 15);
-      
+     
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("MEDICAL EXAMINATION REPORT", leftMargin + contentWidth/2, yPos, { align: 'center' });
       yPos += 10;
-      
+     
       doc.setFontSize(10);
       const historyItems = [        
         { label: "Employee ID", value: patientDetails.patient_id || "N/A" },
         { label: "Department", value: patientDetails.department || "N/A" },
         { label: "Medical History", value: patientDetails.medical_history?.patient_history || "Nil Significant" }
       ];
-      
+     
       historyItems.forEach(item => {
         doc.setFont("helvetica", "bold");
         doc.text(item.label, leftMargin, yPos);
         doc.text(":", leftMargin + 50, yPos);
         doc.setFont("helvetica", "normal");
-        
+       
         // Check if this is the medical history field that needs wrapping
         if (item.label === "Medical History") {
           const maxWidth = contentWidth - 55; // Available width after label and colon
@@ -772,94 +782,94 @@ const handlePrint = async (patient, withLetterpad = true) => {
           yPos += 6;
         }
       });
-      
+     
       return yPos + 5;
     };
 
     const addGeneralExamination = (yPos) => {
       yPos = checkForNewPage(yPos, 15);
-      
+     
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("VITALS", leftMargin, yPos);
       yPos += 10;
-      
+     
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      
+     
       const colWidths = [60, 40, 50];
       const tableStartX = leftMargin;
       const rowHeight = 8;
-      
+     
       let currentX = tableStartX;
       doc.rect(tableStartX, yPos, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
       doc.line(tableStartX + colWidths[0], yPos, tableStartX + colWidths[0], yPos + rowHeight);
       doc.line(tableStartX + colWidths[0] + colWidths[1], yPos, tableStartX + colWidths[0] + colWidths[1], yPos + rowHeight);
-      
+     
       doc.text("Parameter", tableStartX + 2, yPos + 5);
       doc.text("Reading", tableStartX + colWidths[0] + 2, yPos + 5);
       doc.text("Normal Range", tableStartX + colWidths[0] + colWidths[1] + 2, yPos + 5);
       yPos += rowHeight;
-      
+     
       const vitalSigns = [
-        { 
-          param: "Height", 
-          value: (patientDetails.vitals?.height || "N/A") + " cms", 
-          range: "" 
+        {
+          param: "Height",
+          value: (patientDetails.vitals?.height || "N/A") + " cms",
+          range: ""
         },
-        { 
-          param: "Weight", 
-          value: (patientDetails.vitals?.weight || "N/A") + " kgs", 
-          range: "" 
+        {
+          param: "Weight",
+          value: (patientDetails.vitals?.weight || "N/A") + " kgs",
+          range: ""
         },
-        { 
-          param: "BMI", 
-          value: (patientDetails.vitals?.bmi || "N/A") + " kg/m²", 
-          range: "18.5 - 24.9" 
+        {
+          param: "BMI",
+          value: (patientDetails.vitals?.bmi || "N/A") + " kg/m²",
+          range: "18.5 - 24.9"
         },
-        { 
-          param: "Blood Pressure", 
-          value: (patientDetails.vitals?.blood_pressure || "N/A") + " mmHg", 
-          range: "120/80" 
+        {
+          param: "Blood Pressure",
+          value: (patientDetails.vitals?.blood_pressure || "N/A") + " mmHg",
+          range: "120/80"
         },
-        { 
-          param: "Pulse Rate", 
-          value: (patientDetails.vitals?.spo2 || "N/A") + " bpm", 
-          range: "60 - 100" 
+        {
+          param: "Pulse Rate",
+          value: (patientDetails.vitals?.spo2 || "N/A") + " bpm",
+          range: "60 - 100"
         }
       ];
-      
+     
       doc.setFont("helvetica", "normal");
       vitalSigns.forEach((item, index) => {
         const rowY = yPos;
-        
+       
         doc.rect(tableStartX, rowY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
         doc.line(tableStartX + colWidths[0], rowY, tableStartX + colWidths[0], rowY + rowHeight);
         doc.line(tableStartX + colWidths[0] + colWidths[1], rowY, tableStartX + colWidths[0] + colWidths[1], rowY + rowHeight);
-        
+       
         doc.text(item.param, tableStartX + 2, rowY + 5);
         doc.text(item.value, tableStartX + colWidths[0] + 2, rowY + 5);
         doc.text(item.range, tableStartX + colWidths[0] + colWidths[1] + 2, rowY + 5);
-        
+       
         yPos += rowHeight;
       });
-      
+     
       return yPos + 10;
     };
 
     // UPDATED: Modified ophthalmology report to include ocular movement
     const addOphthalmologyReport = (yPos) => {
       if (!patientDetails.ophthalmology) return yPos;
-      
+     
       yPos = checkForNewPage(yPos, 15);
-      
+     
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("OPHTHALMOLOGY REPORT", leftMargin, yPos);
       yPos += 10;
-      
+     
       const ophthal = patientDetails.ophthalmology;
-      
+     
       const tableX = leftMargin;
       const tableY = yPos;
       const tableWidth = 155;
@@ -867,97 +877,97 @@ const handlePrint = async (patient, withLetterpad = true) => {
       const col2Width = 51.5;
       const col3Width = 51.5;
       const rowHeight = 10;
-      
+     
       // Now we have 4 rows: Distant Vision, Near Vision, Colour Vision, Ocular Movement
       const totalRows = 4;
-      
+     
       doc.setLineWidth(0.3);
       doc.setFontSize(10);
-      
+     
       doc.rect(tableX, tableY, tableWidth, rowHeight * (totalRows + 1));
-      
+     
       doc.line(tableX + col1Width, tableY, tableX + col1Width, tableY + (rowHeight * (totalRows + 1)));
       doc.line(tableX + col1Width + col2Width, tableY, tableX + col1Width + col2Width, tableY + (rowHeight * (totalRows + 1)));
-      
+     
       for (let i = 1; i <= totalRows; i++) {
         doc.line(tableX, tableY + (rowHeight * i), tableX + tableWidth, tableY + (rowHeight * i));
       }
-      
+     
       // Header row
       doc.setFont("helvetica", "bold");
       doc.text("Test", tableX + (col1Width / 2) - 5, tableY + 6);
       doc.text("Left Eye", tableX + col1Width + (col2Width / 2) - 8, tableY + 6);
       doc.text("Right Eye", tableX + col1Width + col2Width + (col3Width / 2) - 10, tableY + 6);
-      
+     
       doc.setFont("helvetica", "normal");
-      
+     
       // Distant Vision row
       doc.setFont("helvetica", "bold");
       doc.text("Distant Vision", tableX + 5, tableY + rowHeight + 6);
       doc.setFont("helvetica", "normal");
-      
+     
       const distantLeft = ophthal.visual_acuity?.distance?.left || "N/A";
       const distantRight = ophthal.visual_acuity?.distance?.right || "N/A";
-      
+     
       doc.text(distantLeft, tableX + col1Width + (col2Width / 2) - (doc.getTextWidth(distantLeft) / 2), tableY + rowHeight + 6);
       doc.text(distantRight, tableX + col1Width + col2Width + (col3Width / 2) - (doc.getTextWidth(distantRight) / 2), tableY + rowHeight + 6);
-      
+     
       // Near Vision row
       doc.setFont("helvetica", "bold");
       doc.text("Near Vision", tableX + 5, tableY + (rowHeight * 2) + 6);
       doc.setFont("helvetica", "normal");
-      
+     
       const nearLeft = ophthal.visual_acuity?.near_vision?.left || "N/A";
       const nearRight = ophthal.visual_acuity?.near_vision?.right || "N/A";
-      
+     
       doc.text(nearLeft, tableX + col1Width + (col2Width / 2) - (doc.getTextWidth(nearLeft) / 2), tableY + (rowHeight * 2) + 6);
       doc.text(nearRight, tableX + col1Width + col2Width + (col3Width / 2) - (doc.getTextWidth(nearRight) / 2), tableY + (rowHeight * 2) + 6);
-      
+     
       // Colour Vision row
       doc.setFont("helvetica", "bold");
       doc.text("Colour Vision", tableX + 5, tableY + (rowHeight * 3) + 6);
       doc.setFont("helvetica", "normal");
-      
+     
       const colorLeft = ophthal.visual_acuity?.color_vision?.left || "N/A";
       const colorRight = ophthal.visual_acuity?.color_vision?.right || "N/A";
-      
+     
       doc.text(colorLeft, tableX + col1Width + (col2Width / 2) - (doc.getTextWidth(colorLeft) / 2), tableY + (rowHeight * 3) + 6);
       doc.text(colorRight, tableX + col1Width + col2Width + (col3Width / 2) - (doc.getTextWidth(colorRight) / 2), tableY + (rowHeight * 3) + 6);
-      
+     
       // NEW: Ocular Movement row
       doc.setFont("helvetica", "bold");
       doc.text("Ocular Movement", tableX + 5, tableY + (rowHeight * 4) + 6);
       doc.setFont("helvetica", "normal");
-      
+     
       const ocularLeft = ophthal.visual_acuity?.ocularmovement?.left || "N/A";
       const ocularRight = ophthal.visual_acuity?.ocularmovement?.right || "N/A";
-      
+     
       doc.text(ocularLeft, tableX + col1Width + (col2Width / 2) - (doc.getTextWidth(ocularLeft) / 2), tableY + (rowHeight * 4) + 6);
       doc.text(ocularRight, tableX + col1Width + col2Width + (col3Width / 2) - (doc.getTextWidth(ocularRight) / 2), tableY + (rowHeight * 4) + 6);
-      
+     
       yPos = tableY + (rowHeight * (totalRows + 1)) + 10;
-      
+     
       // Patient Complaints Section
       if (ophthal.patient_complaints && ophthal.patient_complaints.trim()) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text("Patient Complaints:", leftMargin, yPos);
         yPos += 5;
-        
+       
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         const complaintsLines = doc.splitTextToSize(ophthal.patient_complaints, contentWidth - 10);
         doc.text(complaintsLines, leftMargin, yPos);
         yPos += (complaintsLines.length * 5) + 5;
       }
-      
+     
       // Remarks Section
       if (ophthal.remarks && ophthal.remarks.trim()) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text("Remarks:", leftMargin, yPos);
         yPos += 5;
-        
+       
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         const remarksLines = doc.splitTextToSize(ophthal.remarks, contentWidth - 10);
@@ -968,7 +978,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
         doc.setFontSize(10);
         doc.text("Remarks:", leftMargin, yPos);
         yPos += 5;
-        
+       
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         const defaultRemarks = "Both Eyes: Normal Vision. Review after 6 months or 1 year.";
@@ -976,52 +986,52 @@ const handlePrint = async (patient, withLetterpad = true) => {
         doc.text(remarksLines, leftMargin, yPos);
         yPos += (remarksLines.length * 5) + 10;
       }
-      
-          
+     
+         
       // Validity note
       doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
       const validityNote = "This spectacle prescription is valid for correction, only for three months from the date of consultation.";
       const validityLines = doc.splitTextToSize(validityNote, contentWidth);
       doc.text(validityLines, leftMargin, yPos);
-      
+     
       return yPos + 15;
     };
-    
+   
     // UPDATED: Modified to include X-ray notes under PFT notes
     const addMiscellaneousInvestigations = (yPos) => {
   yPos = checkForNewPage(yPos, 15);
-  
+ 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text("MISCELLANEOUS", leftMargin, yPos);
   yPos += 10;
-  
+ 
   doc.setFontSize(10);
-  const investigations = [       
+  const investigations = [      
     { label: "E.C.G", value: patientDetails.investigation_notes?.ecg_notes || "Normal" },
     { label: "Spirometry", value: patientDetails.investigation_notes?.pft_notes || "Normal" },
     { label: "X-Ray", value: patientDetails.investigation_notes?.xray_notes || "Normal" },
     { label: "Audiometry", value: patientDetails.investigation_notes?.audiometry_notes || "Normal" }
   ];
-  
+ 
   // Calculate max width - adjust these values based on your page setup
   const rightMargin = 20; // Add this if not defined elsewhere
   const maxWidth = 210 - leftMargin - rightMargin - 45; // 210 is A4 width in mm
-  
+ 
   investigations.forEach(item => {
     // Check if we need a new page before adding this item
     yPos = checkForNewPage(yPos, 15);
-    
+   
     doc.setFont("helvetica", "bold");
     doc.text(item.label, leftMargin, yPos);
     doc.text(":", leftMargin + 40, yPos);
-    
+   
     doc.setFont("helvetica", "normal");
-    
+   
     // Split text into lines that fit within maxWidth
     const lines = doc.splitTextToSize(item.value || "Normal", maxWidth);
-    
+   
     // Add each line
     for (let i = 0; i < lines.length; i++) {
       if (i > 0) {
@@ -1030,10 +1040,10 @@ const handlePrint = async (patient, withLetterpad = true) => {
       }
       doc.text(lines[i], leftMargin + 45, yPos);
     }
-    
+   
     yPos += 6; // Space before next item
   });
-  
+ 
   return yPos + 5;
 };
 
@@ -1041,30 +1051,30 @@ const handlePrint = async (patient, withLetterpad = true) => {
       if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
         return yPos;
       }
-      
+     
       yPos = checkForNewPage(yPos, 15);
-      
+     
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("Lab Investigations", leftMargin, yPos);
       doc.text(":", leftMargin + 50, yPos);
       doc.setFont("helvetica", "normal");
       doc.text("Enclosed", leftMargin + 55, yPos);
-      
+     
       return yPos + 10;
     };
 
     // UPDATED: Get impression and remarks from overallApproval, remove default strings and Advice
     const addFinalAssessment = (yPos) => {
       yPos = checkForNewPage(yPos, 30);
-      
+     
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      
+     
       // Only display if impression and remarks exist in final_assessment
       const impression = patientDetails.final_assessment?.impression;
       const remarks = patientDetails.final_assessment?.remarks;
-      
+     
       // Only show impression if it exists
       if (impression && impression.trim()) {
         doc.text("Impression", leftMargin, yPos);
@@ -1074,7 +1084,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
         doc.setFont("helvetica", "bold");
         yPos += 6;
       }
-      
+     
       // Only show remarks if it exists
       if (remarks && remarks.trim()) {
         yPos += 10;
@@ -1082,12 +1092,12 @@ const handlePrint = async (patient, withLetterpad = true) => {
         doc.setFontSize(11);
         doc.text(remarks, leftMargin, yPos);
       }
-      
+     
       yPos += 15;
 
        // Dr. Muhsina signature on right side
       const signatureX = leftMargin + 120;
-      
+     
       if (DRPS) {
         doc.addImage(DRPS, "PNG", signatureX, yPos, 35, 25);
       }
@@ -1101,39 +1111,39 @@ const handlePrint = async (patient, withLetterpad = true) => {
       doc.text("Reg No. 80709", leftMargin + 120, yPos);
        yPos += 5;
       doc.text("Shanmuga Hospital Ltd, Salem-7.", leftMargin + 120, yPos);
-      
+     
       return yPos + 10;
     };
 
     // NEW: Add X-ray report content display function
     const addXrayReportContent = () => {
       const xrayReport = patientDetails.investigation_notes?.xray_report;
-      
+     
       if (!xrayReport || !xrayReport.trim()) {
         console.log("No X-ray report content found");
         return;
       }
-      
+     
       console.log("Adding X-ray report content page");
-      
+     
       doc.addPage();
       pageCount++;
       addHeaderFooter();
       let yPos = headerHeight + 10;
-      
+     
       // Add employee header
       yPos = addMedicalExaminationHeader(yPos);
       yPos += 5;
-      
+     
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("X-RAY CHEST PA VIEW", leftMargin + contentWidth/2, yPos, { align: 'center' });
       yPos += 15;
-      
+     
       // Display X-ray report content
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      
+     
       const reportLines = xrayReport.split('\n');
       reportLines.forEach(line => {
         if (line.trim()) {
@@ -1142,31 +1152,31 @@ const handlePrint = async (patient, withLetterpad = true) => {
           yPos += wrappedLines.length * 6;
         }
       });
-      
+     
       yPos += 10;
-      
+     
       // Add impression section
       doc.setFont("helvetica", "bold");
       doc.text("IMPRESSION:", leftMargin, yPos);
       yPos += 6;
-      
+     
       doc.setFont("helvetica", "normal");
       const impressionText = patientDetails.investigation_notes?.xray_notes || "No significant finding in the lungs or mediastinum.";
       const impressionLines = doc.splitTextToSize(impressionText, contentWidth - 10);
       doc.text(impressionLines, leftMargin, yPos);
       yPos += impressionLines.length * 6 + 20;
-      
+     
       // Add signature section
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      
+     
       // Signature image and details on right side
       const signatureX = leftMargin + 120;
-      
+     
       if (Muhsina) {
         doc.addImage(Muhsina, "PNG", signatureX, yPos, 35, 15);
       }
-      
+     
       yPos += 20;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
@@ -1177,18 +1187,18 @@ const handlePrint = async (patient, withLetterpad = true) => {
       yPos += 5;
       doc.text("REG NO: 143512 (TNMC)", signatureX, yPos);
     };
-    
+   
     const addInvestigationFiles = async () => {
       const files = patientDetails.investigation_files;
       const hasFiles = files && Object.values(files).some(file => file !== null);
-      
+     
       if (!hasFiles) {
         console.log("No investigation files found");
         return;
       }
-      
+     
       console.log("Investigation files available:", Object.keys(files).filter(key => files[key] !== null));
-      
+     
       const fileMapping = [
         { key: "ecg_file", label: "ECG Report" },
         { key: "pft_file", label: "Pulmonary Function Test (PFT)" },
@@ -1196,15 +1206,15 @@ const handlePrint = async (patient, withLetterpad = true) => {
         { key: "xray_file", label: "X-Ray Report" },
         { key: "xrayfilm_file", label: "X-Ray Film" }
       ];
-      
+     
       for (const { key, label } of fileMapping) {
         // NEW: Add X-ray report content before X-ray file
         if (key === "xray_file") {
           addXrayReportContent();
         }
-        
+       
         const file = files[key];
-        
+       
         if (file && file.data) {
           try {
             console.log(`Processing ${label}:`, {
@@ -1213,33 +1223,33 @@ const handlePrint = async (patient, withLetterpad = true) => {
               contentType: file.contentType,
               filename: file.filename
             });
-            
+           
             const contentType = file.contentType || "";
             const filename = (file.filename || "").toLowerCase();
             const isPDF = contentType.includes("pdf") || filename.endsWith(".pdf");
-            
+           
             console.log(`${label} is PDF:`, isPDF);
-            
+           
             if (isPDF) {
               console.log(`Converting PDF ${label} to images...`);
               const pdfImages = await convertPdfToImages(file.data);
-              
+             
               if (pdfImages.length > 0) {
                 for (let pageIndex = 0; pageIndex < pdfImages.length; pageIndex++) {
                   doc.addPage();
                   pageCount++;
                   addHeaderFooter();
                   let yPos = headerHeight + 10;
-                  
+                 
                   yPos = addMedicalExaminationHeader(yPos);
                   yPos += 5;
-                  
+                 
                   doc.setFont("helvetica", "bold");
                   doc.setFontSize(12);
                   const pageTitle = pdfImages.length > 1 ? `${label} (Page ${pageIndex + 1}/${pdfImages.length})` : label;
                   doc.text(pageTitle, leftMargin + contentWidth/2, yPos, { align: 'center' });
                   yPos += 12;
-                  
+                 
                   const maxWidth = contentWidth;
                   const maxHeight = 160;
                   doc.addImage(pdfImages[pageIndex], 'PNG', leftMargin, yPos, maxWidth, maxHeight);
@@ -1251,15 +1261,15 @@ const handlePrint = async (patient, withLetterpad = true) => {
                 pageCount++;
                 addHeaderFooter();
                 let yPos = headerHeight + 10;
-                
+               
                 yPos = addMedicalExaminationHeader(yPos);
                 yPos += 5;
-                
+               
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(12);
                 doc.text(label, leftMargin + contentWidth/2, yPos, { align: 'center' });
                 yPos += 15;
-                
+               
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
                 doc.text("Failed to load PDF content", leftMargin, yPos);
@@ -1271,29 +1281,29 @@ const handlePrint = async (patient, withLetterpad = true) => {
               pageCount++;
               addHeaderFooter();
               let yPos = headerHeight + 10;
-              
+             
               yPos = addMedicalExaminationHeader(yPos);
               yPos += 5;
-              
+             
               doc.setFont("helvetica", "bold");
               doc.setFontSize(12);
               doc.text(label, leftMargin + contentWidth/2, yPos, { align: 'center' });
               yPos += 12;
-              
+             
               let imageFormat = "PNG";
-              if (contentType.includes("jpeg") || contentType.includes("jpg") || 
+              if (contentType.includes("jpeg") || contentType.includes("jpg") ||
                   filename.endsWith(".jpg") || filename.endsWith(".jpeg")) {
                 imageFormat = "JPEG";
               } else if (contentType.includes("png") || filename.endsWith(".png")) {
                 imageFormat = "PNG";
               }
-              
+             
               console.log(`Using image format: ${imageFormat} for ${label}`);
-              
+             
               const imgData = `data:${contentType || 'image/png'};base64,${file.data}`;
               const maxWidth = contentWidth;
               const maxHeight = 160;
-              
+             
               try {
                 doc.addImage(imgData, imageFormat, leftMargin, yPos, maxWidth, maxHeight);
                 console.log(`Successfully added image ${label}`);
@@ -1307,20 +1317,20 @@ const handlePrint = async (patient, withLetterpad = true) => {
           } catch (error) {
             console.error(`Error processing ${label}:`, error);
             console.error('Error details:', error.message, error.stack);
-            
+           
             doc.addPage();
             pageCount++;
             addHeaderFooter();
             let yPos = headerHeight + 10;
-            
+           
             yPos = addMedicalExaminationHeader(yPos);
             yPos += 5;
-            
+           
             doc.setFont("helvetica", "bold");
             doc.setFontSize(12);
             doc.text(label, leftMargin + contentWidth/2, yPos, { align: 'center' });
             yPos += 15;
-            
+           
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.text(`[Error loading ${label}]`, leftMargin, yPos);
@@ -1340,13 +1350,13 @@ const handlePrint = async (patient, withLetterpad = true) => {
       if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
         return;
       }
-      
-      const labTests = patientDetails.testdetails.filter(test => 
+     
+      const labTests = patientDetails.testdetails.filter(test =>
         !["Audiometry", "Pulmonary Function Test", "Chest - XRay", "ECG", "Eye examination"].includes(test.testname)
       );
-      
+     
       if (labTests.length === 0) return;
-      
+     
       const unicodeMap = {
         μ: "µ", α: "α", β: "β", γ: "γ", δ: "δ", Ω: "Ω",
         "²": "²", "³": "³", "⁴": "⁴", "°": "°", "±": "±",
@@ -1441,7 +1451,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
         doc.text(":", leftMargin + 30, yPos);
         doc.setFont("helvetica", "normal");
         doc.text(patientDetails.patient_id || "N/A", leftMargin + 35, yPos);
-        
+       
         doc.setFont("helvetica", "bold");
         doc.text("Collected On", leftMargin + 100, yPos);
         doc.text(":", leftMargin + 140, yPos);
@@ -1451,13 +1461,13 @@ const handlePrint = async (patient, withLetterpad = true) => {
           doc.text(format(new Date(firstTest.samplecollected_time), "dd MMM yy / HH:mm"), leftMargin + 145, yPos);
         }
         yPos += 5;
-        
+       
         doc.setFont("helvetica", "bold");
         doc.text("Name", leftMargin, yPos);
         doc.text(":", leftMargin + 30, yPos);
         doc.setFont("helvetica", "normal");
         doc.text(patientDetails.patientname || "N/A", leftMargin + 35, yPos);
-        
+       
         doc.setFont("helvetica", "bold");
         doc.text("Received On", leftMargin + 100, yPos);
         doc.text(":", leftMargin + 140, yPos);
@@ -1466,20 +1476,20 @@ const handlePrint = async (patient, withLetterpad = true) => {
           doc.text(format(new Date(firstTest.received_time), "dd MMM yy / HH:mm"), leftMargin + 145, yPos);
         }
         yPos += 5;
-        
+       
         doc.setFont("helvetica", "bold");
         doc.text("Age/Gender", leftMargin, yPos);
         doc.text(":", leftMargin + 30, yPos);
         doc.setFont("helvetica", "normal");
         doc.text(`${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`, leftMargin + 35, yPos);
-        
+       
         doc.setFont("helvetica", "bold");
         doc.text("Reported Date", leftMargin + 100, yPos);
         doc.text(":", leftMargin + 140, yPos);
         doc.setFont("helvetica", "normal");
         doc.text(format(new Date(), "dd MMM yy / hh:mm"), leftMargin + 145, yPos);
         yPos += 5;
-        
+       
         doc.setFont("helvetica", "bold");
         doc.text("Referral", leftMargin, yPos);
         doc.text(":", leftMargin + 30, yPos);
@@ -1488,7 +1498,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
         const wrappedRefBy = doc.splitTextToSize(refByText, 60);
         doc.text(wrappedRefBy, leftMargin + 35, yPos);
         yPos += (wrappedRefBy.length * 5);
-        
+       
         return yPos + 5;
       };
 
@@ -1496,17 +1506,17 @@ const handlePrint = async (patient, withLetterpad = true) => {
         const pageHeight = doc.internal.pageSize.height;
         const signatureHeight = 25;
         const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
-        
+       
         const consultants = [
           ["Dr. S. Brindha M.D.", "Consultant Pathologist", null],
           ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist", null],
           ["Dr. R. Vijayan Ph.D.", "Consultant Biochemist", Vijayan],
         ];
-        
+       
         const signatureWidth = 35;
         const availableWidth = contentWidth - (signatureWidth / 2) * 2;
         const signatureSpacing = availableWidth / (consultants.length - 1);
-        
+       
         consultants.forEach((consultant, index) => {
           const xPosition = leftMargin + index * signatureSpacing;
           if (consultant[2]) {
@@ -1524,10 +1534,10 @@ const handlePrint = async (patient, withLetterpad = true) => {
       const checkForNewPageLab = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart = pageHeight - footerHeight - 35;
-        
+       
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
-          
+         
           doc.addPage();
           pageCount++;
           addHeaderFooter();
@@ -1544,19 +1554,19 @@ const handlePrint = async (patient, withLetterpad = true) => {
         (acc[dept] = acc[dept] || []).push(test);
         return acc;
       }, {});
-      
+     
       doc.addPage();
       pageCount++;
       addHeaderFooter();
       let yPos = headerHeight + 10;
-      
+     
       yPos = addLabReportHeader(yPos);
       yPos = drawTableHeader(yPos);
-      
+     
       Object.keys(testsByDepartment).forEach((department) => {
         const departmentHeight = 25;
         yPos = checkForNewPageLab(yPos, departmentHeight);
-        
+       
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         const textWidth = doc.getTextWidth(department.toUpperCase());
@@ -1564,10 +1574,10 @@ const handlePrint = async (patient, withLetterpad = true) => {
         doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
         doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
         yPos += 10;
-        
+       
         testsByDepartment[department].forEach((test) => {
           const parametersBySubtitle = {};
-          
+         
           if (test.parameters && test.parameters.length > 0) {
             test.parameters.forEach((param) => {
               const subtitle = param.sub_title || "";
@@ -1591,7 +1601,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
           const refLines = doc.splitTextToSize(test.reference_range || "", colWidths[5] - 2);
           const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
           const methodLines = doc.splitTextToSize(methodText, colWidths[6] - 2);
-          
+         
           const tempHeights = [
             testNameLines.length * 4,
             specimenLines.length * 4,
@@ -1600,7 +1610,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
             refLines.length * 4,
             methodLines.length * 4
           ];
-          
+         
           const maxContentHeight = Math.max(...tempHeights, 6);
 
           doc.setFontSize(10);
@@ -1616,23 +1626,23 @@ const handlePrint = async (patient, withLetterpad = true) => {
           xPos += colWidths[1];
           xPos += colWidths[2];
 
-          const statusIndicator = test.isHigh ? "H" : test.isLow ? "L" : 
+          const statusIndicator = test.isHigh ? "H" : test.isLow ? "L" :
             getHighLowStatus(test.value, test.reference_range);
 
           if (statusIndicator) {
             doc.setFont("helvetica", "bold");
             doc.setTextColor(statusIndicator === "H" ? 255 : 0, 0, statusIndicator === "L" ? 255 : 0);
           }
-          
+         
           wrapText(doc, valueText, colWidths[3] - 5, xPos, yPos, 4);
-          
+         
           if (statusIndicator && valueText) {
             const lastLineY = yPos + ((valueLines.length - 1) * 4);
             const lastLine = valueLines[valueLines.length - 1];
             const valueWidth = doc.getTextWidth(lastLine);
             drawArrowSymbol(doc, xPos + valueWidth + 2, lastLineY - 1, statusIndicator === "H" ? "up" : "down");
           }
-          
+         
           doc.setTextColor(0, 0, 0);
           doc.setFont("helvetica", "normal");
           xPos += colWidths[3];
@@ -1672,7 +1682,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
             if (subtitle && subtitle.trim() !== "") {
               const subtitleWithParamHeight = 25;
               yPos = checkForNewPageLab(yPos, subtitleWithParamHeight);
-              
+             
               doc.setFont("helvetica", "bold");
               doc.setFontSize(10);
               doc.text(subtitle, leftMargin, yPos);
@@ -1690,7 +1700,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
               const refLines = doc.splitTextToSize(currentTest.reference_range || "", colWidths[5] - 2);
               const methodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
               const methodLines = doc.splitTextToSize(methodText, colWidths[6] - 2);
-              
+             
               const tempHeights = [
                 paramNameLines.length * 4,
                 specimenLines.length * 4,
@@ -1699,10 +1709,10 @@ const handlePrint = async (patient, withLetterpad = true) => {
                 refLines.length * 4,
                 methodLines.length * 4
               ];
-              
+             
               const maxContentHeight = Math.max(...tempHeights, 6);
               const estimatedHeight = maxContentHeight + 2;
-              
+             
               yPos = checkForNewPageLab(yPos, estimatedHeight);
 
               doc.setFontSize(10);
@@ -1716,23 +1726,23 @@ const handlePrint = async (patient, withLetterpad = true) => {
               xPos += colWidths[1];
               xPos += colWidths[2];
 
-              const statusIndicator = currentTest.isHigh ? "H" : currentTest.isLow ? "L" : 
+              const statusIndicator = currentTest.isHigh ? "H" : currentTest.isLow ? "L" :
                 getHighLowStatus(currentTest.value, currentTest.reference_range);
 
               if (statusIndicator) {
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(statusIndicator === "H" ? 255 : 0, 0, statusIndicator === "L" ? 255 : 0);
               }
-              
+             
               wrapText(doc, valueText, colWidths[3] - 5, xPos, yPos, 4);
-              
+             
               if (statusIndicator && valueText) {
                 const lastLineY = yPos + ((valueLines.length - 1) * 4);
                 const lastLine = valueLines[valueLines.length - 1];
                 const valueWidth = doc.getTextWidth(lastLine);
                 drawArrowSymbol(doc, xPos + valueWidth + 2, lastLineY - 1, statusIndicator === "H" ? "up" : "down");
               }
-              
+             
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
               xPos += colWidths[3];
@@ -1778,13 +1788,13 @@ const handlePrint = async (patient, withLetterpad = true) => {
 
         yPos += 4;
       });
-      
+     
       yPos = checkForNewPageLab(yPos, 10);
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
       doc.text("**End of the Report**", centerX, yPos, { align: "center" });
-      
+     
       addSignatures();
     };
 
@@ -1806,7 +1816,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
       doc.setPage(i);
       const pageHeight = doc.internal.pageSize.height;
       const pageNumberY = pageHeight - footerHeight - 5;
-      
+     
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.text(`Page ${i} of ${pageCount}`, leftMargin + contentWidth/2, pageNumberY, { align: 'center' });
@@ -1828,7 +1838,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
     setLoading(false);
     toast.success("Medical report generated successfully!");
     return pdfBlob;
-    
+   
   } catch (error) {
     console.error("Error while generating the PDF:", error);
     toast.error("An unexpected error occurred while generating the PDF");
@@ -1873,10 +1883,142 @@ const handlePrint = async (patient, withLetterpad = true) => {
     }
   };
 
+  const handleExportToExcel = async () => {
+  try {
+    setLoading(true);
+   
+    // Fetch investigation status for all filtered patients
+    const enrichedData = await Promise.all(
+      filteredPatients.map(async (patient) => {
+        try {
+          // Fetch investigation status
+          const result = await apiRequest(
+            `${Labbaseurl}get_investigation_status/?barcode=${patient.barcode}`,
+            "GET"
+          );
+
+          let investigationData = {
+            xray_report: "Pending",
+            xrayfilm_file: "Pending",
+            ecg_file: "Pending",
+            pft_file: "Pending",
+            audiometric_file: "Pending",
+            ophthalmology: "Pending",
+            lab_approval: "Pending"
+          };
+
+          if (result.success) {
+            const inv = result.data.investigation || {};
+            investigationData = {
+              xray_report: inv.xray_report === "approved" ? "Approved" : "Pending",
+              xrayfilm_file: inv.xrayfilm_file === "approved" ? "Approved" : "Pending",
+              ecg_file: inv.ecg_file === "approved" ? "Approved" : "Pending",
+              pft_file: inv.pft_file === "approved" ? "Approved" : "Pending",
+              audiometric_file: inv.audiometric_file === "approved" ? "Approved" : "Pending",
+              ophthalmology: result.data.ophthalmology === "approved" ? "Approved" : "Pending",
+              lab_approval: result.data.lab_approval === "approved" ? "Approved" : "Pending"
+            };
+          }
+
+          return {
+            ...patient,
+            ...investigationData
+          };
+        } catch (error) {
+          console.error(`Error fetching status for ${patient.barcode}:`, error);
+          return {
+            ...patient,
+            xray_report: "Error",
+            xrayfilm_file: "Error",
+            ecg_file: "Error",
+            pft_file: "Error",
+            audiometric_file: "Error",
+            ophthalmology: "Error",
+            lab_approval: "Error"
+          };
+        }
+      })
+    );
+
+    // Prepare data for Excel
+    const excelData = enrichedData.map((patient) => ({
+      "Date": patient.date ? format(new Date(patient.date), "yyyy-MM-dd") : "N/A",
+      "Employee ID": patient.patient_id || "N/A",
+      "Barcode": patient.barcode || "N/A",
+      "Employee Name": patient.patient_name || "N/A",
+      "Gender": patient.gender || "N/A",
+      "Age": patient.age || "N/A",
+      "Branch": patient.branch || "N/A",
+      "Test Names": patient.test_names || "N/A",
+      "No of Tests": patient.no_of_tests || 0,
+      "Overall Status": patient.status || "N/A",
+      "X-Ray Report": patient.xray_report || "Pending",
+      "X-Ray Film": patient.xrayfilm_file || "Pending",
+      "ECG": patient.ecg_file || "Pending",
+      "PFT": patient.pft_file || "Pending",
+      "Audiometry": patient.audiometric_file || "Pending",
+      "Ophthalmology": patient.ophthalmology || "Pending",
+      "Lab Approval": patient.lab_approval || "Pending"
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    const colWidths = [
+      { wch: 12 }, // Date
+      { wch: 15 }, // Employee ID
+      { wch: 15 }, // Barcode
+      { wch: 25 }, // Employee Name
+      { wch: 10 }, // Gender
+      { wch: 8 },  // Age
+      { wch: 20 }, // Branch
+      { wch: 40 }, // Test Names
+      { wch: 12 }, // No of Tests
+      { wch: 15 }, // Overall Status
+      { wch: 15 }, // X-Ray Report
+      { wch: 15 }, // X-Ray Film
+      { wch: 15 }, // ECG
+      { wch: 15 }, // PFT
+      { wch: 15 }, // Audiometry
+      { wch: 15 }, // Ophthalmology
+      { wch: 15 }  // Lab Approval
+    ];
+    ws['!cols'] = colWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "CHC Report");
+
+    // Generate filename with date range
+    const startDateStr = format(startDate, "yyyy-MM-dd");
+    const endDateStr = format(endDate, "yyyy-MM-dd");
+    const filename = `CHC_Report_${startDateStr}_to_${endDateStr}.xlsx`;
+
+    // Write file
+    XLSX.writeFile(wb, filename);
+
+    setLoading(false);
+    toast.success(`Excel report exported successfully! (${enrichedData.length} records)`);
+  } catch (error) {
+    console.error("Error exporting to Excel:", error);
+    toast.error("Failed to export Excel report");
+    setLoading(false);
+  }
+};
+
+
   return (
     <Container>
       <GlobalStyle />
       <Card>
+      <CardHeader>
+  <Title>Corporate Health Checkup - Approval Report</Title>
+  <ExportButton onClick={handleExportToExcel} disabled={loading || filteredPatients.length === 0}>
+    <Download size={16} />
+    Export to Excel
+  </ExportButton>
+</CardHeader>
         <FiltersContainer>
           <FilterRow>
             <FilterGroup>
@@ -1895,8 +2037,8 @@ const handlePrint = async (patient, withLetterpad = true) => {
                 value={endDate.toISOString().split("T")[0]}
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
-            </FilterGroup>           
-                      
+            </FilterGroup>          
+                     
             <FilterGroup>
               <FilterLabel>Employee ID</FilterLabel>
               <FilterInput
@@ -1905,7 +2047,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
               />
-            
+           
             </FilterGroup>
             <FilterGroup>
               <FilterLabel>Barcode</FilterLabel>
@@ -1954,7 +2096,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
                 <th>Date</th>
                 <th>Employee ID</th>
                 <th>Barcode</th>
-                <th>Employee Name</th> 
+                <th>Employee Name</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
