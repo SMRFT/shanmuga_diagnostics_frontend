@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react"
 import styled from "styled-components"
 import { X, Eye, Save, Loader } from "lucide-react"
 import apiRequest from "../Auth/apiRequest"
-
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs";
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -395,9 +396,16 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   const [showPreview, setShowPreview] = useState(false)
   const [patientDetails, setPatientDetails] = useState(null)
   const [investigationFiles, setInvestigationFiles] = useState({})
+  const [pdfImages, setPdfImages] = useState({});
+  const [conversionLoading, setConversionLoading] = useState({});
   const [impression, setImpression] = useState("Reports within Normal Limits.")
   const [remarks, setRemarks] = useState("The above candidate was examined and found Medically Fit for the Job.")
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+
+  useEffect(() => {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}, []);
 
   useEffect(() => {
     fetchInvestigationStatus()
@@ -444,6 +452,72 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       return null
     }
   }
+
+  const convertPdfToImages = async (base64Data, fileKey) => {
+  try {
+    console.log("Converting PDF to images for:", fileKey);
+    
+    // Remove any data URL prefix if present
+    const cleanBase64 = base64Data.replace(/^data:.*?;base64,/, '');
+    
+    // Decode base64 to binary
+    const binaryString = atob(cleanBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    console.log("PDF decoded, byte length:", bytes.length);
+    
+    // Load PDF document
+    const loadingTask = pdfjsLib.getDocument({ 
+      data: bytes,
+      verbosity: pdfjsLib.VerbosityLevel.ERRORS,
+      cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
+      cMapPacked: true,
+    });
+    
+    const pdf = await loadingTask.promise;
+    console.log("PDF loaded, number of pages:", pdf.numPages);
+    
+    const images = [];
+    
+    // Convert each page to image
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 2.0 });
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      }).promise;
+      
+      images.push(canvas.toDataURL('image/png'));
+      console.log(`Converted page ${pageNum} to image`);
+    }
+    
+    setPdfImages(prev => ({
+      ...prev,
+      [fileKey]: images
+    }));
+    
+    return images;
+  } catch (error) {
+    console.error('Error converting PDF to images:', error);
+    return [];
+  } finally {
+    setConversionLoading(prev => ({
+      ...prev,
+      [fileKey]: false
+    }));
+  }
+};
+
 
   const fetchPatientDetails = async () => {
     try {
@@ -697,36 +771,74 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   }
 
   const renderFilePreview = (fileKey, label) => {
-    const file = investigationFiles[fileKey]
-    if (!file) return null
+  const file = investigationFiles[fileKey];
+  if (!file) return null;
 
-    const contentType = file.contentType || ""
-    const filename = (file.filename || "").toLowerCase()
-    const isPDF = contentType.includes("pdf") || filename.endsWith(".pdf")
+  const contentType = file.contentType || "";
+  const filename = (file.filename || "").toLowerCase();
+  const isPDF = contentType.includes("pdf") || filename.endsWith(".pdf");
+  const images = pdfImages[fileKey] || [];
+  const isConverting = conversionLoading[fileKey];
 
-    return (
-      <FilePreviewContainer key={fileKey}>
-        <FilePreviewTitle>{label}</FilePreviewTitle>
-        {isPDF ? (
-          <div
-            style={{
-              color: "#666",
-              fontSize: "14px",
-              padding: "20px",
-              textAlign: "center",
-              background: "#f0f0f0",
-              borderRadius: "4px",
-            }}
-          >
-            <p>📄 PDF File: {file.filename}</p>
-            <p style={{ fontSize: "12px", marginTop: "5px" }}>
-              PDF preview not available in this view. File will be included in the downloaded report.
-            </p>
-          </div>
-        ) : (
-          <FileImage src={`data:${contentType};base64,${file.data}`} alt={label} />
-        )}
-      </FilePreviewContainer>
+  return (
+    <FilePreviewContainer key={fileKey}>
+      <FilePreviewTitle>{label}</FilePreviewTitle>
+      {isPDF ? (
+        <>
+          {images.length === 0 && !isConverting ? (
+            <button
+              onClick={() => {
+                setConversionLoading(prev => ({
+                  ...prev,
+                  [fileKey]: true
+                }));
+                convertPdfToImages(file.data, fileKey);
+              }}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#DB9BB9',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                marginTop: '8px'
+              }}
+            >
+              Load PDF Preview
+            </button>
+          ) : isConverting ? (
+            <div
+              style={{
+                color: "#666",
+                fontSize: "14px",
+                padding: "20px",
+                textAlign: "center",
+                background: "#f0f0f0",
+                borderRadius: "4px",
+              }}
+            >
+              <p>Converting PDF...</p>
+            </div>
+          ) : (
+            <div style={{ marginTop: '10px' }}>
+              {images.map((image, idx) => (
+                <div key={idx} style={{ marginBottom: '15px' }}>
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
+                    Page {idx + 1} of {images.length}
+                  </div>
+                  <FileImage src={image} alt={`${label} - Page ${idx + 1}`} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <FileImage src={`data:${contentType};base64,${file.data}`} alt={label} />
+      )}
+    </FilePreviewContainer>
     )
   }
 
