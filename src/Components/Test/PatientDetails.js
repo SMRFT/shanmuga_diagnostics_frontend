@@ -1,13 +1,8 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { format } from "date-fns";
-import styled, {
-  createGlobalStyle,
-  ThemeProvider,
-  css,
-} from "styled-components";
+import { useState, useEffect } from "react"
+import { format } from "date-fns"
+import styled, { createGlobalStyle, ThemeProvider, css } from "styled-components"
 import {
   Calendar,
   Search,
@@ -20,11 +15,11 @@ import {
   Tag,
   FileText,
   CalendarDays,
-} from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { useNavigate, useLocation } from "react-router-dom";
-import apiRequest from "../Auth/apiRequest";
+} from "lucide-react"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import { useNavigate, useLocation } from "react-router-dom"
+import apiRequest from "../Auth/apiRequest"
 
 // Theme
 const theme = {
@@ -66,7 +61,7 @@ const theme = {
     default: "all 0.2s ease-in-out",
     slow: "all 0.3s ease-in-out",
   },
-};
+}
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -122,7 +117,7 @@ const GlobalStyle = createGlobalStyle`
     background-color: ${(props) => props.theme.colors.primary};
     color: white;
   }
-`;
+`
 
 // Styled Components
 const Container = styled.div`
@@ -137,12 +132,12 @@ const Container = styled.div`
     margin: 1rem;
     padding: 1rem;
   }
-`;
+`
 
 const Header = styled.div`
   margin-bottom: 2rem;
   text-align: center;
-`;
+`
 
 const Title = styled.h1`
   color: ${(props) => props.theme.colors.primary};
@@ -153,7 +148,7 @@ const Title = styled.h1`
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     font-size: 1.5rem;
   }
-`;
+`
 
 const Controls = styled.div`
   display: flex;
@@ -167,7 +162,7 @@ const Controls = styled.div`
     flex-direction: column;
     align-items: stretch;
   }
-`;
+`
 
 const DateRangeWrapper = styled.div`
   display: flex;
@@ -179,7 +174,7 @@ const DateRangeWrapper = styled.div`
     flex-direction: column;
     width: 100%;
   }
-`;
+`
 
 const DatePickerWrapper = styled.div`
   display: flex;
@@ -218,7 +213,7 @@ const DatePickerWrapper = styled.div`
       outline: none;
     }
   }
-`;
+`
 
 const SearchWrapper = styled.div`
   position: relative;
@@ -228,7 +223,7 @@ const SearchWrapper = styled.div`
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     max-width: 100%;
   }
-`;
+`
 
 const SearchInput = styled.input`
   width: 100%;
@@ -243,7 +238,7 @@ const SearchInput = styled.input`
     border-color: ${(props) => props.theme.colors.primary};
     box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
   }
-`;
+`
 
 const SearchIcon = styled.div`
   position: absolute;
@@ -252,7 +247,7 @@ const SearchIcon = styled.div`
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
   pointer-events: none;
-`;
+`
 
 const TableWrapper = styled.div`
   position: relative;
@@ -260,14 +255,14 @@ const TableWrapper = styled.div`
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   box-shadow: ${(props) => props.theme.shadows.sm};
-`;
+`
 
 const Table = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;
-`;
+`
 
 const Th = styled.th`
   padding: 1rem;
@@ -287,7 +282,7 @@ const Th = styled.th`
   &:last-child {
     padding-right: 1.5rem;
   }
-`;
+`
 
 const Td = styled.td`
   padding: 1rem;
@@ -301,7 +296,7 @@ const Td = styled.td`
   &:last-child {
     padding-right: 1.5rem;
   }
-`;
+`
 
 const Tr = styled.tr`
   &:hover {
@@ -311,7 +306,7 @@ const Tr = styled.tr`
   &:last-child td {
     border-bottom: none;
   }
-`;
+`
 
 const TestButton = styled.button`
   display: inline-flex;
@@ -341,7 +336,7 @@ const TestButton = styled.button`
     cursor: not-allowed;
     opacity: 0.6;
   }
-`;
+`
 
 const StatusBadge = styled.span`
   display: inline-flex;
@@ -359,20 +354,20 @@ const StatusBadge = styled.span`
         return css`
           background-color: ${props.theme.colors.success}20;
           color: ${props.theme.colors.success};
-        `;
+        `
       case "Rerun Initiated":
         return css`
           background-color: ${props.theme.colors.danger}20;
           color: ${props.theme.colors.danger};
-        `;
+        `
       default:
         return css`
           background-color: ${props.theme.colors.warning}20;
           color: ${props.theme.colors.warning};
-        `;
+        `
     }
   }}
-`;
+`
 
 const EmptyState = styled.div`
   display: flex;
@@ -384,13 +379,13 @@ const EmptyState = styled.div`
   background: ${(props) => props.theme.colors.backgroundAlt};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   border: 2px dashed ${(props) => props.theme.colors.border};
-`;
+`
 
 const EmptyStateText = styled.p`
   color: ${(props) => props.theme.colors.textLight};
   margin-top: 1rem;
   max-width: 24rem;
-`;
+`
 
 const LoadingSpinner = styled.div`
   display: inline-block;
@@ -406,14 +401,14 @@ const LoadingSpinner = styled.div`
       transform: rotate(360deg);
     }
   }
-`;
+`
 
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 3rem;
-`;
+`
 
 const PatientInfo = styled.div`
   display: flex;
@@ -425,144 +420,159 @@ const PatientInfo = styled.div`
   svg {
     color: ${(props) => props.theme.colors.textLight};
   }
-`;
+`
 
 const TestList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-`;
+`
 
 const DateRangeLabel = styled.span`
   color: ${(props) => props.theme.colors.textLight};
   font-size: 0.875rem;
   margin: 0 0.5rem;
-`;
+`
 
 // Main Component
 const PatientDetails = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [patientDetails, setPatientDetails] = useState([]);
-  const [fromDate, setFromDate] = useState(new Date());
-  const [toDate, setToDate] = useState(new Date());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-
-  // Handle barcode from navigation state
-useEffect(() => {
-  if (location.state?.barcode) {
-    setSearchQuery(location.state.barcode);
+  const getDefaultFromDate = () => {
+    return new Date()
   }
-  if (location.state?.date) {
-    setFromDate(new Date(location.state.date));  // ensure proper Date object
-  }
-}, [location.state]);
 
+  const getDefaultToDate = () => {
+    return new Date()
+  }
+
+  const [searchQuery, setSearchQuery] = useState("")
+  const [patientDetails, setPatientDetails] = useState([])
+  const [fromDate, setFromDate] = useState(getDefaultFromDate())
+  const [toDate, setToDate] = useState(getDefaultToDate())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+
+  useEffect(() => {
+    if (location.state?.fromDate || location.state?.toDate || location.state?.barcode) {
+      console.log("[v0] Navigation state received:", location.state)
+
+      if (location.state.fromDate) {
+        const newFromDate = new Date(location.state.fromDate)
+        console.log("[v0] Setting fromDate from state:", newFromDate)
+        setFromDate(newFromDate)
+      }
+
+      if (location.state.toDate) {
+        const newToDate = new Date(location.state.toDate)
+        console.log("[v0] Setting toDate from state:", newToDate)
+        setToDate(newToDate)
+      }
+
+      if (location.state.barcode) {
+        console.log("[v0] Setting search query from state:", location.state.barcode)
+        setSearchQuery(location.state.barcode)
+      }
+    }
+  }, [location.state])
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
-      setLoading(true);
+      console.log("[v0] Fetching patient details with dates:", { fromDate, toDate })
+      setLoading(true)
+      setError(null)
+
       try {
-        const formattedFromDate = format(fromDate, "yyyy-MM-dd");
-        const formattedToDate = format(toDate, "yyyy-MM-dd");
+        const formattedFromDate = format(fromDate, "yyyy-MM-dd")
+        const formattedToDate = format(toDate, "yyyy-MM-dd")
+        console.log("[v0] Formatted dates:", { formattedFromDate, formattedToDate })
 
         const patientResponse = await apiRequest(
           `${Labbaseurl}samplestatus-testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
-          "GET"
-        );
+          "GET",
+        )
 
-        // Check if the request was successful
+        console.log("[v0] API Response:", patientResponse)
+
         if (!patientResponse.success) {
-          throw new Error(
-            patientResponse.error || "Failed to fetch patient data"
-          );
+          throw new Error(patientResponse.error || "Failed to fetch patient data")
         }
 
-        setPatientDetails(patientResponse.data);
-        setError(null);
+        console.log("[v0] Patient data received:", patientResponse.data?.length || 0, "records")
+        setPatientDetails(patientResponse.data)
+        setError(null)
       } catch (err) {
-        console.error("Error fetching patient details:", err);
-        setError(
-          err.message || "Failed to fetch patient details. Please try again."
-        );
+        console.error("[v0] Error fetching patient details:", err)
+        setError(err.message || "Failed to fetch patient details. Please try again.")
+        setPatientDetails([])
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchPatientDetails();
-  }, [fromDate, toDate]);
+    fetchPatientDetails()
+  }, [fromDate, toDate, Labbaseurl])
 
-const handlePatientClick = (
-  patientId,
-  patientname,
-  age,
-  barcode,
-  franchise_id,
-  testName,
-  patientDate,
-  createdDate,
-  created_date
-) => {
-  const formattedPatientDate = patientDate
-    ? format(new Date(patientDate), "yyyy-MM-dd")
-    : "";
-  
-  const rawCreated = createdDate || created_date || "";
-  const formattedCreatedDate = rawCreated
-    ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd")
-    : "";
+  const handlePatientClick = (
+    patientId,
+    patientname,
+    age,
+    barcode,
+    franchise_id,
+    testName,
+    patientDate,
+    createdDate,
+    created_date,
+  ) => {
+    const formattedPatientDate = patientDate ? format(new Date(patientDate), "yyyy-MM-dd") : ""
 
-  const encodedTestName = encodeURIComponent(testName || "");
-  const encodedBarcode = encodeURIComponent(barcode || "");
+    const rawCreated = createdDate || created_date || ""
+    const formattedCreatedDate = rawCreated ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd") : ""
 
-  navigate(
-    `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
-      franchise_id || "Shanmuga Referrence Lab"
-    }&test_name=${encodedTestName}`
-  );
-};
+    const encodedTestName = encodeURIComponent(testName || "")
+    const encodedBarcode = encodeURIComponent(barcode || "")
 
-
+    // Pass the current date range in state
+    navigate(
+      `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
+        franchise_id || "Shanmuga Referrence Lab"
+      }&test_name=${encodedTestName}`,
+      {
+        state: {
+          fromDate: fromDate,
+          toDate: toDate,
+          barcode: barcode,
+        },
+      },
+    )
+  }
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "Approved":
-        return <CheckCircle size={12} />;
+        return <CheckCircle size={12} />
       case "Rerun Initiated":
-        return <RefreshCcw size={12} />;
+        return <RefreshCcw size={12} />
       default:
-        return <Clock size={12} />;
+        return <Clock size={12} />
     }
-  };
+  }
 
   const getTestStatus = (test) => {
-    console.log("Test Status Input:", test); // Add logging
+    console.log("Test Status Input:", test)
     if (!test.test_value_exists) {
-      return "Waiting for Technician's Approval";
+      return "Waiting for Technician's Approval"
     }
-    return test.rerun
-      ? "Rerun Initiated"
-      : test.approve
-      ? "Approved"
-      : "Waiting for Doctor's Approval";
-  };
+    return test.rerun ? "Rerun Initiated" : test.approve ? "Approved" : "Waiting for Doctor's Approval"
+  }
 
   const filteredPatients = patientDetails.filter(
     (patient) =>
-      (patient.patientname || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      (patient.barcode || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      (patient.patient_id || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
-  );
+      (patient.patientname || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (patient.barcode || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (patient.patient_id || "").toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
   return (
     <ThemeProvider theme={theme}>
@@ -632,9 +642,7 @@ const handlePatientClick = (
         ) : filteredPatients.length === 0 ? (
           <EmptyState>
             <AlertCircle size={24} color={theme.colors.textLight} />
-            <EmptyStateText>
-              No received tests available for the selected date range.
-            </EmptyStateText>
+            <EmptyStateText>No received tests available for the selected date range.</EmptyStateText>
           </EmptyState>
         ) : (
           <TableWrapper>
@@ -652,16 +660,16 @@ const handlePatientClick = (
                 {filteredPatients.map((patient, index) => {
                   return (
                     <Tr key={index}>
-<Td>
-  <PatientInfo>
-    <Calendar size={14} />
-    {patient.date
-      ? format(new Date(patient.date), "MMM dd, yyyy")
-      : patient.created_date
-      ? format(new Date(patient.created_date), "MMM dd, yyyy")
-      : "N/A"}
-  </PatientInfo>
-</Td>
+                      <Td>
+                        <PatientInfo>
+                          <Calendar size={14} />
+                          {patient.date
+                            ? format(new Date(patient.date), "MMM dd, yyyy")
+                            : patient.created_date
+                              ? format(new Date(patient.created_date), "MMM dd, yyyy")
+                              : "N/A"}
+                        </PatientInfo>
+                      </Td>
                       <Td>
                         <div
                           style={{
@@ -672,9 +680,7 @@ const handlePatientClick = (
                         >
                           <PatientInfo>
                             <User size={14} />
-                            <strong>
-                              {patient.patientname || "Unknown Patient"}
-                            </strong>
+                            <strong>{patient.patientname || "Unknown Patient"}</strong>
                           </PatientInfo>
                           <PatientInfo>
                             <Tag size={14} />
@@ -691,14 +697,12 @@ const handlePatientClick = (
                         </div>
                       </Td>
                       <Td>
-                        <PatientInfo>
-                          {patient.franchise_id || "Shanmuga Hospital"}
-                        </PatientInfo>
+                        <PatientInfo>{patient.company_id || "Shanmuga Hospital"}</PatientInfo>
                       </Td>
                       <Td>
                         <TestList>
                           {patient.testdetails?.map((test, idx) => {
-                            const testStatus = getTestStatus(test);
+                            const testStatus = getTestStatus(test)
                             return (
                               <TestButton
                                 key={idx}
@@ -708,23 +712,21 @@ const handlePatientClick = (
                                     patient.patientname,
                                     patient.age,
                                     patient.barcode,
-                                    patient.franchise_id,
+                                    patient.company_id,
                                     test.testname,
-                                    patient.date // Pass the individual patient's date here
+                                    patient.date,
                                   )
                                 }
                                 title={
-                                  testStatus ===
-                                  "Waiting for Technician's Approval"
+                                  testStatus === "Waiting for Technician's Approval"
                                     ? "Enter Test Values"
                                     : testStatus === "Rerun Initiated"
-                                    ? "Rerun Test"
-                                    : "Test Cannot Be Edited"
+                                      ? "Rerun Test"
+                                      : "Test Cannot Be Edited"
                                 }
                                 disabled={
                                   !(
-                                    testStatus ===
-                                      "Waiting for Technician's Approval" ||
+                                    testStatus === "Waiting for Technician's Approval" ||
                                     testStatus === "Rerun Initiated"
                                   )
                                 }
@@ -732,25 +734,25 @@ const handlePatientClick = (
                                 {test.testname}
                                 <ChevronRight size={16} />
                               </TestButton>
-                            );
+                            )
                           })}
                         </TestList>
                       </Td>
                       <Td>
                         <TestList>
                           {patient.testdetails?.map((test, idx) => {
-                            const testStatus = getTestStatus(test);
+                            const testStatus = getTestStatus(test)
                             return (
                               <StatusBadge key={idx} status={testStatus}>
                                 {getStatusIcon(testStatus)}
                                 {testStatus}
                               </StatusBadge>
-                            );
+                            )
                           })}
                         </TestList>
                       </Td>
                     </Tr>
-                  );
+                  )
                 })}
               </tbody>
             </Table>
@@ -758,7 +760,7 @@ const handlePatientClick = (
         )}
       </Container>
     </ThemeProvider>
-  );
-};
+  )
+}
 
-export default PatientDetails;
+export default PatientDetails
