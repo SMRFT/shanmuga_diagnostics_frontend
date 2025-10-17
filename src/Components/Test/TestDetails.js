@@ -380,6 +380,7 @@ function TestDetails() {
   const [patientName, setPatientName] = useState("");
   const [initialValues, setInitialValues] = useState({});
   const [processedRecords, setProcessedRecords] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -462,7 +463,6 @@ function TestDetails() {
         return;
       }
 
-      // FIX: Define filteredTests properly
       const filteredTests = testName 
         ? allTests.filter(test => test.testname === testName)
         : allTests;
@@ -514,6 +514,7 @@ function TestDetails() {
           groupedTests[testName].test_value = test.test_value;
           groupedTests[testName].test_code = test.test_code;
           groupedTests[testName].processing_status = test.processing_status;
+          groupedTests[testName].value_option = test.value_option || [];
         }
       });
 
@@ -603,6 +604,8 @@ function TestDetails() {
   };
 
   const isSaveButtonEnabled = () => {
+    if (isSubmitting) return false;
+
     let allValuesFilled = true;
     let remarksRequiredForEditedFields = true;
 
@@ -661,6 +664,13 @@ function TestDetails() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    // Prevent duplicate submission
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
     const validateTestValue = (value, paramName, testName) => {
       if (!value || (typeof value === "string" && value.trim() === "")) {
         throw new Error(`Value for ${paramName} in ${testName} is required`);
@@ -703,6 +713,7 @@ function TestDetails() {
             .map((error, index) => `${index + 1}. ${error}`)
             .join("\n");
         alert(errorMessage);
+        setIsSubmitting(false);
         return;
       }
 
@@ -790,15 +801,26 @@ function TestDetails() {
       } else {
         console.error("Error saving test details:", postResult);
         alert(postResult.error || "Failed to save test details.");
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error("Request failed:", error);
       alert("An error occurred while saving test details. Please try again.");
+      setIsSubmitting(false);
     }
   };
 
   const handleBack = () => {
-    navigate("/PatientDetails", { state: { barcode } });
+    const stateFromDate = location.state?.fromDate;
+    const stateToDate = location.state?.toDate;
+    
+    navigate("/PatientDetails", { 
+      state: { 
+        barcode: barcode,
+        fromDate: stateFromDate || new Date(),
+        toDate: stateToDate || new Date()
+      } 
+    });
   };
 
   if (loading) {
@@ -921,27 +943,56 @@ function TestDetails() {
 
                     <FormRow>
                       <FormGroup>
-                        <Label>Value</Label>
-                        <Input
-                          type="text"
-                          value={values[test.testname] || ""}
-                          onChange={
-                            !initialValues[test.testname] ||
-                            initialValues[test.testname].trim() === ""
-                              ? (e) => handleValueChange(test.testname, e)
-                              : undefined
-                          }
-                          disabled={
-                            initialValues[test.testname] &&
-                            initialValues[test.testname].trim() !== ""
-                          }
-                          placeholder={
-                            !initialValues[test.testname] ||
-                            initialValues[test.testname].trim() === ""
-                              ? "Enter value"
-                              : "Value available"
-                          }
-                        />
+                        <Label>
+                          Value {(!initialValues[test.testname] || initialValues[test.testname].trim() === "") && 
+                                 <span style={{ color: "red" }}>*</span>}
+                        </Label>
+                        {test.value_option && test.value_option.length > 0 ? (
+                          (!initialValues[test.testname] || initialValues[test.testname].trim() === "") ? (
+                            <SelectWrapper>
+                              <Select
+                                value={values[test.testname] || ""}
+                                onChange={(e) => handleValueChange(test.testname, e)}
+                              >
+                                <option value="">Select value</option>
+                                {test.value_option.map((option, optIndex) => (
+                                  <option key={optIndex} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </Select>
+                              <SelectIcon size={18} />
+                            </SelectWrapper>
+                          ) : (
+                            <Input
+                              type="text"
+                              value={values[test.testname] || ""}
+                              disabled
+                              placeholder="Value available"
+                            />
+                          )
+                        ) : (
+                          <Input
+                            type="text"
+                            value={values[test.testname] || ""}
+                            onChange={
+                              !initialValues[test.testname] ||
+                              initialValues[test.testname].trim() === ""
+                                ? (e) => handleValueChange(test.testname, e)
+                                : undefined
+                            }
+                            disabled={
+                              initialValues[test.testname] &&
+                              initialValues[test.testname].trim() !== ""
+                            }
+                            placeholder={
+                              !initialValues[test.testname] ||
+                              initialValues[test.testname].trim() === ""
+                                ? "Enter value"
+                                : "Value available"
+                            }
+                          />
+                        )}
                       </FormGroup>
                     </FormRow>
 
@@ -1118,7 +1169,7 @@ function TestDetails() {
           <ButtonContainer>
             <SaveButton type="submit" disabled={!isSaveButtonEnabled()}>
               <Save size={18} />
-              Save Test Details
+              {isSubmitting ? "Saving..." : "Save Test Details"}
             </SaveButton>
           </ButtonContainer>
         </Form>
