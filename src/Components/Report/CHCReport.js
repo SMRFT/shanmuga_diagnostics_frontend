@@ -702,53 +702,66 @@ const handlePrint = async (patient, withLetterpad = true) => {
     };
 
     const addMedicalExaminationHeader = (yPos) => {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  yPos += 15;
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  
+  const leftCol = [
+    { label: "Name", value: patientDetails.patientname || "N/A" },
+    { label: "Age / Sex", value: `${patientDetails.age} / ${patientDetails.gender}` }
+  ];
+  
+  const rightCol = [
+    { label: "Date", value: format(new Date(), "dd/MM/yyyy") },
+    { label: "Ref. By", value: patientDetails.company_name || "N/A" },
+    { label: "Barcode", value: patientDetails.barcode || "N/A" },
+  ];
+  
+  for (let i = 0; i < Math.max(leftCol.length, rightCol.length); i++) {
+    let lineHeight = 0;
+    
+    // Process left column
+    if (leftCol[i]) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      yPos += 15;
+      doc.text(leftCol[i].label, leftMargin, yPos);
+      doc.text(":", leftMargin + 40, yPos);
       
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      
-      const leftCol = [
-        { label: "Name", value: patientDetails.patientname || "N/A" },
-        { label: "Age / Sex", value: `${patientDetails.age} / ${patientDetails.gender}` }
-      ];
-      
-      const rightCol = [
-        { label: "Date", value: format(new Date(), "dd/MM/yyyy") },
-        { label: "Ref. By", value: patientDetails.company_name || "N/A" },
-        { label: "Barcode", value: patientDetails.barcode || "N/A" },
-      ];
-      
-      for (let i = 0; i < Math.max(leftCol.length, rightCol.length); i++) {
-        if (leftCol[i]) {
-          doc.text(leftCol[i].label, leftMargin, yPos);
-          doc.text(":", leftMargin + 40, yPos);
-          doc.setFont("helvetica", "normal");
-          doc.text(leftCol[i].value, leftMargin + 45, yPos);
-          doc.setFont("helvetica", "bold");
-        }
-        
-        if (rightCol[i]) {
-          doc.text(rightCol[i].label, leftMargin + 100, yPos);
-          doc.text(":", leftMargin + 125, yPos);
-          doc.setFont("helvetica", "normal");
-          if (rightCol[i].label === "Ref. By") {
-            const wrappedText = doc.splitTextToSize(rightCol[i].value, 65);
-            doc.text(wrappedText, leftMargin + 130, yPos);
-            if (wrappedText.length > 1) {
-              yPos += (wrappedText.length - 1) * 5;
-            }
-          } else {
-            doc.text(rightCol[i].value, leftMargin + 130, yPos);
-          }
-          doc.setFont("helvetica", "bold");
-        }
-        yPos += 6;
+      doc.setFont("helvetica", "normal");
+      // Add line wrapping for Name field
+      if (leftCol[i].label === "Name") {
+        const wrappedText = doc.splitTextToSize(leftCol[i].value, 50);
+        doc.text(wrappedText, leftMargin + 45, yPos);
+        lineHeight = Math.max(lineHeight, (wrappedText.length - 1) * 5);
+      } else {
+        doc.text(leftCol[i].value, leftMargin + 45, yPos);
       }
-           
-      return yPos + 10;
-    };
+    }
+    
+    // Process right column
+    if (rightCol[i]) {
+      doc.setFont("helvetica", "bold");
+      doc.text(rightCol[i].label, leftMargin + 100, yPos);
+      doc.text(":", leftMargin + 125, yPos);
+      
+      doc.setFont("helvetica", "normal");
+      // Add line wrapping for Ref. By field
+      if (rightCol[i].label === "Ref. By") {
+        const wrappedText = doc.splitTextToSize(rightCol[i].value, 65);
+        doc.text(wrappedText, leftMargin + 130, yPos);
+        lineHeight = Math.max(lineHeight, (wrappedText.length - 1) * 5);
+      } else {
+        doc.text(rightCol[i].value, leftMargin + 130, yPos);
+      }
+    }
+    
+    yPos += 6 + lineHeight;
+  }
+     
+  return yPos + 10;
+};
 
     const addMedicalHistory = (yPos) => {
       yPos = checkForNewPage(yPos, 15);
@@ -787,7 +800,7 @@ const handlePrint = async (patient, withLetterpad = true) => {
     };
 
     const addGeneralExamination = (yPos) => {
-      yPos = checkForNewPage(yPos, 15);
+      yPos = checkForNewPage(yPos, 30);
       
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -1117,76 +1130,92 @@ const handlePrint = async (patient, withLetterpad = true) => {
 
     // NEW: Add X-ray report content display function
     const addXrayReportContent = () => {
-      const xrayReport = patientDetails.investigation_notes?.xray_report;
-      
-      if (!xrayReport || !xrayReport.trim()) {
-        console.log("No X-ray report content found");
-        return;
-      }
-      
-      console.log("Adding X-ray report content page");
-      
-      doc.addPage();
-      pageCount++;
-      addHeaderFooter();
-      let yPos = headerHeight + 10;
-      
-      // Add employee header
-      yPos = addMedicalExaminationHeader(yPos);
-      yPos += 5;
-      
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text("X-RAY CHEST PA VIEW", leftMargin + contentWidth/2, yPos, { align: 'center' });
-      yPos += 15;
-      
-      // Display X-ray report content
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      
-      const reportLines = xrayReport.split('\n');
-      reportLines.forEach(line => {
-        if (line.trim()) {
-          const wrappedLines = doc.splitTextToSize(line.trim(), contentWidth - 10);
-          doc.text(wrappedLines, leftMargin, yPos);
-          yPos += wrappedLines.length * 6;
-        }
-      });
-      
-      yPos += 10;
-      
-      // Add impression section
-      doc.setFont("helvetica", "bold");
-      doc.text("IMPRESSION:", leftMargin, yPos);
-      yPos += 6;
-      
-      doc.setFont("helvetica", "normal");
-      const impressionText = patientDetails.investigation_notes?.xray_notes || "No significant finding in the lungs or mediastinum.";
-      const impressionLines = doc.splitTextToSize(impressionText, contentWidth - 10);
-      doc.text(impressionLines, leftMargin, yPos);
-      yPos += impressionLines.length * 6 + 20;
-      
-      // Add signature section
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      
-      // Signature image and details on right side
-      const signatureX = leftMargin + 120;
-      
-      if (Muhsina) {
-        doc.addImage(Muhsina, "PNG", signatureX, yPos, 35, 15);
-      }
-      
-      yPos += 20;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("DR_MUHSINA ABOOBAKER_MBBS.MDRD", signatureX, yPos);
-      yPos += 5;
-      doc.setFont("helvetica", "normal");
-      doc.text("CONSULTANT RADIOLOGIST", signatureX, yPos);
-      yPos += 5;
-      doc.text("REG NO: 143512 (TNMC)", signatureX, yPos);
-    };
+  const xrayReport = patientDetails.investigation_notes?.xray_report;
+
+  if (!xrayReport || !xrayReport.trim()) {
+    console.log("No X-ray report content found");
+    return;
+  }
+
+  console.log("Adding X-ray report content page");
+
+  doc.addPage();
+  pageCount++;
+  addHeaderFooter();
+  let yPos = headerHeight + 10;
+
+  // Add employee header
+  yPos = addMedicalExaminationHeader(yPos);
+  yPos += 5;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("X-RAY CHEST PA VIEW", leftMargin + contentWidth / 2, yPos, { align: 'center' });
+  yPos += 15;
+
+  // Display X-ray report content
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+
+  // Replace literal \r\n strings with actual line breaks
+  const normalizedReport = xrayReport
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\r\n/g, '\n');
+  
+  // Split by actual newlines
+  const reportLines = normalizedReport
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  reportLines.forEach(line => {
+    // Split long lines for wrapping
+    const wrappedLines = doc.splitTextToSize(line, contentWidth - 10);
+    doc.text(wrappedLines, leftMargin, yPos);
+    yPos += wrappedLines.length * 5.5 + 4; // Add spacing between sentences
+  });
+
+  yPos += 8;
+
+  // Add impression section
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("IMPRESSION:", leftMargin, yPos);
+  yPos += 7;
+
+  // Extract impression from the last line or use xray_notes
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const impressionText = patientDetails.investigation_notes?.xray_notes || 
+    "No significant finding in the lungs or mediastinum.";
+  
+  const impressionLines = doc.splitTextToSize(impressionText, contentWidth - 10);
+  doc.text(impressionLines, leftMargin, yPos);
+  yPos += impressionLines.length * 5.5 + 20;
+
+  // Add signature section
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+
+  // Signature image and details on right side
+  const signatureX = leftMargin + 120;
+
+  if (Muhsina) {
+    doc.addImage(Muhsina, "PNG", signatureX, yPos, 35, 15);
+  }
+
+  yPos += 20;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("DR. MUHSINA ABOOBAKER, MBBS, MDRD", signatureX, yPos);
+  yPos += 5;
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("CONSULTANT RADIOLOGIST", signatureX, yPos);
+  yPos += 5;
+  doc.text("REG NO: 143512 (TNMC)", signatureX, yPos);
+};
     
     const addInvestigationFiles = async () => {
       const files = patientDetails.investigation_files;
@@ -1883,62 +1912,59 @@ const handlePrint = async (patient, withLetterpad = true) => {
     }
   };
 
-  const handleExportToExcel = async () => {
+const handleExportToExcel = async () => {
   try {
     setLoading(true);
     
-    // Fetch investigation status for all filtered patients
-    const enrichedData = await Promise.all(
-      filteredPatients.map(async (patient) => {
-        try {
-          // Fetch investigation status
-          const result = await apiRequest(
-            `${Labbaseurl}get_investigation_status/?barcode=${patient.barcode}`,
-            "GET"
-          );
-
-          let investigationData = {
-            xray_report: "Pending",
-            xrayfilm_file: "Pending",
-            ecg_file: "Pending",
-            pft_file: "Pending",
-            audiometric_file: "Pending",
-            ophthalmology: "Pending",
-            lab_approval: "Pending"
-          };
-
-          if (result.success) {
-            const inv = result.data.investigation || {};
-            investigationData = {
-              xray_report: inv.xray_report === "approved" ? "Approved" : "Pending",
-              xrayfilm_file: inv.xrayfilm_file === "approved" ? "Approved" : "Pending",
-              ecg_file: inv.ecg_file === "approved" ? "Approved" : "Pending",
-              pft_file: inv.pft_file === "approved" ? "Approved" : "Pending",
-              audiometric_file: inv.audiometric_file === "approved" ? "Approved" : "Pending",
-              ophthalmology: result.data.ophthalmology === "approved" ? "Approved" : "Pending",
-              lab_approval: result.data.lab_approval === "approved" ? "Approved" : "Pending"
-            };
-          }
-
-          return {
-            ...patient,
-            ...investigationData
-          };
-        } catch (error) {
-          console.error(`Error fetching status for ${patient.barcode}:`, error);
-          return {
-            ...patient,
-            xray_report: "Error",
-            xrayfilm_file: "Error",
-            ecg_file: "Error",
-            pft_file: "Error",
-            audiometric_file: "Error",
-            ophthalmology: "Error",
-            lab_approval: "Error"
-          };
-        }
-      })
+    // Extract all barcodes
+    const barcodes = filteredPatients.map(p => p.barcode).filter(Boolean);
+    
+    if (barcodes.length === 0) {
+      toast.error("No patients with barcodes found");
+      setLoading(false);
+      return;
+    }
+    
+    console.log("Sending barcodes:", barcodes);
+    console.log("API URL:", `${Labbaseurl}get_batch_investigation_status/`);
+    
+    // FIXED: Pass data as the third parameter for POST request
+    const result = await apiRequest(
+      `${Labbaseurl}get_batch_investigation_status/`,
+      "POST",
+      { barcodes: barcodes }, // Make sure to wrap in object with 'barcodes' key
+      { "Content-Type": "application/json" }
     );
+    
+    console.log("API Response:", result);
+
+    if (!result.success) {
+      console.error("API Error:", result);
+      throw new Error(result.error || "Failed to fetch investigation statuses");
+    }
+
+    const statusResults = result.data?.results || {};
+    
+    console.log("Status results:", statusResults);
+
+    // Enrich patient data with investigation status
+    const enrichedData = filteredPatients.map((patient) => {
+      const barcode = patient.barcode;
+      const statusData = statusResults[barcode] || {};
+      
+      const inv = statusData.investigation || {};
+      
+      return {
+        ...patient,
+        xray_report: inv.xray_report === "approved" ? "Approved" : "Pending",
+        xrayfilm_file: inv.xrayfilm_file === "approved" ? "Approved" : "Pending",
+        ecg_file: inv.ecg_file === "approved" ? "Approved" : "Pending",
+        pft_file: inv.pft_file === "approved" ? "Approved" : "Pending",
+        audiometric_file: inv.audiometric_file === "approved" ? "Approved" : "Pending",
+        ophthalmology: statusData.ophthalmology === "approved" ? "Approved" : "Pending",
+        lab_approval: statusData.lab_approval === "approved" ? "Approved" : "Pending"
+      };
+    });
 
     // Prepare data for Excel
     const excelData = enrichedData.map((patient) => ({
@@ -1967,42 +1993,26 @@ const handlePrint = async (patient, withLetterpad = true) => {
 
     // Set column widths
     const colWidths = [
-      { wch: 12 }, // Date
-      { wch: 15 }, // Employee ID
-      { wch: 15 }, // Barcode
-      { wch: 25 }, // Employee Name
-      { wch: 10 }, // Gender
-      { wch: 8 },  // Age
-      { wch: 20 }, // Branch
-      { wch: 40 }, // Test Names
-      { wch: 12 }, // No of Tests
-      { wch: 15 }, // Overall Status
-      { wch: 15 }, // X-Ray Report
-      { wch: 15 }, // X-Ray Film
-      { wch: 15 }, // ECG
-      { wch: 15 }, // PFT
-      { wch: 15 }, // Audiometry
-      { wch: 15 }, // Ophthalmology
-      { wch: 15 }  // Lab Approval
+      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 25 },
+      { wch: 10 }, { wch: 8 }, { wch: 20 }, { wch: 40 },
+      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
     ];
     ws['!cols'] = colWidths;
 
-    // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, "CHC Report");
 
-    // Generate filename with date range
     const startDateStr = format(startDate, "yyyy-MM-dd");
     const endDateStr = format(endDate, "yyyy-MM-dd");
     const filename = `CHC_Report_${startDateStr}_to_${endDateStr}.xlsx`;
 
-    // Write file
     XLSX.writeFile(wb, filename);
 
     setLoading(false);
     toast.success(`Excel report exported successfully! (${enrichedData.length} records)`);
   } catch (error) {
     console.error("Error exporting to Excel:", error);
-    toast.error("Failed to export Excel report");
+    toast.error("Failed to export Excel report: " + (error.message || "Unknown error"));
     setLoading(false);
   }
 };
