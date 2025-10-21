@@ -980,19 +980,32 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                 )}
 
                 {/* NEW: X-Ray Report Content Section (before files) */}
-                {patientDetails.investigation_notes?.xray_report && patientDetails.investigation_notes.xray_report.trim() && (
-                  <ReportSection>
-                    <SectionTitle>X-Ray Chest PA View</SectionTitle>
-                    <InfoValue style={{ whiteSpace: 'pre-wrap' }}>
-                      {patientDetails.investigation_notes.xray_report}
-                    </InfoValue>
-                    
-                    <div style={{ marginTop: '20px' }}>
-                      <InfoLabel style={{ display: 'block', marginBottom: '10px' }}>IMPRESSION:</InfoLabel>
-                      <InfoValue>
-                        {patientDetails.investigation_notes.xray_notes || "No significant finding in the lungs or mediastinum."}
-                      </InfoValue>
-                    </div>
+{patientDetails.investigation_notes?.xray_report && patientDetails.investigation_notes.xray_report.trim() && (
+  <ReportSection>
+    <SectionTitle>X-Ray Chest PA View</SectionTitle>
+    <InfoValue style={{ whiteSpace: 'pre-line', lineHeight: '1.8' }}>
+      {(() => {
+        // Handle both \\n (double backslash) and \n (actual newline)
+        let text = patientDetails.investigation_notes.xray_report;
+       
+        // First replace literal \\n with actual newlines
+        text = text.replace(/\\n/g, '\n');
+       
+        // Then split and clean up
+        return text
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .join('\n');
+      })()}
+    </InfoValue>
+   
+    <div style={{ marginTop: '25px', paddingTop: '15px', borderTop: '1px solid #e0e0e0' }}>
+      <InfoLabel style={{ display: 'block', marginBottom: '10px', fontSize: '15px' }}>IMPRESSION:</InfoLabel>
+      <InfoValue style={{ fontSize: '14px' }}>
+        {patientDetails.investigation_notes.xray_notes || "No significant finding in the lungs or mediastinum."}
+      </InfoValue>
+    </div>
                   </ReportSection>
                 )}
 
