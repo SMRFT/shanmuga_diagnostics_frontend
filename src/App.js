@@ -207,7 +207,10 @@ const navigateRole = (userRole) => {
 
             {/* Sample Status */}
             <Route path="/SampleStatus" element={<SampleStatus />} />
-            <Route path="/SampleStatusUpdate" element={<SampleStatusUpdate />} />        
+            <Route path="/SampleStatusUpdate" element={<SampleStatusUpdate />} />  
+
+            {/* Test Edit */}      
+            <Route path="/TestEdit" element={<TestEdit />} />      
 
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
