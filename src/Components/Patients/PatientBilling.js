@@ -1609,7 +1609,7 @@ const PatientBilling = () => {
                   <option value="UPI">UPI</option>
                   <option value="NEFT">NEFT</option>
                   <option value="Cheque">Cheque</option>
-                  {paymentOptions.multiplePayment && <option value="Multiple Payment">Multiple Payment</option>}
+                  <option value="Multiple Payment">Multiple Payment</option>
                 </select>
               </FormGroup>
               {billingData.paymentMethod &&
