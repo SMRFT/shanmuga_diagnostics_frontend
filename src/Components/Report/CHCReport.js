@@ -327,17 +327,9 @@ const DropdownMenu = styled.div`
   display: ${(props) => (props.isVisible ? "block" : "none")};
 `
 
-const DropdownItem = styled.button`
-  display: block;
-  width: 100%;
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border: none;
-  background-color: white;
-  color: black;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: var(--transition);
+            yPos += maxContentHeight + 2
+            doc.setFont("helvetica", "normal")
+            doc.setTextColor(0, 0, 0)
 
   &:hover {
     background-color: var(--gray-light);
@@ -363,375 +355,328 @@ const NavigationTab = styled.button`
   transition: all 0.3s ease;
   position: relative;
 
-  &:hover {
-    background: ${(props) => (props.active ? "#0056b3" : "#f8f9fa")};
-    color: ${(props) => (props.active ? "white" : "#333")};
-  }
+                wrapText(doc, valueText, colWidths[3] - 5, xPos, yPos, 4)
 
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: ${(props) => (props.active ? "#ccc" : "transparent")};
-  }
-`
+                if (statusIndicator && valueText) {
+                  const lastLineY = yPos + (valueLines.length - 1) * 4
+                  const lastLine = valueLines[valueLines.length - 1]
+                  const valueWidth = doc.getTextWidth(lastLine)
+                  drawArrowSymbol(doc, xPos + valueWidth + 2, lastLineY - 1, statusIndicator === "H" ? "up" : "down")
+                }
 
-const ExportButton = styled(Button)`
-  background-color: #10b981;
- 
-  &:hover:not(:disabled) {
-    background-color: #059669;
-  }
-`
+                doc.setTextColor(0, 0, 0)
+                doc.setFont("helvetica", "normal")
+                xPos += colWidths[3]
 
-const PrintButton = styled(Button)`
-  background-color: #3b82f6;
- 
-  &:hover:not(:disabled) {
-    background-color: #2563eb;
-  }
-`
+                const processedUnit = processUnicodeText(currentTest.unit || "")
+                const unitSplitText = doc.splitTextToSize(processedUnit, colWidths[4] - 2)
+                unitSplitText.forEach((line, idx) => {
+                  if (line.includes("µ")) {
+                    const parts = line.split("µ")
+                    let currentX = xPos
+                    parts.forEach((part, partIdx) => {
+                      if (partIdx > 0) {
+                        doc.text("µ", currentX, yPos + idx * 4)
+                        currentX += doc.getTextWidth("µ")
+                      }
+                      if (part) {
+                        doc.text(part, currentX, yPos + idx * 4)
+                        currentX += doc.getTextWidth(part)
+                      }
+                    })
+                  } else {
+                    doc.text(line, xPos, yPos + idx * 4)
+                  }
+                })
+                xPos += colWidths[4]
 
-const PrintButtonBulk = styled(Button)`
-  background-color: #8b5cf6;
- 
-  &:hover:not(:disabled) {
-    background-color: #7c3aed;
-  }
-`
+                wrapText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, 4)
+                xPos += colWidths[5]
 
-const InvestigationStatusDisplay = styled.div`
-  font-size: 13px;
-  color: #333;
-  line-height: 1.6;
-  white-space: pre-line;
-  padding: 8px 0;
- 
-  @keyframes blink {
-    0%, 49% {
-      opacity: 1;
-    }
-    50%, 100% {
-      opacity: 0.3;
-    }
-  }
- 
-  .pending-label {
-    color: #ff0000;
-    font-weight: 600;
-    animation: blink 1s infinite;
-    margin-left: 8px;
-  }
- 
-  &:contains("All Approved") {
-    color: #69b444ff;
-    font-weight: 600;
-  }
-`
+                wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4)
 
-const CHCReport = () => {
-  const [patients, setPatients] = useState([])
-  const [filteredPatients, setFilteredPatients] = useState([])
-  const [statuses, setStatuses] = useState({})
-  const [investigationStatuses, setInvestigationStatuses] = useState({})
-  const [startDate, setStartDate] = useState(new Date())
-  const [endDate, setEndDate] = useState(new Date())
-  const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null)
-  const [refByOptions, setRefByOptions] = useState([])
-  const [barcode, setBarcode] = useState("")
-  const [refBy, setRefBy] = useState("")
-  const [patientId, setPatientId] = useState("")
-  const [IPNumber, setIPNumber] = useState("")
-  const [patientName, setPatientName] = useState("")
-  const [modalIsOpen, setModalIsOpen] = useState(false)
-  const [selectedPatient, setSelectedPatient] = useState(null)
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [statusFilter, setStatusFilter] = useState("")
-  const [investigationStatusFilter, setInvestigationStatusFilter] = useState("")
-  const navigate = useNavigate()
-  const location = useLocation()
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
-
-  const hasPendingInvestigations = (barcode) => {
-    const investigations = investigationStatuses[barcode]
-    if (!investigations) return false
-
-    const investigations_array = [
-      { key: "xrayfilm_file", label: "X-Ray Film" },
-      { key: "ecg_file", label: "ECG" },
-      { key: "pft_file", label: "PFT (Pulmonary Function Test)" },
-      { key: "audiometric_file", label: "Audiometry" },
-    ]
-
-    // Check if any investigation is not approved
-    const hasPendingInvestigation = investigations_array.some(
-      (inv) => investigations.investigation && investigations.investigation[inv.key] !== "approved",
-    )
-
-    // Check if ophthalmology is not approved
-    const hasPendingOphthalmology = investigations.ophthalmology !== "approved"
-
-    // Check if lab approval is not approved
-    const hasPendingLab = investigations.lab_approval !== "approved"
-
-    return hasPendingInvestigation || hasPendingOphthalmology || hasPendingLab
-  }
-
-  const fetchInvestigationStatus = async (barcode) => {
-    try {
-      const result = await apiRequest(`${Labbaseurl}get_investigation_status/?barcode=${barcode}`, "GET")
-
-      if (result.success) {
-        return {
-          investigation: result.data.investigation || {},
-          ophthalmology: result.data.ophthalmology,
-          lab_approval: result.data.lab_approval,
-        }
-      }
-      return null
-    } catch (error) {
-      console.error("Error fetching investigation status:", error)
-      return null
-    }
-  }
-
-  const getPendingInvestigations = (statusData) => {
-    if (!statusData) return "All Approved"
-
-    const investigations = [
-      { key: "xrayfilm_file", label: "X-Ray Film" },
-      { key: "ecg_file", label: "ECG" },
-      { key: "pft_file", label: "PFT" },
-      { key: "audiometric_file", label: "Audiometry" },
-    ]
-
-    const pendingItems = []
-
-    // Check investigations
-    investigations.forEach((inv) => {
-      if (statusData.investigation && statusData.investigation[inv.key] !== "approved") {
-        pendingItems.push(inv.label)
-      }
-    })
-
-    // Check ophthalmology
-    if (statusData.ophthalmology !== "approved") {
-      pendingItems.push("Ophthalmology")
-    }
-
-    // Check lab approval
-    if (statusData.lab_approval !== "approved") {
-      pendingItems.push("Lab Investigation")
-    }
-
-    if (pendingItems.length === 0) {
-      return "All Approved"
-    }
-
-    return (
-      <>
-        {pendingItems.map((item, index) => (
-          <div key={index}>
-            {item}
-            <span className="pending-label">Pending</span>
-          </div>
-        ))}
-      </>
-    )
-  }
-
-  // MOVE THIS OUTSIDE of useEffect - use useCallback to memoize it
-  const fetchCombinedPatientData = useCallback(async () => {
-    setLoading(true)
-    const formattedStartDate = startDate.toISOString().split("T")[0]
-    const formattedEndDate = endDate.toISOString().split("T")[0]
-
-    const url = `${Labbaseurl}corporate_approval_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`
-
-    const result = await apiRequest(url, "GET")
-
-    if (result.success) {
-      const patientData = result.data
-      setPatients(patientData)
-      setFilteredPatients(patientData)
-
-      const statusMap = {}
-      const investigationStatusMap = {}
-
-      patientData.forEach((patient) => {
-        statusMap[patient.patient_id] = {
-          status: patient.status,
-          barcode: patient.barcode,
-        }
-      })
-
-      const barcodes = patientData.map((p) => p.barcode).filter(Boolean)
-
-      if (barcodes.length > 0) {
-        try {
-          const batchResult = await apiRequest(
-            `${Labbaseurl}get_batch_investigation_status/`,
-            "POST",
-            { barcodes: barcodes },
-            { "Content-Type": "application/json" },
-          )
-
-          if (batchResult.success) {
-            const statusResults = batchResult.data?.results || {}
-
-            // Map batch results to investigation status map
-            Object.entries(statusResults).forEach(([barcode, statusData]) => {
-              investigationStatusMap[barcode] = {
-                investigation: statusData.investigation || {},
-                ophthalmology: statusData.ophthalmology,
-                lab_approval: statusData.lab_approval,
-              }
+                yPos += maxContentHeight + 2
+                doc.setFont("helvetica", "normal")
+                doc.setTextColor(0, 0, 0)
+              })
             })
-          }
-        } catch (error) {
-          console.error("Error fetching batch investigation statuses:", error)
-        }
+          })
+        })
+        yPos += 4
       }
 
-      setStatuses(statusMap)
-      setInvestigationStatuses(investigationStatusMap)
-    } else {
-      console.error("Error fetching combined patient data:", result.error)
-      setError("Failed to load patient data")
+      // Generate PDF with correct order
+      addHeaderFooter()
+
+      currentYPosition = addMedicalExaminationHeader(currentYPosition)
+      currentYPosition = addMedicalHistory(currentYPosition)
+      currentYPosition = addGeneralExamination(currentYPosition)
+      currentYPosition = addMiscellaneousInvestigations(currentYPosition)
+      currentYPosition = addOphthalmologyReport(currentYPosition)
+      currentYPosition = addLabInvestigations(currentYPosition)
+      currentYPosition = addFinalAssessment(currentYPosition)
+
+      await addInvestigationFiles()
+      addLaboratoryReports()
+
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        const pageHeight = doc.internal.pageSize.height
+        const pageNumberY = pageHeight - footerHeight - 5
+
+        doc.setFont("helvetica", "normal")
+        doc.setFontSize(8)
+        doc.text(`Page ${i} of ${pageCount}`, leftMargin + contentWidth / 2, pageNumberY, { align: "center" })
+      }
+
+      const patientID = patientDetails.patient_id || "Unknown"
+      const pdfFileName = `MedicalReport_${patientID}_${patientDetails.patientname.replace(/\s+/g, "_")}.pdf`
+      const pdfBlob = doc.output("blob")
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+
+      const link = document.createElement("a")
+      link.href = pdfUrl
+      link.download = pdfFileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(pdfUrl)
+
+      setLoading(false)
+      toast.success("Medical report generated successfully!")
+      return pdfBlob
+    } catch (error) {
+      console.error("Error while generating the PDF:", error)
+      toast.error("An unexpected error occurred while generating the PDF")
+      setLoading(false)
+      return null
     }
-
-    setLoading(false)
-  }, [startDate, endDate, Labbaseurl]) // Dependencies
-
-  // Create the callback handler
-  const handleApprovalSaved = useCallback(async () => {
-    console.log("Approval saved, refreshing data...")
-    await fetchCombinedPatientData()
-    toast.success("Status updated successfully!")
-  }, [fetchCombinedPatientData])
-
-  // Call it in useEffect
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchCombinedPatientData()
-    }
-  }, [fetchCombinedPatientData, startDate, endDate])
-
-  // Determine icon state based on patient status
-  const isPrintAndMailEnabled = (status) =>
-    status === "Approved" || status === "Partially Approved" || status === "Dispatched"
-
-  useEffect(() => {
-    const startOfDay = new Date(startDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(endDate)
-    endOfDay.setHours(23, 59, 59, 999)
-
-    const filtered = patients.filter((patient) => {
-      const patientDate = new Date(patient.date)
-      const patientStatus = statuses[patient.patient_id]?.status || ""
-      const hasPending = hasPendingInvestigations(patient.barcode)
-
-      return (
-        patientDate >= startOfDay &&
-        patientDate <= endOfDay &&
-        (!refBy || patient.refby === refBy) &&
-        (!patientId || patient.patient_id.includes(patientId)) &&
-        (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
-        (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
-        (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
-        (!statusFilter || patientStatus === statusFilter) &&
-        (!investigationStatusFilter ||
-          (investigationStatusFilter === "Pending" && hasPending) ||
-          (investigationStatusFilter === "All Approved" && !hasPending))
-      )
-    })
-    setFilteredPatients(filtered)
-  }, [
-    startDate,
-    endDate,
-    patients,
-    refBy,
-    patientId,
-    barcode,
-    IPNumber,
-    patientName,
-    statusFilter,
-    investigationStatusFilter,
-    statuses,
-    investigationStatuses,
-  ])
-
-  // Update the clearFilters function to reset the status filter
-  const clearFilters = () => {
-    setStartDate(new Date())
-    setEndDate(new Date())
-    setBarcode("")
-    setRefBy("")
-    setPatientId("")
-    setIPNumber("")
-    setPatientName("")
-    setStatusFilter("")
-    setInvestigationStatusFilter("")
-    setFilteredPatients(patients)
   }
 
-  // Set PDF.js worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+ const handleOverallPrint = async () => {
+  if (filteredPatients.length === 0) {
+    toast.error("No patients to print");
+    return;
+  }
 
-  // Helper function to convert PDF to images
-  const convertPdfToImages = async (base64Data) => {
-    try {
-      console.log("Converting PDF to images, data length:", base64Data?.length)
+  if (filteredPatients.length > 20) {
+    toast.warning("Large number of records. This may take a while...");
+  }
 
-      // Remove any data URL prefix if present
-      const cleanBase64 = base64Data.replace(/^data:.*?;base64,/, "")
+  setLoading(true);
+  toast.info(`Fetching data for ${filteredPatients.length} reports...`);
 
-      // Decode base64 to binary
-      const binaryString = atob(cleanBase64)
-      const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i)
+  try {
+    // Extract barcodes from filtered patients
+    const allBarcodes = filteredPatients.map(p => p.barcode).filter(Boolean);
+    
+    if (allBarcodes.length === 0) {
+      toast.error("No valid barcodes found");
+      setLoading(false);
+      return;
+    }
+
+    // CHUNKING: Split barcodes into batches of 100
+    const BATCH_SIZE = 100;
+    const barcodeBatches = [];
+    for (let i = 0; i < allBarcodes.length; i += BATCH_SIZE) {
+      barcodeBatches.push(allBarcodes.slice(i, i + BATCH_SIZE));
+    }
+
+    console.log(`Split into ${barcodeBatches.length} batches of up to ${BATCH_SIZE} barcodes`);
+
+    // Fetch all batches sequentially
+    let allPatientData = {};
+    
+    for (let batchIndex = 0; batchIndex < barcodeBatches.length; batchIndex++) {
+      const batch = barcodeBatches[batchIndex];
+      const batchNumber = batchIndex + 1;
+      
+      toast.info(`Fetching batch ${batchNumber}/${barcodeBatches.length} (${batch.length} reports)...`);
+      
+      try {
+        const result = await apiRequest(
+          `${Labbaseurl}get_batch_corporate_health_reports/`,
+          "POST",
+          { barcodes: batch },
+          { "Content-Type": "application/json" }
+        );
+
+        if (!result.success) {
+          throw new Error(result.error || `Failed to fetch batch ${batchNumber}`);
+        }
+
+        // Merge results from this batch
+        const batchResults = result.data.results || {};
+        allPatientData = { ...allPatientData, ...batchResults };
+        
+        console.log(`Batch ${batchNumber} completed: ${Object.keys(batchResults).length} records`);
+        
+      } catch (batchError) {
+        console.error(`Error in batch ${batchNumber}:`, batchError);
+        toast.error(`Failed to fetch batch ${batchNumber}: ${batchError.message}`);
+        // Continue with other batches
       }
+    }
 
-      console.log("PDF decoded, byte length:", bytes.length)
+    const successfulFetches = Object.keys(allPatientData).length;
+    
+    if (successfulFetches === 0) {
+      toast.error("Failed to fetch any patient data");
+      setLoading(false);
+      return;
+    }
 
-      // Load PDF document with error handling
-      const loadingTask = pdfjsLib.getDocument({
-        data: bytes,
-        // Add these options for better error handling:
-        verbosity: pdfjsLib.VerbosityLevel.ERRORS,
-        cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
-        cMapPacked: true,
-      })
+    toast.info(`Data fetched successfully. Generating ${successfulFetches} PDFs...`);
 
-      const pdf = await loadingTask.promise
-      console.log("PDF loaded, number of pages:", pdf.numPages)
+    const zip = new JSZip();
+    let successCount = 0;
+    let failCount = 0;
 
-      const images = []
+    // Generate PDFs using the fetched data
+    for (let i = 0; i < filteredPatients.length; i++) {
+      const patient = filteredPatients[i];
+      const barcode = patient.barcode;
+      
+      try {
+        const patientDetails = allPatientData[barcode];
+        
+        if (!patientDetails || patientDetails.error) {
+          console.error(`No data for ${patient.patient_name}:`, patientDetails?.error);
+          failCount++;
+          continue;
+        }
 
-      // Convert each page to image
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum)
-        const viewport = page.getViewport({ scale: 2.0 })
+        console.log(`Generating PDF ${i + 1}/${filteredPatients.length}: ${patient.patient_name}`);
+        
+        // Generate PDF using the fetched data
+        const pdfBlob = await generateSimplePDFFromData(patientDetails, true);
+        
+        if (pdfBlob) {
+          const fileName = `${patientDetails.patient_id}_${patientDetails.patientname.replace(/\s+/g, '_')}.pdf`;
+          zip.file(fileName, pdfBlob);
+          successCount++;
+        } else {
+          failCount++;
+          console.error(`Failed to generate PDF for ${patient.patient_name}`);
+        }
+        
+        // Update progress every 5 reports
+        if ((i + 1) % 5 === 0 || i === filteredPatients.length - 1) {
+          toast.info(`Progress: ${i + 1}/${filteredPatients.length} PDFs generated`);
+        }
+        
+      } catch (error) {
+        failCount++;
+        console.error(`Error processing patient ${patient.patient_name}:`, error);
+      }
+    }
 
-        const canvas = document.createElement("canvas")
-        const context = canvas.getContext("2d")
-        canvas.height = viewport.height
-        canvas.width = viewport.width
+    if (successCount > 0) {
+      try {
+        console.log("Creating ZIP file...");
+        toast.info("Creating ZIP file...");
+        
+        const zipBlob = await zip.generateAsync({ 
+          type: "blob",
+          compression: "DEFLATE",
+          compressionOptions: { level: 6 }
+        });
+        
+        const startDateStr = format(startDate, "yyyy-MM-dd");
+        const endDateStr = format(endDate, "yyyy-MM-dd");
+        const zipFileName = `CHC_Reports_${startDateStr}_to_${endDateStr}.zip`;
+        
+        saveAs(zipBlob, zipFileName);
+        
+        toast.success(`Successfully generated ${successCount} reports! ${failCount > 0 ? `(${failCount} failed)` : ''}`);
+      } catch (zipError) {
+        console.error("Error creating ZIP:", zipError);
+        toast.error("Failed to create ZIP file");
+      }
+    } else {
+      toast.error("Failed to generate any PDF reports");
+    }
 
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-        }).promise
+  } catch (error) {
+    console.error("Error in batch processing:", error);
+    toast.error("Failed to process batch: " + (error.message || "Unknown error"));
+  }
 
-        images.push(canvas.toDataURL("image/png"))
-        console.log(`Converted page ${pageNum} to image`)
+  setLoading(false);
+};
+
+// Add this helper function to generate PDF from pre-fetched data
+const generateSimplePDFFromData = async (patientDetails, withLetterpad = true) => {
+  try {
+    // Create PDF using the patient data (no API call needed)
+    const doc = new jsPDF();
+    let pageCount = 1;
+    
+    const leftMargin = 15;
+    const rightMargin = leftMargin + 180;
+    const contentWidth = rightMargin - leftMargin;
+    const headerHeight = 25;
+    const footerHeight = 15;
+    let currentYPosition = headerHeight + 10;
+
+    const addHeaderFooter = () => {
+      if (withLetterpad) {
+        doc.addImage(headerImage, "PNG", 0, 5, doc.internal.pageSize.width, headerHeight);
+        const footerY = doc.internal.pageSize.height - footerHeight;
+        doc.addImage(FooterImage, "PNG", 0, footerY, doc.internal.pageSize.width, footerHeight);
+      }
+    };
+
+    const checkForNewPage = (yPos, estimatedHeight) => {
+      const pageHeight = doc.internal.pageSize.height;
+      const footerStart = pageHeight - footerHeight - 30;
+      
+      if (yPos + estimatedHeight >= footerStart) {
+        doc.addPage();
+        pageCount++;
+        addHeaderFooter();
+        return headerHeight + 10;
+      }
+      return yPos;
+    };
+
+   const addMedicalExaminationHeader = (yPos) => {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  yPos += 15;
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  
+  const leftCol = [
+    { label: "Name", value: patientDetails.patientname || "N/A" },
+    { label: "Age / Sex", value: `${patientDetails.age} / ${patientDetails.gender}` }
+  ];
+  
+  const rightCol = [
+    { label: "Date", value: format(new Date(), "dd/MM/yyyy") },
+    { label: "Ref. By", value: patientDetails.company_name || "N/A" },
+    { label: "Barcode", value: patientDetails.barcode || "N/A" },
+  ];
+  
+  for (let i = 0; i < Math.max(leftCol.length, rightCol.length); i++) {
+    let lineHeight = 0;
+    
+    // Process left column
+    if (leftCol[i]) {
+      doc.setFont("helvetica", "bold");
+      doc.text(leftCol[i].label, leftMargin, yPos);
+      doc.text(":", leftMargin + 40, yPos);
+      
+      doc.setFont("helvetica", "normal");
+      // Add line wrapping for Name field
+      if (leftCol[i].label === "Name") {
+        const wrappedText = doc.splitTextToSize(leftCol[i].value, 50);
+        doc.text(wrappedText, leftMargin + 45, yPos);
+        lineHeight = Math.max(lineHeight, (wrappedText.length - 1) * 5);
+      } else {
+        doc.text(leftCol[i].value, leftMargin + 45, yPos);
       }
 
       return images
@@ -1318,258 +1263,125 @@ const CHCReport = () => {
 
         return yPos + 10
       }
+      yPos += 25;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);      
+      doc.text("Dr. P. PRABU SANKAR, MS, MRCS.,", leftMargin + 120, yPos);
+      yPos += 5;
+      doc.text("GENERAL SURGEON", leftMargin + 120, yPos);
+      yPos += 5;
+      doc.text("Reg No. 80709", leftMargin + 120, yPos);
+       yPos += 5;
+      doc.text("Shanmuga Hospital Ltd, Salem-7.", leftMargin + 120, yPos);
+      
+      return yPos + 10;
+    };
 
-      // NEW: Add X-ray report content display function
-      const addXrayReportContent = () => {
-        const xrayReport = patientDetails.investigation_notes?.xray_report
+    // NEW: Add X-ray report content display function
+  const addXrayReportContent = () => {
+  const xrayReport = patientDetails.investigation_notes?.xray_report;
 
-        if (!xrayReport || !xrayReport.trim()) {
-          console.log("No X-ray report content found")
-          return
-        }
+  if (!xrayReport || !xrayReport.trim()) {
+    console.log("No X-ray report content found");
+    return;
+  }
 
-        console.log("Adding X-ray report content page")
+  console.log("Adding X-ray report content page");
 
-        doc.addPage()
-        pageCount++
-        addHeaderFooter()
-        let yPos = headerHeight + 10
+  doc.addPage();
+  pageCount++;
+  addHeaderFooter();
+  let yPos = headerHeight + 10;
 
-        // Add employee header
-        yPos = addMedicalExaminationHeader(yPos)
-        yPos += 5
+  // Add employee header
+  yPos = addMedicalExaminationHeader(yPos);
+  yPos += 5;
 
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(12)
-        doc.text("X-RAY CHEST PA VIEW", leftMargin + contentWidth / 2, yPos, { align: "center" })
-        yPos += 15
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("X-RAY CHEST PA VIEW", leftMargin + contentWidth / 2, yPos, { align: 'center' });
+  yPos += 15;
 
-        // Display X-ray report content
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(10)
+  // Display X-ray report content
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
 
-        // Replace literal \r\n strings with actual line breaks
-        const normalizedReport = xrayReport.replace(/\\r\\n/g, "\n").replace(/\r\n/g, "\n")
+  // Replace literal \r\n strings with actual line breaks
+  const normalizedReport = xrayReport
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\r\n/g, '\n');
+  
+  // Split by newlines first, then by sentences
+  const paragraphs = normalizedReport
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
 
-        // Split by actual newlines
-        const reportLines = normalizedReport
-          .split("\n")
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0)
+  // Process each paragraph and split into sentences
+  const allSentences = [];
+  paragraphs.forEach(paragraph => {
+    // Split by period followed by space, but keep the period
+    const sentences = paragraph
+      .split(/\.(?=\s|$)/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .map(s => s.endsWith('.') ? s : s + '.');
+    
+    allSentences.push(...sentences);
+  });
 
-        reportLines.forEach((line) => {
-          // Split long lines for wrapping
-          const wrappedLines = doc.splitTextToSize(line, contentWidth - 10)
-          doc.text(wrappedLines, leftMargin, yPos)
-          yPos += wrappedLines.length * 5.5 + 4 // Add spacing between sentences
-        })
+  // Display each sentence on a new line with wrapping
+  allSentences.forEach(sentence => {
+    const wrappedLines = doc.splitTextToSize(sentence, contentWidth - 10);
+    doc.text(wrappedLines, leftMargin, yPos);
+    yPos += wrappedLines.length * 5.5 + 4; // Add spacing between sentences
+  });
 
-        yPos += 8
+  yPos += 8;
 
-        // Add impression section
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(10)
-        doc.text("IMPRESSION:", leftMargin, yPos)
-        yPos += 7
+  // Add impression section
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("IMPRESSION:", leftMargin, yPos);
+  yPos += 7;
 
-        // Extract impression from the last line or use xray_notes
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(10)
-        const impressionText =
-          patientDetails.investigation_notes?.xray_notes || "No significant finding in the lungs or mediastinum."
+  // Extract impression from the last line or use xray_notes
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const impressionText = patientDetails.investigation_notes?.xray_notes || 
+    "No significant finding in the lungs or mediastinum.";
+  
+  const impressionLines = doc.splitTextToSize(impressionText, contentWidth - 10);
+  doc.text(impressionLines, leftMargin, yPos);
+  yPos += impressionLines.length * 5.5 + 20;
 
-        const impressionLines = doc.splitTextToSize(impressionText, contentWidth - 10)
-        doc.text(impressionLines, leftMargin, yPos)
-        yPos += impressionLines.length * 5.5 + 20
+  // Add signature section
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
 
-        // Add signature section
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(9)
+  // Signature image and details on right side
+  const signatureX = leftMargin + 120;
 
-        // Signature image and details on right side
-        const signatureX = leftMargin + 120
+  if (Muhsina) {
+    doc.addImage(Muhsina, "PNG", signatureX, yPos, 35, 15);
+  }
 
-        if (Muhsina) {
-          doc.addImage(Muhsina, "PNG", signatureX, yPos, 35, 15)
-        }
+  yPos += 20;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("DR. MUHSINA ABOOBAKER, MBBS, MDRD", signatureX, yPos);
+  yPos += 5;
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("CONSULTANT RADIOLOGIST", signatureX, yPos);
+  yPos += 5;
+  doc.text("REG NO: 143512 (TNMC)", signatureX, yPos);
+};
 
-        yPos += 20
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(9)
-        doc.text("DR. MUHSINA ABOOBAKER, MBBS, MDRD", signatureX, yPos)
-        yPos += 5
-
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(9)
-        doc.text("CONSULTANT RADIOLOGIST", signatureX, yPos)
-        yPos += 5
-        doc.text("REG NO: 143512 (TNMC)", signatureX, yPos)
-      }
-
-      const addInvestigationFiles = async () => {
-        const files = patientDetails.investigation_files
-        const hasFiles = files && Object.values(files).some((file) => file !== null)
-
-        if (!hasFiles) {
-          console.log("No investigation files found")
-          return
-        }
-
-        console.log(
-          "Investigation files available:",
-          Object.keys(files).filter((key) => files[key] !== null),
-        )
-
-        const fileMapping = [
-          { key: "ecg_file", label: "ECG Report" },
-          { key: "pft_file", label: "Pulmonary Function Test (PFT)" },
-          { key: "audiometric_file", label: "Audiometry Report" },
-          { key: "xray_file", label: "X-Ray Report" },
-          { key: "xrayfilm_file", label: "X-Ray Film" },
-        ]
-
-        for (const { key, label } of fileMapping) {
-          // NEW: Add X-ray report content before X-ray file
-          if (key === "xray_file") {
-            addXrayReportContent()
-          }
-
-          const file = files[key]
-
-          if (file && file.data) {
-            try {
-              console.log(`Processing ${label}:`, {
-                hasData: !!file.data,
-                dataLength: file.data?.length,
-                contentType: file.contentType,
-                filename: file.filename,
-              })
-
-              const contentType = file.contentType || ""
-              const filename = (file.filename || "").toLowerCase()
-              const isPDF = contentType.includes("pdf") || filename.endsWith(".pdf")
-
-              console.log(`${label} is PDF:`, isPDF)
-
-              if (isPDF) {
-                console.log(`Converting PDF ${label} to images...`)
-                const pdfImages = await convertPdfToImages(file.data)
-
-                if (pdfImages.length > 0) {
-                  for (let pageIndex = 0; pageIndex < pdfImages.length; pageIndex++) {
-                    doc.addPage()
-                    pageCount++
-                    addHeaderFooter()
-                    let yPos = headerHeight + 10
-
-                    yPos = addMedicalExaminationHeader(yPos)
-                    yPos += 5
-
-                    doc.setFont("helvetica", "bold")
-                    doc.setFontSize(12)
-                    const pageTitle =
-                      pdfImages.length > 1 ? `${label} (Page ${pageIndex + 1}/${pdfImages.length})` : label
-                    doc.text(pageTitle, leftMargin + contentWidth / 2, yPos, { align: "center" })
-                    yPos += 12
-
-                    const maxWidth = contentWidth
-                    const maxHeight = 160
-                    doc.addImage(pdfImages[pageIndex], "PNG", leftMargin, yPos, maxWidth, maxHeight)
-                  }
-                  console.log(`Successfully added ${pdfImages.length} page(s) from ${label}`)
-                } else {
-                  console.error(`Failed to convert ${label} PDF to images`)
-                  doc.addPage()
-                  pageCount++
-                  addHeaderFooter()
-                  let yPos = headerHeight + 10
-
-                  yPos = addMedicalExaminationHeader(yPos)
-                  yPos += 5
-
-                  doc.setFont("helvetica", "bold")
-                  doc.setFontSize(12)
-                  doc.text(label, leftMargin + contentWidth / 2, yPos, { align: "center" })
-                  yPos += 15
-
-                  doc.setFont("helvetica", "normal")
-                  doc.setFontSize(10)
-                  doc.text("Failed to load PDF content", leftMargin, yPos)
-                  doc.text(`Filename: ${file.filename || "N/A"}`, leftMargin, yPos + 10)
-                }
-              } else {
-                console.log(`Adding image ${label}`)
-                doc.addPage()
-                pageCount++
-                addHeaderFooter()
-                let yPos = headerHeight + 10
-
-                yPos = addMedicalExaminationHeader(yPos)
-                yPos += 5
-
-                doc.setFont("helvetica", "bold")
-                doc.setFontSize(12)
-                doc.text(label, leftMargin + contentWidth / 2, yPos, { align: "center" })
-                yPos += 12
-
-                let imageFormat = "PNG"
-                if (
-                  contentType.includes("jpeg") ||
-                  contentType.includes("jpg") ||
-                  filename.endsWith(".jpg") ||
-                  filename.endsWith(".jpeg")
-                ) {
-                  imageFormat = "JPEG"
-                } else if (contentType.includes("png") || filename.endsWith(".png")) {
-                  imageFormat = "PNG"
-                }
-
-                console.log(`Using image format: ${imageFormat} for ${label}`)
-
-                const imgData = `data:${contentType || "image/png"};base64,${file.data}`
-                const maxWidth = contentWidth
-                const maxHeight = 160
-
-                try {
-                  doc.addImage(imgData, imageFormat, leftMargin, yPos, maxWidth, maxHeight)
-                  console.log(`Successfully added image ${label}`)
-                } catch (imgError) {
-                  console.error(`Error adding image ${label}:`, imgError)
-                  doc.setFont("helvetica", "normal")
-                  doc.setFontSize(10)
-                  doc.text(`[Failed to load image: ${imgError.message}]`, leftMargin, yPos)
-                }
-              }
-            } catch (error) {
-              console.error(`Error processing ${label}:`, error)
-              console.error("Error details:", error.message, error.stack)
-
-              doc.addPage()
-              pageCount++
-              addHeaderFooter()
-              let yPos = headerHeight + 10
-
-              yPos = addMedicalExaminationHeader(yPos)
-              yPos += 5
-
-              doc.setFont("helvetica", "bold")
-              doc.setFontSize(12)
-              doc.text(label, leftMargin + contentWidth / 2, yPos, { align: "center" })
-              yPos += 15
-
-              doc.setFont("helvetica", "normal")
-              doc.setFontSize(10)
-              doc.text(`[Error loading ${label}]`, leftMargin, yPos)
-              doc.text(`Error: ${error.message}`, leftMargin, yPos + 10)
-            }
-          }
-        }
-      }
-
-      const renderUnicodeText = (text, x, y) => {
-        if (!text) return
-        const processedText = text.replace(/\\u00b5/g, "µ").replace(/μ/g, "µ")
-        doc.text(processedText, x, y)
+const addLaboratoryReports = () => {
+      if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
+        return;
       }
 
       const addLaboratoryReports = () => {
@@ -1992,104 +1804,68 @@ const CHCReport = () => {
                   doc.setFont("helvetica", "bold")
                   doc.setTextColor(statusIndicator === "H" ? 255 : 0, 0, statusIndicator === "L" ? 255 : 0)
                 }
+              });
+              xPos += colWidths[4];
 
-                wrapText(doc, valueText, colWidths[3] - 5, xPos, yPos, 4)
+              wrapText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, 4);
+              xPos += colWidths[5];
 
-                if (statusIndicator && valueText) {
-                  const lastLineY = yPos + (valueLines.length - 1) * 4
-                  const lastLine = valueLines[valueLines.length - 1]
-                  const valueWidth = doc.getTextWidth(lastLine)
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, lastLineY - 1, statusIndicator === "H" ? "up" : "down")
-                }
+              wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4);
 
-                doc.setTextColor(0, 0, 0)
-                doc.setFont("helvetica", "normal")
-                xPos += colWidths[3]
+              yPos += maxContentHeight + 2;
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(0, 0, 0);
+            });
+          });
 
-                const processedUnit = processUnicodeText(currentTest.unit || "")
-                const unitSplitText = doc.splitTextToSize(processedUnit, colWidths[4] - 2)
-                unitSplitText.forEach((line, idx) => {
-                  if (line.includes("µ")) {
-                    const parts = line.split("µ")
-                    let currentX = xPos
-                    parts.forEach((part, partIdx) => {
-                      if (partIdx > 0) {
-                        doc.text("µ", currentX, yPos + idx * 4)
-                        currentX += doc.getTextWidth("µ")
-                      }
-                      if (part) {
-                        doc.text(part, currentX, yPos + idx * 4)
-                        currentX += doc.getTextWidth(part)
-                      }
-                    })
-                  } else {
-                    doc.text(line, xPos, yPos + idx * 4)
-                  }
-                })
-                xPos += colWidths[4]
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.text(`Verified by: ${test.verified_by || "N/A"}`, leftMargin, yPos);
+          yPos += 8;
+        });
 
-                wrapText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, 4)
-                xPos += colWidths[5]
+        yPos += 4;
+      });
+      
+      yPos = checkForNewPageLab(yPos, 10);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      const centerX = leftMargin + contentWidth / 2;
+      doc.text("**End of the Report**", centerX, yPos, { align: "center" });
+      
+      addSignatures();
+    };
+    addHeaderFooter();
+    currentYPosition = addMedicalExaminationHeader(currentYPosition);
+    currentYPosition = addMedicalHistory(currentYPosition);
+    currentYPosition = addGeneralExamination(currentYPosition);
+    currentYPosition = addMiscellaneousInvestigations(currentYPosition);
+    currentYPosition = addOphthalmologyReport(currentYPosition);
+    currentYPosition = addLabInvestigations(currentYPosition);
+    currentYPosition = addFinalAssessment(currentYPosition);
+    addXrayReportContent();
+    // Skip addInvestigationFiles() for simple PDF
+    addLaboratoryReports();
 
-                wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4)
-
-                yPos += maxContentHeight + 2
-                doc.setFont("helvetica", "normal")
-                doc.setTextColor(0, 0, 0)
-              })
-            })
-          })
-        })
-        yPos += 4
-      }
-
-      // Generate PDF with correct order
-      addHeaderFooter()
-
-      currentYPosition = addMedicalExaminationHeader(currentYPosition)
-      currentYPosition = addMedicalHistory(currentYPosition)
-      currentYPosition = addGeneralExamination(currentYPosition)
-      currentYPosition = addMiscellaneousInvestigations(currentYPosition)
-      currentYPosition = addOphthalmologyReport(currentYPosition)
-      currentYPosition = addLabInvestigations(currentYPosition)
-      currentYPosition = addFinalAssessment(currentYPosition)
-
-      await addInvestigationFiles()
-      addLaboratoryReports()
-
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i)
-        const pageHeight = doc.internal.pageSize.height
-        const pageNumberY = pageHeight - footerHeight - 5
-
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(8)
-        doc.text(`Page ${i} of ${pageCount}`, leftMargin + contentWidth / 2, pageNumberY, { align: "center" })
-      }
-
-      const patientID = patientDetails.patient_id || "Unknown"
-      const pdfFileName = `MedicalReport_${patientID}_${patientDetails.patientname.replace(/\s+/g, "_")}.pdf`
-      const pdfBlob = doc.output("blob")
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-
-      const link = document.createElement("a")
-      link.href = pdfUrl
-      link.download = pdfFileName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(pdfUrl)
-
-      setLoading(false)
-      toast.success("Medical report generated successfully!")
-      return pdfBlob
-    } catch (error) {
-      console.error("Error while generating the PDF:", error)
-      toast.error("An unexpected error occurred while generating the PDF")
-      setLoading(false)
-      return null
+    // Add page numbers
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageHeight = doc.internal.pageSize.height;
+      const pageNumberY = pageHeight - footerHeight - 5;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(`Page ${i} of ${pageCount}`, leftMargin + contentWidth/2, pageNumberY, { align: 'center' });
     }
+
+    return doc.output("blob");
+    
+  } catch (error) {
+    console.error("Error generating PDF from data:", error);
+    return null;
   }
+
+
 
   // Open modal for editing credit amount
   const openModal = (patient) => {
@@ -2247,7 +2023,7 @@ const CHCReport = () => {
 
   const PrintButtonBulk = styled(Button)`
     background-color: #8b5cf6;
-   
+    
     &:hover:not(:disabled) {
       background-color: #7c3aed;
     }
@@ -2323,18 +2099,26 @@ const CHCReport = () => {
       <GlobalStyle />
       <Card>
         <CardHeader>
-          <Title>Corporate Health Checkup - Approval Report</Title>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <PrintButtonBulk onClick={handlePrintAllBarcodesAsPDF} disabled={loading || filteredPatients.length === 0}>
-              <Printer size={16} />
-              Print All PDFs
-            </PrintButtonBulk>
-            <ExportButton onClick={handleExportToExcel} disabled={loading || filteredPatients.length === 0}>
-              <Download size={16} />
-              Export to Excel
-            </ExportButton>
-          </div>
-        </CardHeader>
+  <Title>Corporate Health Checkup - Approval Report</Title>
+  <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <OverallPrintButton 
+      onClick={handleOverallPrint} 
+      disabled={loading || filteredPatients.length === 0}
+      title="Download all filtered reports as ZIP"
+    >
+      <Download size={16} />
+      Overall Print ({filteredPatients.length})
+    </OverallPrintButton>
+    
+    <ExportButton 
+      onClick={handleExportToExcel} 
+      disabled={loading || filteredPatients.length === 0}
+    >
+      <Download size={16} />
+      Export to Excel
+    </ExportButton>
+  </div>
+</CardHeader>
         <FiltersContainer>
           <FilterRow>
             <FilterGroup>
