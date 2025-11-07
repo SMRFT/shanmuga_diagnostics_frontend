@@ -52,6 +52,7 @@ import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
+import TestEdit from "./Components/Forms/TestEdit";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
