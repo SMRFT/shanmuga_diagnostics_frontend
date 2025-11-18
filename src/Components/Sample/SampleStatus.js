@@ -981,7 +981,7 @@ const SampleStatus = () => {
       <Container>
         <Card>
           <Header>
-            <Title>Patient Sample Status</Title>
+            <Title>Patient Sample Collection</Title>
             <div
               style={{
                 display: "flex",
