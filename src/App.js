@@ -48,7 +48,7 @@ import PrintBill from "./Components/Patients/PrintBill";
 import Logisticsmap from "./Components/Logistics/Logisticsmap";
 import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
 import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
-import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
+import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 

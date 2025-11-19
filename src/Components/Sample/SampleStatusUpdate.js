@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { format } from "date-fns";
-import styled, { createGlobalStyle, ThemeProvider } from "styled-components";
+import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components";
 import {
   Search,
   X,
@@ -62,6 +61,12 @@ const theme = {
   },
 };
 
+// Blink animation for Emergency status
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+`;
+
 // Global styles
 const GlobalStyle = createGlobalStyle`
   * {
@@ -118,6 +123,14 @@ const Title = styled.h1`
   @media (min-width: ${(props) => props.theme.breakpoints.md}) {
     font-size: 1.875rem;
   }
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
 `;
 
 const DatePickerWrapper = styled.div`
@@ -200,7 +213,6 @@ const SearchContainer = styled.div`
   position: relative;
   width: 100%;
   max-width: 24rem;
-  margin-bottom: 1.5rem;
 `;
 
 const SearchInput = styled.input`
@@ -331,30 +343,6 @@ const Button = styled.button`
     }
   `}
   
-  ${(props) =>
-    props.info &&
-    `
-    background-color: ${props.theme.colors.info};
-    color: white;
-    border: none;
-    
-    &:hover {
-      background-color: ${props.theme.colors.info}e6;
-    }
-  `}
-  
-  ${(props) =>
-    props.warning &&
-    `
-    background-color: ${props.theme.colors.warning};
-    color: white;
-    border: none;
-    
-    &:hover {
-      background-color: ${props.theme.colors.warning}e6;
-    }
-  `}
-  
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -404,6 +392,33 @@ const Badge = styled.span`
     background-color: ${props.theme.colors.info}20;
     color: ${props.theme.colors.info};
   `}
+`;
+
+const EmergencyBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: ${(props) => props.theme.borderRadius.full};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  ${(props) =>
+    props.emergency &&
+    css`
+      background-color: ${props.theme.colors.danger};
+      color: white;
+      animation: ${blink} 1.5s ease-in-out infinite;
+    `}
+
+  ${(props) =>
+    props.normal &&
+    css`
+      background-color: ${props.theme.colors.success}20;
+      color: ${props.theme.colors.success};
+    `}
 `;
 
 const Modal = styled.div`
@@ -611,7 +626,7 @@ const LoadingContainer = styled.div`
   padding: 2rem;
 `;
 
-// Calendar component (same as SampleStatus)
+// Calendar component
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
   const daysInMonth = new Date(
@@ -705,15 +720,15 @@ const SampleStatusUpdate = () => {
   const [savedTests, setSavedTests] = useState({});
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [statusChanges, setStatusChanges] = useState({});
-  const storedName = localStorage.getItem("name");
   const [remarks, setRemarks] = useState({});
+  const [emergencyFilter, setEmergencyFilter] = useState("All");
+  const storedName = localStorage.getItem("name");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
     const fetchSampleCollected = async () => {
       setLoading(true);
       try {
-        // Format both dates
         const localFromDate = new Date(fromDate);
         localFromDate.setMinutes(
           localFromDate.getMinutes() - localFromDate.getTimezoneOffset()
@@ -726,7 +741,6 @@ const SampleStatusUpdate = () => {
         );
         const formattedToDate = localToDate.toISOString().split("T")[0];
 
-        // Updated API call with date range
         const response = await apiRequest(
           `${Labbaseurl}get_sample_collected/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
           "GET"
@@ -736,12 +750,10 @@ const SampleStatusUpdate = () => {
           setSamples(response.data.data || []);
           setError(null);
         } else {
-          // Handle API errors
           setError(response.error);
           console.error("API Error:", response.error);
         }
       } catch (err) {
-        // This catch block will rarely be hit since apiRequest handles most errors
         setError("An unexpected error occurred");
         console.error("Unexpected error:", err);
       } finally {
@@ -779,70 +791,73 @@ const SampleStatusUpdate = () => {
     }));
   };
 
-const updateTestStatus = async (patientId, testIndex) => {
-  const updatedStatus =
-    statusChanges[selectedPatient.patient_id]?.[testIndex];
-  const testDetails = selectedPatient.testdetails[testIndex];
-  const updatedRemarks = remarks[`${patientId}-${testIndex}`];
-  if (!updatedStatus) {
-    setError("Please select a status for the test before updating.");
-    setTimeout(() => setError(null), 3000);
-    return;
-  }
-  try {
-    const response = await apiRequest(
-      `${Labbaseurl}update_sample_collected/${patientId}/`,
-      "PUT",
-      {
-        barcode: selectedPatient.barcode, // <-- send barcode
-        samplecollected_time: testDetails.samplecollected_time, // <-- send exact collected time
-        updates: [
-          {
-            test_id: testDetails.test_id,   // <-- use test_id instead of testIndex
-            samplestatus: updatedStatus,
-            remarks: updatedRemarks || null,
-            received_by: updatedStatus === "Received" ? storedName : null,
-            rejected_by: updatedStatus === "Rejected" ? storedName : null,
-            outsourced_by: updatedStatus === "Outsource" ? storedName : null,
-          },
-        ],
-      }
-    );
-    if (response.success) {
-      setSuccessMessage("Sample status updated successfully!");
-      setTimeout(() => setSuccessMessage(null), 3000);
-      setSavedTests((prev) => ({
-        ...prev,
-        [`${patientId}-${testIndex}`]: true,
-      }));
-      setSamples((prevSamples) =>
-        prevSamples.map((sample) =>
-          sample.patient_id === patientId
-            ? {
-                ...sample,
-                testdetails: sample.testdetails.map((detail, idx) =>
-                  idx === testIndex
-                    ? {
-                        ...detail,
-                        samplestatus: updatedStatus,
-                        remarks: updatedRemarks || null,
-                      }
-                    : detail
-                ),
-              }
-            : sample
-        )
-      );
-    } else {
-      setError(response.error || "Failed to update sample status");
+  const updateTestStatus = async (patientId, testIndex) => {
+    const updatedStatus =
+      statusChanges[selectedPatient.patient_id]?.[testIndex];
+    const testDetails = selectedPatient.testdetails[testIndex];
+    const updatedRemarks = remarks[`${patientId}-${testIndex}`];
+    
+    if (!updatedStatus) {
+      setError("Please select a status for the test before updating.");
       setTimeout(() => setError(null), 3000);
+      return;
     }
-  } catch (err) {
-    setError("An unexpected error occurred while updating sample status");
-    setTimeout(() => setError(null), 3000);
-    console.error("Unexpected error:", err);
-  }
-};
+    
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}update_sample_collected/${patientId}/`,
+        "PUT",
+        {
+          barcode: selectedPatient.barcode,
+          samplecollected_time: testDetails.samplecollected_time,
+          updates: [
+            {
+              test_id: testDetails.test_id,
+              samplestatus: updatedStatus,
+              remarks: updatedRemarks || null,
+              received_by: updatedStatus === "Received" ? storedName : null,
+              rejected_by: updatedStatus === "Rejected" ? storedName : null,
+              outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+            },
+          ],
+        }
+      );
+      
+      if (response.success) {
+        setSuccessMessage("Sample status updated successfully!");
+        setTimeout(() => setSuccessMessage(null), 3000);
+        setSavedTests((prev) => ({
+          ...prev,
+          [`${patientId}-${testIndex}`]: true,
+        }));
+        setSamples((prevSamples) =>
+          prevSamples.map((sample) =>
+            sample.patient_id === patientId
+              ? {
+                  ...sample,
+                  testdetails: sample.testdetails.map((detail, idx) =>
+                    idx === testIndex
+                      ? {
+                          ...detail,
+                          samplestatus: updatedStatus,
+                          remarks: updatedRemarks || null,
+                        }
+                      : detail
+                  ),
+                }
+              : sample
+          )
+        );
+      } else {
+        setError(response.error || "Failed to update sample status");
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred while updating sample status");
+      setTimeout(() => setError(null), 3000);
+      console.error("Unexpected error:", err);
+    }
+  };
 
   const openModal = (patientId) => {
     const patient = samples.find((sample) => sample.patient_id === patientId);
@@ -857,52 +872,23 @@ const updateTestStatus = async (patientId, testIndex) => {
     setSelectedPatient(null);
     setError(null);
     setSuccessMessage(null);
-    window.location.reload(); // Reload the page to reset the state
   };
 
-  // Updated filteredPatients to include barcode search
-  const filteredPatients = samples.filter(
-    (sample) =>
+  // Filter samples by search query and emergency status
+  const filteredPatients = samples.filter((sample) => {
+    const matchesSearch =
       sample.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sample.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sample.segment.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sample.barcode.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      sample.barcode.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Sample Collected":
-        return (
-          <Badge collected>
-            <Clock size={12} /> Collected
-          </Badge>
-        );
-      case "Received":
-        return (
-          <Badge received>
-            <CheckCircle size={12} /> Received
-          </Badge>
-        );
-      case "Rejected":
-        return (
-          <Badge rejected>
-            <X size={12} /> Rejected
-          </Badge>
-        );
-      case "Outsource":
-        return (
-          <Badge outsource>
-            <Activity size={12} /> Outsourced
-          </Badge>
-        );
-      default:
-        return (
-          <Badge>
-            <Clock size={12} /> {status}
-          </Badge>
-        );
-    }
-  };
+    const matchesEmergency =
+      emergencyFilter === "All" ||
+      (emergencyFilter === "Emergency" && sample.is_emergency) ||
+      (emergencyFilter === "Normal" && !sample.is_emergency);
+
+    return matchesSearch && matchesEmergency;
+  });
 
   return (
     <ThemeProvider theme={theme}>
@@ -919,7 +905,6 @@ const updateTestStatus = async (patientId, testIndex) => {
                 flexWrap: "wrap",
               }}
             >
-              {/* From Date Picker */}
               <DatePickerWrapper>
                 <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
                   From Date:
@@ -942,7 +927,6 @@ const updateTestStatus = async (patientId, testIndex) => {
                 )}
               </DatePickerWrapper>
 
-              {/* To Date Picker */}
               <DatePickerWrapper>
                 <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
                   To Date:
@@ -967,17 +951,33 @@ const updateTestStatus = async (patientId, testIndex) => {
             </div>
           </Header>
 
-          <SearchContainer>
-            <SearchIcon>
-              <Search size={16} />
-            </SearchIcon>
-            <SearchInput
-              type="text"
-              placeholder="Search by Barcode, Patient name, ID, or Segment ..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </SearchContainer>
+          <FilterContainer>
+            <SearchContainer>
+              <SearchIcon>
+                <Search size={16} />
+              </SearchIcon>
+              <SearchInput
+                type="text"
+                placeholder="Search by Barcode, Patient name, ID, or Segment..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </SearchContainer>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                Status Filter:
+              </label>
+              <Select
+                value={emergencyFilter}
+                onChange={(e) => setEmergencyFilter(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Normal">Normal</option>
+              </Select>
+            </div>
+          </FilterContainer>
 
           {loading ? (
             <LoadingContainer>
@@ -1001,6 +1001,7 @@ const updateTestStatus = async (patientId, testIndex) => {
                         <Th>Barcode</Th>
                         <Th>Age</Th>
                         <Th>Segment</Th>
+                        <Th>Status</Th>
                         <Th>Actions</Th>
                       </tr>
                     </thead>
@@ -1015,6 +1016,19 @@ const updateTestStatus = async (patientId, testIndex) => {
                           <Td>{sample.barcode}</Td>
                           <Td>{sample.age}</Td>
                           <Td>{sample.segment || "N/A"}</Td>
+                          <Td>
+                            {sample.is_emergency ? (
+                              <EmergencyBadge emergency>
+                                <AlertCircle size={12} />
+                                Emergency
+                              </EmergencyBadge>
+                            ) : (
+                              <EmergencyBadge normal>
+                                <CheckCircle size={12} />
+                                Normal
+                              </EmergencyBadge>
+                            )}
+                          </Td>
                           <Td>
                             <Button
                               primary
@@ -1033,8 +1047,7 @@ const updateTestStatus = async (patientId, testIndex) => {
                 <EmptyState>
                   <AlertCircle size={48} color={theme.colors.textLight} />
                   <EmptyStateText>
-                    No samples found for the selected date range with status
-                    "Sample Collected".
+                    No samples found for the selected filters.
                   </EmptyStateText>
                 </EmptyState>
               )}
@@ -1100,6 +1113,23 @@ const updateTestStatus = async (patientId, testIndex) => {
                   <User size={16} />
                   <PatientInfoLabel>Age:</PatientInfoLabel>
                   <PatientInfoValue>{selectedPatient.age}</PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <AlertCircle size={16} />
+                  <PatientInfoLabel>Status:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {selectedPatient.is_emergency ? (
+                      <EmergencyBadge emergency>
+                        <AlertCircle size={12} />
+                        Emergency
+                      </EmergencyBadge>
+                    ) : (
+                      <EmergencyBadge normal>
+                        <CheckCircle size={12} />
+                        Normal
+                      </EmergencyBadge>
+                    )}
+                  </PatientInfoValue>
                 </PatientInfoItem>
               </PatientInfoCard>
 

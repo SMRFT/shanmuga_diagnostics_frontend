@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Search,
   ChevronLeft,
-  ChevronRight as ChevronRightIcon,
+  Filter,
 } from "lucide-react";
 
 // Modern styled components
@@ -131,6 +131,25 @@ const StyledDatePicker = styled.input`
   }
 `;
 
+const StyledSelect = styled.select`
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  min-width: 150px;
+  background-color: #f8fafc;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
+  }
+`;
+
 const ApplyButton = styled.button`
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
@@ -153,6 +172,23 @@ const ApplyButton = styled.button`
     cursor: not-allowed;
     transform: none;
   }
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+`;
+
+const FilterLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
 `;
 
 // Table styled components
@@ -218,6 +254,26 @@ const Badge = styled.span`
   border-radius: 9999px;
   background-color: #e0e7ff;
   color: #4f46e5;
+`;
+
+const EmergencyBadge = styled(Badge)`
+  background-color: #fee2e2;
+  color: #dc2626;
+  animation: ${props => props.$blink ? 'blink 1.5s ease-in-out infinite' : 'none'};
+
+  @keyframes blink {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+`;
+
+const NormalBadge = styled(Badge)`
+  background-color: #d1fae5;
+  color: #059669;
 `;
 
 const ActionButton = styled.button`
@@ -316,10 +372,11 @@ const BarcodeGeneration = () => {
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const patientsPerPage = 15; // Increased for table layout
+  const patientsPerPage = 15;
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
 
@@ -365,8 +422,7 @@ const BarcodeGeneration = () => {
   };
 
   const handleGenerateBarcode = (patient, e) => {
-    e.stopPropagation(); // Prevent row click if table row has click handler
-    // Convert the patient's bill date to a Date object for consistency
+    e.stopPropagation();
     const patientDate = new Date(patient.date);
 
     navigate("/BarcodeTestDetails", {
@@ -376,8 +432,11 @@ const BarcodeGeneration = () => {
         age: patient.age,
         gender: patient.gender,
         bill_no: patient.bill_no,
-        selectedDate: patientDate, // Now sending the patient's actual bill date
-        fromDate: fromDate, // Also include the date range for reference if needed
+        is_emergency: patient.is_emergency,
+        patient_history: patient.patient_history,
+        sample_collector:patient.sample_collector,
+        selectedDate: patientDate,
+        fromDate: fromDate,
         toDate: toDate,
       },
     });
@@ -390,32 +449,42 @@ const BarcodeGeneration = () => {
     }
     fetchPatients();
     setSearchTerm("");
+    setStatusFilter("All");
     setCurrentPage(1);
   };
 
-  // Filter patients based on search term
+  // Filter patients based on search term and status
   useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredPatients(allPatients);
-    } else {
-      const filtered = allPatients.filter((patient) => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          patient.patientname?.toLowerCase().includes(searchLower) ||
-          patient.patient_id?.toLowerCase().includes(searchLower) ||
-          patient.bill_no?.toString().includes(searchLower) ||
-          patient.age?.toString().includes(searchLower) ||
-          patient.gender?.toLowerCase().includes(searchLower)
-        );
-      });
-      setFilteredPatients(filtered);
+    let filtered = allPatients;
+
+    // Apply search filter
+    if (searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((patient) =>
+        patient.patientname?.toLowerCase().includes(searchLower) ||
+        patient.patient_id?.toLowerCase().includes(searchLower) ||
+        patient.bill_no?.toString().includes(searchLower) ||
+        patient.age?.toString().includes(searchLower) ||
+        patient.gender?.toLowerCase().includes(searchLower)
+      );
     }
 
+    // Apply status filter
+    if (statusFilter !== "All") {
+      filtered = filtered.filter((patient) => {
+        if (statusFilter === "Emergency") {
+          return patient.is_emergency === true;
+        } else if (statusFilter === "Normal") {
+          return patient.is_emergency === false;
+        }
+        return true;
+      });
+    }
+
+    setFilteredPatients(filtered);
     setCurrentPage(1);
-    setTotalPages(
-      Math.max(1, Math.ceil(filteredPatients.length / patientsPerPage))
-    );
-  }, [searchTerm, allPatients]);
+    setTotalPages(Math.max(1, Math.ceil(filtered.length / patientsPerPage)));
+  }, [searchTerm, statusFilter, allPatients]);
 
   // Update displayed patients based on current page
   useEffect(() => {
@@ -430,7 +499,6 @@ const BarcodeGeneration = () => {
     handleApplyDateRange();
   }, []);
 
-  // Format the patient.date to show only the date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = String(date.getUTCDate()).padStart(2, "0");
@@ -448,7 +516,7 @@ const BarcodeGeneration = () => {
     } else if (gender.toLowerCase() === "female") {
       return {
         bg: "#fce7f3",
-        color: "#db2777",
+        color: "#70a82aff",
       };
     } else {
       return {
@@ -458,7 +526,6 @@ const BarcodeGeneration = () => {
     }
   };
 
-  // Pagination functions
   const goToPage = (page) => {
     setCurrentPage(page);
   };
@@ -533,13 +600,28 @@ const BarcodeGeneration = () => {
         </DateRangeContainer>
       </ControlsContainer>
 
+      <FilterContainer>
+        <FilterLabel>
+          <Filter size={16} />
+          Status Filter:
+        </FilterLabel>
+        <StyledSelect
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="All">All</option>
+          <option value="Emergency">Emergency</option>
+          <option value="Normal">Normal</option>
+        </StyledSelect>
+      </FilterContainer>
+
       {allPatients.length > 0 && (
         <ResultsSummary>
           <SummaryText>
             Found {allPatients.length} patient
             {allPatients.length !== 1 ? "s" : ""} {formatDateRange()}
             {filteredPatients.length !== allPatients.length &&
-              ` (${filteredPatients.length} matching search)`}
+              ` (${filteredPatients.length} matching filters)`}
           </SummaryText>
         </ResultsSummary>
       )}
@@ -554,7 +636,7 @@ const BarcodeGeneration = () => {
                 <TableHeaderCell>Patient Name</TableHeaderCell>
                 <TableHeaderCell>Age</TableHeaderCell>
                 <TableHeaderCell>Gender</TableHeaderCell>
-
+                <TableHeaderCell>Status</TableHeaderCell>
                 <TableHeaderCell>Bill No</TableHeaderCell>
                 <TableHeaderCell>Action</TableHeaderCell>
               </TableHeaderRow>
@@ -562,6 +644,7 @@ const BarcodeGeneration = () => {
             <TableBody>
               {displayedPatients.map((patient, index) => {
                 const genderStyle = getGenderBadgeStyle(patient.gender);
+                const isEmergency = patient.is_emergency === true;
 
                 return (
                   <TableRow key={index}>
@@ -592,7 +675,15 @@ const BarcodeGeneration = () => {
                         {patient.gender}
                       </Badge>
                     </TableCell>
-
+                    <TableCell>
+                      {isEmergency ? (
+                        <EmergencyBadge $blink={true}>
+                          Emergency
+                        </EmergencyBadge>
+                      ) : (
+                        <NormalBadge>Normal</NormalBadge>
+                      )}
+                    </TableCell>
                     <TableCell>{patient.bill_no || "-"}</TableCell>
                     <TableCell>
                       <ActionButton
@@ -612,8 +703,8 @@ const BarcodeGeneration = () => {
         <EmptyState>
           <Calendar size={40} color="#94a3b8" />
           <EmptyStateText>
-            {searchTerm
-              ? "No matching patients found. Try a different search term."
+            {searchTerm || statusFilter !== "All"
+              ? "No matching patients found. Try adjusting your filters."
               : isLoading
               ? "Loading patients..."
               : "No patients found for the selected date range."}
@@ -654,7 +745,7 @@ const BarcodeGeneration = () => {
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
           >
-            <ChevronRightIcon size={16} />
+            <ChevronRight size={16} />
           </PageButton>
 
           <PageInfo>
