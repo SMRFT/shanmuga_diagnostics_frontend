@@ -335,33 +335,7 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
 };
 
 
-  const formatProcessingTime = (registeredTime, dispatchTime) => {
-    if (!registeredTime || !dispatchTime) {
-      return "Pending"
-    }
-  
-    try {
-      const regTime = new Date(registeredTime)
-      const dispTime = new Date(dispatchTime)
-  
-      if (isNaN(regTime.getTime()) || isNaN(dispTime.getTime())) {
-        return "Pending"
-      }
-  
-      const diffMs = Math.abs(dispTime - regTime) // Correct calculation
-      const totalSeconds = Math.floor(diffMs / 1000)
-  
-      const hours = Math.floor(totalSeconds / 3600)
-      const minutes = Math.floor((totalSeconds % 3600) / 60)
-      const seconds = totalSeconds % 60
-  
-      return `${String(hours).padStart(2, "0")}H:${String(minutes).padStart(2, "0")}M:${String(seconds).padStart(2, "0")}S`
-    } catch (error) {
-      console.error("Error formatting processing time:", error)
-      return "Error"
-    }
-  }
-  
+
 
   const formatTime = (dateStr) => {
     if (dateStr === "pending" || !dateStr || dateStr === null) {
@@ -383,6 +357,29 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
 
     return new Intl.DateTimeFormat("en-IN", options).format(date)
   }
+
+  const formatDuration = (durationStr) => {
+  if (durationStr === "pending" || !durationStr) {
+    return "Pending"
+  }
+
+  try {
+    // Parse duration string like "0:29:05" or "1 day, 2:30:45"
+    const parts = durationStr.split(", ")
+    let timeStr = parts.length > 1 ? parts[1] : parts[0]
+    let days = parts.length > 1 ? parseInt(parts[0].split(" ")[0]) : 0
+
+    const timeParts = timeStr.split(":")
+    const hours = parseInt(timeParts[0]) + (days * 24)
+    const minutes = parseInt(timeParts[1])
+    const seconds = parseInt(timeParts[2])
+
+    return `${String(hours).padStart(2, "0")}H:${String(minutes).padStart(2, "0")}M:${String(seconds).padStart(2, "0")}S`
+  } catch (error) {
+    console.error("Error formatting duration:", error)
+    return durationStr
+  }
+}
 
   const groupedData = data.reduce((acc, row) => {
     const key = `${row.patient_name}_${row.age}`
@@ -417,20 +414,21 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
     }
 
     const formattedData = filteredData.map((row) => ({
-      Date: new Date(row.date).toLocaleDateString("en-GB").replace(/\//g, "-"),
-      "Patient ID": row.patient_id,
-      "Patient Name": row.patient_name,
-      "Barcode": row.barcode,
-      Age: row.age,
-      "Test Name": row.test_name,
-      Department: row.department,
-      "Registered Time": formatTime(row.date),
-      "Collected Time": formatTime(row.collected_time),
-      "Received Time": formatTime(row.received_time),
-      "Approval Time": formatTime(row.approval_time),
-      "Dispatch Time": formatTime(row.dispatch_time),
-      "Processing Time": formatProcessingTime(row.date, row.dispatch_time),
-    }))
+  Date: new Date(row.date).toLocaleDateString("en-GB").replace(/\//g, "-"),
+  "Patient ID": row.patient_id,
+  "Patient Name": row.patient_name,
+  "Barcode": row.barcode,
+  Age: row.age,
+  "Test Name": row.test_name,
+  Department: row.department,
+  "Registered Time": formatTime(row.date),
+  "Collected Time": formatTime(row.collected_time),
+  "Received Time": formatTime(row.received_time),
+  "Approval Time": formatTime(row.approval_time),
+  "Dispatch Time": formatTime(row.dispatch_time),
+  "TAT Time": formatDuration(row.tat_time),
+  "Processing Time": formatDuration(row.total_processing_time),
+}))
 
     const worksheet = XLSX.utils.json_to_sheet(formattedData)
     const workbook = XLSX.utils.book_new()
@@ -525,22 +523,23 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
         <TableContainer>
           <StyledTable>
             <TableHead>
-              <tr>
-                <th>Date</th>
-                <th>Patient ID</th>
-                <th>Patient Name</th>
-                <th>Barcode</th>
-                <th>Age</th>
-                <th>Test Name</th>
-                <th>Department</th>
-                <th>Registered</th>
-                <th>Collected</th>
-                <th>Received</th>
-                <th>Approved</th>
-                <th>Dispatched</th>
-                <th>Processing Time</th>
-              </tr>
-            </TableHead>
+  <tr>
+    <th>Date</th>
+    <th>Patient ID</th>
+    <th>Patient Name</th>
+    <th>Barcode</th>
+    <th>Age</th>
+    <th>Test Name</th>
+    <th>Department</th>
+    <th>Registered</th>
+    <th>Collected</th>
+    <th>Received</th>
+    <th>Approved</th>
+    <th>Dispatched</th>
+    <th>TAT Time</th>
+    <th>Processing Time</th>
+  </tr>
+</TableHead>
             <TableBody>
               {filteredPatients.length > 0 ? (
                 filteredPatients.map((group, groupIndex) =>
@@ -575,24 +574,30 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
                       <td>{formatTime(test.collected_time)}</td>
                       <td>{formatTime(test.received_time)}</td>
                       <td>{formatTime(test.approval_time)}</td>
-                      <td>{formatTime(test.dispatch_time)}</td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <Clock size={16} color="#6b7280" />
-                          <span>{formatProcessingTime(test.date, test.dispatch_time)}</span>
-                        </div>
-                      </td>
+<td>{formatTime(test.dispatch_time)}</td>
+<td>
+  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <Clock size={16} color="#10b981" />
+    <span>{formatDuration(test.tat_time)}</span>
+  </div>
+</td>
+<td>
+  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <Clock size={16} color="#6b7280" />
+    <span>{formatDuration(test.total_processing_time)}</span>
+  </div>
+</td>
                     </tr>
                   )),
                 )
               ) : (
                 <tr>
-                  <td colSpan={12}>
-                    <EmptyState>
-                      <Activity size={32} color="#9ca3af" />
-                      <p>No data available for the selected criteria</p>
-                    </EmptyState>
-                  </td>
+                 <td colSpan={14}>
+  <EmptyState>
+    <Activity size={32} color="#9ca3af" />
+    <p>No data available for the selected criteria</p>
+  </EmptyState>
+</td>
                 </tr>
               )}
             </TableBody>
