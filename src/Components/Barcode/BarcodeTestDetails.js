@@ -584,6 +584,9 @@ const BarcodeTestDetails = () => {
         bill_no: bill_no,
         testdetails: updatedTestDetails,
         barcode: patientBarcode,
+        is_emergency: selectedPatient?.is_emergency,
+        patient_history: selectedPatient?.patient_history,
+        sample_collector: selectedPatient?.sample_collector,
         extra_barcode: extraBarcode,
       };
 

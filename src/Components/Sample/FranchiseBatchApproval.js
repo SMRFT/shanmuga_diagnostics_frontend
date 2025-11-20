@@ -822,6 +822,8 @@ const FranchiseBatchApproval = () => {
   const [rejectionRemark, setRejectionRemark] = useState("");
   const [currentAction, setCurrentAction] = useState(null);
   const navigate = useNavigate();
+  const [selectAllReceived, setSelectAllReceived] = useState(false);
+const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
   const storedName = localStorage.getItem("name");
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -1036,68 +1038,197 @@ const FranchiseBatchApproval = () => {
   }, [searchTerm, batches]);
 
   const handleReceive = async (batchNumber) => {
-    setCurrentAction({ type: "receive", batch: batchNumber });
-    setProcessingBatch(batchNumber);
-    setError("");
-    setSuccess("");
+  setCurrentAction({ type: "receive", batch: batchNumber });
+  setProcessingBatch(batchNumber);
+  setError("");
+  setSuccess("");
 
-    try {
-      const result = await apiRequest(
-        `${Labbaseurl}franchise-receive/${batchNumber}/`,
-        "PATCH",
-        {
-          received: true,
-        }
-      );
-
-      if (!result.success) {
-        throw new Error(result.error || `HTTP error! status: ${result.status}`);
+  try {
+    const result = await apiRequest(
+      `${Labbaseurl}franchise-receive/${batchNumber}/`,
+      "PATCH",
+      {
+        received: true,
       }
+    );
 
-      setBatches((prev) =>
-        prev.map((batch) =>
-          batch.batch_number === batchNumber
-            ? {
-                ...batch,
-                received: true,
-                lastmodified_date: new Date().toISOString(),
-                lastmodified_by: "current_user",
-              }
-            : batch
-        )
-      );
-
-      setSuccess("Batch received successfully!");
-      toast.success("Batch received successfully!");
-
-      // Close the modal after successful action
-      setShowDetails(false);
-      setSelectedBatch(null);
-
-      setTimeout(() => {
-              }, 1500);
-    } catch (error) {
-      console.error("Error receiving batch:", error);
-
-      let errorMessage = "An unexpected error occurred";
-
-      if (error.message.includes("not found")) {
-        errorMessage = "Batch not found";
-      } else if (error.message.includes("already marked")) {
-        errorMessage = "Batch was already received";
-      } else {
-        errorMessage = error.message;
-      }
-
-      setError(`Failed to receive batch: ${errorMessage}`);
-      toast.error(`Failed to receive batch: ${errorMessage}`);
-
-      setTimeout(() => setError(""), 5000);
-    } finally {
-      setProcessingBatch(null);
-      setCurrentAction(null);
+    if (!result.success) {
+      throw new Error(result.error || `HTTP error! status: ${result.status}`);
     }
-  };
+
+    setBatches((prev) =>
+      prev.map((batch) =>
+        batch.batch_number === batchNumber
+          ? {
+              ...batch,
+              received: true,
+              lastmodified_date: new Date().toISOString(),
+              lastmodified_by: "current_user",
+            }
+          : batch
+      )
+    );
+
+    setSuccess("Batch received successfully!");
+    toast.success("Batch received successfully!");
+
+    // Close the batch details modal
+    setShowDetails(false);
+    
+    // Auto-open sample details modal
+    const batch = batches.find(b => b.batch_number === batchNumber);
+    if (batch) {
+      setSelectedBatch(batch);
+      setShowSampleDetails(true);
+      await fetchSampleDetails(batchNumber);
+    }
+
+  } catch (error) {
+    console.error("Error receiving batch:", error);
+    let errorMessage = "An unexpected error occurred";
+    if (error.message.includes("not found")) {
+      errorMessage = "Batch not found";
+    } else if (error.message.includes("already marked")) {
+      errorMessage = "Batch was already received";
+    } else {
+      errorMessage = error.message;
+    }
+    setError(`Failed to receive batch: ${errorMessage}`);
+    toast.error(`Failed to receive batch: ${errorMessage}`);
+    setTimeout(() => setError(""), 5000);
+  } finally {
+    setProcessingBatch(null);
+    setCurrentAction(null);
+  }
+};
+const handleSelectAllReceived = () => {
+  const newSelectAll = !selectAllReceived;
+  setSelectAllReceived(newSelectAll);
+  
+  if (sampleData && sampleData.length > 0) {
+    if (newSelectAll) {
+      // Set all tests to "Received"
+      const newStatusChanges = {};
+      sampleData.forEach((sample, sampleIndex) => {
+        sample.testdetails.forEach((detail, testIndex) => {
+          const key = `${sampleIndex}-${testIndex}`;
+          newStatusChanges[key] = "Received";
+        });
+      });
+      setStatusChanges(prev => ({ ...prev, ...newStatusChanges }));
+    } else {
+      // Remove all "Received" statuses that were set by the checkbox
+      setStatusChanges(prev => {
+        const filtered = { ...prev };
+        sampleData.forEach((sample, sampleIndex) => {
+          sample.testdetails.forEach((detail, testIndex) => {
+            const key = `${sampleIndex}-${testIndex}`;
+            if (filtered[key] === "Received") {
+              delete filtered[key];
+            }
+          });
+        });
+        return filtered;
+      });
+    }
+  }
+};
+
+const bulkUpdateAllTests = async () => {
+  setBulkUpdateInProgress(true);
+  setError("");
+  setSuccess("");
+  
+  try {
+    const bulkUpdates = [];
+    
+    sampleData.forEach((sample, sampleIndex) => {
+      const sampleUpdates = [];
+      
+      sample.testdetails.forEach((detail, testIndex) => {
+        const key = `${sampleIndex}-${testIndex}`;
+        const updatedStatus = statusChanges[key];
+        
+        if (updatedStatus) {
+          sampleUpdates.push({
+            test_id: detail.test_id,
+            testname: detail.testname,
+            samplestatus: updatedStatus,
+            remarks: remarks[key] || null,
+            received_by: updatedStatus === "Received" ? storedName : null,
+            rejected_by: updatedStatus === "Rejected" ? storedName : null,
+            outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+            batch_number: sample.batch_number,
+          });
+        }
+      });
+      
+      if (sampleUpdates.length > 0) {
+        bulkUpdates.push({
+          barcode: sample.barcode,
+          updates: sampleUpdates
+        });
+      }
+    });
+    
+    if (bulkUpdates.length === 0) {
+      setError("No changes to update. Please select tests to update.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    const result = await apiRequest(
+      `${Labbaseurl}update_franchise_sample/${selectedBatch.batch_number}/`,
+      "PUT",
+      {
+        bulk_updates: bulkUpdates
+      }
+    );
+    
+    if (result.success) {
+      setSuccess(`Successfully updated ${result.success_count || bulkUpdates.length} test statuses!`);
+      
+      // Mark all updated tests as saved
+      const newSavedTests = {};
+      Object.keys(statusChanges).forEach(key => {
+        newSavedTests[key] = true;
+      });
+      setSavedTests(prev => ({ ...prev, ...newSavedTests }));
+      
+      // Update local sample data
+      setSampleData(prevData => 
+        prevData.map((sampleItem, sIdx) => ({
+          ...sampleItem,
+          testdetails: sampleItem.testdetails.map((detail, tIdx) => {
+            const key = `${sIdx}-${tIdx}`;
+            const updatedStatus = statusChanges[key];
+            
+            if (updatedStatus) {
+              return {
+                ...detail,
+                samplestatus: updatedStatus,
+                remarks: remarks[key] || null,
+              };
+            }
+            return detail;
+          }),
+        }))
+      );
+      
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      setError(result.error || "Failed to update test statuses. Please try again.");
+      setTimeout(() => setError(""), 3000);
+    }
+    
+  } catch (error) {
+    console.error("Bulk update error:", error);
+    setError("Failed to update test statuses. Please try again.");
+    setTimeout(() => setError(""), 3000);
+  } finally {
+    setBulkUpdateInProgress(false);
+  }
+};
 
   const handleReject = (batchNumber) => {
     setCurrentAction({ type: "reject", batch: batchNumber });
@@ -1472,14 +1603,7 @@ const FranchiseBatchApproval = () => {
                             >
                               <Eye size={16} />
                               View Details
-                            </ActionButton>
-                            <ActionButton
-                              variant="view"
-                              onClick={() => showBatchSampleDetails(batch)}
-                            >
-                              <TestTube size={16} />
-                              View Samples
-                            </ActionButton>
+                            </ActionButton>                           
                           </ActionButtonGroup>
                         </td>
                       </tr>
@@ -1658,7 +1782,6 @@ const FranchiseBatchApproval = () => {
           )}
 
           {/* Sample Details Modal */}
-         {/* Sample Details Modal */}
 {showSampleDetails && selectedBatch && (
   <Modal>
     <ModalContent>
@@ -1690,12 +1813,55 @@ const FranchiseBatchApproval = () => {
           </LoadingContainer>
         ) : sampleData && sampleData.length > 0 ? (
           <>
-            <div style={{ marginBottom: "1rem", color: "#6b7280", fontSize: "1rem" }}>
-              Found {sampleData.length} samples in this batch
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '1rem',
+              padding: '1rem',
+              backgroundColor: '#f3f4f6',
+              borderRadius: '8px'
+            }}>
+              <div style={{ color: "#6b7280", fontSize: "1rem" }}>
+                Found {sampleData.length} samples in this batch
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={selectAllReceived}
+                    onChange={handleSelectAllReceived}
+                    disabled={bulkUpdateInProgress}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  Mark All as Received
+                </label>
+                
+                <ActionButton
+                  variant="success"
+                  onClick={bulkUpdateAllTests}
+                  disabled={bulkUpdateInProgress || Object.keys(statusChanges).length === 0}
+                >
+                  <Activity size={16} />
+                  {bulkUpdateInProgress ? "Updating..." : "Update All Selected"}
+                </ActionButton>
+              </div>
             </div>
             
             {sampleData.map((sample, sampleIndex) => {
-              console.log('Rendering sample:', sample); // Debug log
+              console.log('Rendering sample:', sample);
               return (
                 <div key={`sample-${sampleIndex}-${sample.barcode || sampleIndex}`} style={{ marginBottom: "3rem" }}>
                   <PatientInfoCard>
@@ -1751,7 +1917,6 @@ const FranchiseBatchApproval = () => {
                             <th>Update Status</th>
                             <th>Sample Collector</th>
                             <th>Reason for Rejection</th>
-                            <th>Actions</th>
                           </tr>
                         </TableHeader>
                         <TableBody>
@@ -1780,7 +1945,7 @@ const FranchiseBatchApproval = () => {
                                         e.target.value
                                       )
                                     }
-                                    disabled={isTestSaved}
+                                    disabled={isTestSaved || bulkUpdateInProgress}
                                     style={{
                                       backgroundColor: isTestSaved ? '#f3f4f6' : 'white',
                                       cursor: isTestSaved ? 'not-allowed' : 'pointer'
@@ -1824,32 +1989,6 @@ const FranchiseBatchApproval = () => {
                                       <strong>Previous remarks:</strong> {detail.remarks}
                                     </div>
                                   )}
-                                </td>
-                                <td>
-                                  <ActionButton
-                                    variant={isTestSaved ? "secondary" : "success"}
-                                    onClick={() => updateTestStatus(sampleIndex, testIndex)}
-                                    disabled={isTestSaved || !statusChanges[key]}
-                                    title={
-                                      isTestSaved 
-                                        ? "Status already updated" 
-                                        : !statusChanges[key] 
-                                        ? "Please select a new status first" 
-                                        : "Click to update status"
-                                    }
-                                  >
-                                    {isTestSaved ? (
-                                      <>
-                                        <CheckCircle size={16} />
-                                        Updated
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Activity size={16} />
-                                        Update
-                                      </>
-                                    )}
-                                  </ActionButton>
                                 </td>
                               </tr>
                             );

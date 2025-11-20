@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import styled, { createGlobalStyle, ThemeProvider } from "styled-components";
-import {
-  Calendar,
-  Search,
-  Check,
-  X,
-  AlertCircle,
-  CheckCircle,
-} from "lucide-react";
+import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components";
+import { Calendar, Search, Check, X, AlertCircle, CheckCircle } from 'lucide-react';
 import apiRequest from "../Auth/apiRequest";
+
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+`;
 
 // Theme
 const theme = {
@@ -31,11 +29,12 @@ const theme = {
     borderDark: "#d1d5db",
   },
   borderRadius: {
-    sm: "0.25rem",
-    md: "0.375rem",
-    lg: "0.5rem",
-    xl: "0.75rem",
-  },
+  sm: "0.25rem",
+  md: "0.375rem",
+  lg: "0.5rem",
+  xl: "0.75rem",
+  full: "9999px",  // Add this line
+},
   shadows: {
     sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
     md: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
@@ -183,6 +182,14 @@ const CalendarDay = styled.button`
   }
 `;
 
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+`;
+
 const SearchContainer = styled.div`
   position: relative;
   width: 100%;
@@ -207,7 +214,7 @@ const SearchInput = styled.input`
 
 const SearchIcon = styled.div`
   position: absolute;
-  right: 0.75rem;
+  left: 0.75rem;  // Changed from right to left
   top: 50%;
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
@@ -241,6 +248,33 @@ const Tr = styled.tr`
   &:hover {
     background-color: ${(props) => props.theme.colors.backgroundAlt};
   }
+`;
+
+const EmergencyBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: ${(props) => props.theme.borderRadius.full || "9999px"};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  ${(props) =>
+    props.emergency &&
+    css`
+      background-color: ${props.theme.colors.danger};
+      color: white;
+      animation: ${blink} 1.5s ease-in-out infinite;
+    `}
+
+  ${(props) =>
+    props.normal &&
+    css`
+      background-color: ${props.theme.colors.success}20;
+      color: ${props.theme.colors.success};
+    `}
 `;
 
 const Button = styled.button`
@@ -517,7 +551,7 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
 
 // Main component
 const SampleStatus = () => {
-  const storedName = localStorage.getItem("name");
+  const storedName = typeof window !== 'undefined' ? localStorage.getItem("name") : null;
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
@@ -528,6 +562,7 @@ const SampleStatus = () => {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [selectedPatientId, setSelectedPatientId] = useState(null);
   const [selectedBarcode, setSelectedBarcode] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -576,9 +611,8 @@ const SampleStatus = () => {
     };
 
     fetchPatientsByDate();
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, Labbaseurl]);
 
-  // Updated function to fetch test details and merge with existing data
   const fetchTestDetailsByIds = async (testIds) => {
     setLoadingTestDetails(true);
     try {
@@ -621,13 +655,9 @@ const SampleStatus = () => {
         return;
       }
 
-      // Get test_ids from patient's testdetails
       const testIds = patient.testdetails.map((test) => test.test_id);
-      
-      // Fetch detailed test information
       const detailedTestInfo = await fetchTestDetailsByIds(testIds);
 
-      // Check if sample status exists in MongoDB
       const result = await apiRequest(
         `${Labbaseurl}check_sample_status/${barcode}/`,
         "GET"
@@ -646,7 +676,6 @@ const SampleStatus = () => {
               testdetails = JSON.parse(testdetails);
             }
 
-            // Filter for Pending tests only and merge with detailed info
             const pendingTests = testdetails
               .filter((test) => test.samplestatus === "Pending")
               .map((test) => {
@@ -665,7 +694,6 @@ const SampleStatus = () => {
             if (pendingTests.length > 0) {
               setCurrentPatientTests(pendingTests);
             } else {
-              // If no pending tests from MongoDB, show all tests from original data with detailed info
               const allTests = patient.testdetails.map((test) => {
                 const detailedInfo = detailedTestInfo.find(
                   (detail) => detail.test_id === test.test_id
@@ -690,7 +718,6 @@ const SampleStatus = () => {
             "Error fetching sample_status_data, using original patient data:",
             statusError
           );
-          // Fallback to original patient data with detailed info
           const allTests = patient.testdetails.map((test) => {
             const detailedInfo = detailedTestInfo.find(
               (detail) => detail.test_id === test.test_id
@@ -708,7 +735,6 @@ const SampleStatus = () => {
           setCurrentPatientTests(allTests);
         }
       } else {
-        // No sample status exists - use original patient data with detailed info
         const allTests = patient.testdetails.map((test) => {
           const detailedInfo = detailedTestInfo.find(
             (detail) => detail.test_id === test.test_id
@@ -768,7 +794,6 @@ const SampleStatus = () => {
         return;
       }
 
-      // Check if data already exists
       const checkResult = await apiRequest(
         `${Labbaseurl}check_sample_status/${patient.barcode}/`,
         "GET"
@@ -776,7 +801,6 @@ const SampleStatus = () => {
 
       const dataExists = checkResult.success && checkResult.data?.exists;
 
-      // Helper function to format datetime
       const formatDateTime = (date) => {
         const d = new Date(date);
         const year = d.getFullYear();
@@ -789,7 +813,6 @@ const SampleStatus = () => {
       };
 
       if (dataExists) {
-        // Use PATCH to update existing data
         const currentTime = formatDateTime(new Date());
 
         const patchData = {
@@ -834,7 +857,6 @@ const SampleStatus = () => {
           setTimeout(() => setError(null), 3000);
         }
       } else {
-        // Use POST to create new data
         const formattedDate1 = formatDateTime(new Date(patient.date));
         const currentTime = formatDateTime(new Date());
 
@@ -967,13 +989,21 @@ const SampleStatus = () => {
     setIsSaved(false);
   };
 
-  const filteredPatients = (patients || []).filter(
-    (patient) =>
-      patient.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.segment.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.barcode.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPatients = (patients || [])
+    .filter((patient) => {
+      const matchesSearch =
+        patient.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.segment.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.barcode.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "All" ||
+        (statusFilter === "Emergency" && patient.is_emergency) ||
+        (statusFilter === "Normal" && !patient.is_emergency);
+
+      return matchesSearch && matchesStatus;
+    });
 
   return (
     <ThemeProvider theme={theme}>
@@ -1036,24 +1066,37 @@ const SampleStatus = () => {
             </div>
           </Header>
 
-          <SearchContainer>
-            <SearchIcon>
-              <Search size={16} />
-            </SearchIcon>
-            <SearchInput
-              type="text"
-              placeholder="Search by Barcode, Patient name, ID, or Segment ..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </SearchContainer>
+          <FilterContainer>
+  <SearchContainer>
+    <SearchIcon>
+      <Search size={16} />
+    </SearchIcon>
+    <SearchInput
+      type="text"
+      placeholder="Search by Barcode, Patient name, ID, or Segment..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+    />
+  </SearchContainer>
+
+  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+      Status Filter:
+    </label>
+    <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+      <option value="All">All</option>
+      <option value="Emergency">Emergency</option>
+      <option value="Normal">Normal</option>
+    </Select>
+  </div>
+</FilterContainer>
 
           {loading ? (
             <EmptyState>
               <div>Loading patients...</div>
             </EmptyState>
           ) : error ? (
-            <Alert error>
+            <Alert error="true">
               <AlertCircle size={16} />
               Error: {error}
             </Alert>
@@ -1069,6 +1112,7 @@ const SampleStatus = () => {
                         <Th>Barcode ID</Th>
                         <Th>Age</Th>
                         <Th>Segment</Th>
+                        <Th>Status</Th>
                         <Th>Tests</Th>
                         <Th>Actions</Th>
                       </tr>
@@ -1081,6 +1125,19 @@ const SampleStatus = () => {
                           <Td>{patient.barcode}</Td>
                           <Td>{patient.age}</Td>
                           <Td>{patient.segment || "N/A"}</Td>
+                          <Td>
+  {patient.is_emergency ? (
+    <EmergencyBadge emergency>
+      <AlertCircle size={12} />
+      Emergency
+    </EmergencyBadge>
+  ) : (
+    <EmergencyBadge normal>
+      <CheckCircle size={12} />
+      Normal
+    </EmergencyBadge>
+  )}
+</Td>
                           <Td>
                             {patient.testdetails &&
                             patient.testdetails.length > 0
@@ -1135,14 +1192,14 @@ const SampleStatus = () => {
               </ModalHeader>
 
               {error && (
-                <Alert error>
+                <Alert error="true">
                   <AlertCircle size={16} />
                   {error}
                 </Alert>
               )}
 
               {successMessage && (
-                <Alert success>
+                <Alert success="true">
                   <CheckCircle size={16} />
                   {successMessage}
                 </Alert>

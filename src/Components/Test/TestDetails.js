@@ -740,6 +740,7 @@ function TestDetails() {
           });
 
           return {
+            test_id:test.test_id,
             testname: test.testname,
             rerun: parameterEditMode ? false : test.rerun,
             approve: false,
@@ -754,6 +755,7 @@ function TestDetails() {
           };
         } else {
           return {
+            test_id:test.test_id,
             testname: test.testname,
             specimen_type: test.specimen_type || "",
             value: values[test.testname] || "",
