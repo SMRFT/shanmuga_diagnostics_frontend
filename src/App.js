@@ -51,9 +51,8 @@ import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAd
 import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
-
-
-
+import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
+import TestEdit from "./Components/Forms/TestEdit";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -209,7 +208,10 @@ const navigateRole = (userRole) => {
 
             {/* Sample Status */}
             <Route path="/SampleStatus" element={<SampleStatus />} />
-            <Route path="/SampleStatusUpdate" element={<SampleStatusUpdate />} />        
+            <Route path="/SampleStatusUpdate" element={<SampleStatusUpdate />} />  
+
+            {/* Test Edit */}      
+            <Route path="/TestEdit" element={<TestEdit />} />      
 
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
@@ -232,17 +234,18 @@ const navigateRole = (userRole) => {
             <Route path="/TestSorting" element={<TestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
             <Route path="/Batchapproval" element={<CorporateBatchApproval />} />
+
           {/* Franchise Report */}
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
             <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
             <Route path="/FranchiseTestSorting" element={<FranchiseTestSorting />} />
+
           {/* Corporate Report */}
             <Route path="/CorporateOverview" element={<CorporateOverview />} />
             <Route path="/CHCReport" element={<CHCReport />} />
             <Route path="/CHCApproval" element={<CHCApproval/>} />
             <Route path="/CorporateTestSorting" element={<CorporateTestSorting />} />
-
 
           {/* MIS */}
             <Route path="/MIS" element={<MIS/>} />
@@ -254,9 +257,6 @@ const navigateRole = (userRole) => {
             <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin/>} />  // was missing import of
             <Route path="/LogisticMap" element={<Logisticsmap/>} />
 
-
-
-
           {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling/>} />
             <Route path="/Hmssamplestatus" element={<Hmssamplestatus/>} />
@@ -266,14 +266,12 @@ const navigateRole = (userRole) => {
             <Route path="/HMSPatientDetails" element={<HMSPatientDetails/>} />
             <Route path="/HmsTestDetails" element={<HmsTestDetails/>} />
 
-
-
-
           {/* HMS Report */}          
             <Route path="/HMSTestSorting" element={<HMSTestSorting />} />
             <Route path="/HMSPatientOverview" element={<HMSPatientOverview />} />
             <Route path="/PatientOverallReport" element={<PatientOverallReport />}  />
 
+            <Route path="/PreethamHospitalReport" element={<PreethamHospitalReport />} />
           </Routes>
         </ContentWrapper>
       )}
