@@ -539,10 +539,16 @@ const Sidebar = () => {
                   Hms Sample Accessioning
                 </SubLink>
                                                 <SubLink
-                  to="/Batchapproval"
+                  to="/CorporateBatchApproval"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Batch Apporval
+                  Corporate Batch Apporval
+                </SubLink>
+                <SubLink
+                  to="/FranchiseBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Batch Apporval
                 </SubLink>
               </DropdownContent>
 
@@ -690,10 +696,16 @@ const Sidebar = () => {
                   Hms Sample Accessioning
                 </SubLink>
                                                 <SubLink
-                  to="/Batchapproval"
+                  to="/CorporateBatchApproval"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Batch Apporval
+                  Corporate Batch Apporval
+                </SubLink>
+                <SubLink
+                  to="/FranchiseBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Batch Apporval
                 </SubLink>
               </DropdownContent>
               <DropdownHeader
@@ -839,10 +851,16 @@ const Sidebar = () => {
                   Hms Sample Accessioning
                 </SubLink>
                                                 <SubLink
-                  to="/Batchapproval"
+                  to="/CorporateBatchApproval"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Batch Apporval
+                  Corporate Batch Apporval
+                </SubLink>
+                <SubLink
+                  to="/FranchiseBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Batch Apporval
                 </SubLink>
               </DropdownContent>
               <DropdownHeader

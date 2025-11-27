@@ -231,7 +231,7 @@ const navigateRole = (userRole) => {
             <Route path="/Testcount" element={<Testcount />} />     
             <Route path="/TestSorting" element={<TestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
-            <Route path="/Batchapproval" element={<CorporateBatchApproval />} />
+            <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
           {/* Franchise Report */}
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
             <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
