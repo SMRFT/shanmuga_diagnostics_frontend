@@ -497,17 +497,23 @@ const SalesVisitLog = () => {
   }, []);
 
   // Fetch clinical names
-  useEffect(() => {
-    axios.get(`${Labbaseurl}get_all_clinicalnames/`)
-      .then(res => {
-        const data = res.data?.data || res.data;
-        setClinicalNames(Array.isArray(data) ? data : []);
-      })
-      .catch(err => {
-        setClinicalNames([]);
-        console.error("Error fetching names:", err.message || err);
-      });
-  }, []);
+ useEffect(() => {
+  const fetchClinicalNames = async () => {
+    try {
+      const res = await apiRequest(
+        `${Labbaseurl}get_all_clinicalnames/`,
+        "GET"
+      );
+      const data = res?.data?.data || res?.data;
+      setClinicalNames(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setClinicalNames([]);
+      console.error("Error fetching names:", err.message || err);
+    }
+  };
+
+  fetchClinicalNames();
+}, []);
 
   // Search drop-down scrolling
   useEffect(() => {
@@ -590,7 +596,7 @@ const SalesVisitLog = () => {
     }, 300);
   };
 
-  // ✔️ This function actually makes the API request using axios
+  // :heavy_check_mark: This function actually makes the API request using axios
   const handleSubmitSalesVisitLog = async (e) => {
     e.preventDefault();
     try {
@@ -614,7 +620,14 @@ const SalesVisitLog = () => {
       };
 
       // API call with axios; adjust if your backend needs token headers
-      const response = await axios.post(`${Labbaseurl}SalesVisitLog/`, postData);
+      // const response = await axios.post(`${Labbaseurl}SalesVisitLog/`, postData);
+
+
+      const response = await apiRequest(
+      `${Labbaseurl}SalesVisitLog/`,
+      "POST",
+      postData
+    );
 
       if (response.status === 200 || response.status === 201) {
         setMessage({ type: "success", text: "Sales Visit form submitted successfully!" });
@@ -726,7 +739,8 @@ const SalesVisitLog = () => {
                             onClick={() => handleSelectResult(item)}
                             onMouseEnter={() => setSelectedIndex(index)}
                           >
-                            {item.clinicalname || item.hospitalName}
+                            {item.clinicalname || item.hospitalName} ({item.address})
+
                           </ResultItem>
                         ))
                       ) : searchTerm.trim() ? (
