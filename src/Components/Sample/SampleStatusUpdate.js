@@ -896,7 +896,7 @@ const SampleStatusUpdate = () => {
       <Container>
         <Card>
           <Header>
-            <Title>Sample Status Update</Title>
+            <Title>Sample Accessioning</Title>
             <div
               style={{
                 display: "flex",
