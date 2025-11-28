@@ -48,7 +48,7 @@ import PrintBill from "./Components/Patients/PrintBill";
 import Logisticsmap from "./Components/Logistics/Logisticsmap";
 import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
 import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
-import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
+import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
@@ -245,8 +245,7 @@ const navigateRole = (userRole) => {
             <Route path="/Testcount" element={<Testcount />} />     
             <Route path="/TestSorting" element={<TestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
-            <Route path="/Batchapproval" element={<CorporateBatchApproval />} />
-
+            <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
           {/* Franchise Report */}
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
             <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />

@@ -2,20 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import styled, { createGlobalStyle, ThemeProvider, css } from "styled-components"
-import {
-  Calendar,
-  Search,
-  AlertCircle,
-  ChevronRight,
-  CheckCircle,
-  RefreshCcw,
-  Clock,
-  User,
-  Tag,
-  FileText,
-  CalendarDays,
-} from "lucide-react"
+import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components"
+import { Calendar, Search, AlertCircle, ChevronRight, CheckCircle, RefreshCcw, Clock, User, Tag, FileText, CalendarDays } from 'lucide-react'
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { useNavigate, useLocation } from "react-router-dom"
@@ -177,14 +165,14 @@ const DateRangeWrapper = styled.div`
 `
 
 const DatePickerWrapper = styled.div`
-  display: flex;
+  gap: 0.1rem;
   align-items: center;
-  gap: 0.5rem;
   background: ${(props) => props.theme.colors.backgroundAlt};
-  padding: 0.75rem;
+  padding: 0.50rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
   border: 1px solid ${(props) => props.theme.colors.border};
   transition: ${(props) => props.theme.transitions.default};
+  min-width: 100px;
 
   &:hover {
     border-color: ${(props) => props.theme.colors.primary};
@@ -197,7 +185,7 @@ const DatePickerWrapper = styled.div`
   }
 
   .react-datepicker-wrapper {
-    width: auto;
+    width: 100px;
   }
 
   input {
@@ -207,7 +195,7 @@ const DatePickerWrapper = styled.div`
     font-size: 0.875rem;
     padding: 0.25rem;
     cursor: pointer;
-    min-width: 100px;
+    min-width: 80px;
 
     &:focus {
       outline: none;
@@ -218,7 +206,7 @@ const DatePickerWrapper = styled.div`
 const SearchWrapper = styled.div`
   position: relative;
   flex: 1;
-  max-width: 400px;
+  min-width: 100px;
 
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     max-width: 100%;
@@ -434,6 +422,72 @@ const DateRangeLabel = styled.span`
   margin: 0 0.5rem;
 `
 
+const FilterSelect = styled.select`
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  font-size: 0.875rem;
+  color: ${(props) => props.theme.colors.text};
+  background-color: ${(props) => props.theme.colors.backgroundAlt};
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+  cursor: pointer;
+  transition: ${(props) => props.theme.transitions.default};
+  appearance: none;
+  min-width: 200px;
+
+  &:hover {
+    border-color: ${(props) => props.theme.colors.primary};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => props.theme.colors.primary};
+    box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
+  }
+
+  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
+    width: 100%;
+  }
+`
+
+// Add the blink animation after the theme definition
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+`;
+
+// Add the EmergencyBadge styled component after StatusBadge
+const EmergencyBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: ${(props) => props.theme.borderRadius.full};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+
+  ${(props) =>
+    props.emergency &&
+    css`
+      background-color: ${props.theme.colors.danger};
+      color: white;
+      animation: ${blink} 1.5s ease-in-out infinite;
+    `}
+
+  ${(props) =>
+    props.normal &&
+    css`
+      background-color: ${props.theme.colors.success}20;
+      color: ${props.theme.colors.success};
+    `}
+`;
+
 // Main Component
 const PatientDetails = () => {
   const getDefaultFromDate = () => {
@@ -448,8 +502,11 @@ const PatientDetails = () => {
   const [patientDetails, setPatientDetails] = useState([])
   const [fromDate, setFromDate] = useState(getDefaultFromDate())
   const [toDate, setToDate] = useState(getDefaultToDate())
+  const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [emergencyFilter, setEmergencyFilter] = useState("all")
+  const [fromFilter, setFromFilter] = useState("all")
   const navigate = useNavigate()
   const location = useLocation()
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
@@ -567,12 +624,43 @@ const PatientDetails = () => {
     return test.rerun ? "Rerun Initiated" : test.approve ? "Approved" : "Waiting for Doctor's Approval"
   }
 
-  const filteredPatients = patientDetails.filter(
-    (patient) =>
+  const filteredPatients = patientDetails.filter((patient) => {
+    const matchesSearch =
       (patient.patientname || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (patient.barcode || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.patient_id || "").toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+      (patient.patient_id || "").toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+     const patientLocation = patient.company_id || "Shanmuga Hospital"
+const matchesFrom = fromFilter === "all" || patientLocation === fromFilter
+
+  if (!matchesFrom) return false
+
+    // Emergency filter
+    const matchesEmergency =
+      emergencyFilter === "all" ||
+      (emergencyFilter === "emergency" && patient.is_emergency) ||
+      (emergencyFilter === "normal" && !patient.is_emergency)
+
+    if (!matchesEmergency) return false
+
+    // Status filter
+    if (statusFilter === "all") return true
+
+    return patient.testdetails?.some((test) => {
+      const testStatus = getTestStatus(test)
+      if (statusFilter === "technician") {
+        return testStatus === "Waiting for Technician's Approval"
+      } else if (statusFilter === "doctor") {
+        return testStatus === "Waiting for Doctor's Approval"
+      } else if (statusFilter === "approved") {
+        return testStatus === "Approved"
+      } else if (statusFilter === "rerun") {
+        return testStatus === "Rerun Initiated"
+      }
+      return false
+    })
+  })
 
   return (
     <ThemeProvider theme={theme}>
@@ -623,11 +711,34 @@ const PatientDetails = () => {
             </SearchIcon>
             <SearchInput
               type="text"
-              placeholder="Search by Barcode, Patient name or ID..."
+              placeholder="Enter Barcode, Name or ID"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </SearchWrapper>
+           <FilterSelect value={fromFilter} onChange={(e) => setFromFilter(e.target.value)}>
+  <option value="all">All Locations</option>
+  {!loading && patientDetails.length > 0 && 
+    [...new Set(patientDetails.map(p => p.company_id || "Shanmuga Hospital").filter(Boolean))]
+      .sort()
+      .map((location, idx) => (
+        <option key={idx} value={location}>{location}</option>
+      ))
+  }
+</FilterSelect>
+
+          <FilterSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All Status</option>
+            <option value="technician">Waiting for Technician's Approval</option>
+            <option value="doctor">Waiting for Doctor's Approval</option>
+            <option value="approved">Approved</option>
+            <option value="rerun">Rerun Initiated</option>
+          </FilterSelect>
+          <FilterSelect value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
+            <option value="all">All Priority</option>
+            <option value="emergency">Emergency</option>
+            <option value="normal">Normal</option>
+          </FilterSelect>
         </Controls>
 
         {loading ? (
@@ -652,6 +763,7 @@ const PatientDetails = () => {
                   <Th>Date</Th>
                   <Th>Patient Info</Th>
                   <Th>From</Th>
+                  <Th>Priority Status</Th>
                   <Th>Tests</Th>
                   <Th>Status</Th>
                 </tr>
@@ -666,8 +778,8 @@ const PatientDetails = () => {
                           {patient.date
                             ? format(new Date(patient.date), "MMM dd, yyyy")
                             : patient.created_date
-                              ? format(new Date(patient.created_date), "MMM dd, yyyy")
-                              : "N/A"}
+                            ? format(new Date(patient.created_date), "MMM dd, yyyy")
+                            : "N/A"}
                         </PatientInfo>
                       </Td>
                       <Td>
@@ -700,6 +812,19 @@ const PatientDetails = () => {
                         <PatientInfo>{patient.company_id || "Shanmuga Hospital"}</PatientInfo>
                       </Td>
                       <Td>
+                        {patient.is_emergency ? (
+                          <EmergencyBadge emergency>
+                            <AlertCircle size={12} />
+                            Emergency
+                          </EmergencyBadge>
+                        ) : (
+                          <EmergencyBadge normal>
+                            <CheckCircle size={12} />
+                            Normal
+                          </EmergencyBadge>
+                        )}
+                      </Td>
+                      <Td>
                         <TestList>
                           {patient.testdetails?.map((test, idx) => {
                             const testStatus = getTestStatus(test)
@@ -721,8 +846,8 @@ const PatientDetails = () => {
                                   testStatus === "Waiting for Technician's Approval"
                                     ? "Enter Test Values"
                                     : testStatus === "Rerun Initiated"
-                                      ? "Rerun Test"
-                                      : "Test Cannot Be Edited"
+                                    ? "Rerun Test"
+                                    : "Test Cannot Be Edited"
                                 }
                                 disabled={
                                   !(
