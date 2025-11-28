@@ -2,19 +2,27 @@
 
 import { useState, useEffect } from "react"
 import styled from "styled-components"
-import RefBy from "../Forms/RefBy"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { FaSearch, FaToggleOn, FaToggleOff, FaPlus, FaTimes } from "react-icons/fa"
-import apiRequest from "../Auth/apiRequest";
+import { FaSearch, FaToggleOn, FaToggleOff, FaPlus, FaTimes, FaUpload, FaFileAlt, FaCalendar } from "react-icons/fa"
+import apiRequest from "../Auth/apiRequest"
+import RefBy from "../Forms/RefBy"
+
+// ============================================================================
+// STYLED COMPONENTS - All styling with styled-components
+// ============================================================================
 
 const FormContainer = styled.div`
   min-height: 100vh;
   padding: 20px;
   font-family: 'Poppins', sans-serif;
-  // background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.05), rgba(102, 126, 234, 0.05));
   
   @media (max-width: 768px) {
+    padding: 12px;
+  }
+  
+  @media (max-width: 480px) {
     padding: 10px;
   }
 `
@@ -29,13 +37,17 @@ const FormCard = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   
+  @media (max-width: 1024px) {
+    padding: 25px;
+  }
+  
   @media (max-width: 768px) {
-    padding: 20px;
+    padding: 18px;
     border-radius: 15px;
   }
   
   @media (max-width: 480px) {
-    padding: 15px;
+    padding: 12px;
     border-radius: 10px;
   }
 `
@@ -50,21 +62,40 @@ const StyledTitle = styled.h2`
   font-size: 2.5rem;
   font-weight: bold;
   
+  @media (max-width: 1024px) {
+    font-size: 2.2rem;
+    margin-bottom: 25px;
+  }
+  
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: 1.8rem;
     margin-bottom: 20px;
   }
   
   @media (max-width: 480px) {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+  }
+`
+
+const SearchWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto 20px auto;
+  z-index: 100;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 15px;
+  }
+  
+  @media (max-width: 480px) {
+    margin-bottom: 12px;
   }
 `
 
 const SearchContainer = styled.div`
   width: 100%;
-  max-width: 500px;
-  margin: 0 auto;
-  margin-bottom: 20px;
   position: relative;
 
   input {
@@ -75,6 +106,7 @@ const SearchContainer = styled.div`
     background: rgba(255, 255, 255, 0.9);
     font-size: 16px;
     transition: all 0.3s ease;
+    box-sizing: border-box;
 
     &::placeholder {
       color: #6c757d;
@@ -86,8 +118,13 @@ const SearchContainer = styled.div`
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
+    @media (max-width: 768px) {
+      padding: 11px 20px 11px 40px;
+      font-size: 15px;
+    }
+
     @media (max-width: 480px) {
-      padding: 10px 20px 10px 40px;
+      padding: 10px 18px 10px 38px;
       font-size: 14px;
     }
   }
@@ -99,51 +136,134 @@ const SearchContainer = styled.div`
     transform: translateY(-50%);
     pointer-events: none;
     color: #6c757d;
+    
+    @media (max-width: 480px) {
+      left: 12px;
+      width: 16px;
+      height: 16px;
+    }
   }
-`;
+`
 
 const PatientSelectionModal = styled.div`
-  position: fixed;
-  top: 0;
+  position: absolute;
+  top: calc(100% + 8px);
   left: 0;
+  right: 0;
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  max-width: 500px;
+
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
   z-index: 1000;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.25s ease;
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 1024px) {
+    max-height: calc(100vh - 350px);
+    padding: 14px;
+  }
+
+  @media (max-width: 768px) {
+    max-height: calc(100vh - 300px);
+    padding: 12px;
+    top: calc(100% + 6px);
+  }
+
+  @media (max-width: 480px) {
+    max-height: calc(100vh - 250px);
+    padding: 10px;
+    top: calc(100% + 4px);
+  }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 10px;
+
+    &:hover {
+      background: rgba(102, 126, 234, 0.5);
+    }
+  }
 `
 
 const ModalContent = styled.div`
   background: white;
-  border-radius: 15px;
-  padding: 30px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 70vh;
+  border-radius: 12px;
+  padding: 0;
+  width: 100%;
+  max-height: 100%;
   overflow-y: auto;
-  position: relative;
-  
+
   h3 {
-    color: #764ba2;
-    margin-bottom: 20px;
     text-align: center;
+    margin: 0 0 15px 0;
+    padding: 0 30px 0 0;
+    color: #764ba2;
+    font-size: 1.2rem;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    background: white;
+    padding-bottom: 10px;
+
+    @media (max-width: 768px) {
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
   }
 `
 
 const CloseButton = styled.button`
   position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
+  top: 12px;
+  right: 12px;
+  background: rgba(240, 147, 251, 0.1);
   border: none;
   font-size: 20px;
   color: #666;
   cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  z-index: 10;
   
   &:hover {
     color: #f093fb;
+    background: rgba(240, 147, 251, 0.2);
+  }
+  
+  @media (max-width: 480px) {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    top: 10px;
+    right: 10px;
   }
 `
 
@@ -151,20 +271,77 @@ const PatientCard = styled.div`
   border: 2px solid #e1e8ff;
   border-radius: 10px;
   padding: 15px;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
+  background: white;
   
   &:hover {
     border-color: #667eea;
     background: rgba(102, 126, 234, 0.05);
     transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+  }
+  
+  .patient-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e8ff;
+    flex-wrap: wrap;
+    gap: 8px;
+    
+    .patient-id-badge {
+      background: linear-gradient(135deg, #f093fb, #667eea);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 12px;
+      white-space: nowrap;
+      
+      @media (max-width: 480px) {
+        font-size: 11px;
+        padding: 3px 10px;
+      }
+    }
+    
+    .emergency-badge {
+      background: #ef4444;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      
+      @media (max-width: 480px) {
+        font-size: 9px;
+        padding: 3px 8px;
+      }
+    }
   }
   
   .patient-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 10px;
+    margin-bottom: 10px;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
   }
   
   .info-item {
@@ -172,16 +349,49 @@ const PatientCard = styled.div`
     flex-direction: column;
     
     .label {
-      font-size: 12px;
+      font-size: 10px;
       color: #666;
       font-weight: 600;
-      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 3px;
     }
     
     .value {
-      font-size: 14px;
+      font-size: 12px;
       color: #333;
       font-weight: 500;
+      word-break: break-word;
+      
+      &.empty {
+        color: #999;
+        font-style: italic;
+        font-weight: 400;
+      }
+    }
+  }
+  
+  .select-button {
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px;
+    background: linear-gradient(135deg, #f093fb, #667eea);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+    }
+    
+    @media (max-width: 480px) {
+      font-size: 11px;
+      padding: 7px;
     }
   }
 `
@@ -192,8 +402,8 @@ const Fieldset = styled.fieldset`
   padding: 25px;
   margin-bottom: 25px;
   background: rgba(255, 255, 255, 0.3);
-  opacity: ${props => props.disabled ? 0.6 : 1};
-  pointer-events: ${props => props.disabled ? 'none' : 'auto'};
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+  pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
   
   legend {
     font-size: 1.3rem;
@@ -205,8 +415,12 @@ const Fieldset = styled.fieldset`
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     
+    @media (max-width: 1024px) {
+      font-size: 1.2rem;
+    }
+    
     @media (max-width: 768px) {
-      font-size: 1.1rem;
+      font-size: 1rem;
     }
   }
   
@@ -217,19 +431,34 @@ const Fieldset = styled.fieldset`
     font-weight: bold;
     font-size: 1.2rem;
     
+    @media (max-width: 1024px) {
+      font-size: 1.1rem;
+    }
+    
     @media (max-width: 768px) {
       font-size: 1rem;
       margin-bottom: 15px;
     }
+    
+    @media (max-width: 480px) {
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+  }
+  
+  @media (max-width: 1024px) {
+    padding: 20px;
+    margin-bottom: 20px;
   }
   
   @media (max-width: 768px) {
     padding: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
   }
   
   @media (max-width: 480px) {
     padding: 10px;
+    margin-bottom: 12px;
   }
 `
 
@@ -256,6 +485,10 @@ const Row = styled.div`
     grid-template-columns: repeat(5, 1fr);
   }
   
+  @media (max-width: 1400px) {
+    gap: 18px;
+  }
+  
   @media (max-width: 1200px) {
     grid-template-columns: repeat(3, 1fr);
     gap: 15px;
@@ -265,9 +498,18 @@ const Row = styled.div`
     }
   }
   
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    
+    &.row-3, &.row-4, &.row-5 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+    gap: 12px;
     margin-bottom: 15px;
     
     &.row-3, &.row-4, &.row-5 {
@@ -278,6 +520,7 @@ const Row = styled.div`
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
     gap: 10px;
+    margin-bottom: 12px;
     
     &.row-2, &.row-3, &.row-4, &.row-5 {
       grid-template-columns: 1fr;
@@ -295,19 +538,25 @@ const FormGroup = styled.div`
     color: #4c51bf;
     font-size: 14px;
     
+    @media (max-width: 768px) {
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    
     @media (max-width: 480px) {
       font-size: 12px;
       margin-bottom: 5px;
     }
   }
   
-  input, select {
+  input, select, textarea {
     padding: 10px 12px;
     border: 2px solid #e1e8ff;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.9);
     font-size: 14px;
     transition: all 0.3s ease;
+    box-sizing: border-box;
     
     &:focus {
       outline: none;
@@ -322,14 +571,91 @@ const FormGroup = styled.div`
       cursor: not-allowed;
     }
     
+    @media (max-width: 768px) {
+      padding: 9px 11px;
+      font-size: 13px;
+    }
+    
     @media (max-width: 480px) {
       padding: 8px 10px;
       font-size: 12px;
     }
   }
   
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: 'Poppins', sans-serif;
+  }
+  
   select {
     cursor: pointer;
+  }
+`
+
+const FileUploadWrapper = styled.div`
+  position: relative;
+  
+  input[type="file"] {
+    display: none;
+  }
+  
+  .file-upload-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #f093fb, #667eea);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+    }
+    
+    svg {
+      font-size: 16px;
+    }
+    
+    @media (max-width: 480px) {
+      padding: 8px 12px;
+      font-size: 12px;
+      gap: 6px;
+      
+      svg {
+        font-size: 14px;
+      }
+    }
+  }
+  
+  .file-name {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 6px;
+    font-size: 13px;
+    color: #4c51bf;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    word-break: break-word;
+    
+    svg {
+      color: #667eea;
+      flex-shrink: 0;
+    }
+    
+    @media (max-width: 480px) {
+      font-size: 12px;
+      padding: 6px 10px;
+      gap: 6px;
+    }
   }
 `
 
@@ -356,17 +682,24 @@ const FieldWithButton = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
     }
     
+    @media (max-width: 768px) {
+      font-size: 14px;
+      height: 40px;
+      padding: 9px 10px;
+    }
+    
     @media (max-width: 480px) {
       height: 38px;
       min-width: 38px;
-      padding: 8px 10px;
-      font-size: 14px;
+      padding: 8px 8px;
+      font-size: 13px;
     }
   }
 `
@@ -375,13 +708,18 @@ const ToggleContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
   
   label {
-    margin-bottom: 8px;
+    margin-bottom: 0;
     font-weight: 600;
     color: #4c51bf;
     font-size: 14px;
     text-align: center;
+    
+    @media (max-width: 768px) {
+      font-size: 13px;
+    }
     
     @media (max-width: 480px) {
       font-size: 12px;
@@ -401,8 +739,15 @@ const ToggleContainer = styled.div`
     }
     
     svg {
+      color: #667eea;
+      transition: all 0.3s ease;
+      
+      @media (max-width: 768px) {
+        font-size: 32px;
+      }
+      
       @media (max-width: 480px) {
-        font-size: 30px;
+        font-size: 28px;
       }
     }
   }
@@ -410,14 +755,14 @@ const ToggleContainer = styled.div`
 
 const RadioGroup = styled.div`
   display: flex;
-  gap: 15px;
+  gap: 12px;
   margin-top: 8px;
   flex-wrap: wrap;
   
   label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-weight: 500;
     cursor: pointer;
     padding: 8px 12px;
@@ -427,6 +772,7 @@ const RadioGroup = styled.div`
     transition: all 0.2s;
     margin-bottom: 0;
     font-size: 14px;
+    white-space: nowrap;
     
     &:hover {
       border-color: #667eea;
@@ -436,6 +782,7 @@ const RadioGroup = styled.div`
     input[type="radio"] {
       margin: 0;
       accent-color: #667eea;
+      cursor: pointer;
     }
     
     &:has(input:checked) {
@@ -443,6 +790,11 @@ const RadioGroup = styled.div`
       background: rgba(102, 126, 234, 0.1);
       color: #4c51bf;
       font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+      padding: 7px 11px;
+      font-size: 13px;
     }
     
     @media (max-width: 480px) {
@@ -488,15 +840,21 @@ const SubmitButton = styled.button`
     opacity: 0.6;
   }
   
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     font-size: 16px;
+    padding: 13px 35px;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 15px;
     padding: 12px 30px;
   }
   
   @media (max-width: 480px) {
-    font-size: 14px;
+    font-size: 13px;
     padding: 10px 25px;
     width: 100%;
+    min-height: 45px;
   }
 `
 
@@ -508,6 +866,10 @@ const ButtonContainer = styled.div`
   @media (max-width: 768px) {
     margin-top: 20px;
   }
+  
+  @media (max-width: 480px) {
+    margin-top: 15px;
+  }
 `
 
 const StatusIndicator = styled.div`
@@ -516,6 +878,7 @@ const StatusIndicator = styled.div`
   font-weight: 600;
   text-align: center;
   margin-bottom: 20px;
+  font-size: 14px;
   
   &.existing {
     background: rgba(34, 197, 94, 0.1);
@@ -534,6 +897,17 @@ const StatusIndicator = styled.div`
     color: #f59e0b;
     border: 2px solid rgba(255, 193, 7, 0.3);
   }
+  
+  &.emergency {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 2px solid rgba(239, 68, 68, 0.3);
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
 `
 
 const SpinnerIcon = styled.span`
@@ -551,6 +925,78 @@ const SpinnerIcon = styled.span`
   }
 `
 
+const SearchAndAppointmentContainer = styled.div`
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  
+  @media (max-width: 1024px) {
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+`
+
+const AppointmentButton = styled.button`
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 16px;
+  white-space: nowrap;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  svg {
+    font-size: 18px;
+  }
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+    padding: 11px 20px;
+    font-size: 14px;
+  }
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    padding: 10px 18px;
+    font-size: 13px;
+    gap: 6px;
+    
+    svg {
+      font-size: 16px;
+    }
+  }
+`
+
+// ============================================================================
+// PATIENT FORM COMPONENT
+// ============================================================================
+
 const PatientForm = () => {
   const getCurrentDateWithTime = () => {
     const currentDate = new Date()
@@ -566,9 +1012,13 @@ const PatientForm = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
   const storedName = localStorage.getItem("name") || "system"
 
-  const [showRefByForm, setShowRefByFormForm] = useState(false);
-  const [showPatientModal, setShowPatientModal] = useState(false);
-  const [multiplePatients, setMultiplePatients] = useState([]);
+  const [showRefByForm, setShowRefByFormForm] = useState(false)
+  const [showPatientModal, setShowPatientModal] = useState(false)
+  const [multiplePatients, setMultiplePatients] = useState([])
+  const [prescriptionFile, setPrescriptionFile] = useState(null)
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false)
+  const [appointmentPatients, setAppointmentPatients] = useState([])
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false)
 
   const [formData, setFormData] = useState({
     patient_id: "",
@@ -597,10 +1047,13 @@ const PatientForm = () => {
     bill_date: null,
     salesMapping: "",
     MultiplePayment: [],
+    emergency: false,
+    patient_history: "",
   })
 
   const [isB2BEnabled, setIsB2BEnabled] = useState(false)
   const [isHomeCollectionEnabled, setIsHomeCollectionEnabled] = useState(false)
+  const [isEmergencyEnabled, setIsEmergencyEnabled] = useState(false)
   const [dropdownOptions, setDropdownOptions] = useState({
     clinicalNames: [],
     sampleCollectors: [],
@@ -618,22 +1071,16 @@ const PatientForm = () => {
     const sampleCollectorValid = formData.sample_collector.trim() !== ""
     const branchValid = formData.branch.trim() !== ""
     const b2bFieldsValid = !isB2BEnabled || formData.B2B.trim() !== ""
-    
-    // Home collection specific validations
-    const homeCollectionValid = !isHomeCollectionEnabled || (
-      formData.phone.trim() !== "" && 
-      formData.email.trim() !== "" &&
-      formData.address.area.trim() !== "" &&
-      formData.address.pincode.trim() !== ""
-    )
+
+    const homeCollectionValid =
+      !isHomeCollectionEnabled ||
+      (formData.phone.trim() !== "" &&
+        formData.email.trim() !== "" &&
+        formData.address.area.trim() !== "" &&
+        formData.address.pincode.trim() !== "")
 
     setIsFormValid(
-      basicFieldsValid && 
-      refByValid && 
-      sampleCollectorValid && 
-      branchValid &&
-      b2bFieldsValid && 
-      homeCollectionValid
+      basicFieldsValid && refByValid && sampleCollectorValid && branchValid && b2bFieldsValid && homeCollectionValid,
     )
   }, [formData, isB2BEnabled, isHomeCollectionEnabled])
 
@@ -643,46 +1090,45 @@ const PatientForm = () => {
         apiRequest(`${Labbaseurl}clinical_name/`, "GET"),
         apiRequest(`${Labbaseurl}sample-collector/`, "GET"),
         apiRequest(`${Labbaseurl}refby/`, "GET"),
-      ]);
+      ])
 
       if (clinical.success) {
-        setDropdownOptions((prev) => ({ ...prev, clinicalNames: clinical.data }));
+        setDropdownOptions((prev) => ({ ...prev, clinicalNames: clinical.data }))
       }
       if (collector.success) {
-        setDropdownOptions((prev) => ({ ...prev, sampleCollectors: collector.data }));
+        setDropdownOptions((prev) => ({ ...prev, sampleCollectors: collector.data }))
       }
       if (refby.success) {
-        setDropdownOptions((prev) => ({ ...prev, referrers: refby.data }));
+        setDropdownOptions((prev) => ({ ...prev, referrers: refby.data }))
       }
     } catch (error) {
-      console.error("Error loading dropdown options:", error);
-      toast.error("Failed to load dropdown options");
+      console.error("Error loading dropdown options:", error)
+      toast.error("Failed to load dropdown options")
     }
-  };
+  }
 
-const generateNewPatientId = async () => {
+  const generateNewPatientId = async () => {
     try {
-      const response = await apiRequest(`${Labbaseurl}latest-patient-id/`, "GET");
-      
+      const response = await apiRequest(`${Labbaseurl}latest-patient-id/`, "GET")
+
       if (response && response.patient_id) {
-        setFormData((prev) => ({ ...prev, patient_id: response.patient_id }));
+        setFormData((prev) => ({ ...prev, patient_id: response.patient_id }))
       } else if (response && response.data && response.data.patient_id) {
-        setFormData((prev) => ({ ...prev, patient_id: response.data.patient_id }));
+        setFormData((prev) => ({ ...prev, patient_id: response.data.patient_id }))
       } else {
-        console.error("Invalid patient ID response format:", response);
-        toast.error("Failed to generate patient ID - invalid response format");
+        console.error("Invalid patient ID response format:", response)
+        toast.error("Failed to generate patient ID - invalid response format")
       }
     } catch (error) {
-      console.error("Error generating patient ID:", error);
-      toast.error("Failed to generate patient ID");
+      console.error("Error generating patient ID:", error)
+      toast.error("Failed to generate patient ID")
     }
-  };
+  }
 
   useEffect(() => {
     generateNewPatientId()
     loadDropdownOptions()
   }, [])
-  
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -715,31 +1161,46 @@ const generateNewPatientId = async () => {
     }
   }
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size should not exceed 5MB")
+        return
+      }
+      const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Only PDF, JPG, JPEG, and PNG files are allowed")
+        return
+      }
+      setPrescriptionFile(file)
+    }
+  }
+
   const handleB2BToggle = () => {
     if (isHomeCollectionEnabled) {
       toast.error("Please disable Home Collection first before enabling B2B")
       return
     }
-    
+
     const newB2BState = !isB2BEnabled
     setIsB2BEnabled(newB2BState)
 
     if (newB2BState) {
-      setFormData((prev) => ({ 
-        ...prev, 
+      setFormData((prev) => ({
+        ...prev,
         segment: "B2B",
-        // Clear address when B2B is enabled
-        address: { area: "", pincode: "" }
+        address: { area: "", pincode: "" },
       }))
     } else {
-      setFormData((prev) => ({ 
-        ...prev, 
-        segment: "Walk-in", 
+      setFormData((prev) => ({
+        ...prev,
+        segment: "Walk-in",
         B2B: "",
         lab_id: "",
         salesMapping: "",
         phone: "",
-        email: ""
+        email: "",
       }))
     }
   }
@@ -749,12 +1210,21 @@ const generateNewPatientId = async () => {
       toast.error("Please disable B2B first before enabling Home Collection")
       return
     }
-    
+
     const newHomeCollectionState = !isHomeCollectionEnabled
     setIsHomeCollectionEnabled(newHomeCollectionState)
     setFormData((prev) => ({
       ...prev,
       segment: newHomeCollectionState ? "Home Collection" : "Walk-in",
+    }))
+  }
+
+  const handleEmergencyToggle = () => {
+    const newEmergencyState = !isEmergencyEnabled
+    setIsEmergencyEnabled(newEmergencyState)
+    setFormData((prev) => ({
+      ...prev,
+      emergency: newEmergencyState,
     }))
   }
 
@@ -774,11 +1244,17 @@ const generateNewPatientId = async () => {
 
   const handleSearchChange = (e) => {
     const input = e.target.value
-    setSearchValue(input)
 
-    if (input.length >= 3) {
-      searchPatient(input)
-    } else if (input.length === 0) {
+    // Only allow numeric input for phone number
+    const numericInput = input.replace(/\D/g, "")
+
+    setSearchValue(numericInput)
+
+    // Search only when exactly 10 digits are entered
+    if (numericInput.length === 10) {
+      searchPatientByPhone(numericInput)
+    } else if (numericInput.length === 0) {
+      // Reset when search is cleared
       setIsExistingPatient(false)
       setShowPatientModal(false)
       setMultiplePatients([])
@@ -788,101 +1264,199 @@ const generateNewPatientId = async () => {
         ...prev,
         patientname: "",
         age: "",
+        age_type: "Years",
         gender: "Male",
         phone: isB2BEnabled ? prev.phone : "",
         email: isB2BEnabled ? prev.email : "",
         address: { area: "", pincode: "" },
+        patient_history: "",
       }))
+      setPrescriptionFile(null)
+    } else if (numericInput.length < 10) {
+      // Clear any existing patient data if less than 10 digits
+      setIsExistingPatient(false)
+      setShowPatientModal(false)
+      setMultiplePatients([])
     }
   }
 
-  const searchPatient = async (value) => {
+  const searchPatientByPhone = async (phoneNumber) => {
     try {
-      let queryParam;
-      if (/^SD\d+$/.test(value)) {
-        queryParam = `patient_id=${value}`;
-      } else if (/^\d{10}$/.test(value)) {
-        queryParam = `phone=${value}`;
-      } else {
-        queryParam = `patientname=${value}`;
-      }
+      console.log("[v0] Searching for phone number:", phoneNumber)
 
-      const response = await apiRequest(
-        `${Labbaseurl}patient-get/?${queryParam}`,
-        "GET"
-      );
+      const response = await apiRequest(`${Labbaseurl}patient-get/?phone=${phoneNumber}`, "GET")
+
+      console.log("[v0] Full response:", response)
+      console.log("[v0] Response data type:", typeof response.data)
+      console.log("[v0] Response data:", response.data)
 
       if (response && response.success) {
-        if (response.multiple && response.data && response.data.length > 1) {
-          // Multiple patients found
-          setMultiplePatients(response.data);
-          setShowPatientModal(true);
-          setIsExistingPatient(false);
-          toast.info(`Found ${response.count} patients with this phone number. Please select one.`);
-        } else if (response.data) {
+        let patients = []
+
+        if (Array.isArray(response.data)) {
+          // Direct array response
+          patients = response.data
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          // Nested response {success, data: {data: Array}}
+          patients = response.data.data
+        } else if (response.data && typeof response.data === "object" && !Array.isArray(response.data)) {
+          // Single patient returned as object - convert to array
+          patients = [response.data]
+        }
+
+        console.log("[v0] Normalized patients array:", patients)
+        console.log("[v0] Number of patients found:", patients.length)
+
+        if (patients.length > 1) {
+          console.log("[v0] Multiple patients found, showing modal with", patients.length, "patients")
+          setMultiplePatients(patients)
+          setShowPatientModal(true)
+          setIsExistingPatient(false)
+          toast.info(`Found ${patients.length} patients with this phone number. Please select one.`)
+        } else if (patients.length === 1) {
           // Single patient found
-          const data = Array.isArray(response.data) ? response.data[0] : response.data;
-          loadPatientData(data);
+          console.log("[v0] Single patient found, loading data")
+          loadPatientData(patients[0])
+          setShowPatientModal(false)
+          toast.success("Patient found! Details loaded.")
+        } else {
+          // No patients found
+          console.log("[v0] No patients found")
+          throw new Error("Patient not found")
         }
       } else {
-        throw new Error("Patient not found");
+        console.log("[v0] Response not successful:", response)
+        throw new Error(response?.error || "Patient not found")
       }
     } catch (error) {
-      console.error("Error fetching patient details:", error);
-      // toast.info("Patient not found. Ready for new registration.");
-      setIsExistingPatient(false);
-      setShowPatientModal(false);
-      setMultiplePatients([]);
+      console.error("[v0] Error fetching patient details:", error)
+      // Don't show error toast, just reset states for new patient entry
+      setIsExistingPatient(false)
+      setShowPatientModal(false)
+      setMultiplePatients([])
+      // Generate new patient ID for new patient entry
+      generateNewPatientId()
     }
-  };
+  }
 
-const loadPatientData = (data) => {
-  const prefixes = /^(MR\.?|MRS\.?|MS\.?|MASTER|MISS|DR\.?|BABY|BABY OF)\s+/i;
-  const cleanedName = data.patientname
-    ? data.patientname.replace(prefixes, "").trim()
-    : "";
+  const getTitleFromName = (name) => {
+    const prefixMatch = name.match(/^(MR\.?|MRS\.?|MS\.?|MASTER\.?|MISS\.?|DR\.?|BABY\.?|BABY OF\.?)\s+/i)
+    if (prefixMatch) {
+      const prefix = prefixMatch[1].toUpperCase().replace(/\.$/, "")
+      const titleMap = {
+        MR: "Mr.",
+        MRS: "Mrs.",
+        MS: "Ms.",
+        MASTER: "Master.",
+        MISS: "Miss.",
+        DR: "Dr.",
+        BABY: "Baby.",
+        "BABY OF": "Baby of.",
+      }
+      return titleMap[prefix] || "Mr."
+    }
+    return "Mr."
+  }
 
-  console.log("cleanedName", cleanedName);
+  const loadPatientData = (data) => {
+    console.log("[v0] Loading patient data:", data)
 
-  setFormData((prev) => ({
-    ...prev,
-    patient_id: data.patient_id,
-    patientname: cleanedName,
-    age: data.age,
-    age_type: data.age_type,
-    gender: data.gender,
-    phone: isB2BEnabled ? prev.phone : data.phone || "",
-    email: isB2BEnabled ? prev.email : data.email || "",
-    address: isB2BEnabled
-      ? { area: "", pincode: "" }
-      : typeof data.address === "string"
-      ? JSON.parse(data.address)
-      : data.address || { area: "", pincode: "" },
-  }));
+    // Extract title and name
+    const prefixes = /^(MR\.?|MRS\.?|MS\.?|MASTER\.?|MISS\.?|DR\.?|BABY\.?|BABY OF\.?)\s+/i
+    const cleanedName = data.patientname ? data.patientname.replace(prefixes, "").trim() : ""
 
-  setIsExistingPatient(true);
-  setShowPatientModal(false);
-  toast.success("Patient details loaded successfully. Ready for billing.");
-};
+    const extractedTitle = getTitleFromName(data.patientname || "")
 
+    console.log("[v0] Cleaned name:", cleanedName)
+    console.log("[v0] Extracted title:", extractedTitle)
 
-
-  const handlePatientSelect = (patient) => {
-    loadPatientData(patient);
-  };
-
-  const formatAddress = (address) => {
-    if (!address) return "N/A";
-    if (typeof address === "string") {
-      try {
-        const parsed = JSON.parse(address);
-        return `${parsed.area || ''}, ${parsed.pincode || ''}`.replace(/^,\s*|,\s*$/g, '') || "N/A";
-      } catch {
-        return address;
+    // Parse address properly
+    let parsedAddress = { area: "", pincode: "" }
+    if (data.address) {
+      if (typeof data.address === "string") {
+        try {
+          parsedAddress = JSON.parse(data.address)
+        } catch (e) {
+          console.error("[v0] Error parsing address:", e)
+          parsedAddress = { area: "", pincode: "" }
+        }
+      } else if (typeof data.address === "object") {
+        parsedAddress = data.address
       }
     }
-    return `${address.area || ''}, ${address.pincode || ''}`.replace(/^,\s*|,\s*$/g, '') || "N/A";
-  };
+
+    // Determine gender from title if not provided
+    let patientGender = data.gender || "Male"
+    if (!data.gender) {
+      if (extractedTitle === "Mr." || extractedTitle === "Master." || extractedTitle === "Dr.") {
+        patientGender = "Male"
+      } else if (
+        extractedTitle === "Mrs." ||
+        extractedTitle === "Ms." ||
+        extractedTitle === "Miss." ||
+        extractedTitle === "Baby."
+      ) {
+        patientGender = "Female"
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      patient_id: data.patient_id,
+      Title: extractedTitle,
+      patientname: cleanedName,
+      age: data.age || "",
+      age_type: data.age_type || "Years",
+      gender: patientGender,
+      phone: isB2BEnabled ? prev.phone : data.phone || "",
+      email: isB2BEnabled ? prev.email : data.email || "",
+      address: isB2BEnabled ? { area: "", pincode: "" } : parsedAddress,
+      patient_history: data.patient_history || "",
+    }))
+
+    // Update emergency status if patient has emergency flag
+    if (data.emergency) {
+      setIsEmergencyEnabled(true)
+    } else {
+      setIsEmergencyEnabled(false)
+    }
+
+    setIsExistingPatient(true)
+    setShowPatientModal(false)
+  }
+
+  const handlePatientSelect = (patient) => {
+    loadPatientData(patient)
+    toast.success("Patient details loaded successfully. Ready for billing.")
+  }
+
+  const formatAddress = (address) => {
+    if (!address) return "N/A"
+
+    let addressObj = address
+
+    if (typeof address === "string") {
+      try {
+        addressObj = JSON.parse(address)
+      } catch (e) {
+        console.error("[v0] Error parsing address:", e)
+        return address || "N/A"
+      }
+    }
+
+    if (typeof addressObj === "object") {
+      const area = addressObj.area || ""
+      const pincode = addressObj.pincode || ""
+
+      if (!area && !pincode) return "N/A"
+      if (!area) return pincode
+      if (!pincode) return area
+
+      return `${area}, ${pincode}`
+    }
+
+    return "N/A"
+  }
 
   const validateRequiredFields = () => {
     const errors = []
@@ -892,11 +1466,11 @@ const loadPatientData = (data) => {
     if (!formData.refby.trim()) errors.push("Ref By is required")
     if (!formData.sample_collector.trim()) errors.push("Sample Collector is required")
     if (!formData.branch.trim()) errors.push("Branch is required")
-    
+
     if (isB2BEnabled && !formData.B2B.trim()) {
       errors.push("Clinical Name is required when B2B is enabled")
     }
-    
+
     if (isHomeCollectionEnabled) {
       if (!formData.phone.trim()) errors.push("Phone Number is required for Home Collection")
       if (!formData.email.trim()) errors.push("Email ID is required for Home Collection")
@@ -908,25 +1482,26 @@ const loadPatientData = (data) => {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isSubmitting) return;
+    e.preventDefault()
+    if (isSubmitting) return
 
-    // Validate required fields
     const validationErrors = validateRequiredFields()
     if (validationErrors.length > 0) {
-      validationErrors.forEach(error => toast.error(error))
+      validationErrors.forEach((error) => toast.error(error))
       return
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
 
     try {
-      const fullPatientName = `${formData.Title} ${formData.patientname}`;
-      const addressData = { area: formData.address.area, pincode: formData.address.pincode };
+      const fullPatientName = `${formData.Title} ${formData.patientname}`
+      const addressData = { area: formData.address.area, pincode: formData.address.pincode }
 
-      let segmentValue = "Walk-in";
-      if (isB2BEnabled) segmentValue = "B2B";
-      else if (isHomeCollectionEnabled) segmentValue = "Home Collection";
+      let segmentValue = "Walk-in"
+      if (isB2BEnabled) segmentValue = "B2B"
+      else if (isHomeCollectionEnabled) segmentValue = "Home Collection"
+
+      const patientHistory = formData.patient_history.trim() || ""
 
       const baseData = {
         patient_id: formData.patient_id,
@@ -938,7 +1513,9 @@ const loadPatientData = (data) => {
         email: isB2BEnabled ? "" : formData.email,
         address: isB2BEnabled ? {} : addressData,
         registeredby: formData.registeredby,
-      };
+        emergency: isEmergencyEnabled,
+        patient_history: patientHistory,
+      }
 
       const billData = {
         ...baseData,
@@ -957,58 +1534,75 @@ const loadPatientData = (data) => {
         credit_amount: formData.credit_amount,
         MultiplePayment: formData.MultiplePayment,
         status: "Registered",
-      };
+        emergency: isEmergencyEnabled,
+        patient_history: patientHistory,
+      }
 
       if (isExistingPatient) {
         // Existing patient: create bill only
-        const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData);
+        const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData)
         if (billResult && billResult.success) {
-          toast.success(`Bill created successfully!`);
-          // Reset form for next entry
-          resetForm();
+          toast.success(`Bill created successfully!`)
+          resetForm()
         } else {
-          toast.error("Failed to create bill. Please try again.");
+          toast.error("Failed to create bill. Please try again.")
         }
       } else {
         // New patient: create patient first, then bill
         try {
-          const patientResult = await apiRequest(`${Labbaseurl}create_patient/`, "POST", baseData);
-          
-          if (patientResult && patientResult.success) {
-            // Now create the bill
-            const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData);
-            
-            if (billResult && billResult.success) {
-              toast.success(`Patient registered and bill created successfully!`);
-              // Reset form for next entry
-              resetForm();
+          const formDataToSend = new FormData()
+
+          Object.keys(baseData).forEach((key) => {
+            if (key === "address") {
+              formDataToSend.append(key, JSON.stringify(baseData[key]))
+            } else if (key === "emergency") {
+              formDataToSend.append(key, baseData[key].toString())
             } else {
-              toast.error("Patient created but failed to create bill. Please create bill manually.");
+              formDataToSend.append(key, baseData[key])
+            }
+          })
+
+          if (prescriptionFile) {
+            formDataToSend.append("prescription", prescriptionFile)
+          }
+
+          const patientResult = await apiRequest(`${Labbaseurl}create_patient/`, "POST", formDataToSend, true)
+
+          if (patientResult && patientResult.success) {
+            const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData)
+
+            if (billResult && billResult.success) {
+              toast.success(`Patient registered and bill created successfully!`)
+              resetForm()
+            } else {
+              toast.error("Patient created but failed to create bill. Please create bill manually.")
             }
           } else {
-            toast.error("Failed to create patient. Please try again.");
+            toast.error("Failed to create patient. Please try again.")
           }
         } catch (error) {
-          console.error("Error in patient/bill creation:", error);
-          toast.error("Error creating patient or bill. Please try again.");
+          console.error("[v0] Error in patient/bill creation:", error)
+          toast.error("Error creating patient or bill. Please try again.")
         }
       }
     } catch (error) {
-      console.error("Error saving data:", error);
-      toast.error("Error saving data. Please try again.");
+      console.error("[v0] Error saving data:", error)
+      toast.error("Error saving data. Please try again.")
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   const resetForm = () => {
-    setSearchValue("");
-    setIsExistingPatient(false);
-    setIsB2BEnabled(false);
-    setIsHomeCollectionEnabled(false);
-    setShowPatientModal(false);
-    setMultiplePatients([]);
-    
+    setSearchValue("")
+    setIsExistingPatient(false)
+    setIsB2BEnabled(false)
+    setIsHomeCollectionEnabled(false)
+    setIsEmergencyEnabled(false)
+    setShowPatientModal(false)
+    setMultiplePatients([])
+    setPrescriptionFile(null)
+
     setFormData({
       patient_id: "",
       date: getCurrentDateWithTime(),
@@ -1036,66 +1630,187 @@ const loadPatientData = (data) => {
       bill_date: null,
       salesMapping: "",
       MultiplePayment: [],
-    });
-    
-    // Generate new patient ID
-    generateNewPatientId();
-  };
+      emergency: false,
+      patient_history: "",
+    })
+
+    generateNewPatientId()
+  }
+
+  const fetchTodayAppointments = async () => {
+    try {
+      setIsLoadingAppointments(true)
+
+      const response = await apiRequest(`${Labbaseurl}appointments/`, "GET")
+
+      // Handle different response structures
+      let appointments = []
+
+      if (response) {
+        if (Array.isArray(response)) {
+          // Direct array response
+          appointments = response
+        } else if (response.success && Array.isArray(response.appointments)) {
+          // {success: true, appointments: [...]}
+          appointments = response.appointments
+        } else if (response.success && Array.isArray(response.data)) {
+          // {success: true, data: [...]}
+          appointments = response.data
+        } else if (Array.isArray(response.data)) {
+          // {data: [...]} without success field
+          appointments = response.data
+        } else if (response.data && Array.isArray(response.data.appointments)) {
+          // {data: {appointments: [...]}}
+          appointments = response.data.appointments
+        } else if (response.data && Array.isArray(response.data.data)) {
+          // {data: {data: [...]}}
+          appointments = response.data.data
+        }
+      }
+
+      console.log("[v0] Parsed appointments array:", appointments)
+      console.log("[v0] Total appointments received:", appointments.length)
+
+      if (appointments.length === 0) {
+        toast.info("No appointments found in the system")
+        setAppointmentPatients([])
+        setShowAppointmentModal(false)
+        return
+      }
+
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date()
+      const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+
+      console.log("[v0] Today's date:", todayDate)
+      console.log("[v0] Sample appointment:", appointments[0])
+
+      // Filter appointments for today
+      const todayAppointments = appointments.filter((appointment) => {
+        if (!appointment.appointment_date) {
+          console.log("[v0] Appointment skipped - no date:", appointment)
+          return false
+        }
+
+        // Extract date part (YYYY-MM-DD) from appointment_date (handles both formats)
+        const appointmentDateStr = appointment.appointment_date.split("T")[0].split(" ")[0]
+        console.log("[v0] Comparing:", appointmentDateStr, "with", todayDate)
+        return appointmentDateStr === todayDate
+      })
+
+      console.log("[v0] Today's appointments found:", todayAppointments.length)
+
+      if (todayAppointments.length > 0) {
+        setAppointmentPatients(todayAppointments)
+        setShowAppointmentModal(true)
+        toast.info(`Found ${todayAppointments.length} appointments for today`)
+      } else {
+        toast.info("No appointments booked for today")
+        setAppointmentPatients([])
+        setShowAppointmentModal(false)
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching appointments:", error)
+      console.error("[v0] Error details:", error.message, error.stack)
+      toast.error("Failed to fetch appointments. Please try again.")
+    } finally {
+      setIsLoadingAppointments(false)
+    }
+  }
+
+  const handleAppointmentSelect = (appointment) => {
+    const patientData = {
+      patient_id: appointment.patient_id || "",
+      patientname: appointment.patient_name || "", // API returns patient_name
+      age: appointment.age || "",
+      age_type: appointment.age_type || "Years",
+      gender: appointment.gender || "Male",
+      phone: appointment.mobile_number || "", // API returns mobile_number
+      email: appointment.email || "",
+      address: appointment.address || { area: "", pincode: "" },
+      patient_history: appointment.patient_history || "",
+      emergency: appointment.emergency || false,
+    }
+
+    loadPatientData(patientData)
+    setShowAppointmentModal(false)
+    toast.success("Appointment patient loaded successfully. Ready for billing.")
+  }
 
   return (
     <FormContainer>
       <FormCard>
         <StyledTitle>Patient Registration & Billing System</StyledTitle>
 
-        <SearchContainer>
-          <FaSearch size={18} />
-          <input
-            type="text"
-            placeholder="Enter Patient ID, Name, or Phone"
-            value={searchValue}
-            onChange={handleSearchChange}
-          />
-        </SearchContainer>
+        <SearchAndAppointmentContainer>
+          <SearchWrapper>
+            <SearchContainer>
+              <FaSearch size={18} />
+              <input
+                type="text"
+                placeholder="Enter 10-digit Mobile Number to search patient"
+                value={searchValue}
+                onChange={handleSearchChange}
+                maxLength={10}
+              />
+            </SearchContainer>
+          </SearchWrapper>
+
+          <AppointmentButton onClick={fetchTodayAppointments} disabled={isLoadingAppointments}>
+            <FaCalendar />
+            {isLoadingAppointments ? "Loading..." : "Today's Appointments"}
+          </AppointmentButton>
+        </SearchAndAppointmentContainer>
 
         {isExistingPatient && (
-          <StatusIndicator className="existing">
-            ✓ Existing Patient Found - Ready for Billing
-          </StatusIndicator>
+          <StatusIndicator className="existing">✓ Existing Patient Found - Ready for Billing</StatusIndicator>
+        )}
+
+        {isEmergencyEnabled && (
+          <StatusIndicator className="emergency">🚨 EMERGENCY CASE - Priority Processing</StatusIndicator>
         )}
 
         {showPatientModal && (
-          <StatusIndicator className="multiple">
-            ⚠ Multiple Patients Found - Please Select One
-          </StatusIndicator>
+          <StatusIndicator className="multiple">⚠ Multiple Patients Found - Please Select One</StatusIndicator>
         )}
 
-        {/* Patient Selection Modal */}
         {showPatientModal && (
-          <PatientSelectionModal>
+          <PatientSelectionModal
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowPatientModal(false)
+              }
+            }}
+          >
             <ModalContent>
               <CloseButton onClick={() => setShowPatientModal(false)}>
                 <FaTimes />
               </CloseButton>
-              <h3>Select Patient ({multiplePatients.length} found)</h3>
-              
+              <h3>
+                Select Patient ({multiplePatients.length} found with phone {searchValue})
+              </h3>
+
               {multiplePatients.map((patient, index) => (
                 <PatientCard key={index} onClick={() => handlePatientSelect(patient)}>
+                  <div className="patient-header">
+                    <span className="patient-id-badge">{patient.patient_id}</span>
+                    {patient.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
+                  </div>
+
                   <div className="patient-info">
                     <div className="info-item">
-                      <span className="label">Patient ID</span>
-                      <span className="value">{patient.patient_id}</span>
-                    </div>
-                    <div className="info-item">
                       <span className="label">Name</span>
-                      <span className="value">{patient.patientname}</span>
+                      <span className="value">{patient.patientname || "N/A"}</span>
                     </div>
                     <div className="info-item">
                       <span className="label">Age</span>
-                      <span className="value">{patient.age} {patient.age_type}(s)</span>
+                      <span className="value">
+                        {patient.age} {patient.age_type || "Years"}
+                      </span>
                     </div>
                     <div className="info-item">
                       <span className="label">Gender</span>
-                      <span className="value">{patient.gender}</span>
+                      <span className="value">{patient.gender || "N/A"}</span>
                     </div>
                     <div className="info-item">
                       <span className="label">Phone</span>
@@ -1103,17 +1818,113 @@ const loadPatientData = (data) => {
                     </div>
                     <div className="info-item">
                       <span className="label">Email</span>
-                      <span className="value">{patient.email || "N/A"}</span>
+                      <span className={`value ${!patient.email ? "empty" : ""}`}>
+                        {patient.email || "Not provided"}
+                      </span>
                     </div>
                     <div className="info-item">
                       <span className="label">Address</span>
-                      <span className="value">{formatAddress(patient.address)}</span>
+                      <span className={`value ${formatAddress(patient.address) === "N/A" ? "empty" : ""}`}>
+                        {formatAddress(patient.address)}
+                      </span>
+                    </div>
+                    {patient.patient_history && (
+                      <div className="info-item" style={{ gridColumn: "1 / -1" }}>
+                        <span className="label">Medical History</span>
+                        <span className="value">{patient.patient_history}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    className="select-button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handlePatientSelect(patient)
+                    }}
+                  >
+                    Select This Patient
+                  </button>
+                </PatientCard>
+              ))}
+            </ModalContent>
+          </PatientSelectionModal>
+        )}
+
+        {showAppointmentModal && (
+          <PatientSelectionModal
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowAppointmentModal(false)
+              }
+            }}
+          >
+            <ModalContent>
+              <CloseButton onClick={() => setShowAppointmentModal(false)}>
+                <FaTimes />
+              </CloseButton>
+              <h3>Today's Appointments ({appointmentPatients.length} found)</h3>
+
+              {appointmentPatients.map((appointment, index) => (
+                <PatientCard key={index} onClick={() => handleAppointmentSelect(appointment)}>
+                  <div className="patient-header">
+                    <span className="patient-id-badge">{appointment.patient_id}</span>
+                    {appointment.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
+                  </div>
+
+                  <div className="patient-info">
+                    <div className="info-item">
+                      <span className="label">Name</span>
+                      <span className="value">{appointment.patient_name || "N/A"}</span>
                     </div>
                     <div className="info-item">
-                      <span className="label">Registered By</span>
-                      <span className="value">{patient.registeredby || "N/A"}</span>
+                      <span className="label">Appointment Time</span>
+                      <span className="value">
+                        {appointment.appointment_date
+                          ? new Date(appointment.appointment_date).toLocaleTimeString("en-IN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "N/A"}
+                      </span>
                     </div>
+                    <div className="info-item">
+                      <span className="label">Age</span>
+                      <span className="value">
+                        {appointment.age} {appointment.age_type || "Years"}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">Gender</span>
+                      <span className="value">{appointment.gender || "N/A"}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">Phone</span>
+                      <span className="value">{appointment.mobile_number || "N/A"}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="label">Email</span>
+                      <span className={`value ${!appointment.email ? "empty" : ""}`}>
+                        {appointment.email || "Not provided"}
+                      </span>
+                    </div>
+                    {appointment.patient_history && (
+                      <div className="info-item" style={{ gridColumn: "1 / -1" }}>
+                        <span className="label">Medical History</span>
+                        <span className="value">{appointment.patient_history}</span>
+                      </div>
+                    )}
                   </div>
+
+                  <button
+                    className="select-button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAppointmentSelect(appointment)
+                    }}
+                  >
+                    Load This Patient
+                  </button>
                 </PatientCard>
               ))}
             </ModalContent>
@@ -1121,7 +1932,6 @@ const loadPatientData = (data) => {
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Lab Details */}
           <Fieldset>
             <h4>Lab Details</h4>
             <Row className="row-4">
@@ -1152,7 +1962,9 @@ const loadPatientData = (data) => {
                 </button>
               </FieldWithButton>
               <FormGroup>
-                <label>Branch<RequiredIndicator>*</RequiredIndicator></label>
+                <label>
+                  Branch<RequiredIndicator>*</RequiredIndicator>
+                </label>
                 <select name="branch" value={formData.branch} onChange={handleChange} required>
                   <option value="">Select a Branch</option>
                   <option value="Shanmuga Reference Lab">Shanmuga Reference Lab</option>
@@ -1173,12 +1985,10 @@ const loadPatientData = (data) => {
               </ToggleContainer>
 
               <FormGroup>
-                <label>
-                  Clinical Name{isB2BEnabled && <RequiredIndicator>*</RequiredIndicator>}
-                </label>
-                <select 
-                  name="clinical_name" 
-                  value={formData.B2B} 
+                <label>Clinical Name{isB2BEnabled && <RequiredIndicator>*</RequiredIndicator>}</label>
+                <select
+                  name="clinical_name"
+                  value={formData.B2B}
                   onChange={handleClinicalNameSelect}
                   disabled={!isB2BEnabled}
                   required={isB2BEnabled}
@@ -1212,12 +2022,7 @@ const loadPatientData = (data) => {
                 <label>
                   Sample Collector<RequiredIndicator>*</RequiredIndicator>
                 </label>
-                <select
-                  name="sample_collector"
-                  value={formData.sample_collector}
-                  onChange={handleChange}
-                  required
-                >
+                <select name="sample_collector" value={formData.sample_collector} onChange={handleChange} required>
                   <option value="">Select Sample Collector</option>
                   {dropdownOptions.sampleCollectors.map((collector, index) => (
                     <option key={index} value={collector}>
@@ -1227,9 +2032,21 @@ const loadPatientData = (data) => {
                 </select>
               </FormGroup>
             </Row>
+
+            <Row className="row-5">
+              <ToggleContainer>
+                <label>Emergency</label>
+                <div onClick={handleEmergencyToggle}>
+                  {isEmergencyEnabled ? (
+                    <FaToggleOn style={{ fontSize: "40px", color: "red" }} />
+                  ) : (
+                    <FaToggleOff style={{ fontSize: "40px", color: "grey" }} />
+                  )}
+                </div>
+              </ToggleContainer>
+            </Row>
           </Fieldset>
 
-          {/* Personal Details */}
           <Fieldset>
             <h4>Personal Details</h4>
             <Row className="row-5">
@@ -1328,14 +2145,11 @@ const loadPatientData = (data) => {
             </Row>
           </Fieldset>
 
-          {/* Contact Details */}
           <Fieldset disabled={isB2BEnabled}>
             <h4>Contact Details {isB2BEnabled && "(Auto-filled from Clinical)"}</h4>
             <Row className="row-4">
               <FormGroup>
-                <label>
-                  Phone Number{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}
-                </label>
+                <label>Phone Number{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}</label>
                 <input
                   type="tel"
                   name="phone"
@@ -1347,9 +2161,7 @@ const loadPatientData = (data) => {
                 />
               </FormGroup>
               <FormGroup>
-                <label>
-                  Email ID{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}
-                </label>
+                <label>Email ID{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}</label>
                 <input
                   type="email"
                   name="email"
@@ -1360,9 +2172,7 @@ const loadPatientData = (data) => {
                 />
               </FormGroup>
               <FormGroup>
-                <label>
-                  Area{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}
-                </label>
+                <label>Area{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}</label>
                 <input
                   type="text"
                   name="area"
@@ -1373,9 +2183,7 @@ const loadPatientData = (data) => {
                 />
               </FormGroup>
               <FormGroup>
-                <label>
-                  Pin Code{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}
-                </label>
+                <label>Pin Code{isHomeCollectionEnabled && <RequiredIndicator>*</RequiredIndicator>}</label>
                 <input
                   type="text"
                   name="pincode"
@@ -1389,6 +2197,52 @@ const loadPatientData = (data) => {
             </Row>
           </Fieldset>
 
+          <Fieldset>
+            <h4>Medical Details</h4>
+            <Row>
+              <FormGroup>
+                <label>Patient History (Optional)</label>
+                <textarea
+                  name="patient_history"
+                  value={formData.patient_history}
+                  onChange={handleChange}
+                  placeholder="Enter patient medical history, previous conditions, allergies, etc."
+                  rows={4}
+                  disabled={isExistingPatient}
+                />
+              </FormGroup>
+            </Row>
+
+            {!isExistingPatient && (
+              <Row>
+                <FormGroup>
+                  <label>Upload Prescription (Optional)</label>
+                  <FileUploadWrapper>
+                    <input
+                      type="file"
+                      id="prescription-upload"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileChange}
+                    />
+                    <label htmlFor="prescription-upload" className="file-upload-button">
+                      <FaUpload />
+                      {prescriptionFile ? "Change File" : "Choose File"}
+                    </label>
+                    {prescriptionFile && (
+                      <div className="file-name">
+                        <FaFileAlt />
+                        {prescriptionFile.name}
+                      </div>
+                    )}
+                  </FileUploadWrapper>
+                  <small style={{ color: "#666", marginTop: "5px", display: "block" }}>
+                    Accepted formats: PDF, JPG, JPEG, PNG (Max 5MB)
+                  </small>
+                </FormGroup>
+              </Row>
+            )}
+          </Fieldset>
+
           <ButtonContainer>
             <SubmitButton type="submit" disabled={!isFormValid || isSubmitting}>
               {isSubmitting ? (
@@ -1399,7 +2253,7 @@ const loadPatientData = (data) => {
               ) : isExistingPatient ? (
                 "Create Bill"
               ) : (
-                "Register Patient & Create Bill"
+                "Patient Registered Successfully"
               )}
             </SubmitButton>
           </ButtonContainer>
