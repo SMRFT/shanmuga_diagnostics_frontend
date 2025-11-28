@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation } from "react-router-dom" // Import useLocation from react-router-dom
 import styled, { css, createGlobalStyle } from "styled-components"
 import { AlertCircle, CheckCircle, Save, Truck, Clock, FileText, Navigation, MapPin, Play, Square } from "lucide-react"
-import axios from "axios"
 import { APIProvider, Map, Marker, InfoWindow, useMap } from "@vis.gl/react-google-maps"
+import apiRequest from "../Auth/apiRequest"
 
 // Enhanced Global Styles
 const GlobalStyle = createGlobalStyle`
@@ -247,7 +247,6 @@ const Polyline = ({ path, options }) => {
   return null
 }
 
-// Enhanced Tracking Map Component
 const TrackingMapComponent = ({ startPosition, currentPosition, routePoints, isTracking }) => {
   const [infoWindow, setInfoWindow] = useState(null)
   const map = useMap()
@@ -371,7 +370,8 @@ const MapContainer = styled.div`
 // Enhanced Logistic Management Approval Component
 const LogisticManagementApproval = () => {
   const location = useLocation()
-  const userName = location.state?.userName || localStorage.getItem("name")
+  const userNameFromLocation = location.state?.userName
+  const [userName, setUserName] = useState("")
   const [todayTasks, setTodayTasks] = useState([])
   const [alert, setAlert] = useState({ message: "", type: "", visible: false })
   const [loading, setLoading] = useState(true)
@@ -405,29 +405,94 @@ const LogisticManagementApproval = () => {
   const watchIdRef = useRef(null)
   const locationUpdateIntervalRef = useRef(null)
 
+  // Get user name from storage or location state
+  useEffect(() => {
+    const storedUserName =
+      localStorage.getItem("userName") || userNameFromLocation || localStorage.getItem("name") || "Unknown"
+    setUserName(storedUserName)
+    if (storedUserName !== "Unknown") {
+      localStorage.setItem("userName", storedUserName) // Ensure userName is updated in local storage
+    }
+  }, [userNameFromLocation])
+
   // Fetch today's tasks
   useEffect(() => {
-    if (userName) {
-      setLoading(true)
-      axios
-        .get(`${Labbaseurl}getlogisticdata/?sampleCollector=${userName}`)
-        .then((response) => {
-          const currentDate = new Date().toISOString().split("T")[0]
-          setTodayTasks(response.data.filter((task) => task.date === currentDate))
-          setLoading(false)
-        })
-        .catch((error) => {
+    if (userName && Labbaseurl) {
+      const fetchLogistics = async () => {
+        setLoading(true)
+        try {
+          const result = await apiRequest(`${Labbaseurl}get_logistic_data/?sampleCollector=${userName}`, "GET")
+
+          if (result.success && result.data) {
+            const currentDate = new Date().toISOString().split("T")[0]
+            const tasks = (result.data || []).filter((task) => task.date === currentDate)
+
+            // Ensure samplePickedUp is a boolean and set initial time if not present
+            const formattedTasks = tasks.map((task) => ({
+              ...task,
+              samplePickedUp: task.samplePickedUp || false,
+              samplePickedUpTime: task.samplePickedUp
+                ? task.samplePickedUpTime ||
+                  new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: true,
+                  })
+                : "",
+            }))
+
+            setTodayTasks(formattedTasks)
+          } else {
+            console.error("API Error:", result.error)
+          }
+        } catch (error) {
           console.error("Error fetching logistic data:", error)
+        } finally {
           setLoading(false)
-        })
+        }
+      }
+
+      fetchLogistics()
     }
-  }, [userName])
+  }, [userName, Labbaseurl])
 
   // Enhanced tracking initialization
   useEffect(() => {
-    const storedUserName = localStorage.getItem("userName") || userName
+    // Load tracking state from localStorage if available
+    const trackingActive = localStorage.getItem("trackingActive") === "true"
+    const savedStartPos = localStorage.getItem("startPosition")
+      ? JSON.parse(localStorage.getItem("startPosition"))
+      : null
+    const savedCurrentPos = localStorage.getItem("currentPosition")
+      ? JSON.parse(localStorage.getItem("currentPosition"))
+      : null
+    const savedRoutePoints = localStorage.getItem("routePoints") ? JSON.parse(localStorage.getItem("routePoints")) : []
+    const savedStartTime = localStorage.getItem("trackingStartTime")
+      ? new Date(localStorage.getItem("trackingStartTime"))
+      : null
+    const savedEndTime = localStorage.getItem("trackingEndTime")
+      ? new Date(localStorage.getItem("trackingEndTime"))
+      : null
+    const savedDuration = localStorage.getItem("trackingDuration")
+      ? Number.parseInt(localStorage.getItem("trackingDuration"), 10)
+      : 0
+    const savedDistance = localStorage.getItem("trackingDistance")
+      ? Number.parseFloat(localStorage.getItem("trackingDistance"))
+      : 0
 
-    if (isTracking && startPosition) {
+    setIsTracking(trackingActive)
+    setStartPosition(savedStartPos)
+    setCurrentPosition(savedCurrentPos)
+    setRoutePoints(savedRoutePoints)
+    setTrackingStats({
+      startTime: savedStartTime,
+      endTime: savedEndTime,
+      duration: savedDuration,
+      totalDistance: savedDistance,
+    })
+
+    if (trackingActive && savedStartPos) {
       // Restart position watching
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
@@ -467,13 +532,13 @@ const LogisticManagementApproval = () => {
         clearInterval(locationUpdateIntervalRef.current)
       }
     }
-  }, [isTracking, startPosition])
+  }, []) // Empty dependency array to run only on mount
 
   // Enhanced function to update current location on server
   const updateCurrentLocation = async (position) => {
     try {
       const currentDate = new Date().toISOString().split("T")[0]
-      const collectorName = localStorage.getItem("userName") || userName
+      const collectorName = userName // Use the state variable
 
       const payload = {
         sampleCollector: collectorName,
@@ -482,7 +547,11 @@ const LogisticManagementApproval = () => {
         currentLongitude: position.lng,
       }
 
-      await axios.put(`${Labbaseurl}sample_collector_location/`, payload)
+      const result = await apiRequest(`${Labbaseurl}sample_collector_location/`, "PUT", payload)
+
+      if (!result.success) {
+        console.error("Failed to update current location:", result.error)
+      }
     } catch (error) {
       console.error("Error updating current location:", error)
     }
@@ -497,8 +566,8 @@ const LogisticManagementApproval = () => {
       return
     }
 
-    const collectorName = userName
-    localStorage.setItem("userName", collectorName)
+    const collectorName = userName // Use the state variable
+    localStorage.setItem("userName", collectorName) // Ensure userName is updated
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -516,7 +585,8 @@ const LogisticManagementApproval = () => {
         localStorage.setItem("currentPosition", JSON.stringify(currentPos))
         localStorage.setItem("routePoints", JSON.stringify([currentPos]))
         localStorage.setItem("trackingActive", "true")
-        localStorage.setItem("trackingDate", new Date().toISOString().split("T")[0])
+        const trackingStartDate = new Date().toISOString().split("T")[0]
+        localStorage.setItem("trackingDate", trackingStartDate)
 
         // Update tracking stats
         const startTime = new Date()
@@ -525,7 +595,12 @@ const LogisticManagementApproval = () => {
           startTime: startTime,
           endTime: null,
           totalDistance: 0,
+          duration: null,
         }))
+        localStorage.setItem("trackingStartTime", startTime.toISOString())
+        localStorage.setItem("trackingEndTime", "")
+        localStorage.setItem("trackingDuration", "0")
+        localStorage.setItem("trackingDistance", "0")
 
         // Save start location to backend
         saveStartLocation(currentPos)
@@ -589,16 +664,22 @@ const LogisticManagementApproval = () => {
         lng: currentPosition.lng,
       }
 
+      // Update end location using PUT
+      updateEndLocation(positionToSend)
+
       // Update tracking stats
       const endTime = new Date()
+      let duration = 0
+      if (trackingStats.startTime) {
+        duration = Math.round((endTime - trackingStats.startTime) / 1000 / 60)
+      }
       setTrackingStats((prev) => ({
         ...prev,
         endTime: endTime,
-        duration: prev.startTime ? Math.round((endTime - prev.startTime) / 1000 / 60) : 0,
+        duration: duration,
       }))
-
-      // Update end location using PUT
-      updateEndLocation(positionToSend)
+      localStorage.setItem("trackingEndTime", endTime.toISOString())
+      localStorage.setItem("trackingDuration", duration.toString())
     }
 
     // Update state and localStorage
@@ -614,91 +695,111 @@ const LogisticManagementApproval = () => {
       clearInterval(locationUpdateIntervalRef.current)
       locationUpdateIntervalRef.current = null
     }
+
+    // Clear saved tracking data except for potentially fetching distance from API if available
+    localStorage.removeItem("startPosition")
+    localStorage.removeItem("currentPosition")
+    localStorage.removeItem("routePoints")
+    localStorage.removeItem("trackingDate")
+    localStorage.removeItem("trackingStartTime")
+    localStorage.removeItem("trackingEndTime")
+    localStorage.removeItem("trackingDuration")
+    localStorage.removeItem("trackingDistance")
+
+    setStartPosition(null)
+    setCurrentPosition(null)
+    setRoutePoints([])
+    setTrackingStats({
+      startTime: null,
+      endTime: null,
+      totalDistance: 0,
+      duration: null,
+    })
   }
 
   // Enhanced save start location function
-  const saveStartLocation = (position) => {
-    const currentDate = new Date().toISOString().split("T")[0]
-    const collectorName = userName
-    localStorage.setItem("userName", collectorName)
+  const saveStartLocation = async (position) => {
+    try {
+      const currentDate = new Date().toISOString().split("T")[0]
+      const collectorName = userName // Use state variable
 
-    const payload = {
-      sampleCollector: collectorName,
-      date: currentDate,
-      latitudeStart: position.lat,
-      longitudeStart: position.lng,
+      const payload = {
+        sampleCollector: collectorName,
+        date: currentDate,
+        latitudeStart: position.lat,
+        longitudeStart: position.lng,
+      }
+
+      const result = await apiRequest(`${Labbaseurl}sample_collector_location/`, "POST", payload)
+
+      if (result.success) {
+        console.log("Start location saved successfully:", result.data)
+        setAlert({
+          message: "Location tracking started successfully!",
+          type: "success",
+          visible: true,
+        })
+
+        setTimeout(() => {
+          setAlert((prev) => ({ ...prev, visible: false }))
+        }, 3000)
+      } else {
+        setError(`Failed to save start location data: ${result.error || "Unknown error"}`)
+      }
+    } catch (error) {
+      console.error("Error saving start location:", error)
+      setError("Failed to save start location data. Please try again.")
     }
-
-    axios
-      .post(`${Labbaseurl}sample_collector_location/`, payload)
-      .then((response) => {
-        if (response.data.success) {
-          console.log("Start location saved successfully:", response.data)
-          setAlert({
-            message: "Location tracking started successfully!",
-            type: "success",
-            visible: true,
-          })
-          setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
-        } else {
-          setError(`Failed to save start location data: ${response.data.message}`)
-        }
-      })
-      .catch((error) => {
-        console.error("Error saving start location:", error)
-        setError("Failed to save start location data. Please try again.")
-      })
   }
 
   // Enhanced update end location function
-  const updateEndLocation = (position) => {
-    const currentDate = new Date().toISOString().split("T")[0]
-    const collectorName = localStorage.getItem("userName") || userName
+  const updateEndLocation = async (position) => {
+    try {
+      const currentDate = new Date().toISOString().split("T")[0]
+      const collectorName = localStorage.getItem("userName") || userName // Use consistent name source
 
-    const payload = {
-      sampleCollector: collectorName,
-      date: currentDate,
-      latitudeEnd: position.lat,
-      longitudeEnd: position.lng,
+      const payload = {
+        sampleCollector: collectorName,
+        date: currentDate,
+        latitudeEnd: position.lat,
+        longitudeEnd: position.lng,
+      }
+
+      const result = await apiRequest(`${Labbaseurl}sample_collector_location/`, "PUT", payload)
+
+      if (result.success) {
+        console.log("End location updated successfully:", result.data)
+
+        // Update tracking stats (extract distance from API if available)
+        if (result.data?.data && result.data.data.distance_travelled !== undefined) {
+          setTrackingStats((prev) => ({
+            ...prev,
+            totalDistance: result.data.data.distance_travelled,
+          }))
+          localStorage.setItem("trackingDistance", result.data.data.distance_travelled.toString())
+        }
+
+        setAlert({
+          message: "Location tracking completed successfully!",
+          type: "success",
+          visible: true,
+        })
+
+        setTimeout(() => {
+          setAlert((prev) => ({ ...prev, visible: false }))
+        }, 3000)
+      } else {
+        setError(`Failed to update end location data: ${result.error || "Unknown error"}`)
+      }
+    } catch (error) {
+      console.error("Error updating end location:", error)
+      setError("Failed to update end location data. Please try again.")
     }
-
-    axios
-      .put(`${Labbaseurl}sample_collector_location/`, payload)
-      .then((response) => {
-        if (response.data.success) {
-          console.log("End location updated successfully:", response.data)
-
-          // Update tracking stats with server response
-          if (response.data.data) {
-            setTrackingStats((prev) => ({
-              ...prev,
-              totalDistance: response.data.data.distance_travelled || 0,
-            }))
-          }
-
-          setAlert({
-            message: "Location tracking completed successfully!",
-            type: "success",
-            visible: true,
-          })
-          setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
-        } else {
-          setError(`Failed to update end location data: ${response.data.message}`)
-        }
-      })
-      .catch((error) => {
-        console.error("Error updating end location:", error)
-        if (error.response) {
-          setError(`Server error: ${error.response.data.message || "Unknown error"}`)
-        } else {
-          setError("Failed to update end location data. Please try again.")
-        }
-      })
   }
 
   // Format duration helper
   const formatDuration = (minutes) => {
-    if (!minutes) return "0m"
+    if (minutes === null || minutes === undefined) return "0m"
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
@@ -734,7 +835,7 @@ const LogisticManagementApproval = () => {
     setTodayTasks((prevTasks) => prevTasks.map((task, i) => (i === index ? { ...task, remarks } : task)))
   }
 
-  const saveTask = (index) => {
+  const saveTask = async (index) => {
     const taskToUpdate = todayTasks[index]
     if (!taskToUpdate) {
       console.error("Invalid task index")
@@ -751,71 +852,101 @@ const LogisticManagementApproval = () => {
 
     setAlert({ message: "Saving task...", type: "pending", visible: true })
 
-    axios
-      .get(`${Labbaseurl}savesamplecollector/`, { params: payload })
-      .then((response) => {
-        const existingTasks = response.data
-        const matchedTask = existingTasks.find(
-          (task) =>
-            task.date === taskToUpdate.date &&
-            task.time === taskToUpdate.time &&
-            task.lab_name === taskToUpdate.labName,
-        )
+    try {
+      // 1️⃣ CHECK IF TASK ALREADY EXISTS (GET)
+      // Use taskToUpdate.sampleordertime directly as it's likely the identifier
+      const result = await apiRequest(
+        `${Labbaseurl}savesamplecollector/?sampleCollector=${payload.sampleCollector}&date=${payload.date}&sampleordertime=${payload.sampleordertime}&lab_name=${payload.lab_name}`,
+        "GET",
+      )
 
-        if (matchedTask) {
-          const updatePayload = {
-            ...payload,
-            samplePickedUp: taskToUpdate.samplePickedUp,
-            samplePickedUpTime: taskToUpdate.samplePickedUpTime,
-            remarks: taskToUpdate.remarks || "",
-            salesperson: taskToUpdate.salesperson,
-          }
-
-          axios
-            .patch(`${Labbaseurl}updatesamplecollectordetails/`, updatePayload)
-            .then(() => {
-              setAlert({ message: "Task updated successfully", type: "success", visible: true })
-              setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
-            })
-            .catch((error) => {
-              console.error("Error updating task:", error)
-              setAlert({ message: "Error updating task", type: "danger", visible: true })
-              setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
-            })
-        } else {
-          const savePayload = {
-            ...payload,
-            task: taskToUpdate.task || "Accepted",
-            samplePickedUp: taskToUpdate.samplePickedUp,
-            samplePickedUpTime: taskToUpdate.samplePickedUpTime,
-            remarks: taskToUpdate.remarks || "",
-            sampleacceptedtime: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: true,
-            }),
-          }
-
-          axios
-            .post(`${Labbaseurl}savesamplecollector/`, savePayload)
-            .then(() => {
-              setAlert({ message: "Task saved successfully", type: "success", visible: true })
-              setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
-              setTodayTasks((prevTasks) => prevTasks.map((task, i) => (i === index ? { ...task, saved: true } : task)))
-            })
-            .catch((error) => {
-              console.error("Error saving task:", error)
-              setAlert({ message: "Error saving task", type: "danger", visible: true })
-              setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
-            })
+      if (!result.success) {
+        // Handle API errors or no data found appropriately
+        // If no data, it means it's a new task. If error, it's a real problem.
+        if (result.error && !result.error.includes("No data found")) {
+          throw new Error(result.error || "Failed to fetch existing task")
         }
+        // If no data found, proceed to save as new.
+      }
+
+      const existingTasks = result.data || []
+
+      // More robust matching logic: consider all key fields
+      const matchedTask = existingTasks.find(
+        (task) =>
+          task.date === taskToUpdate.date &&
+          task.time === taskToUpdate.time && // Assuming 'time' is also a key identifier
+          task.lab_name === taskToUpdate.labName &&
+          task.sampleordertime === taskToUpdate.sampleordertime, // Add sampleordertime for precise matching
+      )
+
+      // 2️⃣ IF TASK EXISTS → UPDATE USING PATCH
+      if (matchedTask) {
+        const updatePayload = {
+          ...payload,
+          samplePickedUp: taskToUpdate.samplePickedUp,
+          samplePickedUpTime: taskToUpdate.samplePickedUpTime,
+          remarks: taskToUpdate.remarks || "",
+          salesperson: taskToUpdate.salesperson, // Assuming salesperson is also available
+        }
+
+        const updateResult = await apiRequest(`${Labbaseurl}updatesamplecollectordetails/`, "PATCH", updatePayload)
+
+        if (updateResult.success) {
+          setAlert({
+            message: "Task updated successfully",
+            type: "success",
+            visible: true,
+          })
+
+          setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
+        } else {
+          throw new Error(updateResult.error || "Failed to update task")
+        }
+      } else {
+        // 3️⃣ IF NOT EXISTS → SAVE NEW TASK (POST)
+        const savePayload = {
+          ...payload,
+          task: taskToUpdate.task || "Accepted",
+          samplePickedUp: taskToUpdate.samplePickedUp,
+          samplePickedUpTime: taskToUpdate.samplePickedUpTime,
+          remarks: taskToUpdate.remarks || "",
+          sampleacceptedtime: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          }),
+        }
+
+        const saveResult = await apiRequest(`${Labbaseurl}savesamplecollector/`, "POST", savePayload)
+
+        if (saveResult.success) {
+          setAlert({
+            message: "Task saved successfully",
+            type: "success",
+            visible: true,
+          })
+
+          setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
+
+          // Mark task as saved
+          setTodayTasks((prevTasks) => prevTasks.map((task, i) => (i === index ? { ...task, saved: true } : task)))
+        } else {
+          throw new Error(saveResult.error || "Failed to save task")
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error)
+
+      setAlert({
+        message: error.message || "Unexpected error occurred",
+        type: "danger",
+        visible: true,
       })
-      .catch((error) => {
-        console.error("Error checking existing task:", error)
-        setAlert({ message: "Error checking task existence", type: "danger", visible: true })
-        setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
-      })
+
+      setTimeout(() => setAlert((prev) => ({ ...prev, visible: false })), 3000)
+    }
   }
 
   return (
@@ -884,12 +1015,14 @@ const LogisticManagementApproval = () => {
                 </StatusRow>
               )}
 
-              {trackingStats.duration > 0 && (
-                <StatusRow>
-                  <StatusLabel>Duration:</StatusLabel>
-                  <StatusValue>{formatDuration(trackingStats.duration)}</StatusValue>
-                </StatusRow>
-              )}
+              {trackingStats.duration !== null &&
+                trackingStats.duration !== undefined &&
+                trackingStats.duration >= 0 && (
+                  <StatusRow>
+                    <StatusLabel>Duration:</StatusLabel>
+                    <StatusValue>{formatDuration(trackingStats.duration)}</StatusValue>
+                  </StatusRow>
+                )}
 
               {trackingStats.totalDistance > 0 && (
                 <StatusRow>
@@ -900,7 +1033,7 @@ const LogisticManagementApproval = () => {
 
               <StatusRow>
                 <StatusLabel>Route Points:</StatusLabel>
-                <StatusValue>{routePoints.length} waypoints</StatusValue>
+                <StatusValue>{routePoints.length}</StatusValue>
               </StatusRow>
             </TrackingStatus>
           )}

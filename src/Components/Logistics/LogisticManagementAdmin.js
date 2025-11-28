@@ -5,6 +5,7 @@ import axios from "axios"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import styled from "styled-components"
+import apiRequest from "../Auth/apiRequest"
 import { APIProvider, Map, Marker, InfoWindow, useMap } from "@vis.gl/react-google-maps"
 import {
   Calendar,
@@ -24,14 +25,6 @@ import {
   Timer,
   AlertCircle,
 } from "lucide-react"
-
-// Fix for default marker icons
-// delete L.Icon.Default.prototype._getIconUrl
-// L.Icon.Default.mergeOptions({
-//   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-//   iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-//   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-// })
 
 // Styled Components
 const PageContainer = styled.div`
@@ -430,158 +423,12 @@ const LoadingSpinner = styled.div`
   font-size: 0.875rem;
 `
 
-// Custom Map Component using vanilla Leaflet (no React Leaflet)
-// const LeafletMap = ({ locationData, routePoints, collectorName, onMapReady }) => {
-//   const mapRef = useRef(null)
-//   const mapInstanceRef = useRef(null)
-//   const markersRef = useRef([])
-//   const polylineRef = useRef(null)
-
-//   const formatDateTime = (dateString) => {
-//     if (!dateString) return "N/A"
-//     const date = new Date(dateString)
-//     return date.toLocaleString([], {
-//       hour: "2-digit",
-//       minute: "2-digit",
-//       second: "2-digit",
-//       year: "numeric",
-//       month: "short",
-//       day: "numeric",
-//     })
-//   }
-
-//   const clearMapElements = () => {
-//     // Clear existing markers
-//     markersRef.current.forEach((marker) => {
-//       if (mapInstanceRef.current && marker) {
-//         mapInstanceRef.current.removeLayer(marker)
-//       }
-//     })
-//     markersRef.current = []
-
-//     // Clear existing polyline
-//     if (polylineRef.current && mapInstanceRef.current) {
-//       mapInstanceRef.current.removeLayer(polylineRef.current)
-//       polylineRef.current = null
-//     }
-//   }
-
-//   const addMapElements = () => {
-//     if (!mapInstanceRef.current || !locationData) return
-
-//     clearMapElements()
-
-//     // Add start marker
-//     if (locationData.latitudeStart && locationData.longitudeStart) {
-//       const startIcon = L.icon({
-//         iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-//         shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-//         iconSize: [25, 41],
-//         iconAnchor: [12, 41],
-//         popupAnchor: [1, -34],
-//         shadowSize: [41, 41],
-//       })
-
-//       const startMarker = L.marker(
-//         [Number.parseFloat(locationData.latitudeStart), Number.parseFloat(locationData.longitudeStart)],
-//         {
-//           icon: startIcon,
-//         },
-//       )
-//         .bindPopup(`<strong>Start Point</strong><br/>${formatDateTime(locationData.startTime)}`)
-//         .addTo(mapInstanceRef.current)
-
-//       markersRef.current.push(startMarker)
-//     }
-
-//     // Add current/end marker
-//     if (locationData.currentLatitude && locationData.currentLongitude) {
-//       const currentIcon = L.icon({
-//         iconUrl: locationData.isActive
-//           ? "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png"
-//           : "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-//         shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-//         iconSize: [25, 41],
-//         iconAnchor: [12, 41],
-//         popupAnchor: [1, -34],
-//         shadowSize: [41, 41],
-//       })
-
-//       const currentMarker = L.marker(
-//         [Number.parseFloat(locationData.currentLatitude), Number.parseFloat(locationData.currentLongitude)],
-//         { icon: currentIcon },
-//       )
-//         .bindPopup(
-//           `<strong>${locationData.isActive ? "Current Location" : "End Point"}</strong><br/>${collectorName}<br/>Last updated: ${formatDateTime(locationData.lastUpdated)}`,
-//         )
-//         .addTo(mapInstanceRef.current)
-
-//       markersRef.current.push(currentMarker)
-//     }
-
-//     // Add route polyline
-//     if (routePoints && routePoints.length > 1) {
-//       const latlngs = routePoints.map((point) => [point.lat, point.lng])
-//       polylineRef.current = L.polyline(latlngs, {
-//         color: "#3b82f6",
-//         weight: 4,
-//         opacity: 0.7,
-//       }).addTo(mapInstanceRef.current)
-//     }
-
-//     // Center map on current or start location
-//     const centerLat = Number.parseFloat(locationData.currentLatitude || locationData.latitudeStart)
-//     const centerLng = Number.parseFloat(locationData.currentLongitude || locationData.latitudeStart)
-//     if (centerLat && centerLng) {
-//       mapInstanceRef.current.setView([centerLat, centerLng], 15)
-//     }
-//   }
-
-//   useEffect(() => {
-//     if (!mapRef.current || mapInstanceRef.current) return
-
-//     // Initialize map
-//     mapInstanceRef.current = L.map(mapRef.current, {
-//       center: [51.505, -0.09], // Default center
-//       zoom: 13,
-//       zoomControl: true,
-//     })
-
-//     // Add tile layer
-//     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-//       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-//     }).addTo(mapInstanceRef.current)
-
-//     // Call onMapReady callback
-//     if (onMapReady) {
-//       onMapReady(mapInstanceRef.current)
-//     }
-
-//     return () => {
-//       // Cleanup function
-//       if (mapInstanceRef.current) {
-//         clearMapElements()
-//         mapInstanceRef.current.remove()
-//         mapInstanceRef.current = null
-//       }
-//     }
-//   }, [])
-
-//   useEffect(() => {
-//     if (mapInstanceRef.current && locationData) {
-//       addMapElements()
-//     }
-//   }, [locationData, routePoints, collectorName])
-
-//   return <div ref={mapRef} style={{ height: "100%", width: "100%" }} />
-// }
-
 const Polyline = ({ path, options }) => {
   const map = useMap()
   const polylineRef = useRef(null)
 
   useEffect(() => {
-    if (!map || !path) return
+    if (!map || !path || path.length < 2) return
 
     if (!polylineRef.current) {
       polylineRef.current = new window.google.maps.Polyline({
@@ -603,256 +450,13 @@ const Polyline = ({ path, options }) => {
     }
   }, [map, path, options])
 
-  useEffect(() => {
-    return () => {
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null)
-        polylineRef.current = null
-      }
-    }
-  }, [])
-
   return null
 }
 
-// Enhanced Location Modal Component with Vanilla Leaflet
-// const EnhancedLocationModal = ({ isOpen, onClose, collectorName, collectorData }) => {
-//   const [locationData, setLocationData] = useState(null)
-//   const [loading, setLoading] = useState(true)
-//   const [error, setError] = useState(null)
-//   const [routePoints, setRoutePoints] = useState([])
-//   const intervalRef = useRef(null)
-//   const mapRef = useRef(null)
-//   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
-
-//   const fetchCollectorLocation = async () => {
-//     try {
-//       const today = new Date().toISOString().split("T")[0]
-
-//       const response = await axios.get(`${Labbaseurl}sample_collector_location/`, {
-//         params: { date: today, sampleCollector: collectorName },
-//       })
-
-//       if (response.data.success) {
-//         const locationData = response.data.data && response.data.data.length > 0 ? response.data.data[0] : null
-
-//         setLocationData(locationData)
-
-//         if (locationData && locationData.routePoints) {
-//           setRoutePoints(locationData.routePoints)
-//         }
-
-//         // Pan map to current location if available
-//         if (locationData && locationData.currentLatitude && locationData.currentLongitude && mapRef.current) {
-//           mapRef.current.setView(
-//             [Number.parseFloat(locationData.currentLatitude), Number.parseFloat(locationData.currentLongitude)],
-//             15,
-//           )
-//         }
-//       } else {
-//         setError(response.data.message || "Failed to fetch location data")
-//       }
-//       setLoading(false)
-//     } catch (err) {
-//       console.error("Error fetching location data:", err)
-//       setError("Failed to fetch location data. Please try again later.")
-//       setLoading(false)
-//     }
-//   }
-
-//   useEffect(() => {
-//     if (isOpen) {
-//       setLoading(true)
-//       setError(null)
-//       setLocationData(null)
-//       setRoutePoints([])
-
-//       fetchCollectorLocation()
-//       intervalRef.current = setInterval(fetchCollectorLocation, 5000)
-//     }
-
-//     return () => {
-//       if (intervalRef.current) {
-//         clearInterval(intervalRef.current)
-//         intervalRef.current = null
-//       }
-//     }
-//   }, [isOpen, collectorName])
-
-//   const calculateTotalDistance = (points) => {
-//     if (!points || points.length < 2) return 0
-
-//     let totalDistance = 0
-//     for (let i = 1; i < points.length; i++) {
-//       const [lat1, lng1] = [points[i - 1].lat, points[i - 1].lng]
-//       const [lat2, lng2] = [points[i].lat, points[i].lng]
-
-//       const R = 6371 // Earth's radius in km
-//       const dLat = ((lat2 - lat1) * Math.PI) / 180
-//       const dLon = ((lng2 - lng1) * Math.PI) / 180
-//       const a =
-//         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-//         Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
-//       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-//       const d = R * c
-//       totalDistance += d
-//     }
-
-//     return totalDistance.toFixed(2)
-//   }
-
-//   const formatDateTime = (dateString) => {
-//     if (!dateString) return "N/A"
-
-//     const date = new Date(dateString)
-//     return date.toLocaleString([], {
-//       hour: "2-digit",
-//       minute: "2-digit",
-//       second: "2-digit",
-//       year: "numeric",
-//       month: "short",
-//       day: "numeric",
-//     })
-//   }
-
-//   if (!isOpen) return null
-
-//   return (
-//     <ModalOverlay onClick={(e) => e.target === e.currentTarget && onClose()}>
-//       <ModalContent>
-//         <ModalHeader>
-//           <ModalTitle>
-//             <Navigation size={20} />
-//             Enhanced Live Tracking: {collectorName}
-//           </ModalTitle>
-//           <CloseButton onClick={onClose}>
-//             <X size={20} />
-//           </CloseButton>
-//         </ModalHeader>
-
-//         <TrackingStatus isActive={locationData?.isActive}>
-//           {locationData?.isActive ? (
-//             <>
-//               <Navigation size={16} />
-//               Live Tracking Active
-//             </>
-//           ) : (
-//             <>
-//               <MapPin size={16} />
-//               Tracking Inactive
-//             </>
-//           )}
-//         </TrackingStatus>
-
-//         {loading && !locationData ? (
-//           <LoadingSpinner>Loading location data...</LoadingSpinner>
-//         ) : error ? (
-//           <div style={{ textAlign: "center", padding: "2rem", color: "#ef4444" }}>{error}</div>
-//         ) : locationData ? (
-//           <>
-//             <LocationInfo>
-//               <InfoItem>
-//                 <InfoLabel>Status</InfoLabel>
-//                 <InfoValue
-//                   style={{
-//                     color: locationData.isActive ? "#16a34a" : "#dc2626",
-//                     display: "flex",
-//                     alignItems: "center",
-//                     gap: "0.25rem",
-//                   }}
-//                 >
-//                   {locationData.isActive ? <Navigation size={14} /> : <MapPin size={14} />}
-//                   {locationData.isActive ? "Active - Live Tracking" : "Tracking Completed"}
-//                 </InfoValue>
-//               </InfoItem>
-
-//               <InfoItem>
-//                 <InfoLabel>Start Time</InfoLabel>
-//                 <InfoValue>{formatDateTime(locationData.startTime)}</InfoValue>
-//               </InfoItem>
-
-//               {locationData.endTime && (
-//                 <InfoItem>
-//                   <InfoLabel>End Time</InfoLabel>
-//                   <InfoValue>{formatDateTime(locationData.endTime)}</InfoValue>
-//                 </InfoItem>
-//               )}
-
-//               <InfoItem>
-//                 <InfoLabel>Total Distance</InfoLabel>
-//                 <InfoValue>
-//                   {locationData.distance_travelled
-//                     ? `${Number.parseFloat(locationData.distance_travelled).toFixed(2)} meters`
-//                     : routePoints.length > 1
-//                       ? `${calculateTotalDistance(routePoints)} km`
-//                       : "N/A"}
-//                 </InfoValue>
-//               </InfoItem>
-
-//               {locationData.totalDuration && (
-//                 <InfoItem>
-//                   <InfoLabel>Total Duration</InfoLabel>
-//                   <InfoValue>{locationData.totalDuration}</InfoValue>
-//                 </InfoItem>
-//               )}
-
-//               <InfoItem>
-//                 <InfoLabel>Route Points</InfoLabel>
-//                 <InfoValue>{routePoints.length} waypoints</InfoValue>
-//               </InfoItem>
-//             </LocationInfo>
-
-//             <MapWrapper>
-//               {locationData && (locationData.currentLatitude || locationData.latitudeStart) ? (
-//                 <LeafletMap
-//                   locationData={locationData}
-//                   routePoints={routePoints}
-//                   collectorName={collectorName}
-//                   onMapReady={(mapInstance) => {
-//                     mapRef.current = mapInstance
-//                   }}
-//                 />
-//               ) : (
-//                 <LoadingSpinner>No location data available</LoadingSpinner>
-//               )}
-//             </MapWrapper>
-
-//             <div style={{ textAlign: "center", color: "#64748b", fontSize: "0.875rem", marginTop: "0.5rem" }}>
-//               {locationData.isActive
-//                 ? "Location is automatically updated every 5 seconds"
-//                 : "Tracking session completed"}
-//             </div>
-//           </>
-//         ) : (
-//           <div style={{ textAlign: "center", padding: "2rem", color: "#64748b" }}>
-//             No location data available for this collector today.
-//           </div>
-//         )}
-//       </ModalContent>
-//     </ModalOverlay>
-//   )
-// }
-
-const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapReady }) => {
+const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
   const [infoWindow, setInfoWindow] = useState(null)
   const map = useMap()
 
-  const defaultCenter = { lat: 11.0168, lng: 76.9558 } // Salem, Tamil Nadu
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A"
-    const date = new Date(dateString)
-    return date.toLocaleString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
-
-  // Create custom marker icons
   const createCustomMarkerIcon = (color, isStart = false, isActive = false) => {
     const baseIcon = {
       fillColor: color,
@@ -909,13 +513,6 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapRea
     }
   }, [map, locationData])
 
-  // Call onMapReady callback
-  useEffect(() => {
-    if (map && onMapReady) {
-      onMapReady(map)
-    }
-  }, [map, onMapReady])
-
   if (!locationData) return null
 
   const startPosition =
@@ -936,7 +533,6 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapRea
 
   return (
     <>
-      {/* Start Marker */}
       {startPosition && (
         <Marker
           position={startPosition}
@@ -945,7 +541,6 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapRea
         />
       )}
 
-      {/* Current/End Marker */}
       {currentPosition && (
         <Marker
           position={currentPosition}
@@ -954,10 +549,9 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapRea
         />
       )}
 
-      {/* Route Polyline */}
       {routePoints && routePoints.length > 1 && (
         <Polyline
-          path={routePoints.map((point) => ({ lat: point.lat, lng: point.lng }))}
+          path={routePoints.map((point) => ({ lat: Number.parseFloat(point.lat), lng: Number.parseFloat(point.lng) }))}
           options={{
             strokeColor: "#3b82f6",
             strokeWeight: 4,
@@ -966,13 +560,12 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapRea
         />
       )}
 
-      {/* Info Windows */}
       {infoWindow === "start" && startPosition && (
         <InfoWindow position={startPosition} onCloseClick={() => setInfoWindow(null)}>
           <div>
             <strong>Start Point</strong>
             <br />
-            {formatDateTime(locationData.startTime)}
+            {new Date(locationData.startTime).toLocaleString()}
           </div>
         </InfoWindow>
       )}
@@ -984,7 +577,7 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapRea
             <br />
             {collectorName}
             <br />
-            Last updated: {formatDateTime(locationData.lastUpdated)}
+            Last updated: {new Date(locationData.lastUpdated || locationData.endTime).toLocaleString()}
           </div>
         </InfoWindow>
       )}
@@ -1005,18 +598,18 @@ const EnhancedLocationModal = ({ isOpen, onClose, collectorName, collectorData }
 
   const fetchCollectorLocation = async () => {
     try {
+      setLoading(true)
+
       const currentDate = new Date().toISOString().split("T")[0]
-      const response = await axios.get(`${Labbaseurl}sample_collector_location/`, {
-        params: {
-          sampleCollector: collectorName,
-          date: currentDate,
-        },
+
+      const response = await apiRequest(`${Labbaseurl}sample_collector_location/`, "GET", null, {
+        sampleCollector: collectorName,
+        date: currentDate,
       })
 
-      if (response.data && response.data.length > 0) {
+      if (response.success && response.data && response.data.length > 0) {
         const data = response.data[0]
 
-        // Determine if tracking is active
         const isActive = data.latitudeStart && !data.latitudeEnd && data.currentLatitude && data.currentLongitude
 
         const processedData = {
@@ -1027,30 +620,34 @@ const EnhancedLocationModal = ({ isOpen, onClose, collectorName, collectorData }
 
         setLocationData(processedData)
 
-        // Generate route points if we have start and current positions
-        if (data.latitudeStart && data.longitudeStart && data.currentLatitude && data.currentLongitude) {
-          const startLat = Number.parseFloat(data.latitudeStart)
-          const startLng = Number.parseFloat(data.longitudeStart)
-          const currentLat = Number.parseFloat(data.currentLatitude)
-          const currentLng = Number.parseFloat(data.currentLongitude)
-
-          if (!isNaN(startLat) && !isNaN(startLng) && !isNaN(currentLat) && !isNaN(currentLng)) {
-            const points = [
-              { lat: startLat, lng: startLng },
-              { lat: currentLat, lng: currentLng },
-            ]
-            setRoutePoints(points)
+        if (data.routePoints && Array.isArray(data.routePoints)) {
+          setRoutePoints(data.routePoints)
+        } else {
+          const points = []
+          if (data.latitudeStart && data.longitudeStart) {
+            points.push({
+              lat: Number.parseFloat(data.latitudeStart),
+              lng: Number.parseFloat(data.longitudeStart),
+            })
           }
+          if (data.currentLatitude && data.currentLongitude) {
+            points.push({
+              lat: Number.parseFloat(data.currentLatitude),
+              lng: Number.parseFloat(data.currentLongitude),
+            })
+          }
+          setRoutePoints(points)
         }
       } else {
         setLocationData(null)
         setRoutePoints([])
       }
+
       setError(null)
-      setLoading(false)
-    } catch (error) {
-      console.error("Error fetching location:", error)
+    } catch (err) {
+      console.error("Error fetching location:", err)
       setError("Failed to fetch location data")
+    } finally {
       setLoading(false)
     }
   }
@@ -1253,440 +850,6 @@ const EnhancedLocationModal = ({ isOpen, onClose, collectorName, collectorData }
   )
 }
 
-// Main Enhanced Admin Component
-// const LogisticManagementAdmin = () => {
-//   const [clinicalNames, setClinicalNames] = useState([])
-//   const [selectedLabName, setSelectedLabName] = useState("")
-//   const [salesperson, setSalesperson] = useState("")
-//   const [sampleCollectorOptions, setSampleCollectorOptions] = useState([])
-//   const [selectedSampleCollector, setSelectedSampleCollector] = useState("")
-//   const [selectedDate, setSelectedDate] = useState(new Date())
-//   const [message, setMessage] = useState("")
-//   const [messageType, setMessageType] = useState("")
-//   const [logisticData, setLogisticData] = useState([])
-//   const [getlogisticData, setGetLogisticData] = useState([])
-//   const [time, setTime] = useState(
-//     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }),
-//   )
-//   const [selectedTask, setSelectedTask] = useState("")
-//   const [showLocationModal, setShowLocationModal] = useState(false)
-//   const [selectedCollector, setSelectedCollector] = useState(null)
-//   const [selectedCollectorData, setSelectedCollectorData] = useState(null)
-//   const [activeCollectors, setActiveCollectors] = useState([])
-
-//   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
-
-//   // Update time every second
-//   useEffect(() => {
-//     const timer = setInterval(() => {
-//       setTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }))
-//     }, 1000)
-
-//     return () => clearInterval(timer)
-//   }, [])
-
-//   // Fetch clinical names
-//   useEffect(() => {
-//     if (Labbaseurl) {
-//       axios
-//         .get(`${Labbaseurl}get_clinicalname/`)
-//         .then((response) => {
-//           setClinicalNames(response.data)
-//         })
-//         .catch((error) => {
-//           console.error("Error fetching clinical names:", error)
-//         })
-//     }
-//   }, [Labbaseurl])
-
-//   // Fetch sample collectors
-//   useEffect(() => {
-//     const fetchSampleCollector = async () => {
-//       if (Labbaseurl) {
-//         try {
-//           const response = await axios.get(`${Labbaseurl}sample-collector/`)
-//           setSampleCollectorOptions(response.data)
-//         } catch (error) {
-//           console.error("Error fetching sample collectors:", error)
-//         }
-//       }
-//     }
-//     fetchSampleCollector()
-//   }, [Labbaseurl])
-
-//   const fetchLogisticData = async () => {
-//     if (Labbaseurl) {
-//       try {
-//         const response = await axios.get(`${Labbaseurl}savesamplecollector/`)
-//         setLogisticData(response.data)
-//       } catch (error) {
-//         console.error("Error fetching logistic data:", error)
-//       }
-//     }
-//   }
-
-//   const getfetchLogistic = async () => {
-//     if (Labbaseurl) {
-//       try {
-//         const response = await axios.get(`${Labbaseurl}get_logistic_data/`)
-//         setGetLogisticData(response.data)
-//       } catch (error) {
-//         console.error("Error fetching logistic data:", error)
-//       }
-//     }
-//   }
-
-//   useEffect(() => {
-//     fetchLogisticData()
-//     getfetchLogistic()
-//   }, [])
-
-//   const handleLabNameChange = (e) => {
-//     const selectedName = e.target.value
-//     setSelectedLabName(selectedName)
-//     const selectedLab = clinicalNames.find((lab) => lab.clinicalname === selectedName)
-//     if (selectedLab) {
-//       setSalesperson(selectedLab.salesMapping || "")
-//     } else {
-//       setSalesperson("")
-//     }
-//   }
-
-//   const handleViewLocation = (collectorName, data) => {
-//     setSelectedCollector(collectorName)
-//     setSelectedCollectorData(data)
-//     setShowLocationModal(true)
-//   }
-
-//   const formatDate = (dateString) => {
-//     const date = new Date(dateString)
-//     return date.toLocaleDateString("en-GB", {
-//       day: "2-digit",
-//       month: "2-digit",
-//       year: "numeric",
-//     })
-//   }
-
-//   const handleSave = () => {
-//     if (!selectedLabName || !selectedSampleCollector || !selectedTask) {
-//       setMessage("Please fill in all required fields.")
-//       setMessageType("danger")
-//       setTimeout(() => {
-//         setMessage("")
-//       }, 5000)
-//       return
-//     }
-
-//     const formattedDate = selectedDate.toISOString().split("T")[0]
-//     const payload = {
-//       labName: selectedLabName,
-//       salesMapping: salesperson,
-//       sampleCollector: selectedSampleCollector,
-//       date: formattedDate,
-//       sampleordertime: time,
-//       task: selectedTask,
-//     }
-
-//     if (Labbaseurl) {
-//       axios
-//         .post(`${Labbaseurl}save-logistic-data/`, payload)
-//         .then(() => {
-//           setMessage("Task assigned successfully!")
-//           setMessageType("success")
-//           setSelectedLabName("")
-//           setSalesperson("")
-//           setSelectedSampleCollector("")
-//           setSelectedTask("")
-//           fetchLogisticData()
-//           getfetchLogistic()
-//           setTimeout(() => {
-//             setMessage("")
-//           }, 5000)
-//         })
-//         .catch((error) => {
-//           console.error("Error saving data:", error)
-//           setMessage("Failed to assign task. Please try again.")
-//           setMessageType("danger")
-//           setTimeout(() => {
-//             setMessage("")
-//           }, 5000)
-//         })
-//     }
-//   }
-
-//   const filterTodayData = () => {
-//     const today = new Date().toISOString().split("T")[0]
-//     return logisticData.filter((data) => data.date === today)
-//   }
-
-//   const renderStatusBadge = (status) => {
-//     if (!status) return null
-
-//     const statusLower = status.toLowerCase()
-
-//     return (
-//       <span
-//         style={{
-//           display: "inline-flex",
-//           alignItems: "center",
-//           gap: "0.375rem",
-//           padding: "0.375rem 0.75rem",
-//           fontSize: "0.75rem",
-//           fontWeight: "600",
-//           borderRadius: "9999px",
-//           backgroundColor:
-//             statusLower === "assigned"
-//               ? "#e0e7ff"
-//               : statusLower === "accepted"
-//                 ? "#dcfce7"
-//                 : statusLower === "picked"
-//                   ? "#cffafe"
-//                   : "#f3f4f6",
-//           color:
-//             statusLower === "assigned"
-//               ? "#4f46e5"
-//               : statusLower === "accepted"
-//                 ? "#16a34a"
-//                 : statusLower === "picked"
-//                   ? "#0891b2"
-//                   : "#6b7280",
-//         }}
-//       >
-//         {statusLower === "assigned" && <Clipboard size={14} />}
-//         {statusLower === "accepted" && <Check size={14} />}
-//         {statusLower === "picked" && <Truck size={14} />}
-//         {status}
-//       </span>
-//     )
-//   }
-
-//   return (
-//     <PageContainer>
-//       <PageHeader>
-//         <Title>Enhanced Logistic Management Admin</Title>
-//         <Subtitle>Assign, track, and monitor sample collections with real-time location tracking</Subtitle>
-//       </PageHeader>
-
-//       <TimeDisplay>
-//         <Clock size={18} />
-//         {time}
-//       </TimeDisplay>
-
-//       {/* Live Tracking Dashboard */}
-//       {activeCollectors.length > 0 && (
-//         <LiveTrackingCard>
-//           <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-//             <Navigation size={20} />
-//             Live Tracking Dashboard ({activeCollectors.length} Active)
-//           </h3>
-//           <ActiveCollectorGrid>
-//             {activeCollectors.map((collector, index) => (
-//               <CollectorCard key={index}>
-//                 <CollectorName>
-//                   <MapPin size={16} />
-//                   {collector.sampleCollector}
-//                 </CollectorName>
-//                 <CollectorStats>
-//                   <span>
-//                     <Timer size={12} style={{ marginRight: "0.25rem" }} />
-//                     Started: {new Date(collector.startTime).toLocaleTimeString()}
-//                   </span>
-//                   <span>
-//                     <Route size={12} style={{ marginRight: "0.25rem" }} />
-//                     {collector.distance_travelled
-//                       ? `${Number.parseFloat(collector.distance_travelled).toFixed(2)}m`
-//                       : "0m"}
-//                   </span>
-//                 </CollectorStats>
-//                 <ViewLocationButton
-//                   onClick={() => handleViewLocation(collector.sampleCollector, collector)}
-//                   style={{ marginTop: "0.5rem", width: "100%", justifyContent: "center" }}
-//                 >
-//                   <Map size={14} />
-//                   View Live Location
-//                 </ViewLocationButton>
-//               </CollectorCard>
-//             ))}
-//           </ActiveCollectorGrid>
-//         </LiveTrackingCard>
-//       )}
-
-//       {message && (
-//         <div
-//           style={{
-//             padding: "1rem",
-//             borderRadius: "0.75rem",
-//             marginBottom: "1.5rem",
-//             display: "flex",
-//             alignItems: "center",
-//             gap: "0.75rem",
-//             fontWeight: "500",
-//             backgroundColor: messageType === "success" ? "#ecfdf5" : "#fef2f2",
-//             color: messageType === "success" ? "#065f46" : "#991b1b",
-//             borderLeft: `4px solid ${messageType === "success" ? "#10b981" : "#ef4444"}`,
-//           }}
-//         >
-//           {messageType === "success" ? <Check size={20} /> : <X size={20} />}
-//           {message}
-//         </div>
-//       )}
-
-//       <Card>
-//         <Label style={{ textAlign: "center", display: "block", marginBottom: "1rem" }}>
-//           <Calendar size={18} />
-//           Select Assignment Date
-//         </Label>
-
-//         <div style={{ maxWidth: "250px", margin: "0 auto 2rem auto" }}>
-//           <DatePicker
-//             selected={selectedDate}
-//             onChange={(date) => setSelectedDate(date)}
-//             dateFormat="dd-MM-yyyy"
-//             style={{
-//               height: "48px",
-//               width: "100%",
-//               border: "1px solid #e2e8f0",
-//               borderRadius: "12px",
-//               padding: "0 1rem",
-//               fontSize: "0.9375rem",
-//               color: "#334155",
-//               backgroundColor: "#f8fafc",
-//             }}
-//           />
-//         </div>
-
-//         <FormGrid>
-//           <FormGroup>
-//             <Label>
-//               <FileText size={16} />
-//               Lab Name
-//             </Label>
-//             <Select value={selectedLabName} onChange={handleLabNameChange}>
-//               <option value="">Select Lab Name</option>
-//               {clinicalNames.map((lab) => (
-//                 <option key={lab.clinicalname} value={lab.clinicalname}>
-//                   {lab.clinicalname}
-//                 </option>
-//               ))}
-//             </Select>
-//           </FormGroup>
-
-//           <FormGroup>
-//             <Label>
-//               <User size={16} />
-//               Salesperson
-//             </Label>
-//             <Input type="text" placeholder="Salesperson" value={salesperson} readOnly />
-//           </FormGroup>
-
-//           <FormGroup>
-//             <Label>
-//               <Truck size={16} />
-//               Sample Collector
-//             </Label>
-//             <Select value={selectedSampleCollector} onChange={(e) => setSelectedSampleCollector(e.target.value)}>
-//               <option value="">Select Sample Collector</option>
-//               {sampleCollectorOptions.map((collector) => (
-//                 <option key={collector.id} value={collector.name}>
-//                   {collector.name}
-//                 </option>
-//               ))}
-//             </Select>
-//           </FormGroup>
-
-//           <FormGroup>
-//             <Label>
-//               <Clipboard size={16} />
-//               Task
-//             </Label>
-//             <Select value={selectedTask} onChange={(e) => setSelectedTask(e.target.value)}>
-//               <option value="">Select Task</option>
-//               <option value="assigned">Assigned</option>
-//             </Select>
-//           </FormGroup>
-//         </FormGrid>
-
-//         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-//           <Button onClick={handleSave}>
-//             Assign Task
-//             <ChevronRight size={18} />
-//           </Button>
-//         </div>
-//       </Card>
-
-//       {/* Enhanced Location Modal */}
-//       {showLocationModal && (
-//         <EnhancedLocationModal
-//           isOpen={showLocationModal}
-//           onClose={() => setShowLocationModal(false)}
-//           collectorName={selectedCollector}
-//           collectorData={selectedCollectorData}
-//         />
-//       )}
-
-//       <SectionTitle>All Logistic Data</SectionTitle>
-//       <TableContainer>
-//         <TableHeader>
-//           <FileText size={20} color="#6366f1" />
-//           <TableTitle>Complete Logistics History</TableTitle>
-//         </TableHeader>
-//         {filterTodayData().length > 0 ? (
-//           <Table>
-//             <thead>
-//               <tr>
-//                 <Th>Date</Th>
-//                 <Th>Lab Name</Th>
-//                 <Th>Salesperson</Th>
-//                 <Th>Sample Collector</Th>
-//                 <Th>Order Time</Th>
-//                 <Th>Status</Th>
-//                 <Th>Accepted Time</Th>
-//                 <Th>Picked Up Time</Th>
-//                 <Th>Remarks</Th>
-//                 <Th>Live Tracking</Th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {filterTodayData().map((data, index) => (
-//                 <Tr key={index}>
-//                   <Td>{formatDate(data.date)}</Td>
-//                   <Td>{data.lab_name}</Td>
-//                   <Td>{data.salesMapping}</Td>
-//                   <Td>{data.sampleCollector}</Td>
-//                   <Td>{data.sampleordertime}</Td>
-//                   <Td>{renderStatusBadge(data.task)}</Td>
-//                   <Td>{data.sampleacceptedtime || "—"}</Td>
-//                   <Td>{data.samplepickeduptime || "—"}</Td>
-//                   <Td>
-//                     {data.remarks ? (
-//                       <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-//                         <MessageSquare size={14} />
-//                         {data.remarks}
-//                       </div>
-//                     ) : (
-//                       "—"
-//                     )}
-//                   </Td>
-//                   <Td>
-//                     <ViewLocationButton onClick={() => handleViewLocation(data.sampleCollector, data)}>
-//                       <Map size={14} />
-//                       View Map
-//                     </ViewLocationButton>
-//                   </Td>
-//                 </Tr>
-//               ))}
-//             </tbody>
-//           </Table>
-//         ) : (
-//           <EmptyState>
-//             No logistics data available for today. Task history will appear here once tasks are assigned.
-//           </EmptyState>
-//         )}
-//       </TableContainer>
-//     </PageContainer>
-//   )
-// }
-
 const LogisticManagementAdmin = () => {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [logisticData, setLogisticData] = useState([])
@@ -1720,16 +883,38 @@ const LogisticManagementAdmin = () => {
 
   // Fetch clinical names
   useEffect(() => {
-    if (Labbaseurl) {
-      axios
-        .get(`${Labbaseurl}get_clinicalname/`)
-        .then((response) => {
-          setClinicalNames(response.data)
-        })
-        .catch((error) => {
-          console.error("Error fetching clinical names:", error)
-        })
+    const fetchClinicalNames = async () => {
+      if (!Labbaseurl) {
+        console.error("Labbaseurl is not defined!")
+        return
+      }
+
+      try {
+        const response = await apiRequest(`${Labbaseurl}get_all_clinicalnames/`, "GET")
+
+        const data = response.data
+        let processedData = []
+
+        if (Array.isArray(data)) {
+          processedData = data
+        } else if (data && typeof data === "object") {
+          if (Array.isArray(data.results)) {
+            processedData = data.results
+          } else if (Array.isArray(data.data)) {
+            processedData = data.data
+          } else {
+            processedData = [data]
+          }
+        }
+
+        setClinicalNames(processedData)
+      } catch (error) {
+        console.error("Error fetching clinical names", error)
+        setClinicalNames([])
+      }
     }
+
+    fetchClinicalNames()
   }, [Labbaseurl])
 
   // Fetch sample collectors
@@ -1737,20 +922,21 @@ const LogisticManagementAdmin = () => {
     const fetchSampleCollector = async () => {
       if (Labbaseurl) {
         try {
-          const response = await axios.get(`${Labbaseurl}sample-collector/`)
+          const response = await apiRequest(`${Labbaseurl}get_sample_collectors/`, "GET")
           setSampleCollectorOptions(response.data)
         } catch (error) {
           console.error("Error fetching sample collectors:", error)
         }
       }
     }
+
     fetchSampleCollector()
   }, [Labbaseurl])
 
   const fetchLogisticData = async () => {
     if (Labbaseurl) {
       try {
-        const response = await axios.get(`${Labbaseurl}savesamplecollector/`)
+        const response = await apiRequest(`${Labbaseurl}savesamplecollector/`, "GET")
         setLogisticData(response.data)
       } catch (error) {
         console.error("Error fetching logistic data:", error)
@@ -1761,7 +947,7 @@ const LogisticManagementAdmin = () => {
   const getfetchLogistic = async () => {
     if (Labbaseurl) {
       try {
-        const response = await axios.get(`${Labbaseurl}get_logistic_data/`)
+        const response = await apiRequest(`${Labbaseurl}get_logistic_data/`, "GET")
         setGetLogisticData(response.data)
       } catch (error) {
         console.error("Error fetching logistic data:", error)
@@ -1777,7 +963,11 @@ const LogisticManagementAdmin = () => {
   const handleLabNameChange = (e) => {
     const selectedName = e.target.value
     setSelectedLabName(selectedName)
+
+    // Find the selected lab from the list
     const selectedLab = clinicalNames.find((lab) => lab.clinicalname === selectedName)
+
+    // Update salesperson mapping
     if (selectedLab) {
       setSalesperson(selectedLab.salesMapping || "")
     } else {
@@ -1786,13 +976,13 @@ const LogisticManagementAdmin = () => {
   }
 
   // Fetch active collectors for live tracking
+  // Fetch active collectors for live tracking
   useEffect(() => {
     const fetchActiveCollectors = async () => {
       try {
         const currentDate = new Date().toISOString().split("T")[0]
-        const response = await axios.get(`${Labbaseurl}sample_collector_location/`, {
-          params: { date: currentDate },
-        })
+
+        const response = await apiRequest(`${Labbaseurl}sample_collector_location/`, "GET", null, { date: currentDate })
 
         if (response.data && Array.isArray(response.data)) {
           const active = response.data.filter(
@@ -1846,7 +1036,7 @@ const LogisticManagementAdmin = () => {
 
     if (Labbaseurl) {
       axios
-        .post(`${Labbaseurl}save-logistic-data/`, payload)
+        .post(`${Labbaseurl}save_logistic_data/`, payload)
         .then(() => {
           setMessage("Task assigned successfully!")
           setMessageType("success")
@@ -2024,13 +1214,16 @@ const LogisticManagementAdmin = () => {
               <FileText size={16} />
               Lab Name
             </Label>
+
             <Select value={selectedLabName} onChange={handleLabNameChange}>
               <option value="">Select Lab Name</option>
-              {clinicalNames.map((lab) => (
-                <option key={lab.clinicalname} value={lab.clinicalname}>
-                  {lab.clinicalname}
-                </option>
-              ))}
+
+              {clinicalNames.length > 0 &&
+                clinicalNames.map((lab, index) => (
+                  <option key={index} value={lab.clinicalname}>
+                    {lab.clinicalname}
+                  </option>
+                ))}
             </Select>
           </FormGroup>
 
@@ -2047,11 +1240,13 @@ const LogisticManagementAdmin = () => {
               <Truck size={16} />
               Sample Collector
             </Label>
+
             <Select value={selectedSampleCollector} onChange={(e) => setSelectedSampleCollector(e.target.value)}>
               <option value="">Select Sample Collector</option>
-              {sampleCollectorOptions.map((collector) => (
-                <option key={collector.id} value={collector.name}>
-                  {collector.name}
+
+              {sampleCollectorOptions.map((collector, index) => (
+                <option key={collector.employeeId || index} value={collector.employeeName}>
+                  {collector.employeeName}
                 </option>
               ))}
             </Select>

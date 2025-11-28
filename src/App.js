@@ -53,6 +53,12 @@ import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
 import TestEdit from "./Components/Forms/TestEdit";
+import SalesDashboard from "./Components/Sales/SalesDashboard";
+import SalesDetailsEdit from "./Components/Sales/SalesDetailsEdit";
+import SalesVisitLogReport from "./Components/Sales/SalesVisitLogReport";
+import SalesindividualReport from "./Components/Sales/SalesindividualReport";
+import AppointmentBooking from "./Components/Patients/AppointmentBooking";
+import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -198,6 +204,7 @@ const navigateRole = (userRole) => {
         <ContentWrapper>
           <Routes>
             {/* Define all routes here */}
+            <Route path="/AppointmentBooking" element={<AppointmentBooking />} />
             <Route path="/PatientForm" element={<PatientForm />} />
             <Route path="/PatientBilling" element={<PatientBilling />} />
             <Route path="/PrintBill" element={<PrintBill />} />
@@ -227,6 +234,11 @@ const navigateRole = (userRole) => {
             
             {/* Sales */}
             <Route path="/SalesVisit" element={<SalesVisitLog />} />
+            <Route path="/SalesDashboard" element={<SalesDashboard />} />
+            <Route path="/SalesDetailsEdit" element={<SalesDetailsEdit />} />
+            <Route path="/SalesVisitLogReport" element={<SalesVisitLogReport />} />
+            <Route path="/SalesindividualReport" element={<SalesindividualReport />} />
+
 
             {/* Diagnostics Report */}
             <Route path="/Dashboard" element={<Dashboard />} />      
@@ -253,8 +265,9 @@ const navigateRole = (userRole) => {
 
           {/* Logistics */}
             <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval/>} />
-            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin/>} />  // was missing import of
+            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin/>} />  
             <Route path="/LogisticMap" element={<Logisticsmap/>} />
+            <Route path="/LogisticsTAT" element={<LogisticsTAT/>} />  
 
           {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling/>} />
@@ -271,6 +284,7 @@ const navigateRole = (userRole) => {
             <Route path="/PatientOverallReport" element={<PatientOverallReport />}  />
 
             <Route path="/PreethamHospitalReport" element={<PreethamHospitalReport />} />
+
           </Routes>
         </ContentWrapper>
       )}
