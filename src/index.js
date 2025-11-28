@@ -16,6 +16,7 @@ console.log("REDIRECT_URL:", REDIRECT_URL);
 function setforlocaldev() {
   const dev_token =
     ""; 
+
   console.log("🔧 Development token is empty - will redirect to login");
   const selectedBranch = "SHB001";
   localStorage.setItem("selected_branch", selectedBranch);
