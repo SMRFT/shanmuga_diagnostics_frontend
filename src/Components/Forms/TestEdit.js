@@ -1,5 +1,7 @@
 "use client"
 
+"use client"
+
 import { useEffect, useState, useRef } from "react"
 import styled from "styled-components"
 import { FaSearch, FaClipboardList, FaEdit, FaSave, FaTimes, FaPlus, FaTrash } from "react-icons/fa"
@@ -464,10 +466,11 @@ const TestEdit = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingRow, setEditingRow] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedTestId, setSelectedTestId] = useState(null)
   const [selectedTestName, setSelectedTestName] = useState("")
   const [showTestForm, setShowTestForm] = useState(false)
   const [focusedRow, setFocusedRow] = useState(null)
-  const [lastEditedTest, setLastEditedTest] = useState(null)
+  const [lastEditedTestId, setLastEditedTestId] = useState(null)
 
   const [devices, setDevices] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -514,8 +517,8 @@ const TestEdit = () => {
   }, [Labbaseurl])
 
   useEffect(() => {
-    if (lastEditedTest && filteredTestDetails.length > 0) {
-      const testIndex = filteredTestDetails.findIndex((test) => test.test_name === lastEditedTest)
+    if (lastEditedTestId && filteredTestDetails.length > 0) {
+      const testIndex = filteredTestDetails.findIndex((test) => test.test_id === lastEditedTestId)
       if (testIndex !== -1) {
         setFocusedRow(testIndex)
         setTimeout(() => {
@@ -523,7 +526,7 @@ const TestEdit = () => {
         }, 800)
       }
     }
-  }, [filteredTestDetails, lastEditedTest])
+  }, [filteredTestDetails, lastEditedTestId])
 
   useEffect(() => {
     if (focusedRow !== null) {
@@ -598,6 +601,7 @@ const TestEdit = () => {
     }))
 
   const handleParameterClick = (test) => {
+    const testId = test?.test_id
     const testName = test?.test_name
     let parsedParameters = ensureParamShape(parseParams(test?.parameters))
     if (parsedParameters.length === 0) {
@@ -617,12 +621,15 @@ const TestEdit = () => {
     }
     setSelectedParameters(parsedParameters)
     setShowModal(true)
+    setSelectedTestId(testId)
     setSelectedTestName(testName)
   }
 
   const handleCloseModal = () => {
     setShowModal(false)
     setSelectedParameters([])
+    setSelectedTestId(null)
+    setSelectedTestName("")
   }
 
   const handleEditClick = (index) => {
@@ -686,7 +693,7 @@ const TestEdit = () => {
   }
 
   const handleSaveParameters = async () => {
-    const currentTest = testDetails.find((t) => t.test_name === selectedTestName)
+    const currentTest = testDetails.find((t) => t.test_id === selectedTestId)
 
     // Get device IDs
     const deviceIds = Array.isArray(currentTest?.device_id)
@@ -715,21 +722,21 @@ const TestEdit = () => {
 
     try {
       const response = await apiRequest(`${Labbaseurl}testdetails/`, "PATCH", {
-        test_name: selectedTestName,
+        test_id: selectedTestId,
         parameters: parametersPayload,
       })
 
       if (response.success) {
         // Clear test_code when parameters are set
         await apiRequest(`${Labbaseurl}test_details_test/`, "PATCH", {
-          test_name: selectedTestName,
+          test_id: selectedTestId,
           test_code: "",
         })
 
         toast.success("Parameters updated successfully!")
 
         const updatedAll = testDetails.map((t) =>
-          t.test_name === selectedTestName ? { ...t, parameters: parametersPayload, test_code: "" } : t,
+          t.test_id === selectedTestId ? { ...t, parameters: parametersPayload, test_code: "" } : t,
         )
         setTestDetails(updatedAll)
 
@@ -740,9 +747,11 @@ const TestEdit = () => {
         )
         setFilteredTestDetails(filtered)
 
-        setLastEditedTest(selectedTestName)
+        setLastEditedTestId(selectedTestId)
         setShowModal(false)
         setSelectedParameters([])
+        setSelectedTestId(null)
+        setSelectedTestName("")
       } else {
         toast.error(response.error || "Failed to update parameters")
       }
@@ -765,7 +774,7 @@ const TestEdit = () => {
 
     try {
       const response = await apiRequest(`${Labbaseurl}test_details_test/`, "PATCH", {
-        test_name: updatedTest.test_name,
+        test_id: updatedTest.test_id,
         shortcut: updatedTest.shortcut,
         department: updatedTest.department,
         collection_container: updatedTest.collection_container,
@@ -779,13 +788,13 @@ const TestEdit = () => {
 
       if (response.success) {
         toast.success("Test updated successfully!")
-        const originalIndex = testDetails.findIndex((test) => test.test_name === updatedTest.test_name)
+        const originalIndex = testDetails.findIndex((test) => test.test_id === updatedTest.test_id)
         if (originalIndex !== -1) {
           const updatedTestDetails = [...testDetails]
           updatedTestDetails[originalIndex] = { ...updatedTest, device_id: deviceArr }
           setTestDetails(updatedTestDetails)
         }
-        setLastEditedTest(updatedTest.test_name)
+        setLastEditedTestId(updatedTest.test_id)
         setEditingRow(null)
       } else {
         toast.error(response.error || "Error updating test details")
@@ -802,7 +811,7 @@ const TestEdit = () => {
     updatedFilteredTestDetails[index][field] = value
     setFilteredTestDetails(updatedFilteredTestDetails)
 
-    const originalIndex = testDetails.findIndex((test) => test.test_name === filteredTestDetails[index].test_name)
+    const originalIndex = testDetails.findIndex((test) => test.test_id === filteredTestDetails[index].test_id)
     if (originalIndex !== -1) {
       const updatedTestDetails = [...testDetails]
       updatedTestDetails[originalIndex][field] = value
@@ -820,9 +829,9 @@ const TestEdit = () => {
       return next
     })
     setTestDetails((prevAll) => {
-      const testName = filteredTestDetails[rowIndex]?.test_name
+      const testId = filteredTestDetails[rowIndex]?.test_id
       return prevAll.map((t) =>
-        t.test_name === testName
+        t.test_id === testId
           ? {
               ...t,
               device_id: Array.isArray(filteredTestDetails[rowIndex].device_id)
@@ -834,7 +843,7 @@ const TestEdit = () => {
     })
   }
 
-  const handleTestAdded = (newTestName) => {
+  const handleTestAdded = (newTestId) => {
     const fetchTestDetails = async () => {
       try {
         const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET")
@@ -843,7 +852,7 @@ const TestEdit = () => {
           const data = response.data?.data || response.data || []
           setTestDetails(data)
           setFilteredTestDetails(data)
-          setLastEditedTest(newTestName)
+          setLastEditedTestId(newTestId)
         } else {
           console.error("Error fetching test details:", response.error)
           toast.error(response.error || "Failed to fetch updated test list")

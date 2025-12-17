@@ -14,8 +14,7 @@ console.log("REDIRECT_URL:", REDIRECT_URL);
 
 // --- Function to set token for local development ---
 function setforlocaldev() {
-  const dev_token =
-    ""; 
+  const dev_token =""; 
   console.log("🔧 Development token is empty - will redirect to login");
   const selectedBranch = "SHB001";
   localStorage.setItem("selected_branch", selectedBranch);
@@ -60,20 +59,18 @@ function getUserRole(allowedActions) {
   console.log("Allowed actions:", allowedActions);
   if (allowedActions.includes("SD-R-A")) {
     return "Admin";
-  } else if (allowedActions.includes("SD-R-LR")) {
-    return "Receptionist";
-  } else if (allowedActions.includes("SD-R-GM")) {
-    return "General Manager";
-  } else if (allowedActions.includes("SD-R-LT")) {
-    return "Technician";
-  } else if (allowedActions.includes("SD-R-DOC")) {
-    return "Doctor";
-  } else if (allowedActions.includes("SD-R-FOF")) {
-    return "Front Office";
-  } else if (allowedActions.includes("SD-R-SLP")) {
-    return "Sales Person";
   } else if (allowedActions.includes("SD-R-SMC")) {
     return "Sample Collector";
+  } else if (allowedActions.includes("SD-R-LR")) {
+    return "Lab Receptionist";
+  } else if (allowedActions.includes("SD-R-LT")) {
+    return "Lab Technician";
+  } else if (allowedActions.includes("SD-R-GM")) {
+    return "Diagnostics General Manager";
+  } else if (allowedActions.includes("SD-R-DOC")) {
+    return "Doctor";
+  } else if (allowedActions.includes("SD-R-SP")) {
+    return "Sales Person";
   } else if (allowedActions.includes("SD-R-ACT")) {
     return "Accounts";
   } else if (allowedActions.includes("SD-R-CEO")) {

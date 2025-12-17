@@ -1144,6 +1144,9 @@ const PatientBilling = () => {
             width: 100%;
             max-width: 100%;
             height: auto;
+            display: block;
+            margin: 0;
+            padding: 0;
           }
           .details,
           .test-info,
@@ -1614,7 +1617,6 @@ const PatientBilling = () => {
               </FormGroup>
               {billingData.paymentMethod &&
                 billingData.paymentMethod !== "Cash" &&
-                billingData.paymentMethod !== "Credit" &&
                 billingData.paymentMethod !== "Multiple Payment" && (
                   <FormGroup>
                     <label>Payment Details</label>
