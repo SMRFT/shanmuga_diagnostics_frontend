@@ -522,11 +522,14 @@ const PrintBill = () => {
           .header div {
             font-size: 10px;
           }
-          .header img {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-          }
+        .header img {
+          width: 100%;
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 0;
+          padding: 0;
+        }
           .details,
           .test-info,
           .payment-info {

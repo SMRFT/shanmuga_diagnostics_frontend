@@ -78,19 +78,35 @@ const StyledTitle = styled.h2`
   }
 `
 
+const SearchAndAppointmentContainer = styled.div`
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  position: relative;
+  
+  @media (max-width: 1024px) {
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+`
+
 const SearchWrapper = styled.div`
   position: relative;
   width: 100%;
   max-width: 500px;
-  margin: 0 auto 20px auto;
   z-index: 100;
   
   @media (max-width: 768px) {
-    margin-bottom: 15px;
-  }
-  
-  @media (max-width: 480px) {
-    margin-bottom: 12px;
+    max-width: 100%;
   }
 `
 
@@ -151,12 +167,10 @@ const PatientSelectionModal = styled.div`
   left: 0;
   right: 0;
   width: 100%;
-  max-width: 500px;
-
   background: white;
   border-radius: 12px;
   padding: 15px;
-  max-height: calc(100vh - 400px);
+  max-height: 500px;
   overflow-y: auto;
   z-index: 1000;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
@@ -168,20 +182,23 @@ const PatientSelectionModal = styled.div`
   }
 
   @media (max-width: 1024px) {
-    max-height: calc(100vh - 350px);
+    max-height: 450px;
     padding: 14px;
   }
 
   @media (max-width: 768px) {
-    max-height: calc(100vh - 300px);
+    max-height: 400px;
     padding: 12px;
     top: calc(100% + 6px);
   }
 
   @media (max-width: 480px) {
-    max-height: calc(100vh - 250px);
+    max-height: 350px;
     padding: 10px;
     top: calc(100% + 4px);
+    left: -10px;
+    right: -10px;
+    width: calc(100% + 20px);
   }
 
   &::-webkit-scrollbar {
@@ -593,6 +610,111 @@ const FormGroup = styled.div`
   }
 `
 
+const SearchableInputWrapper = styled.div`
+  position: relative;
+  width: 100%;
+`
+
+const SearchableInput = styled.input`
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e1e8ff;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  &:disabled {
+    background: #f7fafc;
+    border-color: #e2e8f0;
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 9px 11px;
+    font-size: 13px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+`
+
+const SearchableDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #e1e8ff;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(102, 126, 234, 0.05);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 10px;
+  }
+`
+
+const DropdownItem = styled.div`
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #333;
+  
+  &:hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+  }
+  
+  &:not(:last-child) {
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 9px 11px;
+    font-size: 13px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+`
+
+const NoResults = styled.div`
+  padding: 10px 12px;
+  color: #999;
+  font-style: italic;
+  font-size: 14px;
+  text-align: center;
+  
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
+`
+
 const FileUploadWrapper = styled.div`
   position: relative;
   
@@ -925,26 +1047,6 @@ const SpinnerIcon = styled.span`
   }
 `
 
-const SearchAndAppointmentContainer = styled.div`
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 30px;
-  flex-wrap: wrap;
-  
-  @media (max-width: 1024px) {
-    gap: 12px;
-    margin-bottom: 25px;
-  }
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-`
-
 const AppointmentButton = styled.button`
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
@@ -976,6 +1078,7 @@ const AppointmentButton = styled.button`
   
   @media (max-width: 768px) {
     width: 100%;
+    max-width: 500px;
     justify-content: center;
     padding: 11px 20px;
     font-size: 14px;
@@ -1020,6 +1123,14 @@ const PatientForm = () => {
   const [appointmentPatients, setAppointmentPatients] = useState([])
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false)
 
+  // Use patientSelectionSource to track the origin of patient data
+  const [patientSelectionSource, setPatientSelectionSource] = useState(null) // 'search', 'appointment', or null
+
+  const [refBySearchValue, setRefBySearchValue] = useState("")
+  const [showRefByDropdown, setShowRefByDropdown] = useState(false)
+  const [clinicalSearchValue, setClinicalSearchValue] = useState("")
+  const [showClinicalDropdown, setShowClinicalDropdown] = useState(false)
+
   const [formData, setFormData] = useState({
     patient_id: "",
     date: getCurrentDateWithTime(),
@@ -1062,9 +1173,9 @@ const PatientForm = () => {
   const [searchValue, setSearchValue] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFormValid, setIsFormValid] = useState(false)
-  const [isExistingPatient, setIsExistingPatient] = useState(false)
+  // Removed isExistingPatient as it's now covered by patientSelectionSource
+  const [isExistingPatient, setIsExistingPatient] = useState(false) // Keep for disabling fields, but logic relies on source
 
-  // Form validation
   useEffect(() => {
     const basicFieldsValid = formData.patientname.trim() !== "" && formData.age !== ""
     const refByValid = formData.refby.trim() !== ""
@@ -1202,6 +1313,7 @@ const PatientForm = () => {
         phone: "",
         email: "",
       }))
+      setClinicalSearchValue("")
     }
   }
 
@@ -1228,38 +1340,81 @@ const PatientForm = () => {
     }))
   }
 
-  const handleClinicalNameSelect = (e) => {
-    const selectedClinical = dropdownOptions.clinicalNames.find((clinical) => clinical.clinicalname === e.target.value)
-    if (selectedClinical) {
-      setFormData((prev) => ({
-        ...prev,
-        B2B: selectedClinical.clinicalname,
-        lab_id: selectedClinical.referrerCode || "",
-        salesMapping: selectedClinical.salesMapping || "",
-        phone: selectedClinical.phone || "",
-        email: selectedClinical.email || "",
-      }))
-    }
+  const handleClinicalNameSearch = (e) => {
+    const value = e.target.value
+    setClinicalSearchValue(value)
+    setShowClinicalDropdown(true)
+
+    // Set the B2B field to the typed value
+    setFormData((prev) => ({
+      ...prev,
+      B2B: value,
+    }))
+  }
+
+  const handleClinicalNameSelect = (clinical) => {
+    setClinicalSearchValue(clinical.clinicalname)
+    setFormData((prev) => ({
+      ...prev,
+      B2B: clinical.clinicalname,
+      lab_id: clinical.referrerCode || "",
+      salesMapping: clinical.salesMapping || "",
+      phone: clinical.phone || "",
+      email: clinical.email || "",
+    }))
+    setShowClinicalDropdown(false)
+  }
+
+  const handleRefBySearch = (e) => {
+    const value = e.target.value
+    setRefBySearchValue(value)
+    setShowRefByDropdown(true)
+
+    // Set the refby field to the typed value
+    setFormData((prev) => ({
+      ...prev,
+      refby: value,
+    }))
+  }
+
+  const handleRefBySelect = (refby) => {
+    setRefBySearchValue(refby.name)
+    setFormData((prev) => ({
+      ...prev,
+      refby: refby.name,
+    }))
+    setShowRefByDropdown(false)
+  }
+
+  const getFilteredRefBys = () => {
+    if (!refBySearchValue) return dropdownOptions.referrers
+    return dropdownOptions.referrers.filter((refby) =>
+      refby.name.toLowerCase().includes(refBySearchValue.toLowerCase()),
+    )
+  }
+
+  const getFilteredClinicalNames = () => {
+    if (!clinicalSearchValue) return dropdownOptions.clinicalNames
+    return dropdownOptions.clinicalNames.filter((clinical) =>
+      clinical.clinicalname.toLowerCase().includes(clinicalSearchValue.toLowerCase()),
+    )
   }
 
   const handleSearchChange = (e) => {
     const input = e.target.value
 
-    // Only allow numeric input for phone number
     const numericInput = input.replace(/\D/g, "")
 
     setSearchValue(numericInput)
 
-    // Search only when exactly 10 digits are entered
     if (numericInput.length === 10) {
       searchPatientByPhone(numericInput)
     } else if (numericInput.length === 0) {
-      // Reset when search is cleared
-      setIsExistingPatient(false)
+      setIsExistingPatient(false) // Mark as not existing when search is cleared
       setShowPatientModal(false)
       setMultiplePatients([])
+      setPatientSelectionSource(null) // Reset selection source
       generateNewPatientId()
-      // Reset form for new patient
       setFormData((prev) => ({
         ...prev,
         patientname: "",
@@ -1273,68 +1428,50 @@ const PatientForm = () => {
       }))
       setPrescriptionFile(null)
     } else if (numericInput.length < 10) {
-      // Clear any existing patient data if less than 10 digits
-      setIsExistingPatient(false)
+      setIsExistingPatient(false) // Mark as not existing if search is partial
       setShowPatientModal(false)
       setMultiplePatients([])
+      setPatientSelectionSource(null) // Reset selection source
     }
   }
 
   const searchPatientByPhone = async (phoneNumber) => {
     try {
-      console.log("[v0] Searching for phone number:", phoneNumber)
-
       const response = await apiRequest(`${Labbaseurl}patient-get/?phone=${phoneNumber}`, "GET")
-
-      console.log("[v0] Full response:", response)
-      console.log("[v0] Response data type:", typeof response.data)
-      console.log("[v0] Response data:", response.data)
 
       if (response && response.success) {
         let patients = []
 
         if (Array.isArray(response.data)) {
-          // Direct array response
           patients = response.data
         } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          // Nested response {success, data: {data: Array}}
           patients = response.data.data
         } else if (response.data && typeof response.data === "object" && !Array.isArray(response.data)) {
-          // Single patient returned as object - convert to array
           patients = [response.data]
         }
 
-        console.log("[v0] Normalized patients array:", patients)
-        console.log("[v0] Number of patients found:", patients.length)
-
         if (patients.length > 1) {
-          console.log("[v0] Multiple patients found, showing modal with", patients.length, "patients")
           setMultiplePatients(patients)
           setShowPatientModal(true)
-          setIsExistingPatient(false)
+          setIsExistingPatient(false) // Not yet an existing patient until selected
+          setPatientSelectionSource(null) // No source yet
           toast.info(`Found ${patients.length} patients with this phone number. Please select one.`)
         } else if (patients.length === 1) {
-          // Single patient found
-          console.log("[v0] Single patient found, loading data")
-          loadPatientData(patients[0])
+          loadPatientData(patients[0], "search") // Pass source as 'search'
           setShowPatientModal(false)
-          toast.success("Patient found! Details loaded.")
+          toast.success("Patient found! Details loaded (read-only).")
         } else {
-          // No patients found
-          console.log("[v0] No patients found")
           throw new Error("Patient not found")
         }
       } else {
-        console.log("[v0] Response not successful:", response)
         throw new Error(response?.error || "Patient not found")
       }
     } catch (error) {
-      console.error("[v0] Error fetching patient details:", error)
-      // Don't show error toast, just reset states for new patient entry
-      setIsExistingPatient(false)
+      console.error("Error fetching patient details:", error)
+      setIsExistingPatient(false) // Ensure it's marked as not existing if search fails
       setShowPatientModal(false)
       setMultiplePatients([])
-      // Generate new patient ID for new patient entry
+      setPatientSelectionSource(null) // Reset selection source
       generateNewPatientId()
     }
   }
@@ -1358,26 +1495,18 @@ const PatientForm = () => {
     return "Mr."
   }
 
-  const loadPatientData = (data) => {
-    console.log("[v0] Loading patient data:", data)
-
-    // Extract title and name
+  const loadPatientData = (data, source = null) => {
     const prefixes = /^(MR\.?|MRS\.?|MS\.?|MASTER\.?|MISS\.?|DR\.?|BABY\.?|BABY OF\.?)\s+/i
     const cleanedName = data.patientname ? data.patientname.replace(prefixes, "").trim() : ""
-
     const extractedTitle = getTitleFromName(data.patientname || "")
 
-    console.log("[v0] Cleaned name:", cleanedName)
-    console.log("[v0] Extracted title:", extractedTitle)
-
-    // Parse address properly
     let parsedAddress = { area: "", pincode: "" }
     if (data.address) {
       if (typeof data.address === "string") {
         try {
           parsedAddress = JSON.parse(data.address)
         } catch (e) {
-          console.error("[v0] Error parsing address:", e)
+          console.error("Error parsing address:", e)
           parsedAddress = { area: "", pincode: "" }
         }
       } else if (typeof data.address === "object") {
@@ -1385,7 +1514,6 @@ const PatientForm = () => {
       }
     }
 
-    // Determine gender from title if not provided
     let patientGender = data.gender || "Male"
     if (!data.gender) {
       if (extractedTitle === "Mr." || extractedTitle === "Master." || extractedTitle === "Dr.") {
@@ -1414,20 +1542,21 @@ const PatientForm = () => {
       patient_history: data.patient_history || "",
     }))
 
-    // Update emergency status if patient has emergency flag
     if (data.emergency) {
       setIsEmergencyEnabled(true)
     } else {
       setIsEmergencyEnabled(false)
     }
 
-    setIsExistingPatient(true)
+    setIsExistingPatient(true) // Mark as existing when data is loaded
     setShowPatientModal(false)
+
+    setPatientSelectionSource(source) // Set the source of the loaded data
   }
 
   const handlePatientSelect = (patient) => {
-    loadPatientData(patient)
-    toast.success("Patient details loaded successfully. Ready for billing.")
+    loadPatientData(patient, "search") // Patient selected from search results
+    toast.success("Patient details loaded (read-only). Ready for billing.")
   }
 
   const formatAddress = (address) => {
@@ -1439,7 +1568,7 @@ const PatientForm = () => {
       try {
         addressObj = JSON.parse(address)
       } catch (e) {
-        console.error("[v0] Error parsing address:", e)
+        console.error("Error parsing address:", e)
         return address || "N/A"
       }
     }
@@ -1538,17 +1667,19 @@ const PatientForm = () => {
         patient_history: patientHistory,
       }
 
-      if (isExistingPatient) {
-        // Existing patient: create bill only
+      // If from search (revisit): only create bill
+      // If from appointment or new patient: create both patient and bill
+      if (patientSelectionSource === "search") {
+        // Revisit patient - only create bill
         const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData)
         if (billResult && billResult.success) {
-          toast.success(`Bill created successfully!`)
+          toast.success(`Bill created successfully for revisit patient!`)
           resetForm()
         } else {
           toast.error("Failed to create bill. Please try again.")
         }
       } else {
-        // New patient: create patient first, then bill
+        // Appointment or new patient - create both patient and bill
         try {
           const formDataToSend = new FormData()
 
@@ -1581,12 +1712,12 @@ const PatientForm = () => {
             toast.error("Failed to create patient. Please try again.")
           }
         } catch (error) {
-          console.error("[v0] Error in patient/bill creation:", error)
+          console.error("Error in patient/bill creation:", error)
           toast.error("Error creating patient or bill. Please try again.")
         }
       }
     } catch (error) {
-      console.error("[v0] Error saving data:", error)
+      console.error("Error saving data:", error)
       toast.error("Error saving data. Please try again.")
     } finally {
       setIsSubmitting(false)
@@ -1602,6 +1733,9 @@ const PatientForm = () => {
     setShowPatientModal(false)
     setMultiplePatients([])
     setPrescriptionFile(null)
+    setPatientSelectionSource(null) // Reset selection source
+    setRefBySearchValue("") // Reset RefBy search
+    setClinicalSearchValue("") // Reset clinical search
 
     setFormData({
       patient_id: "",
@@ -1643,33 +1777,23 @@ const PatientForm = () => {
 
       const response = await apiRequest(`${Labbaseurl}appointments/`, "GET")
 
-      // Handle different response structures
       let appointments = []
 
       if (response) {
         if (Array.isArray(response)) {
-          // Direct array response
           appointments = response
         } else if (response.success && Array.isArray(response.appointments)) {
-          // {success: true, appointments: [...]}
           appointments = response.appointments
         } else if (response.success && Array.isArray(response.data)) {
-          // {success: true, data: [...]}
           appointments = response.data
         } else if (Array.isArray(response.data)) {
-          // {data: [...]} without success field
           appointments = response.data
         } else if (response.data && Array.isArray(response.data.appointments)) {
-          // {data: {appointments: [...]}}
           appointments = response.data.appointments
         } else if (response.data && Array.isArray(response.data.data)) {
-          // {data: {data: [...]}}
           appointments = response.data.data
         }
       }
-
-      console.log("[v0] Parsed appointments array:", appointments)
-      console.log("[v0] Total appointments received:", appointments.length)
 
       if (appointments.length === 0) {
         toast.info("No appointments found in the system")
@@ -1678,27 +1802,17 @@ const PatientForm = () => {
         return
       }
 
-      // Get today's date in YYYY-MM-DD format
       const today = new Date()
       const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
-      console.log("[v0] Today's date:", todayDate)
-      console.log("[v0] Sample appointment:", appointments[0])
-
-      // Filter appointments for today
       const todayAppointments = appointments.filter((appointment) => {
         if (!appointment.appointment_date) {
-          console.log("[v0] Appointment skipped - no date:", appointment)
           return false
         }
 
-        // Extract date part (YYYY-MM-DD) from appointment_date (handles both formats)
         const appointmentDateStr = appointment.appointment_date.split("T")[0].split(" ")[0]
-        console.log("[v0] Comparing:", appointmentDateStr, "with", todayDate)
         return appointmentDateStr === todayDate
       })
-
-      console.log("[v0] Today's appointments found:", todayAppointments.length)
 
       if (todayAppointments.length > 0) {
         setAppointmentPatients(todayAppointments)
@@ -1710,8 +1824,7 @@ const PatientForm = () => {
         setShowAppointmentModal(false)
       }
     } catch (error) {
-      console.error("[v0] Error fetching appointments:", error)
-      console.error("[v0] Error details:", error.message, error.stack)
+      console.error("Error fetching appointments:", error)
       toast.error("Failed to fetch appointments. Please try again.")
     } finally {
       setIsLoadingAppointments(false)
@@ -1720,21 +1833,27 @@ const PatientForm = () => {
 
   const handleAppointmentSelect = (appointment) => {
     const patientData = {
-      patient_id: appointment.patient_id || "",
-      patientname: appointment.patient_name || "", // API returns patient_name
+      patient_id: formData.patient_id || "", // Keep existing patient_id if it's a new bill for an existing patient
+      patientname: appointment.patient_name || "",
       age: appointment.age || "",
       age_type: appointment.age_type || "Years",
       gender: appointment.gender || "Male",
-      phone: appointment.mobile_number || "", // API returns mobile_number
+      phone: appointment.mobile_number || "",
       email: appointment.email || "",
       address: appointment.address || { area: "", pincode: "" },
       patient_history: appointment.patient_history || "",
       emergency: appointment.emergency || false,
     }
 
-    loadPatientData(patientData)
+    loadPatientData(patientData, "appointment") // Patient selected from appointment
     setShowAppointmentModal(false)
-    toast.success("Appointment patient loaded successfully. Ready for billing.")
+    toast.success("Appointment patient loaded successfully. Fields are editable.")
+  }
+
+  const shouldDisableField = () => {
+    // Disable fields if data was loaded from a search result (existing patient)
+    // But allow editing if it was from an appointment or a newly created patient
+    return patientSelectionSource === "search" && isExistingPatient
   }
 
   return (
@@ -1754,6 +1873,151 @@ const PatientForm = () => {
                 maxLength={10}
               />
             </SearchContainer>
+
+            {showPatientModal && (
+              <PatientSelectionModal>
+                <ModalContent>
+                  <CloseButton onClick={() => setShowPatientModal(false)}>
+                    <FaTimes />
+                  </CloseButton>
+                  <h3>
+                    Select Patient ({multiplePatients.length} found with phone {searchValue})
+                  </h3>
+
+                  {multiplePatients.map((patient, index) => (
+                    <PatientCard key={index} onClick={() => handlePatientSelect(patient)}>
+                      <div className="patient-header">
+                        <span className="patient-id-badge">{patient.patient_id}</span>
+                        {patient.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
+                      </div>
+
+                      <div className="patient-info">
+                        <div className="info-item">
+                          <span className="label">Name</span>
+                          <span className="value">{patient.patientname || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Age</span>
+                          <span className="value">
+                            {patient.age} {patient.age_type || "Years"}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Gender</span>
+                          <span className="value">{patient.gender || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Phone</span>
+                          <span className="value">{patient.phone || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Email</span>
+                          <span className={`value ${!patient.email ? "empty" : ""}`}>
+                            {patient.email || "Not provided"}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Address</span>
+                          <span className={`value ${formatAddress(patient.address) === "N/A" ? "empty" : ""}`}>
+                            {formatAddress(patient.address)}
+                          </span>
+                        </div>
+                        {patient.patient_history && (
+                          <div className="info-item" style={{ gridColumn: "1 / -1" }}>
+                            <span className="label">Medical History</span>
+                            <span className="value">{patient.patient_history}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        className="select-button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePatientSelect(patient)
+                        }}
+                      >
+                        Select This Patient
+                      </button>
+                    </PatientCard>
+                  ))}
+                </ModalContent>
+              </PatientSelectionModal>
+            )}
+
+            {showAppointmentModal && (
+              <PatientSelectionModal>
+                <ModalContent>
+                  <CloseButton onClick={() => setShowAppointmentModal(false)}>
+                    <FaTimes />
+                  </CloseButton>
+                  <h3>Today's Appointments ({appointmentPatients.length} found)</h3>
+
+                  {appointmentPatients.map((appointment, index) => (
+                    <PatientCard key={index} onClick={() => handleAppointmentSelect(appointment)}>
+                      <div className="patient-header">
+                        <span className="patient-id-badge">{appointment.patient_id}</span>
+                        {appointment.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
+                      </div>
+
+                      <div className="patient-info">
+                        <div className="info-item">
+                          <span className="label">Name</span>
+                          <span className="value">{appointment.patient_name || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Appointment Time</span>
+                          <span className="value">
+                            {appointment.appointment_date
+                              ? new Date(appointment.appointment_date).toLocaleTimeString("en-IN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Age</span>
+                          <span className="value">
+                            {appointment.age} {appointment.age_type || "Years"}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Gender</span>
+                          <span className="value">{appointment.gender || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Phone</span>
+                          <span className="value">{appointment.mobile_number || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Email</span>
+                          <span className={`value ${!appointment.email ? "empty" : ""}`}>
+                            {appointment.email || "Not provided"}
+                          </span>
+                        </div>
+                        {appointment.patient_history && (
+                          <div className="info-item" style={{ gridColumn: "1 / -1" }}>
+                            <span className="label">Medical History</span>
+                            <span className="value">{appointment.patient_history}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        className="select-button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAppointmentSelect(appointment)
+                        }}
+                      >
+                        Load This Patient
+                      </button>
+                    </PatientCard>
+                  ))}
+                </ModalContent>
+              </PatientSelectionModal>
+            )}
           </SearchWrapper>
 
           <AppointmentButton onClick={fetchTodayAppointments} disabled={isLoadingAppointments}>
@@ -1762,8 +2026,12 @@ const PatientForm = () => {
           </AppointmentButton>
         </SearchAndAppointmentContainer>
 
-        {isExistingPatient && (
-          <StatusIndicator className="existing">✓ Existing Patient Found - Ready for Billing</StatusIndicator>
+        {patientSelectionSource === "search" && isExistingPatient && (
+          <StatusIndicator className="existing">✓ Existing Patient Found - Fields are Read-Only</StatusIndicator>
+        )}
+
+        {patientSelectionSource === "appointment" && isExistingPatient && (
+          <StatusIndicator className="new">📅 Appointment Patient Loaded - Fields are Editable</StatusIndicator>
         )}
 
         {isEmergencyEnabled && (
@@ -1772,163 +2040,6 @@ const PatientForm = () => {
 
         {showPatientModal && (
           <StatusIndicator className="multiple">⚠ Multiple Patients Found - Please Select One</StatusIndicator>
-        )}
-
-        {showPatientModal && (
-          <PatientSelectionModal
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setShowPatientModal(false)
-              }
-            }}
-          >
-            <ModalContent>
-              <CloseButton onClick={() => setShowPatientModal(false)}>
-                <FaTimes />
-              </CloseButton>
-              <h3>
-                Select Patient ({multiplePatients.length} found with phone {searchValue})
-              </h3>
-
-              {multiplePatients.map((patient, index) => (
-                <PatientCard key={index} onClick={() => handlePatientSelect(patient)}>
-                  <div className="patient-header">
-                    <span className="patient-id-badge">{patient.patient_id}</span>
-                    {patient.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
-                  </div>
-
-                  <div className="patient-info">
-                    <div className="info-item">
-                      <span className="label">Name</span>
-                      <span className="value">{patient.patientname || "N/A"}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Age</span>
-                      <span className="value">
-                        {patient.age} {patient.age_type || "Years"}
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Gender</span>
-                      <span className="value">{patient.gender || "N/A"}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Phone</span>
-                      <span className="value">{patient.phone || "N/A"}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Email</span>
-                      <span className={`value ${!patient.email ? "empty" : ""}`}>
-                        {patient.email || "Not provided"}
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Address</span>
-                      <span className={`value ${formatAddress(patient.address) === "N/A" ? "empty" : ""}`}>
-                        {formatAddress(patient.address)}
-                      </span>
-                    </div>
-                    {patient.patient_history && (
-                      <div className="info-item" style={{ gridColumn: "1 / -1" }}>
-                        <span className="label">Medical History</span>
-                        <span className="value">{patient.patient_history}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    className="select-button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handlePatientSelect(patient)
-                    }}
-                  >
-                    Select This Patient
-                  </button>
-                </PatientCard>
-              ))}
-            </ModalContent>
-          </PatientSelectionModal>
-        )}
-
-        {showAppointmentModal && (
-          <PatientSelectionModal
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setShowAppointmentModal(false)
-              }
-            }}
-          >
-            <ModalContent>
-              <CloseButton onClick={() => setShowAppointmentModal(false)}>
-                <FaTimes />
-              </CloseButton>
-              <h3>Today's Appointments ({appointmentPatients.length} found)</h3>
-
-              {appointmentPatients.map((appointment, index) => (
-                <PatientCard key={index} onClick={() => handleAppointmentSelect(appointment)}>
-                  <div className="patient-header">
-                    <span className="patient-id-badge">{appointment.patient_id}</span>
-                    {appointment.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
-                  </div>
-
-                  <div className="patient-info">
-                    <div className="info-item">
-                      <span className="label">Name</span>
-                      <span className="value">{appointment.patient_name || "N/A"}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Appointment Time</span>
-                      <span className="value">
-                        {appointment.appointment_date
-                          ? new Date(appointment.appointment_date).toLocaleTimeString("en-IN", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Age</span>
-                      <span className="value">
-                        {appointment.age} {appointment.age_type || "Years"}
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Gender</span>
-                      <span className="value">{appointment.gender || "N/A"}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Phone</span>
-                      <span className="value">{appointment.mobile_number || "N/A"}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Email</span>
-                      <span className={`value ${!appointment.email ? "empty" : ""}`}>
-                        {appointment.email || "Not provided"}
-                      </span>
-                    </div>
-                    {appointment.patient_history && (
-                      <div className="info-item" style={{ gridColumn: "1 / -1" }}>
-                        <span className="label">Medical History</span>
-                        <span className="value">{appointment.patient_history}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    className="select-button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAppointmentSelect(appointment)
-                    }}
-                  >
-                    Load This Patient
-                  </button>
-                </PatientCard>
-              ))}
-            </ModalContent>
-          </PatientSelectionModal>
         )}
 
         <form onSubmit={handleSubmit}>
@@ -1948,14 +2059,36 @@ const PatientForm = () => {
                   <label>
                     Ref By<RequiredIndicator>*</RequiredIndicator>
                   </label>
-                  <select name="refby" value={formData.refby} onChange={handleChange} required>
-                    <option value="">Select Refby</option>
-                    {dropdownOptions.referrers.map((refby, index) => (
-                      <option key={index} value={refby.name}>
-                        {refby.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableInputWrapper>
+                    <SearchableInput
+                      type="text"
+                      value={refBySearchValue}
+                      onChange={handleRefBySearch}
+                      onFocus={() => setShowRefByDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowRefByDropdown(false), 200)}
+                      placeholder="Type to search or select"
+                      required
+                    />
+                    {showRefByDropdown && (
+                      <SearchableDropdown>
+                        {getFilteredRefBys().length > 0 ? (
+                          getFilteredRefBys().map((refby, index) => (
+                            <DropdownItem
+                              key={index}
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                handleRefBySelect(refby)
+                              }}
+                            >
+                              {refby.name}
+                            </DropdownItem>
+                          ))
+                        ) : (
+                          <NoResults>No matching referrers found</NoResults>
+                        )}
+                      </SearchableDropdown>
+                    )}
+                  </SearchableInputWrapper>
                 </FormGroup>
                 <button type="button" onClick={() => setShowRefByFormForm(true)} title="Add new Refby">
                   <FaPlus />
@@ -1986,20 +2119,37 @@ const PatientForm = () => {
 
               <FormGroup>
                 <label>Clinical Name{isB2BEnabled && <RequiredIndicator>*</RequiredIndicator>}</label>
-                <select
-                  name="clinical_name"
-                  value={formData.B2B}
-                  onChange={handleClinicalNameSelect}
-                  disabled={!isB2BEnabled}
-                  required={isB2BEnabled}
-                >
-                  <option value="">Select Clinical Name</option>
-                  {dropdownOptions.clinicalNames.map((clinical, index) => (
-                    <option key={index} value={clinical.clinicalname}>
-                      {clinical.clinicalname}
-                    </option>
-                  ))}
-                </select>
+                <SearchableInputWrapper>
+                  <SearchableInput
+                    type="text"
+                    value={clinicalSearchValue}
+                    onChange={handleClinicalNameSearch}
+                    onFocus={() => isB2BEnabled && setShowClinicalDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowClinicalDropdown(false), 200)}
+                    placeholder="Type to search or select"
+                    disabled={!isB2BEnabled}
+                    required={isB2BEnabled}
+                  />
+                  {showClinicalDropdown && isB2BEnabled && (
+                    <SearchableDropdown>
+                      {getFilteredClinicalNames().length > 0 ? (
+                        getFilteredClinicalNames().map((clinical, index) => (
+                          <DropdownItem
+                            key={index}
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              handleClinicalNameSelect(clinical)
+                            }}
+                          >
+                            {clinical.clinicalname}
+                          </DropdownItem>
+                        ))
+                      ) : (
+                        <NoResults>No matching clinical names found</NoResults>
+                      )}
+                    </SearchableDropdown>
+                  )}
+                </SearchableInputWrapper>
               </FormGroup>
 
               <FormGroup>
@@ -2056,7 +2206,7 @@ const PatientForm = () => {
               </FormGroup>
               <FormGroup>
                 <label>Title</label>
-                <select name="Title" value={formData.Title} onChange={handleChange} disabled={isExistingPatient}>
+                <select name="Title" value={formData.Title} onChange={handleChange} disabled={shouldDisableField()}>
                   <option value="Mr.">Mr</option>
                   <option value="Mrs.">Mrs</option>
                   <option value="Ms.">Ms</option>
@@ -2077,7 +2227,7 @@ const PatientForm = () => {
                   value={formData.patientname}
                   onChange={handleChange}
                   required
-                  disabled={isExistingPatient}
+                  disabled={shouldDisableField()}
                 />
               </FormGroup>
               <FormGroup>
@@ -2090,12 +2240,17 @@ const PatientForm = () => {
                   value={formData.age}
                   onChange={handleChange}
                   required
-                  disabled={isExistingPatient}
+                  disabled={shouldDisableField()}
                 />
               </FormGroup>
               <FormGroup>
                 <label>Age Type</label>
-                <select name="age_type" value={formData.age_type} onChange={handleChange} disabled={isExistingPatient}>
+                <select
+                  name="age_type"
+                  value={formData.age_type}
+                  onChange={handleChange}
+                  disabled={shouldDisableField()}
+                >
                   <option value="Years">Years</option>
                   <option value="Months">Months</option>
                   <option value="Days">Days</option>
@@ -2114,7 +2269,7 @@ const PatientForm = () => {
                       value="Male"
                       checked={formData.gender === "Male"}
                       onChange={handleChange}
-                      disabled={isExistingPatient}
+                      disabled={shouldDisableField()}
                     />
                     Male
                   </label>
@@ -2125,7 +2280,7 @@ const PatientForm = () => {
                       value="Female"
                       checked={formData.gender === "Female"}
                       onChange={handleChange}
-                      disabled={isExistingPatient}
+                      disabled={shouldDisableField()}
                     />
                     Female
                   </label>
@@ -2136,7 +2291,7 @@ const PatientForm = () => {
                       value="Other"
                       checked={formData.gender === "Other"}
                       onChange={handleChange}
-                      disabled={isExistingPatient}
+                      disabled={shouldDisableField()}
                     />
                     Other
                   </label>
@@ -2155,7 +2310,7 @@ const PatientForm = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  disabled={isExistingPatient || isB2BEnabled}
+                  disabled={shouldDisableField() || isB2BEnabled}
                   required={isHomeCollectionEnabled}
                   maxLength={15}
                 />
@@ -2167,7 +2322,7 @@ const PatientForm = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  disabled={isExistingPatient || isB2BEnabled}
+                  disabled={shouldDisableField() || isB2BEnabled}
                   required={isHomeCollectionEnabled}
                 />
               </FormGroup>
@@ -2178,7 +2333,7 @@ const PatientForm = () => {
                   name="area"
                   value={formData.address.area}
                   onChange={handleChange}
-                  disabled={isExistingPatient || isB2BEnabled}
+                  disabled={shouldDisableField() || isB2BEnabled}
                   required={isHomeCollectionEnabled}
                 />
               </FormGroup>
@@ -2189,7 +2344,7 @@ const PatientForm = () => {
                   name="pincode"
                   value={formData.address.pincode}
                   onChange={handleChange}
-                  disabled={isExistingPatient || isB2BEnabled}
+                  disabled={shouldDisableField() || isB2BEnabled}
                   required={isHomeCollectionEnabled}
                   maxLength={6}
                 />
@@ -2208,7 +2363,7 @@ const PatientForm = () => {
                   onChange={handleChange}
                   placeholder="Enter patient medical history, previous conditions, allergies, etc."
                   rows={4}
-                  disabled={isExistingPatient}
+                  disabled={shouldDisableField()}
                 />
               </FormGroup>
             </Row>
@@ -2250,10 +2405,10 @@ const PatientForm = () => {
                   <SpinnerIcon />
                   Processing...
                 </>
-              ) : isExistingPatient ? (
+              ) : patientSelectionSource === "search" && isExistingPatient ? (
                 "Create Bill"
               ) : (
-                "Patient Registered Successfully"
+                "Register Patient & Create Bill"
               )}
             </SubmitButton>
           </ButtonContainer>

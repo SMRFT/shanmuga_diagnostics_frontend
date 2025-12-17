@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
 import {
   Save,
@@ -9,6 +8,7 @@ import {
   Phone,
   Check,
 } from "lucide-react";
+import apiRequest from "../Auth/apiRequest";
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -378,7 +378,8 @@ const Toast = styled.div`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background-color: var(--success);
+  background-color: ${(props) =>
+    props.type === "error" ? "var(--danger)" : "var(--success)"};
   color: white;
   padding: 1rem;
   border-radius: var(--border-radius);
@@ -411,10 +412,11 @@ const Toast = styled.div`
 const B2B = () => {
   const [activeTab, setActiveTab] = useState("general");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
   const [salesPersons, setSalesPersons] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL || "";
+  
   const [formData, setFormData] = useState({
     // General Tab
     clinicalname: "",
@@ -442,22 +444,36 @@ const B2B = () => {
     invoicePeriod: "",
   });
 
-  useEffect(() => {
-    // Fetch sales persons when component mounts
-    const fetchSalesPersons = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get(`${Labbaseurl}registration/`);
-        setSalesPersons(response.data);
-      } catch (error) {
-        console.error("Error fetching sales persons:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Show toast notification
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 4000);
+  };
 
-    fetchSalesPersons();
-  }, []);
+useEffect(() => {
+  const fetchSalesPersons = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}sales_person/`,
+        "GET"
+      );
+
+      console.log("API RESPONSE:", response);
+      setSalesPersons(response.data || []);
+    } catch (error) {
+      console.error("Error fetching sales persons:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchSalesPersons();
+}, []);
+
+
 
   // Tab management object
   const tabConfig = {
@@ -492,52 +508,69 @@ const B2B = () => {
   const tabValidations = {
     general: () => formData.clinicalname.trim() !== "",
     communication: () => true, // No mandatory fields in communication
-    finance: () => formData.b2bType !== "",
+    finance: () => {
+      if (formData.b2bType === "") return false;
+      // If Credit is selected, MOU copy is mandatory
+      if (formData.b2bType === "Credit" && !formData.mouCopy) {
+        return false;
+      }
+      return true;
+    },
   };
 
   // Fetch last referrer code on component mount
-  useEffect(() => {
-    handleGetLastReferrerCode();
-  }, []);
+useEffect(() => {
+  handleGetLastReferrerCode();
+}, []);
 
-  // Hide toast after 4 seconds
-  useEffect(() => {
-    if (showToast) {
-      const timer = setTimeout(() => {
-        setShowToast(false);
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [showToast]);
+const handleGetLastReferrerCode = async () => {
+  try {
+    const response = await apiRequest(
+      `${Labbaseurl}clinical_name/last/`,
+      "GET"
+    );
 
-  const handleGetLastReferrerCode = async () => {
-    try {
-      const response = await axios.get(`${Labbaseurl}clinical_name/last/`);
-      const lastReferrerCode = response.data?.referrerCode || "SD0000";
-      const nextReferrerCode = `SD${String(
-        parseInt(lastReferrerCode.substring(2), 10) + 1
-      ).padStart(4, "0")}`;
+    console.log("API RESPONSE:", response);
 
-      setFormData((prev) => ({
-        ...prev,
-        referrerCode: nextReferrerCode,
-      }));
-    } catch (error) {
-      console.error("Error fetching last referrer code:", error);
-    }
-  };
+    const lastReferrerCode =
+      response?.data?.referrerCode || "SD0000";
 
-  const handleInputChange = (e) => {
-    const { name, value, type, files } = e.target;
+    const numericPart = parseInt(lastReferrerCode.slice(2), 10) + 1;
+
+    const nextReferrerCode = `SD${String(numericPart).padStart(4, "0")}`;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "file" ? files[0] || null : value,
+      referrerCode: nextReferrerCode,
+    }));
+  } catch (error) {
+    console.error("Error fetching last referrer code:", error);
+    showToast("Failed to generate referrer code", "error");
+  }
+};
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate finance tab before submission
+    if (!tabValidations.finance()) {
+      if (formData.b2bType === "Credit" && !formData.mouCopy) {
+        showToast("MOU copy is mandatory for Credit type", "error");
+      } else {
+        showToast("Please complete all required fields", "error");
+      }
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -553,19 +586,15 @@ const B2B = () => {
         }
       });
 
-      // Submit directly to clinical_name endpoint - status will be set automatically
-      const response = await axios.post(
+      // Submit directly to clinical_name endpoint using apiRequest
+      await apiRequest(
         `${Labbaseurl}clinical_name/`,
-        submitFormData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        "POST",
+        submitFormData
       );
 
-      // console.log("Submission successful:", response.data);
-
       // Show success toast
-      setShowToast(true);
+      showToast("B2B details successfully added!");
 
       // Reset form after successful submission
       setFormData({
@@ -594,6 +623,7 @@ const B2B = () => {
       handleGetLastReferrerCode();
     } catch (error) {
       console.error("Error adding clinical name:", error);
+      showToast(error.message || "Error saving B2B details. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -613,7 +643,7 @@ const B2B = () => {
 
     // Validate current tab before moving
     if (!tabValidations[activeTab]()) {
-      alert(`Please complete the ${activeTab} tab requirements`);
+      showToast(`Please complete the ${activeTab} tab requirements`, "error");
       return;
     }
 
@@ -654,7 +684,7 @@ const B2B = () => {
                     key={tab}
                     active={activeTab === tab}
                     onClick={() => handleTabSwitch(tab)}
-                    type="button" // Add type="button" to prevent form submission
+                    type="button"
                   >
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
                   </Tab>
@@ -721,18 +751,19 @@ const B2B = () => {
                       {isLoading ? (
                         <p>Loading sales persons...</p>
                       ) : (
-                        <Select
-                          name="salesMapping"
-                          value={formData.salesMapping}
-                          onChange={handleInputChange}
-                        >
-                          <option value="">Select Sales Person</option>
-                          {salesPersons.map((person) => (
-                            <option key={person._id} value={person.name}>
-                              {person.name}
-                            </option>
-                          ))}
-                        </Select>
+                      <Select
+                        name="salesMapping"
+                        value={formData.salesMapping}
+                        onChange={handleInputChange}
+                      >
+                        <option value="">Select Sales Person</option>
+
+                        {salesPersons.map((name, index) => (
+                          <option key={index} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </Select>
                       )}
                     </FormGroup>
                     <FormGroup>
@@ -890,7 +921,7 @@ const B2B = () => {
                   <SectionTitle>Financial Information</SectionTitle>
                   <FormRow>
                     <FormGroup>
-                      <Label>B2B Type</Label>
+                      <Label required>B2B Type</Label>
                       <RadioGroup>
                         <RadioLabel>
                           <RadioInput
@@ -964,12 +995,18 @@ const B2B = () => {
                         </FormGroup>
 
                         <FormGroup>
-                          <Label>MOU Copy</Label>
+                          <Label required>MOU Copy</Label>
                           <Input
                             type="file"
                             name="mouCopy"
                             onChange={handleInputChange}
+                            accept=".pdf,.doc,.docx"
                           />
+                          {formData.mouCopy && (
+                            <span style={{ fontSize: "0.75rem", color: "var(--success)" }}>
+                              Selected: {formData.mouCopy.name}
+                            </span>
+                          )}
                         </FormGroup>
                       </>
                     )}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
+import apiRequest from '../Auth/apiRequest';
 
 // Styled Components
 const Container = styled.div`
@@ -209,29 +210,36 @@ const RefundAndCancellationLog = () => {
     fetchData();
   }, [activeTab]);
   
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Base URL for your Django API
-      let url = `${Labbaseurl}refund_cancellation_logs/`;
-      
-      // Build query parameters
-      const params = {
-        type: activeTab, // Send 'refund' or 'cancellation' as a query parameter
-      };
-      
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
-      
-      const response = await axios.get(url, { params });
-      setData(response.data);
-    } catch (error) {
-      console.error(`Error fetching ${activeTab} data:`, error);
-    } finally {
-      setLoading(false);
+const fetchData = async () => {
+  try {
+    setLoading(true);
+
+    // Build query string manually
+    let url = `${Labbaseurl}refund_cancellation_logs/?type=${encodeURIComponent(activeTab)}`;
+
+    if (startDate) {
+      url += `&start_date=${encodeURIComponent(startDate)}`;
     }
-  };
+    if (endDate) {
+      url += `&end_date=${encodeURIComponent(endDate)}`;
+    }
+
+    const response = await apiRequest(url, "GET");
+
+    if (response.success) {
+      setData(response.data);
+    } else {
+      console.error(response.error);
+      setData([]);
+    }
+  } catch (error) {
+    console.error(`Error fetching ${activeTab} data:`, error);
+    setData([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
   
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);

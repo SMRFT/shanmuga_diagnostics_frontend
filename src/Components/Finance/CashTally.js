@@ -5,6 +5,9 @@ import "react-datepicker/dist/react-datepicker.css"
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
 import styled from "styled-components"
 import { Download, Calendar, DollarSign, FileText, X, CreditCard, Eye } from "lucide-react"
+import { toast, ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import apiRequest from "../Auth/apiRequest"
 
 // Styled Components
 const Container = styled.div`
@@ -528,21 +531,30 @@ const CashTally = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedReport, setSelectedReport] = useState(null)
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
 const fetchReportData = async (start, end) => {
+  if (!start || !end) {
+    toast.error("Please select start date and end date");
+    return;
+  }
+
   setIsLoading(true);
+
   try {
-    const response = await axios.get(`${Labbaseurl}patient_report/`, {
-      params: { start_date: start, end_date: end },
-      headers: {
-        Authorization: localStorage.getItem("access_token") || "",
-        "Branch-Code": localStorage.getItem("selected_branch") || "",
-        "Content-Type": "application/json",
-      },
-    });
-    setReportData(response.data.report || []);
+    const url =
+      `${Labbaseurl}patient_report/?start_date=${start}&end_date=${end}`;
+
+    const response = await apiRequest(url, "GET");
+
+    if (response.success) {
+      setReportData(response.data.report || []);
+    } else {
+      toast.error(response.error);
+      setReportData([]);
+    }
   } catch (error) {
-    console.error("Error fetching report data:", error);
-    setReportData([]); // clear data on error
+    console.error("Error fetching report:", error);
+    toast.error("Failed to fetch report data");
   } finally {
     setIsLoading(false);
   }
