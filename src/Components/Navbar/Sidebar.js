@@ -1317,12 +1317,12 @@ const Sidebar = () => {
                 >
                   Logistics Task Assigning
                 </SubLink>
-                {/* <SubLink
+                <SubLink
                   to="/LogisticsDashboard"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Logistics Dashboard
-                </SubLink> */}
+                </SubLink>
                 <SubLink
                   to="/LogisticMap"
                   onClick={() => setIsSidebarOpen(false)}
