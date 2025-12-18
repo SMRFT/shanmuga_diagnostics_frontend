@@ -672,7 +672,7 @@ const handleSearch = async () => {
   );
 
   const doctors = [
-    { name: "Dr. Prabhu", email: "parthibansmrft@gmail.com" },
+    { name: "Dr. Prabhu", email: "drprabusankar@smrft.org" },
     { name: "Dr. Priya", email: "drpriya@smrft.org" },
     { name: "Dr. Vaishak", email: "coo@smrft.org" },
   ];
