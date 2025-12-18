@@ -1,361 +1,312 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import styled from "styled-components";
 import apiRequest from "../Auth/apiRequest";
-
-// Styled Components
+/* -------------------- Styles -------------------- */
 const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 1400px;
+  margin: auto;
   padding: 2rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+  min-height: 100vh;
 `;
-
-const Header = styled.h1`
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+const Header = styled.div`
   text-align: center;
+  margin-bottom: 2rem;
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 0.5rem 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  p {
+    color: rgba(255,255,255,0.9);
+    font-size: 1rem;
+  }
 `;
-
+const Controls = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+const DateFilters = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  label {
+    color: white;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+`;
+const DateInput = styled.input`
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.875rem;
+  color: #334155;
+  outline: none;
+  transition: all 0.2s;
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+  }
+`;
+const RefreshButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #667EEA;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+`;
 const Card = styled.div`
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
   overflow: hidden;
 `;
-
+const TableWrapper = styled.div`
+  overflow-x: auto;
+`;
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
 `;
-
-const TableHead = styled.thead`
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+const Thead = styled.thead`
+  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
 `;
-
-const TableRow = styled.tr`
-  &:nth-child(even) {
-    background-color: #f8fafc;
-  }
-  
-  &:hover {
-    background-color: #f1f5f9;
-  }
-  
-  border-bottom: 1px solid #e2e8f0;
-`;
-
-const TableHeader = styled.th`
+const Th = styled.th`
   padding: 1rem;
   text-align: left;
+  color: white;
   font-weight: 600;
-  color: #64748b;
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 `;
-
-const TableCell = styled.td`
+const Tbody = styled.tbody`
+  tr {
+    transition: background 0.2s;
+    &:hover {
+      background: #F8FAFC;
+    }
+    &:not(:last-child) {
+      border-bottom: 1px solid #E2E8F0;
+    }
+  }
+`;
+const Td = styled.td`
   padding: 1rem;
   color: #334155;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
 `;
-
-const StatusBadge = styled.span`
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+const Badge = styled.span`
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 500;
-  background-color: ${(props) => 
-    props.$duration ? 
-      (parseFloat(props.$duration.split(':')[0]) < 1 ? '#dcfce7' : 
-       parseFloat(props.$duration.split(':')[0]) < 2 ? '#fef9c3' : '#fee2e2') 
-      : '#f1f5f9'
-  };
-  color: ${(props) => 
-    props.$duration ? 
-      (parseFloat(props.$duration.split(':')[0]) < 1 ? '#166534' : 
-       parseFloat(props.$duration.split(':')[0]) < 2 ? '#854d0e' : '#991b1b') 
-      : '#64748b'
-  };
+  font-weight: 600;
+  display: inline-block;
+  background: ${(p) =>
+    !p.val ? "#E5E7EB" :
+    parseInt(p.val.split(":")[0]) < 1 ? "#DCFCE7" :
+    parseInt(p.val.split(":")[0]) < 2 ? "#FEF9C3" : "#FEE2E2"};
+  color: ${(p) =>
+    !p.val ? "#6B7280" :
+    parseInt(p.val.split(":")[0]) < 1 ? "#166534" :
+    parseInt(p.val.split(":")[0]) < 2 ? "#854D0E" : "#991B1B"};
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 `;
-
-const Button = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0.625rem 1.25rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  
-  &:hover {
-    background-color: #2563eb;
-  }
-`;
-
-const RefreshButton = styled(Button)`
-  margin-right: 1rem;
-`;
-
-const ApplyFilterButton = styled(Button)`
-  background-color: #10b981;
-  
-  &:hover {
-    background-color: #059669;
-  }
-`;
-
-const ActionBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-`;
-
-const FilterGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
-const DateInput = styled.input`
-  padding: 0.625rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #334155;
-  
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
-  }
-`;
-
 const LoadingState = styled.div`
-  padding: 3rem;
+  padding: 4rem 2rem;
   text-align: center;
-  color: #64748b;
-  font-size: 0.9375rem;
+  color: #64748B;
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #E2E8F0;
+    border-top-color: #667EEA;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 `;
-
-const NoDataMessage = styled.div`
-  padding: 3rem;
+const EmptyState = styled.div`
+  padding: 4rem 2rem;
   text-align: center;
-  color: #64748b;
-  font-size: 0.9375rem;
+  color: #64748B;
+  svg {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    opacity: 0.5;
+  }
 `;
-
-const InputLabel = styled.label`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #64748b;
-`;
-
+/* -------------------- Helpers -------------------- */
+const toDateTime = (time, isoDate) => {
+  if (!time || !isoDate) return null;
+  const [t, mer] = time.split(" ");
+  const parts = t.split(":");
+  let h = parseInt(parts[0]);
+  let m = parseInt(parts[1]);
+  let s = parts[2] ? parseInt(parts[2]) : 0;
+  if (mer === "PM" && h !== 12) h += 12;
+  if (mer === "AM" && h === 12) h = 0;
+  const d = new Date(isoDate);
+  d.setHours(h, m, s, 0);
+  return isNaN(d.getTime()) ? null : d;
+};
+const diffTime = (a, b) => {
+  if (!a || !b) return null;
+  const diff = Math.abs(b - a) / 1000;
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = Math.floor(diff % 60);
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+};
+/* -------------------- Component -------------------- */
 const LogisticsTAT = () => {
   const [employeeData, setEmployeeData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isloading, setIsLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-
-  // Function to convert 12-hour format time to Date object
-  const convertToDate = (timeString, date) => {
-  if (!timeString) return null;
-
-  const [time, modifier] = timeString.trim().split(" ");
-
-  // split by ":" but seconds may not exist
-  let parts = time.split(":");
-
-  let hours = parseInt(parts[0], 10);
-  let minutes = parseInt(parts[1], 10);
-  let seconds = parts[2] ? parseInt(parts[2], 10) : 0; // default seconds = 0
-
-  if (modifier === "PM" && hours !== 12) hours += 12;
-  if (modifier === "AM" && hours === 12) hours = 0;
-
-  const dt = new Date(`${date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
-
-  return isNaN(dt.getTime()) ? null : dt;
-};
-
-
-  // Function to calculate time difference and format it as hh:mm:ss
-  const getTimeDifference = (start, end) => {
-    if (!start || !end) return null;
-    let diff = Math.abs(end - start) / 1000;
-    let hours = Math.floor(diff / 3600);
-    let minutes = Math.floor((diff % 3600) / 60);
-    let seconds = Math.floor(diff % 60);
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  };
-
-  // Set today's date as default end date when component mounts
   useEffect(() => {
-  const today = new Date();
-  const formattedToday = today.toISOString().split("T")[0];
-
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(today.getDate() - 7);
-  const formattedSevenDaysAgo = sevenDaysAgo.toISOString().split("T")[0];
-
-  setStartDate(formattedSevenDaysAgo);
-  setEndDate(formattedToday);
-}, []);
-
-useEffect(() => {
-  if (startDate && endDate) {
-    fetchLogisticData();
-  }
-}, [startDate, endDate]);
-
-  // Fetch the logistic data
-  const fetchLogisticData = async () => {
-  setIsLoading(true);
-
-  try {
-    const params = {};
-
-    if (startDate) params.start_date = startDate;
-    if (endDate) params.end_date = endDate;
-
-    const response = await apiRequest({
-      method: "GET",
-      url: `${Labbaseurl}get_logistic_task/`,
-      params,
-      showError: true,
-    });
-
-    setEmployeeData(response); // apiRequest returns data directly
-  } catch (error) {
-    console.error("Error fetching logistic data:", error);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
-  // Initial data load
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchLogisticData();
-    }
+    const today = new Date();
+    const from = new Date();
+    from.setDate(today.getDate() - 7);
+    setStartDate(from.toISOString().split("T")[0]);
+    setEndDate(today.toISOString().split("T")[0]);
   }, []);
-
-  // Apply date filters
-  const handleApplyFilters = () => {
-    fetchLogisticData();
+  const fetchLogisticData = async () => {
+    setIsLoading(true);
+    try {
+      const url =
+        `${Labbaseurl}get_logistic_task/` +
+        `?start_date=${encodeURIComponent(startDate)}` +
+        `&end_date=${encodeURIComponent(endDate)}`;
+      const response = await apiRequest(url, "GET");
+      // :white_check_mark: NORMALIZE RESPONSE (MANDATORY)
+      const list = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+      setEmployeeData(list);
+    } catch (error) {
+      console.error("Error fetching logistic data:", error);
+      setEmployeeData([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
+  useEffect(() => {
+    if (startDate && endDate) fetchLogisticData();
+  }, [startDate, endDate]);
   return (
     <Container>
-      <Header>Logistics Turnaround Time</Header>
-      
-      <ActionBar>
-        <div>
-          <RefreshButton onClick={fetchLogisticData}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4m-4 4a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
-            </svg>
-            Refresh Data
-          </RefreshButton>
-        </div>
-        
-        <FilterGroup>
-          <InputLabel htmlFor="start-date">Start Date:</InputLabel>
-          <DateInput 
-            id="start-date"
-            type="date" 
-            value={startDate} 
-            onChange={(e) => setStartDate(e.target.value)}
+      <Header>
+        <h1>Logistics Turnaround Time</h1>
+        <p>Track and monitor logistics performance metrics</p>
+      </Header>
+      <Controls>
+        <RefreshButton onClick={fetchLogisticData}>
+          :arrows_counterclockwise: Refresh Data
+        </RefreshButton>
+        <DateFilters>
+          <label>From</label>
+          <DateInput
+            type="date"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
           />
-          
-          <InputLabel htmlFor="end-date">End Date:</InputLabel>
-          <DateInput 
-            id="end-date"
-            type="date" 
-            value={endDate} 
-            onChange={(e) => setEndDate(e.target.value)}
+          <label>To</label>
+          <DateInput
+            type="date"
+            value={endDate}
+            onChange={e => setEndDate(e.target.value)}
           />
-          
-          <ApplyFilterButton onClick={handleApplyFilters}>
-            Apply Filters
-          </ApplyFilterButton>
-        </FilterGroup>
-      </ActionBar>
-      
+        </DateFilters>
+      </Controls>
       <Card>
-        {isLoading ? (
-          <LoadingState>Loading data...</LoadingState>
+        {isloading ? (
+          <LoadingState>
+            <div className="spinner"></div>
+            <p>Loading logistics data...</p>
+          </LoadingState>
         ) : employeeData.length === 0 ? (
-          <NoDataMessage>No logistics data available for the selected date range</NoDataMessage>
+          <EmptyState>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p>No data found for the selected date range</p>
+          </EmptyState>
         ) : (
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeader>Lab Name</TableHeader>
-                <TableHeader>Date</TableHeader>
-                <TableHeader>Order Time</TableHeader>
-                <TableHeader>Accepted Time</TableHeader>
-                <TableHeader>Picked Up Time</TableHeader>
-                <TableHeader>Order - Accepted</TableHeader>
-                <TableHeader>Accepted - Picked Up</TableHeader>
-                <TableHeader>Order - Picked Up</TableHeader>
-              </TableRow>
-            </TableHead>
-            <tbody>
-              {employeeData.map((item, index) => {
-                const sampleOrderTime = convertToDate(item.sampleordertime, item.date);
-                const sampleAcceptedTime = convertToDate(item.sampleacceptedtime, item.date);
-                const samplePickedUpTime = convertToDate(item.samplepickeduptime, item.date);
-                
-                const orderToAccepted = getTimeDifference(sampleOrderTime, sampleAcceptedTime);
-                const acceptedToPickedUp = getTimeDifference(sampleAcceptedTime, samplePickedUpTime);
-                const orderToPickedUp = getTimeDifference(sampleOrderTime, samplePickedUpTime);
-                
-                return (
-                  <TableRow key={index}>
-                    <TableCell>{item.lab_name}</TableCell>
-                    <TableCell>{item.date}</TableCell>
-                    <TableCell>{item.sampleordertime || "N/A"}</TableCell>
-                    <TableCell>{item.sampleacceptedtime || "N/A"}</TableCell>
-                    <TableCell>{item.samplepickeduptime || "N/A"}</TableCell>
-                    <TableCell>
-                      {orderToAccepted ? (
-                        <StatusBadge $duration={orderToAccepted}>{orderToAccepted}</StatusBadge>
-                      ) : "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {acceptedToPickedUp ? (
-                        <StatusBadge $duration={acceptedToPickedUp}>{acceptedToPickedUp}</StatusBadge>
-                      ) : "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {orderToPickedUp ? (
-                        <StatusBadge $duration={orderToPickedUp}>{orderToPickedUp}</StatusBadge>
-                      ) : "N/A"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </tbody>
-          </Table>
+          <TableWrapper>
+            <Table>
+              <Thead>
+                <tr>
+                  <Th>Lab</Th>
+                  <Th>Date</Th>
+                  <Th>Order</Th>
+                  <Th>Accepted</Th>
+                  <Th>Picked</Th>
+                  <Th>O → A</Th>
+                  <Th>A → P</Th>
+                  <Th>O → P</Th>
+                </tr>
+              </Thead>
+              <Tbody>
+                {employeeData.map((item, i) => {
+                  const o = toDateTime(item.sampleordertime, item.date);
+                  const a = toDateTime(item.sampleacceptedtime, item.date);
+                  const p = toDateTime(item.samplepickeduptime, item.date);
+                  return (
+                    <tr key={i}>
+                      <Td><strong>{item.lab_name}</strong></Td>
+                      <Td>{new Date(item.date).toISOString().split("T")[0]}</Td>
+                      <Td>{item.sampleordertime || "—"}</Td>
+                      <Td>{item.sampleacceptedtime || "—"}</Td>
+                      <Td>{item.samplepickeduptime || "—"}</Td>
+                      <Td><Badge val={diffTime(o,a)}>{diffTime(o,a) || "N/A"}</Badge></Td>
+                      <Td><Badge val={diffTime(a,p)}>{diffTime(a,p) || "N/A"}</Badge></Td>
+                      <Td><Badge val={diffTime(o,p)}>{diffTime(o,p) || "N/A"}</Badge></Td>
+                    </tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          </TableWrapper>
         )}
       </Card>
     </Container>
   );
 };
-
 export default LogisticsTAT;

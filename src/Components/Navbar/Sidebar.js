@@ -1408,7 +1408,7 @@ const Sidebar = () => {
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                Test Edit
+                Report Dashboard
               </SidebarNavLink>
 
               <SidebarNavLink
@@ -1418,7 +1418,7 @@ const Sidebar = () => {
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                Test Count
+                Test Edit
               </SidebarNavLink>
 
               <SidebarNavLink
@@ -1428,7 +1428,7 @@ const Sidebar = () => {
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                Report Dashboard
+                Test Count
               </SidebarNavLink>
 
               <DropdownHeader
