@@ -350,7 +350,7 @@ const Sidebar = () => {
                 </SubLink>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
                   Bill Estimate
-                </SubLink>       
+                </SubLink>
               </DropdownContent>
 
               <DropdownHeader
@@ -516,7 +516,7 @@ const Sidebar = () => {
                   Bill Estimate
                 </SubLink>
               </DropdownContent>
-              
+
               <SidebarNavLink
                 to="/PatientTAT"
                 onClick={() => setIsSidebarOpen(false)}
@@ -675,7 +675,7 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Registration
-                </SubLink>      
+                </SubLink>
               </DropdownContent>
 
               <DropdownHeader
@@ -880,7 +880,7 @@ const Sidebar = () => {
                 </SubLink>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
                   Bill Estimate
-                </SubLink>       
+                </SubLink>
               </DropdownContent>
 
               <DropdownHeader
@@ -1204,7 +1204,7 @@ const Sidebar = () => {
                 </SubLink>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
                   Bill Estimate
-                </SubLink>       
+                </SubLink>
               </DropdownContent>
 
               <DropdownHeader
@@ -1402,7 +1402,8 @@ const Sidebar = () => {
               <SectionDivider />
 
               <SidebarNavLink
-                to="/PatientOverview"
+                to="/TestEdit"
+
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
@@ -1412,7 +1413,7 @@ const Sidebar = () => {
               </SidebarNavLink>
 
               <SidebarNavLink
-                to="/TestEdit"
+                to="/Testcount"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
@@ -1422,7 +1423,8 @@ const Sidebar = () => {
               </SidebarNavLink>
 
               <SidebarNavLink
-                to="/Testcount"
+                to="/PatientOverview"
+
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
@@ -1465,7 +1467,7 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              
+
             </>
           )}
 
@@ -1532,7 +1534,7 @@ const Sidebar = () => {
             </>
           )}
 
-           {role === "HR" && (
+          {role === "HR" && (
             <>
               <SidebarNavLink
                 to="/LiveTrackingDashboard"
