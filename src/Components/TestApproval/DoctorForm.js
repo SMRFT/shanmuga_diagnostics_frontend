@@ -7,6 +7,7 @@ import {
   RotateCcw,
   FileText,
   ChevronLeft,
+  FileTextIcon,
 } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
@@ -102,6 +103,39 @@ const InfoItem = styled.div`
     font-weight: 600;
     margin-right: 0.5rem;
   }
+`;
+
+// Patient History Card - NEW
+const PatientHistoryCard = styled.div`
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--primary);
+`;
+
+const HistoryTitle = styled.h3`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+`;
+
+const HistoryContent = styled.p`
+  color: var(--dark);
+  line-height: 1.6;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+`;
+
+const NoHistory = styled.p`
+  color: var(--gray);
+  font-style: italic;
+  font-size: 0.875rem;
 `;
 
 // Table styles
@@ -275,12 +309,6 @@ const RerunButton = styled(Button)`
   }
 `;
 
-const ButtonContainer = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-`;
-
 // Status indicators
 const blink = keyframes`
   0%, 100% { opacity: 1; }
@@ -336,6 +364,7 @@ const BadgeContainer = styled.div`
   gap: 0.25rem;
   margin-top: 0.25rem;
 `;
+
 const SubTitleRow = styled.tr`
   background-color: rgba(67, 97, 238, 0.08) !important;
 
@@ -358,6 +387,7 @@ function DoctorForm() {
   const [testValues, setTestValues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [patientHistory, setPatientHistory] = useState(""); // NEW
   const approved_by = localStorage.getItem("name");
   const location = useLocation();
   const navigate = useNavigate();
@@ -369,12 +399,29 @@ function DoctorForm() {
   const patientId = queryParams.get("patient_id");
 
   useEffect(() => {
-    if (selectedDate && patientId) {
+    // Get patient history from navigation state
+    if (location.state?.patientHistory) {
+      setPatientHistory(location.state.patientHistory);
+    }
+    
+    // If we have patient data passed from PatientList, use it directly
+    if (location.state?.skipFetch && location.state?.patientData) {
+      const patientData = location.state.patientData;
+      const processedData = [{
+        ...patientData,
+        testdetails: typeof patientData.testdetails === "string"
+          ? JSON.parse(patientData.testdetails)
+          : patientData.testdetails,
+      }];
+      setTestValues(processedData);
+      setLoading(false);
+    } else if (selectedDate && patientId) {
+      // Otherwise fetch from API
       fetchTestData(selectedDate, patientId);
     } else {
       setLoading(false);
     }
-  }, [selectedDate, patientId]);
+  }, [location.state, selectedDate, patientId]);
 
   const fetchTestData = async (date, patientId) => {
     setLoading(true);
@@ -392,7 +439,6 @@ function DoctorForm() {
         throw new Error(response.error || "Failed to fetch test data");
       }
 
-      // DON'T group - keep separate records to maintain correct indices
       const processedData = response.data.map((item) => ({
         ...item,
         testdetails: typeof item.testdetails === "string"
@@ -401,6 +447,12 @@ function DoctorForm() {
       }));
 
       setTestValues(processedData);
+      
+      // Set patient history from API response if available
+      if (processedData.length > 0 && processedData[0].patient_history) {
+        setPatientHistory(processedData[0].patient_history);
+      }
+      
       setError(null);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -411,11 +463,6 @@ function DoctorForm() {
   };
 
   const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
-    console.log("Requesting approval for:", {
-      recordIndex,
-      testIndex,
-      approve_by,
-    });
     try {
       const test = testValues[recordIndex];
       const testDetail = test?.testdetails[testIndex];
@@ -631,7 +678,6 @@ function DoctorForm() {
             </TestHeaderRow>
           );
 
-          // Group parameters by sub_title
           const groupedParams = {};
           detail.parameters.forEach((param) => {
             const subtitle = param.sub_title || "Other";
@@ -641,10 +687,8 @@ function DoctorForm() {
             groupedParams[subtitle].push(param);
           });
 
-          // Render grouped parameters
           let paramCounter = 0;
           Object.entries(groupedParams).forEach(([subtitle, params]) => {
-            // Add subtitle row if subtitle exists
             if (subtitle && subtitle !== "Other" && subtitle !== "") {
               rows.push(
                 <SubTitleRow key={`subtitle-${recordIndex}-${detailIndex}-${subtitle}`}>
@@ -657,7 +701,6 @@ function DoctorForm() {
               );
             }
 
-            // Add parameter rows
             params.forEach((parameter, paramIndex) => {
               rows.push(
                 <ParameterRow
@@ -748,6 +791,7 @@ function DoctorForm() {
 
     return rows;
   };
+
   if (loading) {
     return (
       <Container>
@@ -798,6 +842,27 @@ function DoctorForm() {
             </>
           )}
         </PatientInfo>
+      )}
+
+      {/* Patient History Section - NEW */}
+      {patientHistory && (
+        <PatientHistoryCard>
+          <HistoryTitle>
+            <FileTextIcon size={18} />
+            Patient History
+          </HistoryTitle>
+          <HistoryContent>{patientHistory}</HistoryContent>
+        </PatientHistoryCard>
+      )}
+
+      {!patientHistory && testValues.length > 0 && (
+        <PatientHistoryCard>
+          <HistoryTitle>
+            <FileTextIcon size={18} />
+            Patient History
+          </HistoryTitle>
+          <NoHistory>No patient history available</NoHistory>
+        </PatientHistoryCard>
       )}
 
       <TableContainer>

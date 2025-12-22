@@ -31,6 +31,12 @@ const GlobalStyle = createGlobalStyle`
     padding: 0;
     box-sizing: border-box;
   }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
 `;
 
 const fadeIn = keyframes`
@@ -47,6 +53,7 @@ const fadeIn = keyframes`
 const Container = styled.div`
   min-height: 100vh;
   padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -62,7 +69,7 @@ const MainContent = styled.div`
 const Header = styled.div`
   text-align: center;
   margin-bottom: 3rem;
-  color: black;
+  color: white;
 
   h1 {
     font-size: 3rem;
@@ -793,7 +800,7 @@ const RemarkModalContent = styled(ModalContent)`
   max-width: 500px;
 `;
 
-const FranchiseBatchApproval = () => {
+const CorporateBatchApproval = () => {
   const [batches, setBatches] = useState([]);
   const [filteredBatches, setFilteredBatches] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -814,9 +821,10 @@ const FranchiseBatchApproval = () => {
   const [processingBatch, setProcessingBatch] = useState(null);
   const [rejectionRemark, setRejectionRemark] = useState("");
   const [currentAction, setCurrentAction] = useState(null);
-  const navigate = useNavigate();
   const [selectAllReceived, setSelectAllReceived] = useState(false);
 const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
+
+  const navigate = useNavigate();
   const storedName = localStorage.getItem("name");
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -846,7 +854,7 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
       if (fromDate) params.append("from_date", fromDate);
       if (toDate) params.append("to_date", toDate);
 
-      const url = `${Labbaseurl}franchise-batches/?${params.toString()}`;
+      const url = `${Labbaseurl}corporate-batches/?${params.toString()}`;
       const result = await apiRequest(url, "GET");
 
       if (result.success) {
@@ -875,7 +883,7 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
     console.log('Fetching sample details for batch:', batchNumber);
     
     const result = await apiRequest(
-      `${Labbaseurl}get_franchise_Transferred/${batchNumber}/`,
+      `${Labbaseurl}get_corporate_Transferred/${batchNumber}/`,
       "GET"
     );
 
@@ -956,7 +964,7 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
 
     try {
       const response = await apiRequest(
-        `${Labbaseurl}update_franchise_sample/${sample.barcode}/`,
+        `${Labbaseurl}update_corporate_sample/${sample.barcode}/`,
         "PUT",
         {
           updates: [
@@ -1030,7 +1038,7 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
     setFilteredBatches(filtered);
   }, [searchTerm, batches]);
 
-  const handleReceive = async (batchNumber) => {
+ const handleReceive = async (batchNumber) => {
   setCurrentAction({ type: "receive", batch: batchNumber });
   setProcessingBatch(batchNumber);
   setError("");
@@ -1038,7 +1046,7 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
 
   try {
     const result = await apiRequest(
-      `${Labbaseurl}franchise-receive/${batchNumber}/`,
+      `${Labbaseurl}corporate-receive/${batchNumber}/`,
       "PATCH",
       {
         received: true,
@@ -1094,32 +1102,38 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
     setCurrentAction(null);
   }
 };
+
+// 3. New function for bulk status update
 const handleSelectAllReceived = () => {
   const newSelectAll = !selectAllReceived;
   setSelectAllReceived(newSelectAll);
   
   if (sampleData && sampleData.length > 0) {
-    if (newSelectAll) {
-      // Set all tests to "Received"
-      const newStatusChanges = {};
-      sampleData.forEach((sample, sampleIndex) => {
-        sample.testdetails.forEach((detail, testIndex) => {
-          const key = `${sampleIndex}-${testIndex}`;
+    const newStatusChanges = {};
+    
+    sampleData.forEach((sample, sampleIndex) => {
+      sample.testdetails.forEach((detail, testIndex) => {
+        const key = `${sampleIndex}-${testIndex}`;
+        if (newSelectAll) {
           newStatusChanges[key] = "Received";
-        });
+        } else {
+          // Remove from statusChanges if it was set to Received
+          if (statusChanges[key] === "Received") {
+            delete newStatusChanges[key];
+          }
+        }
       });
+    });
+    
+    if (newSelectAll) {
       setStatusChanges(prev => ({ ...prev, ...newStatusChanges }));
     } else {
-      // Remove all "Received" statuses that were set by the checkbox
       setStatusChanges(prev => {
         const filtered = { ...prev };
-        sampleData.forEach((sample, sampleIndex) => {
-          sample.testdetails.forEach((detail, testIndex) => {
-            const key = `${sampleIndex}-${testIndex}`;
-            if (filtered[key] === "Received") {
-              delete filtered[key];
-            }
-          });
+        Object.keys(newStatusChanges).forEach(key => {
+          if (filtered[key] === "Received") {
+            delete filtered[key];
+          }
         });
         return filtered;
       });
@@ -1127,6 +1141,7 @@ const handleSelectAllReceived = () => {
   }
 };
 
+// 4. New bulk update function
 const bulkUpdateAllTests = async () => {
   setBulkUpdateInProgress(true);
   setError("");
@@ -1171,7 +1186,7 @@ const bulkUpdateAllTests = async () => {
     }
 
     const result = await apiRequest(
-      `${Labbaseurl}update_franchise_sample/${selectedBatch.batch_number}/`,
+      `${Labbaseurl}update_corporate_sample/${selectedBatch.batch_number}/`,
       "PUT",
       {
         bulk_updates: bulkUpdates
@@ -1243,7 +1258,7 @@ const bulkUpdateAllTests = async () => {
 
     try {
       const result = await apiRequest(
-        `${Labbaseurl}franchise-receive/${batchNumber}/`,
+        `${Labbaseurl}corporate-receive/${batchNumber}/`,
         "PATCH",
         {
           received: false,
@@ -1385,8 +1400,8 @@ const bulkUpdateAllTests = async () => {
       <Container>
         <MainContent>
           <Header>
-            <h1>Franchise Batch Approval</h1>
-            <p>Manage and approve franchise batch shipments with ease</p>
+            <h1>Corporate Healthcare Batch Approval</h1>
+            <p>Manage and approve Corporate Healthcare batch shipments with ease</p>
           </Header>
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -1401,7 +1416,7 @@ const bulkUpdateAllTests = async () => {
                 </InputIcon>
                 <StyledInput
                   type="text"
-                  placeholder="Search by batch, franchise, barcode..."
+                  placeholder="Search by batch, Company, barcode..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   hasIcon
@@ -1445,7 +1460,7 @@ const bulkUpdateAllTests = async () => {
               <TableHeader>
                 <tr>
                   <th>Batch Information</th>
-                  <th>Franchise</th>
+                  <th>Company</th>
                   <th>Shipment Details</th>
                   <th>Specimen Count</th>
                   <th>Created</th>
@@ -1491,7 +1506,7 @@ const bulkUpdateAllTests = async () => {
                                 Batch #{batch.batch_number}
                               </div>
                               <div className="franchise-id">
-                                Franchise: {batch.franchise_id}
+                                Company: {batch.company_id}
                               </div>
                               <div className="barcode-count">
                                 <FileText size={12} />
@@ -1596,7 +1611,8 @@ const bulkUpdateAllTests = async () => {
                             >
                               <Eye size={16} />
                               View Details
-                            </ActionButton>                           
+                            </ActionButton>
+                            
                           </ActionButtonGroup>
                         </td>
                       </tr>
@@ -1645,9 +1661,9 @@ const bulkUpdateAllTests = async () => {
                         </div>
                       </DetailItem>
                       <DetailItem>
-                        <div className="label">Franchise ID</div>
+                        <div className="label">Company ID</div>
                         <div className="value">
-                          {selectedBatch.franchise_id}
+                          {selectedBatch.company_id}
                         </div>
                       </DetailItem>
                       <DetailItem>
@@ -1687,26 +1703,7 @@ const bulkUpdateAllTests = async () => {
                     )}
                   </DetailSection>
 
-                  <DetailSection>
-                    <h3>
-                      <MapPin size={20} />
-                      Shipment Details
-                    </h3>
-                    <DetailGrid>
-                      <DetailItem>
-                        <div className="label">From</div>
-                        <div className="value">
-                          {selectedBatch.shipment_from}
-                        </div>
-                      </DetailItem>
-                      <DetailItem>
-                        <div className="label">To</div>
-                        <div className="value">{selectedBatch.shipment_to}</div>
-                      </DetailItem>
-                    </DetailGrid>
-                  </DetailSection>
-
-                  <DetailSection>
+                                   <DetailSection>
                     <h3>
                       <TestTube size={20} />
                       Specimen Count
@@ -1775,7 +1772,7 @@ const bulkUpdateAllTests = async () => {
           )}
 
           {/* Sample Details Modal */}
-{showSampleDetails && selectedBatch && (
+         {showSampleDetails && selectedBatch && (
   <Modal>
     <ModalContent>
       <ModalHeader>
@@ -1853,158 +1850,155 @@ const bulkUpdateAllTests = async () => {
               </div>
             </div>
             
-            {sampleData.map((sample, sampleIndex) => {
-              console.log('Rendering sample:', sample);
-              return (
-                <div key={`sample-${sampleIndex}-${sample.barcode || sampleIndex}`} style={{ marginBottom: "3rem" }}>
-                  <PatientInfoCard>
-                    <PatientInfoItem>
-                      <User size={16} />
-                      <PatientInfoLabel>Patient:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.patientname || 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Tag size={16} />
-                      <PatientInfoLabel>ID:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.patient_id || 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Calendar size={16} />
-                      <PatientInfoLabel>Date:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.date ? new Date(sample.date).toLocaleDateString("en-GB") : 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Tag size={16} />
-                      <PatientInfoLabel>Barcode:</PatientInfoLabel>
-                      <PatientInfoValue>{sample.barcode || 'N/A'}</PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <User size={16} />
-                      <PatientInfoLabel>Age:</PatientInfoLabel>
-                      <PatientInfoValue>{sample.age || 'N/A'}</PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Tag size={16} />
-                      <PatientInfoLabel>From:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.locationId || 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                  </PatientInfoCard>
+            {sampleData.map((sample, sampleIndex) => (
+              <div key={`sample-${sampleIndex}-${sample.barcode || sampleIndex}`} style={{ marginBottom: "3rem" }}>
+                <PatientInfoCard>
+                  <PatientInfoItem>
+                    <User size={16} />
+                    <PatientInfoLabel>Employee:</PatientInfoLabel>
+                    <PatientInfoValue>
+                      {sample.employee_name || 'N/A'}
+                    </PatientInfoValue>
+                  </PatientInfoItem>
+                  <PatientInfoItem>
+                    <Tag size={16} />
+                    <PatientInfoLabel>ID:</PatientInfoLabel>
+                    <PatientInfoValue>
+                      {sample.employee_id || 'N/A'}
+                    </PatientInfoValue>
+                  </PatientInfoItem>
+                  <PatientInfoItem>
+                    <Calendar size={16} />
+                    <PatientInfoLabel>Date:</PatientInfoLabel>
+                    <PatientInfoValue>
+                      {sample.date ? new Date(sample.date).toLocaleDateString("en-GB") : 'N/A'}
+                    </PatientInfoValue>
+                  </PatientInfoItem>
+                  <PatientInfoItem>
+                    <Tag size={16} />
+                    <PatientInfoLabel>Barcode:</PatientInfoLabel>
+                    <PatientInfoValue>{sample.barcode || 'N/A'}</PatientInfoValue>
+                  </PatientInfoItem>
+                  <PatientInfoItem>
+                    <User size={16} />
+                    <PatientInfoLabel>Age:</PatientInfoLabel>
+                    <PatientInfoValue>{sample.age || 'N/A'}</PatientInfoValue>
+                  </PatientInfoItem>
+                  <PatientInfoItem>
+                    <Tag size={16} />
+                    <PatientInfoLabel>From:</PatientInfoLabel>
+                    <PatientInfoValue>
+                      {sample.company_id || 'N/A'}
+                    </PatientInfoValue>
+                  </PatientInfoItem>
+                </PatientInfoCard>
 
-                  {sample.testdetails && sample.testdetails.length > 0 ? (
-                    <TableContainer>
-                      <Table>
-                        <TableHeader>
-                          <tr>
-                            <th>Test Name</th>
-                            <th>Container Type</th>
-                            <th>Department</th>
-                            <th>Current Status</th>
-                            <th>Update Status</th>
-                            <th>Sample Collector</th>
-                            <th>Reason for Rejection</th>
-                          </tr>
-                        </TableHeader>
-                        <TableBody>
-                          {sample.testdetails.map((detail, testIndex) => {
-                            const key = `${sampleIndex}-${testIndex}`;
-                            const isStatusRejected = statusChanges[key] === "Rejected";
-                            const isTestSaved = savedTests[key];
-                            
-                            return (
-                              <tr key={`test-${sampleIndex}-${testIndex}-${detail.test_id || testIndex}`}>
-                                <td style={{ fontWeight: '600' }}>
-                                  {detail.testname || 'N/A'}
-                                </td>
-                                <td>{detail.container || 'N/A'}</td>
-                                <td>{detail.department || 'N/A'}</td>
-                                <td>
-                                  {getSampleStatusBadge(detail.samplestatus || 'Unknown')}
-                                </td>
-                                <td>
-                                  <Select
-                                    value={statusChanges[key] || ""}
+                {sample.testdetails && sample.testdetails.length > 0 ? (
+                  <TableContainer>
+                    <Table>
+                      <TableHeader>
+                        <tr>
+                          <th>Test Name</th>
+                          <th>Container Type</th>
+                          <th>Department</th>
+                          <th>Current Status</th>
+                          <th>Update Status</th>
+                          <th>Sample Collector</th>
+                          <th>Reason for Rejection</th>
+                        </tr>
+                      </TableHeader>
+                      <TableBody>
+                        {sample.testdetails.map((detail, testIndex) => {
+                          const key = `${sampleIndex}-${testIndex}`;
+                          const isStatusRejected = statusChanges[key] === "Rejected";
+                          const isTestSaved = savedTests[key];
+                          
+                          return (
+                            <tr key={`test-${sampleIndex}-${testIndex}-${detail.test_id || testIndex}`}>
+                              <td style={{ fontWeight: '600' }}>
+                                {detail.testname || 'N/A'}
+                              </td>
+                              <td>{detail.container || 'N/A'}</td>
+                              <td>{detail.department || 'N/A'}</td>
+                              <td>
+                                {getSampleStatusBadge(detail.samplestatus || 'Unknown')}
+                              </td>
+                              <td>
+                                <Select
+                                  value={statusChanges[key] || ""}
+                                  onChange={(e) =>
+                                    handleStatusChange(
+                                      sampleIndex,
+                                      testIndex,
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={isTestSaved || bulkUpdateInProgress}
+                                  style={{
+                                    backgroundColor: isTestSaved ? '#f3f4f6' : 'white',
+                                    cursor: isTestSaved ? 'not-allowed' : 'pointer'
+                                  }}
+                                >
+                                  <option value="">Select New Status</option>
+                                  <option value="Received">Received</option>
+                                  <option value="Rejected">Rejected</option>
+                                  <option value="Outsource">Outsource</option>
+                                </Select>
+                              </td>
+                              <td>{detail.samplecollector || 'N/A'}</td>
+                              <td>
+                                {isStatusRejected && !isTestSaved && (
+                                  <TextArea
+                                    value={remarks[key] || ""}
                                     onChange={(e) =>
-                                      handleStatusChange(
+                                      handleRemarksChange(
                                         sampleIndex,
                                         testIndex,
                                         e.target.value
                                       )
                                     }
-                                    disabled={isTestSaved || bulkUpdateInProgress}
+                                    placeholder="Enter rejection reason..."
+                                    style={{ minHeight: '60px' }}
+                                  />
+                                )}
+                                {detail.remarks && (
+                                  <div
                                     style={{
-                                      backgroundColor: isTestSaved ? '#f3f4f6' : 'white',
-                                      cursor: isTestSaved ? 'not-allowed' : 'pointer'
+                                      fontSize: "0.8rem",
+                                      color: "#dc2626",
+                                      marginTop: "0.25rem",
+                                      fontStyle: "italic",
+                                      padding: "0.5rem",
+                                      backgroundColor: "#fef2f2",
+                                      borderRadius: "4px",
+                                      border: "1px solid #fecaca"
                                     }}
                                   >
-                                    <option value="">Select New Status</option>
-                                    <option value="Received">Received</option>
-                                    <option value="Rejected">Rejected</option>
-                                    <option value="Outsource">Outsource</option>
-                                  </Select>
-                                </td>
-                                <td>{detail.samplecollector || 'N/A'}</td>
-                                <td>
-                                  {isStatusRejected && !isTestSaved && (
-                                    <TextArea
-                                      value={remarks[key] || ""}
-                                      onChange={(e) =>
-                                        handleRemarksChange(
-                                          sampleIndex,
-                                          testIndex,
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="Enter rejection reason..."
-                                      style={{ minHeight: '60px' }}
-                                    />
-                                  )}
-                                  {detail.remarks && (
-                                    <div
-                                      style={{
-                                        fontSize: "0.8rem",
-                                        color: "#dc2626",
-                                        marginTop: "0.25rem",
-                                        fontStyle: "italic",
-                                        padding: "0.5rem",
-                                        backgroundColor: "#fef2f2",
-                                        borderRadius: "4px",
-                                        border: "1px solid #fecaca"
-                                      }}
-                                    >
-                                      <strong>Previous remarks:</strong> {detail.remarks}
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  ) : (
-                    <div style={{ 
-                      padding: '2rem', 
-                      textAlign: 'center', 
-                      color: '#6b7280',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '12px',
-                      border: '1px solid #e5e7eb'
-                    }}>
-                      <TestTube size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                      <div>No test details found for this sample</div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                                    <strong>Previous remarks:</strong> {detail.remarks}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                ) : (
+                  <div style={{ 
+                    padding: '2rem', 
+                    textAlign: 'center', 
+                    color: '#6b7280',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <TestTube size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
+                    <div>No test details found for this sample</div>
+                  </div>
+                )}
+              </div>
+            ))}
           </>
         ) : (
           <EmptyState>
@@ -2088,4 +2082,4 @@ const bulkUpdateAllTests = async () => {
   );
 };
 
-export default FranchiseBatchApproval;
+export default CorporateBatchApproval;
