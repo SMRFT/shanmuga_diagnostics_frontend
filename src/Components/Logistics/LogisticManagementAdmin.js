@@ -1,11 +1,9 @@
-"use client"
-
 import { useState, useEffect, useRef } from "react"
 import axios from "axios"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import styled from "styled-components"
-import apiRequest from "../Auth/apiRequest"
+import apiRequest from "../Auth/apiRequest";
 import { APIProvider, Map, Marker, InfoWindow, useMap } from "@vis.gl/react-google-maps"
 import {
   Calendar,
@@ -25,6 +23,7 @@ import {
   Timer,
   AlertCircle,
 } from "lucide-react"
+
 
 // Styled Components
 const PageContainer = styled.div`
@@ -63,7 +62,7 @@ const Card = styled.div`
   padding: 2rem;
   margin-bottom: 2rem;
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  
+ 
   &:hover {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
   }
@@ -72,7 +71,7 @@ const Card = styled.div`
 const LiveTrackingCard = styled(Card)`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  
+ 
   h3 {
     color: white;
     margin-bottom: 1rem;
@@ -140,7 +139,7 @@ const Select = styled.select`
   color: #334155;
   background-color: #f8fafc;
   transition: all 0.2s ease;
-  
+ 
   &:focus {
     outline: none;
     border-color: #6366f1;
@@ -157,7 +156,7 @@ const Input = styled.input`
   color: #334155;
   background-color: ${(props) => (props.readOnly ? "#f1f5f9" : "#f8fafc")};
   transition: all 0.2s ease;
-  
+ 
   &:focus {
     outline: none;
     border-color: #6366f1;
@@ -178,7 +177,7 @@ const Button = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+ 
   &:hover {
     background-color: #4f46e5;
     transform: translateY(-2px);
@@ -255,7 +254,7 @@ const CloseButton = styled.button`
   justify-content: center;
   border-radius: 50%;
   transition: all 0.2s ease;
-  
+ 
   &:hover {
     background-color: #f1f5f9;
     color: #334155;
@@ -326,7 +325,7 @@ const ViewLocationButton = styled.button`
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+ 
   &:hover {
     background-color: #dbeafe;
     box-shadow: 0 2px 5px rgba(59, 130, 246, 0.2);
@@ -393,7 +392,7 @@ const Tr = styled.tr`
   &:hover {
     background-color: #f8fafc;
   }
-  
+ 
   &:not(:last-child) {
     border-bottom: 1px solid #f1f5f9;
   }
@@ -428,7 +427,7 @@ const Polyline = ({ path, options }) => {
   const polylineRef = useRef(null)
 
   useEffect(() => {
-    if (!map || !path || path.length < 2) return
+    if (!map || !path) return
 
     if (!polylineRef.current) {
       polylineRef.current = new window.google.maps.Polyline({
@@ -450,13 +449,38 @@ const Polyline = ({ path, options }) => {
     }
   }, [map, path, options])
 
+  useEffect(() => {
+    return () => {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null)
+        polylineRef.current = null
+      }
+    }
+  }, [])
+
   return null
 }
 
-const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
+const GoogleMapComponent = ({ locationData, routePoints, collectorName, onMapReady }) => {
   const [infoWindow, setInfoWindow] = useState(null)
   const map = useMap()
 
+  const defaultCenter = { lat: 11.0168, lng: 76.9558 } // Salem, Tamil Nadu
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "N/A"
+    const date = new Date(dateString)
+    return date.toLocaleString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+  }
+
+  // Create custom marker icons
   const createCustomMarkerIcon = (color, isStart = false, isActive = false) => {
     const baseIcon = {
       fillColor: color,
@@ -513,6 +537,13 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
     }
   }, [map, locationData])
 
+  // Call onMapReady callback
+  useEffect(() => {
+    if (map && onMapReady) {
+      onMapReady(map)
+    }
+  }, [map, onMapReady])
+
   if (!locationData) return null
 
   const startPosition =
@@ -533,6 +564,7 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
 
   return (
     <>
+      {/* Start Marker */}
       {startPosition && (
         <Marker
           position={startPosition}
@@ -541,6 +573,7 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
         />
       )}
 
+      {/* Current/End Marker */}
       {currentPosition && (
         <Marker
           position={currentPosition}
@@ -549,9 +582,10 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
         />
       )}
 
+      {/* Route Polyline */}
       {routePoints && routePoints.length > 1 && (
         <Polyline
-          path={routePoints.map((point) => ({ lat: Number.parseFloat(point.lat), lng: Number.parseFloat(point.lng) }))}
+          path={routePoints.map((point) => ({ lat: point.lat, lng: point.lng }))}
           options={{
             strokeColor: "#3b82f6",
             strokeWeight: 4,
@@ -560,12 +594,13 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
         />
       )}
 
+      {/* Info Windows */}
       {infoWindow === "start" && startPosition && (
         <InfoWindow position={startPosition} onCloseClick={() => setInfoWindow(null)}>
           <div>
             <strong>Start Point</strong>
             <br />
-            {new Date(locationData.startTime).toLocaleString()}
+            {formatDateTime(locationData.startTime)}
           </div>
         </InfoWindow>
       )}
@@ -577,7 +612,7 @@ const GoogleMapComponent = ({ locationData, routePoints, collectorName }) => {
             <br />
             {collectorName}
             <br />
-            Last updated: {new Date(locationData.lastUpdated || locationData.endTime).toLocaleString()}
+            Last updated: {formatDateTime(locationData.lastUpdated)}
           </div>
         </InfoWindow>
       )}
@@ -597,60 +632,78 @@ const EnhancedLocationModal = ({ isOpen, onClose, collectorName, collectorData }
   const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "AIzaSyDjW5Ryg_Of6RG2kGxV85-voG2sXHq0XZk"
 
   const fetchCollectorLocation = async () => {
-    try {
-      setLoading(true)
+  try {
+    setLoading(true);
 
-      const currentDate = new Date().toISOString().split("T")[0]
+    const currentDate = new Date().toISOString().split("T")[0];
 
-      const response = await apiRequest(`${Labbaseurl}sample_collector_location/`, "GET", null, {
-        sampleCollector: collectorName,
-        date: currentDate,
-      })
+    const params = {
+      sampleCollector: collectorName,
+      date: currentDate,
+    };
 
-      if (response.success && response.data && response.data.length > 0) {
-        const data = response.data[0]
+    const response = await apiRequest(
+      `${Labbaseurl}sample_collector_location/`,
+      "GET",
+      null,
+      params
+    );
 
-        const isActive = data.latitudeStart && !data.latitudeEnd && data.currentLatitude && data.currentLongitude
+    if (response.data && response.data.length > 0) {
+      const data = response.data[0];
 
-        const processedData = {
-          ...data,
-          isActive,
-          lastUpdated: new Date().toISOString(),
+      const isActive =
+        data.latitudeStart &&
+        !data.latitudeEnd &&
+        data.currentLatitude &&
+        data.currentLongitude;
+
+      const processedData = {
+        ...data,
+        isActive,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      setLocationData(processedData);
+
+      if (
+        data.latitudeStart &&
+        data.longitudeStart &&
+        data.currentLatitude &&
+        data.currentLongitude
+      ) {
+        const startLat = parseFloat(data.latitudeStart);
+        const startLng = parseFloat(data.longitudeStart);
+        const currentLat = parseFloat(data.currentLatitude);
+        const currentLng = parseFloat(data.currentLongitude);
+
+        if (
+          !isNaN(startLat) &&
+          !isNaN(startLng) &&
+          !isNaN(currentLat) &&
+          !isNaN(currentLng)
+        ) {
+          const points = [
+            { lat: startLat, lng: startLng },
+            { lat: currentLat, lng: currentLng },
+          ];
+          setRoutePoints(points);
         }
-
-        setLocationData(processedData)
-
-        if (data.routePoints && Array.isArray(data.routePoints)) {
-          setRoutePoints(data.routePoints)
-        } else {
-          const points = []
-          if (data.latitudeStart && data.longitudeStart) {
-            points.push({
-              lat: Number.parseFloat(data.latitudeStart),
-              lng: Number.parseFloat(data.longitudeStart),
-            })
-          }
-          if (data.currentLatitude && data.currentLongitude) {
-            points.push({
-              lat: Number.parseFloat(data.currentLatitude),
-              lng: Number.parseFloat(data.currentLongitude),
-            })
-          }
-          setRoutePoints(points)
-        }
-      } else {
-        setLocationData(null)
-        setRoutePoints([])
       }
-
-      setError(null)
-    } catch (err) {
-      console.error("Error fetching location:", err)
-      setError("Failed to fetch location data")
-    } finally {
-      setLoading(false)
+    } else {
+      setLocationData(null);
+      setRoutePoints([]);
     }
+
+    setError(null);
+  } catch (error) {
+    console.error("Error fetching location:", error);
+    setError("Failed to fetch location data");
+  } finally {
+    setLoading(false);
   }
+};
+
 
   useEffect(() => {
     if (isOpen) {
@@ -864,8 +917,8 @@ const LogisticManagementAdmin = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
   const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "AIzaSyDjW5Ryg_Of6RG2kGxV85-voG2sXHq0XZk"
 
-  const [clinicalNames, setClinicalNames] = useState([])
-  const [selectedLabName, setSelectedLabName] = useState("")
+  const [clinicalNames, setClinicalNames] = useState([]);
+  const [selectedLabName, setSelectedLabName] = useState("");
   const [salesperson, setSalesperson] = useState("")
   const [sampleCollectorOptions, setSampleCollectorOptions] = useState([])
   const [selectedSampleCollector, setSelectedSampleCollector] = useState("")
@@ -881,129 +934,165 @@ const LogisticManagementAdmin = () => {
     return () => clearInterval(timer)
   }, [])
 
-  // Fetch clinical names
-  useEffect(() => {
-    const fetchClinicalNames = async () => {
-      if (!Labbaseurl) {
-        console.error("Labbaseurl is not defined!")
-        return
-      }
-
-      try {
-        const response = await apiRequest(`${Labbaseurl}get_all_clinicalnames/`, "GET")
-
-        const data = response.data
-        let processedData = []
-
-        if (Array.isArray(data)) {
-          processedData = data
-        } else if (data && typeof data === "object") {
-          if (Array.isArray(data.results)) {
-            processedData = data.results
-          } else if (Array.isArray(data.data)) {
-            processedData = data.data
-          } else {
-            processedData = [data]
-          }
-        }
-
-        setClinicalNames(processedData)
-      } catch (error) {
-        console.error("Error fetching clinical names", error)
-        setClinicalNames([])
-      }
+// Fetch clinical names
+ useEffect(() => {
+  const fetchClinicalNames = async () => {
+    if (!Labbaseurl) {
+      console.error("Labbaseurl is not defined!");
+      return;
     }
 
-    fetchClinicalNames()
-  }, [Labbaseurl])
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}get_all_clinicalnames/`,
+        "GET"
+      );
+
+      const data = response.data;
+      let processedData = [];
+
+      if (Array.isArray(data)) {
+        processedData = data;
+      } else if (data && typeof data === "object") {
+        if (Array.isArray(data.results)) {
+          processedData = data.results;
+        } else if (Array.isArray(data.data)) {
+          processedData = data.data;
+        } else {
+          processedData = [data];
+        }
+      }
+
+      setClinicalNames(processedData);
+    } catch (error) {
+      console.error("Error fetching clinical names", error);
+      setClinicalNames([]);
+    }
+  };
+
+  fetchClinicalNames();
+}, [Labbaseurl]);
+
 
   // Fetch sample collectors
-  useEffect(() => {
-    const fetchSampleCollector = async () => {
-      if (Labbaseurl) {
-        try {
-          const response = await apiRequest(`${Labbaseurl}get_sample_collectors/`, "GET")
-          setSampleCollectorOptions(response.data)
-        } catch (error) {
-          console.error("Error fetching sample collectors:", error)
-        }
-      }
-    }
-
-    fetchSampleCollector()
-  }, [Labbaseurl])
-
-  const fetchLogisticData = async () => {
+   useEffect(() => {
+  const fetchSampleCollector = async () => {
     if (Labbaseurl) {
       try {
-        const response = await apiRequest(`${Labbaseurl}savesamplecollector/`, "GET")
-        setLogisticData(response.data)
+        const response = await apiRequest(
+          `${Labbaseurl}get_sample_collectors/`,
+          "GET"
+        );
+        setSampleCollectorOptions(response.data);
       } catch (error) {
-        console.error("Error fetching logistic data:", error)
+        console.error("Error fetching sample collectors:", error);
       }
     }
+  };
+
+  fetchSampleCollector();
+}, [Labbaseurl]);
+
+ const fetchLogisticData = async () => {
+  if (!Labbaseurl) return;
+
+  try {
+    const response = await apiRequest(
+      `${Labbaseurl}savesamplecollector/`,
+      "GET"
+    );
+
+    const data = response?.data;
+
+    if (Array.isArray(data)) {
+      setLogisticData(data);
+    } else if (data?.results && Array.isArray(data.results)) {
+      setLogisticData(data.results);
+    } else if (data?.data && Array.isArray(data.data)) {
+      setLogisticData(data.data);
+    } else {
+      setLogisticData([]); // fallback
+    }
+
+  } catch (error) {
+    console.error("Error fetching logistic data:", error);
+    setLogisticData([]);
   }
+};
+
 
   const getfetchLogistic = async () => {
-    if (Labbaseurl) {
-      try {
-        const response = await apiRequest(`${Labbaseurl}get_logistic_data/`, "GET")
-        setGetLogisticData(response.data)
-      } catch (error) {
-        console.error("Error fetching logistic data:", error)
-      }
+  if (Labbaseurl) {
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}get_logistic_data/`,
+        "GET"
+      );
+      setGetLogisticData(response.data);
+    } catch (error) {
+      console.error("Error fetching logistic data:", error);
     }
   }
+};
+
 
   useEffect(() => {
     fetchLogisticData()
     getfetchLogistic()
   }, [])
 
-  const handleLabNameChange = (e) => {
-    const selectedName = e.target.value
-    setSelectedLabName(selectedName)
+const handleLabNameChange = (e) => {
+  const selectedName = e.target.value;
+  setSelectedLabName(selectedName);
 
-    // Find the selected lab from the list
-    const selectedLab = clinicalNames.find((lab) => lab.clinicalname === selectedName)
+  // Find the selected lab from the list
+  const selectedLab = clinicalNames.find(
+    (lab) => lab.clinicalname === selectedName
+  );
 
-    // Update salesperson mapping
-    if (selectedLab) {
-      setSalesperson(selectedLab.salesMapping || "")
-    } else {
-      setSalesperson("")
-    }
+  // Update salesperson mapping
+  if (selectedLab) {
+    setSalesperson(selectedLab.salesMapping || "");
+  } else {
+    setSalesperson("");
   }
+};
+
 
   // Fetch active collectors for live tracking
   // Fetch active collectors for live tracking
-  useEffect(() => {
-    const fetchActiveCollectors = async () => {
-      try {
-        const currentDate = new Date().toISOString().split("T")[0]
+useEffect(() => {
+  const fetchActiveCollectors = async () => {
+    try {
+      const currentDate = new Date().toISOString().split("T")[0];
 
-        const response = await apiRequest(`${Labbaseurl}sample_collector_location/`, "GET", null, { date: currentDate })
+      const response = await apiRequest(
+        `${Labbaseurl}sample_collector_location/`,
+        "GET",
+        null,
+        { date: currentDate }
+      );
 
-        if (response.data && Array.isArray(response.data)) {
-          const active = response.data.filter(
-            (collector) =>
-              collector.latitudeStart &&
-              !collector.latitudeEnd &&
-              collector.currentLatitude &&
-              collector.currentLongitude,
-          )
-          setActiveCollectors(active)
-        }
-      } catch (error) {
-        console.error("Error fetching active collectors:", error)
+      if (response.data && Array.isArray(response.data)) {
+        const active = response.data.filter(
+          (collector) =>
+            collector.latitudeStart &&
+            !collector.latitudeEnd &&
+            collector.currentLatitude &&
+            collector.currentLongitude
+        );
+        setActiveCollectors(active);
       }
+    } catch (error) {
+      console.error("Error fetching active collectors:", error);
     }
+  };
 
-    fetchActiveCollectors()
-    const interval = setInterval(fetchActiveCollectors, 10000) // Update every 10 seconds
+  fetchActiveCollectors();
+  const interval = setInterval(fetchActiveCollectors, 10000); // Update every 10 seconds
 
-    return () => clearInterval(interval)
-  }, [])
+  return () => clearInterval(interval);
+}, []);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString)
@@ -1062,9 +1151,12 @@ const LogisticManagementAdmin = () => {
   }
 
   const filterTodayData = () => {
-    const today = new Date().toISOString().split("T")[0]
-    return logisticData.filter((data) => data.date === today)
-  }
+  if (!Array.isArray(logisticData)) return [];
+
+  const today = new Date().toISOString().split("T")[0];
+  return logisticData.filter((data) => data?.date === today);
+};
+
 
   const renderStatusBadge = (status) => {
     if (!status) return null
@@ -1125,44 +1217,7 @@ const LogisticManagementAdmin = () => {
         {time}
       </TimeDisplay>
 
-      {/* Live Tracking Dashboard */}
-      {activeCollectors.length > 0 && (
-        <LiveTrackingCard>
-          <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Navigation size={20} />
-            Live Tracking Dashboard ({activeCollectors.length} Active)
-          </h3>
-          <ActiveCollectorGrid>
-            {activeCollectors.map((collector, index) => (
-              <CollectorCard key={index}>
-                <CollectorName>
-                  <MapPin size={16} />
-                  {collector.sampleCollector}
-                </CollectorName>
-                <CollectorStats>
-                  <span>
-                    <Timer size={12} style={{ marginRight: "0.25rem" }} />
-                    Started: {new Date(collector.startTime).toLocaleTimeString()}
-                  </span>
-                  <span>
-                    <Route size={12} style={{ marginRight: "0.25rem" }} />
-                    {collector.distance_travelled
-                      ? `${Number.parseFloat(collector.distance_travelled).toFixed(2)}m`
-                      : "0m"}
-                  </span>
-                </CollectorStats>
-                <ViewLocationButton
-                  onClick={() => handleViewLocation(collector.sampleCollector, collector)}
-                  style={{ marginTop: "0.5rem", width: "100%", justifyContent: "center" }}
-                >
-                  <MapIcon size={14} />
-                  View Live Location
-                </ViewLocationButton>
-              </CollectorCard>
-            ))}
-          </ActiveCollectorGrid>
-        </LiveTrackingCard>
-      )}
+     
 
       {message && (
         <div
@@ -1209,23 +1264,23 @@ const LogisticManagementAdmin = () => {
         </div>
 
         <FormGrid>
-          <FormGroup>
-            <Label>
-              <FileText size={16} />
-              Lab Name
-            </Label>
+        <FormGroup>
+          <Label>
+            <FileText size={16} />
+            Lab Name
+          </Label>
 
-            <Select value={selectedLabName} onChange={handleLabNameChange}>
-              <option value="">Select Lab Name</option>
+          <Select value={selectedLabName} onChange={handleLabNameChange}>
+            <option value="">Select Lab Name</option>
 
-              {clinicalNames.length > 0 &&
-                clinicalNames.map((lab, index) => (
-                  <option key={index} value={lab.clinicalname}>
-                    {lab.clinicalname}
-                  </option>
-                ))}
-            </Select>
-          </FormGroup>
+            {clinicalNames.length > 0 &&
+              clinicalNames.map((lab, index) => (
+                <option key={index} value={lab.clinicalname}>
+                  {lab.clinicalname}
+                </option>
+              ))}
+          </Select>
+        </FormGroup>
 
           <FormGroup>
             <Label>
@@ -1241,7 +1296,10 @@ const LogisticManagementAdmin = () => {
               Sample Collector
             </Label>
 
-            <Select value={selectedSampleCollector} onChange={(e) => setSelectedSampleCollector(e.target.value)}>
+            <Select
+              value={selectedSampleCollector}
+              onChange={(e) => setSelectedSampleCollector(e.target.value)}
+            >
               <option value="">Select Sample Collector</option>
 
               {sampleCollectorOptions.map((collector, index) => (
@@ -1251,6 +1309,7 @@ const LogisticManagementAdmin = () => {
               ))}
             </Select>
           </FormGroup>
+
 
           <FormGroup>
             <Label>

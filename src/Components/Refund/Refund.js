@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
+import apiRequest from "../Auth/apiRequest";
 
 const GlobalStyle = createGlobalStyle`
   :root {
@@ -535,94 +536,116 @@ const Refund = () => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
-  const handleSearch = async () => {
-    if (!patientId || !selectDate) {
-      setError("Both Patient ID and Date are required.");
-      return;
-    }
-    setError("");
-    setIsLoading(true);
+// Fixed handleSearch function for Refund component
+const handleSearch = async () => {
+  if (!patientId || !selectDate) {
+    setError("Both Patient ID and Date are required.");
+    return;
+  }
+  setError("");
+  setIsLoading(true);
 
-    try {
-      const response = await axios.get(`${Labbaseurl}search_refund/`, {
-        params: { patient_id: patientId, date: selectDate },
-      });
+  try {
+    const url = `${Labbaseurl}search_refund/?patient_id=${encodeURIComponent(patientId)}&date=${encodeURIComponent(selectDate)}`;
+    const response = await apiRequest(url, "GET");
+    console.log("Raw response:", response.data);
 
-      console.log("Raw response:", response.data);
+    // Process the response data and clean JSON fields
+    const processedPatients = response.data.patients.map(patient => {
+      console.log("Processing patient:", patient);
 
-      // Process the response data and clean JSON fields
-      const processedPatients = response.data.patients.map(patient => {
-        // Clean payment_method if it exists
-        if (patient.payment_method) {
-          try {
-            const parsedPayment = safeJsonParse(patient.payment_method);
-            patient.payment_method = parsedPayment;
-          } catch (e) {
-            console.warn('Could not parse payment_method:', patient.payment_method);
-          }
-        }
-
-        // Clean testdetails if needed
-        if (patient.testdetails && typeof patient.testdetails === 'string') {
-          try {
-            patient.testdetails = safeJsonParse(patient.testdetails);
-          } catch (e) {
-            console.warn('Could not parse testdetails:', patient.testdetails);
-          }
-        }
-
-        // Ensure testdetails is an array
-        if (!Array.isArray(patient.testdetails)) {
-          patient.testdetails = [];
-        }
-
-        // HANDLE TESTNAME FIELD AS WELL (if exists)
-        if (patient.testname && typeof patient.testname === 'string') {
-          try {
-            patient.testname = safeJsonParse(patient.testname);
-          } catch (e) {
-            console.warn('Could not parse testname:', patient.testname);
-          }
-        }
-
-        // Check if patient has all tests refunded
-        if (patient.all_refunded) {
-          patient.refundStatus = "All tests have been refunded";
-        }
-
-        return patient;
-      });
-
-      console.log("Processed patients:", processedPatients);
-      setPatients(processedPatients);
-      setIsLoading(false);
-
-      if (processedPatients.length === 0) {
-        addToast("No patients found with the given criteria.", "warning");
-      } else {
-        const totalAvailableTests = processedPatients.reduce((sum, p) => 
-          sum + (p.testdetails?.length || 0), 0
-        );
-        
-        if (totalAvailableTests === 0) {
-          const hasRefundedPatients = processedPatients.some(p => p.all_refunded);
-          if (hasRefundedPatients) {
-            addToast("Patient found, but all tests have already been refunded.", "warning");
-          } else {
-            addToast("Patient found, but no tests available for refund.", "warning");
-          }
-        } else {
-          addToast(`Found ${processedPatients.length} patient(s) with ${totalAvailableTests} refundable test(s).`, "success");
+      // Clean payment_method if it exists
+      if (patient.payment_method) {
+        try {
+          const parsedPayment = safeJsonParse(patient.payment_method);
+          patient.payment_method = parsedPayment;
+        } catch (e) {
+          console.warn('Could not parse payment_method:', patient.payment_method);
         }
       }
-    } catch (err) {
-      console.error('Search error:', err);
-      setError("Error fetching data. Please try again.");
-      addToast("Failed to fetch patient data. Please try again.", "error");
-      setIsLoading(false);
-    }
-  };
 
+      // Parse testdetails - THIS IS THE KEY FIX
+      if (patient.testdetails) {
+        console.log("Raw testdetails:", patient.testdetails);
+        console.log("Type:", typeof patient.testdetails);
+        
+        if (typeof patient.testdetails === 'string') {
+          try {
+            // Parse the JSON string
+            const parsed = JSON.parse(patient.testdetails);
+            console.log("Parsed testdetails:", parsed);
+            
+            // Ensure it's an array
+            patient.testdetails = Array.isArray(parsed) ? parsed : [parsed];
+            
+            // Map fields to match expected format
+            patient.testdetails = patient.testdetails.map(test => ({
+              test_id: test.test_id,
+              test_name: test.testname || test.test_name || 'Unknown Test',
+              amount: parseFloat(test.amount || test.MRP || 0),
+              collection_container: test.collection_container,
+              refund: test.refund,
+              cancellation: test.cancellation
+            }));
+            
+            console.log("Final testdetails:", patient.testdetails);
+          } catch (e) {
+            console.error('Could not parse testdetails:', e);
+            patient.testdetails = [];
+          }
+        } else if (Array.isArray(patient.testdetails)) {
+          // Already an array, just normalize field names
+          patient.testdetails = patient.testdetails.map(test => ({
+            test_id: test.test_id,
+            test_name: test.testname || test.test_name || 'Unknown Test',
+            amount: parseFloat(test.amount || test.MRP || 0),
+            collection_container: test.collection_container,
+            refund: test.refund,
+            cancellation: test.cancellation
+          }));
+        }
+      } else {
+        patient.testdetails = [];
+      }
+
+      // Check if patient has all tests refunded
+      if (patient.all_refunded) {
+        patient.refundStatus = "All tests have been refunded";
+      }
+
+      console.log("Final processed patient:", patient);
+      return patient;
+    });
+
+    console.log("All processed patients:", processedPatients);
+    setPatients(processedPatients);
+    setIsLoading(false);
+
+    if (processedPatients.length === 0) {
+      addToast("No patients found with the given criteria.", "warning");
+    } else {
+      const totalAvailableTests = processedPatients.reduce((sum, p) => 
+        sum + (p.testdetails?.length || 0), 0
+      );
+      
+      if (totalAvailableTests === 0) {
+        const hasRefundedPatients = processedPatients.some(p => p.all_refunded);
+        if (hasRefundedPatients) {
+          addToast("Patient found, but all tests have already been refunded.", "warning");
+        } else {
+          addToast("Patient found, but no tests available for refund.", "warning");
+        }
+      } else {
+        addToast(`Found ${processedPatients.length} patient(s) with ${totalAvailableTests} refundable test(s).`, "success");
+      }
+    }
+  } catch (err) {
+    console.error('Search error:', err);
+    setError("Error fetching data. Please try again.");
+    addToast("Failed to fetch patient data. Please try again.", "error");
+    setIsLoading(false);
+  }
+};
   const handleTestSelection = (test, isChecked) => {
     setSelectedTests((prev) =>
       isChecked
@@ -642,14 +665,14 @@ const Refund = () => {
     }
   };
 
-  // Calculate total using MRP field
+  // Calculate total using amount or MRP field
   const totalRefund = selectedTests.reduce(
-    (sum, test) => sum + parseFloat(test.amount || 0),
+    (sum, test) => sum + parseFloat(test.amount || test.MRP || 0),
     0
   );
 
   const doctors = [
-    { name: "Dr. Prabhu", email: "parthibansmrft@gmail.com" },
+    { name: "Dr. Prabhu", email: "drprabusankar@smrft.org" },
     { name: "Dr. Priya", email: "drpriya@smrft.org" },
     { name: "Dr. Vaishak", email: "coo@smrft.org" },
   ];
@@ -675,20 +698,28 @@ const Refund = () => {
       return;
     }
 
+    if (selectedTests.length === 0) {
+      setError("Please select at least one test for refund.");
+      addToast("Please select at least one test for refund", "error");
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
     try {
       const patientDetails = patients[0];
-      const testDetails = selectedTests.map(test => `${test.test_name} - ₹${test.MRP}`).join(", ");
+      const testDetails = selectedTests.map(test => 
+        `${test.test_name || 'Test ID: ' + test.test_id} - ₹${test.amount || test.MRP || 0}`
+      ).join(", ");
 
-      const response = await axios.post(`${Labbaseurl}generate_otp_refund/`, {
+      const response = await apiRequest(`${Labbaseurl}generate_otp_refund/`, "POST", {
         email: email,
         patient_details: {
           patient_id: patientId,
           patient_name: patientDetails.patientname,
           tests: testDetails,
-          total_refund_amount: totalRefund,
+          total_refund_amount: totalRefund.toFixed(2),
           reason: refundReason
         }
       });
@@ -697,6 +728,7 @@ const Refund = () => {
       setOtpSent(true);
       setIsLoading(false);
     } catch (err) {
+      console.error('OTP error:', err);
       setError("Error sending OTP. Please try again.");
       addToast("Failed to send OTP. Please try again.", "error");
       setIsLoading(false);
@@ -718,19 +750,34 @@ const Refund = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${Labbaseurl}verify_and_process_refund/`, {
+      // Extract test_ids and filter out null/undefined values
+      const testIds = selectedTests
+        .map((test) => test.test_id)
+        .filter((id) => id !== null && id !== undefined);
+
+      console.log("Sending test IDs:", testIds);
+
+      if (testIds.length === 0) {
+        throw new Error("No valid test IDs found in selected tests");
+      }
+
+      const response = await apiRequest(`${Labbaseurl}verify_and_process_refund/`, "POST", {
         patient_id: patientId,
-        selected_tests: selectedTests.map((test) => test.test_name),
+        selected_tests: testIds,  // Send test_ids instead of test_names
         email: email,
         otp: otp,
       });
 
       addToast(response.data.message, "success");
       setSelectedTests([]);
+      setOtpSent(false);
+      setOtp("");
+      setRefundReason("");
       handleSearch(); // Refresh patient data
       setIsLoading(false);
     } catch (err) {
-      const errorMessage = err.response?.data?.error || "Error processing refund. Please try again.";
+      console.error('Refund error:', err);
+      const errorMessage = err.response?.data?.error || err.message || "Error processing refund. Please try again.";
       setError(errorMessage);
       addToast(errorMessage, "error");
       setIsLoading(false);
@@ -848,6 +895,7 @@ const Refund = () => {
                       />
                     </TableCell>
                     <TableCell>Patient Name</TableCell>
+                    <TableCell>Test ID</TableCell>
                     <TableCell>Test Name</TableCell>
                     <TableCell>Amount</TableCell>
                   </TableHeader>
@@ -863,8 +911,9 @@ const Refund = () => {
                           />
                         </TableCell>
                         <TableCell>{patient.patientname}</TableCell>
-                        <TableCell>{test.testname}</TableCell>
-                        <TableCell>₹{test.amount}</TableCell>
+                        <TableCell>{test.test_id}</TableCell>
+                        <TableCell>{test.test_name || 'Unknown Test'}</TableCell>
+                        <TableCell>₹{test.amount || test.MRP || 0}</TableCell>
                       </TableRow>
                     ))
                   )}

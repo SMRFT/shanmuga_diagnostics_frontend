@@ -906,59 +906,68 @@ const PatientBilling = () => {
     })
   }
 
-  const handleTestSearch = (value) => {
-    setTestSearchValue(value)
-    if (value.length > 0) {
-      const filtered = testOptions.filter(
-        (test) =>
-          test.test_name?.toLowerCase().includes(value.toLowerCase()) ||
-          test.shortcut?.toLowerCase().includes(value.toLowerCase()),
-      )
-      setFilteredTestOptions(filtered)
-      setShowTestDropdown(true)
-    } else {
-      setFilteredTestOptions([])
-      setShowTestDropdown(false)
-    }
-  }
+const handleTestSearch = (value) => {
+  setTestSearchValue(value)
 
-  const handleTestSelect = (test) => {
-    if (!selectedPatient) {
-      toast.error("No patient selected.")
-      return
-    }
-
-    let amount = 0
-    if (selectedPatient.segment === "B2B") {
-      amount = Number(test.L2L_Rate_Card || 0)
-    } else if (selectedPatient.segment === "Walk-in" || selectedPatient.segment === "Home Collection") {
-      amount = Number(test.MRP || 0)
-    } else {
-      amount = Number(test.MRP || 0)
-    }
-
-    const newTest = {
-      test_id: test.test_id,
-      testname: test.test_name,
-      collection_container: test.collection_container,
-      amount: amount,
-      refund: false,
-      cancellation: false,
-      id: Date.now() + Math.random(),
-    }
-
-    const alreadySelected = selectedTests.some((selectedTest) => selectedTest.testname === newTest.testname)
-
-    if (alreadySelected) {
-      toast.error("This test is already selected.")
-      return
-    }
-
-    setSelectedTests((prev) => [...prev, newTest])
-    setTestSearchValue("")
+  if (!value.trim()) {
+    setFilteredTestOptions([])
     setShowTestDropdown(false)
-    toast.success("Test added successfully")
+    return
   }
+
+  const search = value.toLowerCase()
+
+  const filtered = testOptions.filter(
+    (test) =>
+      test.test_name?.toLowerCase().includes(search) ||
+      test.shortcut?.toLowerCase().includes(search)
+  )
+
+  setFilteredTestOptions(filtered)
+  setShowTestDropdown(true)
+}
+
+
+const handleTestSelect = (test) => {
+  if (!selectedPatient) {
+    toast.error("No patient selected.")
+    return
+  }
+
+  let amount = 0
+  if (selectedPatient.segment === "B2B") {
+    amount = Number(test.L2L_Rate_Card || 0)
+  } else {
+    amount = Number(test.MRP || 0)
+  }
+
+  const newTest = {
+    test_id: test.test_id,
+    testname: test.test_name,   // ✅ Always full name
+    collection_container: test.collection_container,
+    amount,
+    refund: false,
+    cancellation: false,
+    id: Date.now() + Math.random(),
+  }
+
+  const alreadySelected = selectedTests.some(
+    (t) => t.testname === newTest.testname
+  )
+
+  if (alreadySelected) {
+    toast.error("This test is already selected.")
+    return
+  }
+
+  setSelectedTests((prev) => [...prev, newTest])
+
+  // 👇 show full test name in input
+  setTestSearchValue(test.test_name)
+
+  setShowTestDropdown(false)
+  toast.success("Test added successfully")
+}
 
   const handleTestRemove = (testId) => {
     const updatedTests = selectedTests.filter((test) => test.id !== testId)
@@ -1144,6 +1153,9 @@ const PatientBilling = () => {
             width: 100%;
             max-width: 100%;
             height: auto;
+            display: block;
+            margin: 0;
+            padding: 0;
           }
           .details,
           .test-info,
@@ -1534,15 +1546,21 @@ const PatientBilling = () => {
                 onChange={(e) => handleTestSearch(e.target.value)}
                 placeholder="Search for tests..."
               />
-              {showTestDropdown && filteredTestOptions.length > 0 && (
-                <div className="dropdown">
-                  {filteredTestOptions.map((test, index) => (
-                    <div key={index} className="dropdown-item" onClick={() => handleTestSelect(test)}>
-                      <div className="test-name">{test.test_name}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {showTestDropdown && filteredTestOptions.length > 0 && (
+                  <div className="dropdown">
+                    {filteredTestOptions.map((test, index) => (
+                      <div
+                        key={index}
+                        className="dropdown-item"
+                        onClick={() => handleTestSelect(test)}
+                      >
+                        <div className="test-name">
+                          {test.test_name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
             </TestSearchContainer>
           </FormGroup>
         </FormRow>
@@ -1614,7 +1632,6 @@ const PatientBilling = () => {
               </FormGroup>
               {billingData.paymentMethod &&
                 billingData.paymentMethod !== "Cash" &&
-                billingData.paymentMethod !== "Credit" &&
                 billingData.paymentMethod !== "Multiple Payment" && (
                   <FormGroup>
                     <label>Payment Details</label>

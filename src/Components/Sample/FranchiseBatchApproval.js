@@ -31,12 +31,6 @@ const GlobalStyle = createGlobalStyle`
     padding: 0;
     box-sizing: border-box;
   }
-
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-  }
 `;
 
 const fadeIn = keyframes`
@@ -53,7 +47,6 @@ const fadeIn = keyframes`
 const Container = styled.div`
   min-height: 100vh;
   padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -69,7 +62,7 @@ const MainContent = styled.div`
 const Header = styled.div`
   text-align: center;
   margin-bottom: 3rem;
-  color: white;
+  color: black;
 
   h1 {
     font-size: 3rem;

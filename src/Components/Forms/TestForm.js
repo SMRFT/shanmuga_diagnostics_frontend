@@ -256,6 +256,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
     units: "",
     MRP: "",
     L2L_Rate_Card: "",
+    SH_Rate: "",
     status: "Pending",
     test_code: "",
     device_id: [],
@@ -370,16 +371,32 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
     })
   }
 
-  const sendApprovalEmail = async (testName) => {
+  // ✅ FIXED: Accept test_id (number) from backend
+  const sendApprovalEmail = async (testId) => {
     try {
-      const response = await apiRequest(`${Labbaseurl}send_approval_email/`, "POST", {
-        test_name: testName,
-      })
-      if (!response.success) {
-        console.error("Error sending approval email:", response.error)
+      console.log("📧 Sending approval email for test_id:", testId)
+      
+      const response = await apiRequest(
+        `${Labbaseurl}send_approval_email/`,
+        "POST",
+        {
+          test_id: testId,  // ✅ Use the numeric test_id from backend
+        }
+      )
+
+      if (response.success) {
+        console.log("✅ Approval email sent successfully")
+        toast.success("Approval email sent successfully!")
+        return true
+      } else {
+        console.error("❌ Error sending approval email:", response.error)
+        toast.warning("Test created but email failed to send")
+        return false
       }
     } catch (error) {
-      console.error("Unexpected error sending approval email:", error)
+      console.error("❌ Unexpected error sending approval email:", error)
+      toast.warning("Test created but email failed to send")
+      return false
     }
   }
 
@@ -395,6 +412,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
       units: "",
       MRP: "",
       L2L_Rate_Card: "",
+      SH_Rate:"",
       status: "Pending",
       test_code: "",
       device_id: [],
@@ -471,6 +489,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
       units: formData.units,
       MRP: formData.MRP,
       L2L_Rate_Card: formData.L2L_Rate_Card,
+      SH_Rate: formData.SH_Rate,
       status: formData.status,
       device_id: formData.device_id,
       // Send parameters or test_code depending on toggle
@@ -486,13 +505,40 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
 
     try {
       const response = await apiRequest(`${Labbaseurl}testdetails/`, "POST", payload)
+      
+      console.log("📥 Backend Response:", response)
+      
       if (response.success) {
-        toast.success("Form submitted successfully! Approval email sent.")
-        setMessage("Form submitted successfully! An approval email has been sent.")
+        // ✅ CRITICAL FIX: Extract test_id from the backend response
+        // The backend returns it in response.test_id or response.data.test_id
+        const createdTestId = response.test_id || response.data?.test_id
+        
+        console.log("✅ Test created successfully!")
+        console.log("🆔 Created test_id:", createdTestId)
+        
+        if (!createdTestId) {
+          console.error("⚠️ WARNING: No test_id received from backend!")
+          console.log("Full response:", JSON.stringify(response, null, 2))
+        }
+        
+        toast.success("Test created successfully! Sending approval email...")
+        setMessage("Test submitted successfully! An approval email is being sent.")
         setMessageType("success")
         setFormSubmitted(true)
-        await sendApprovalEmail(formData.test_name)
-        if (typeof onTestAdded === "function") onTestAdded(formData.test_name)
+        
+        // ✅ FIXED: Use the test_id returned from backend
+        if (createdTestId) {
+          await sendApprovalEmail(createdTestId)
+        } else {
+          console.error("❌ Cannot send approval email: test_id is missing")
+          toast.error("Test created but couldn't send approval email (no test_id returned)")
+        }
+        
+        // Notify parent component
+        if (typeof onTestAdded === "function") {
+          onTestAdded(formData.test_name)
+        }
+        
         resetForm()
 
         setTimeout(() => {
@@ -509,7 +555,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
         }, 5000)
       }
     } catch (error) {
-      console.error("Error submitting form:", error)
+      console.error("❌ Error submitting form:", error)
       toast.error("An error occurred while submitting the form.")
       setMessage("Failed to submit the form. Please try again.")
       setMessageType("danger")
@@ -634,6 +680,16 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
                   id="L2L_Rate_Card"
                   name="L2L_Rate_Card"
                   value={formData.L2L_Rate_Card}
+                  onChange={handleChange}
+                />
+              </Col>
+              <Col>
+                <Label htmlFor="SH_Rate">SH Rate</Label>
+                <NumberInput
+                  type="number"
+                  id="SH_Rate"
+                  name="SH_Rate"
+                  value={formData.SH_Rate}
                   onChange={handleChange}
                 />
               </Col>

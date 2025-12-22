@@ -9,9 +9,13 @@ const FormContainer = styled.div`
   min-height: 100vh;
   padding: 20px;
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.05), rgba(102, 126, 234, 0.05));
   
   @media (max-width: 768px) {
+    padding: 12px;
+  }
+  
+  @media (max-width: 480px) {
     padding: 10px;
   }
 `
