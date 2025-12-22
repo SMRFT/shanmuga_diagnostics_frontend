@@ -11,6 +11,7 @@ import "./App.css";
 import Sidebar from "./Components/Navbar/Sidebar";
 import PatientForm from "./Components/Patients/PatientForm";
 import PatientBilling from "./Components/Patients/PatientBilling";
+import Estimate from "./Components/Patients/Estimate";
 import BarcodeGeneration from "./Components/Barcode/BarcodeGeneration";
 import BarcodeTestDetails from "./Components/Barcode/BarcodeTestDetails";
 import SampleStatus from "./Components/Sample/SampleStatus";
@@ -48,7 +49,7 @@ import PrintBill from "./Components/Patients/PrintBill";
 import Logisticsmap from "./Components/Logistics/Logisticsmap";
 import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
 import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
-import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
+import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
@@ -58,7 +59,17 @@ import SalesDetailsEdit from "./Components/Sales/SalesDetailsEdit";
 import SalesVisitLogReport from "./Components/Sales/SalesVisitLogReport";
 import SalesindividualReport from "./Components/Sales/SalesindividualReport";
 import AppointmentBooking from "./Components/Patients/AppointmentBooking";
+import B2B from "./Components/Lab/B2B";
+import B2BApproval from "./Components/Lab/B2BApproval";
+import B2BFinalApproval from "./Components/Lab/B2BFinalApproval";
+import B2BReport from "./Components/Lab/B2BReport";
 import LogisticsTAT from "./Components/Mis/LogisticsTAT";
+import PaymentDashboard from "./Components/Patients/PaymentDashboard";
+import RegisterDashboard from "./Components/Patients/RegisterDashboard";
+import Refund from "./Components/Refund/Refund";
+import Cancellation from "./Components/Refund/Cancellation";
+import RefundAndCancellationLog from "./Components/Refund/RefundAndCancellationLog";
+import PatientDataTable from "./Components/Mis/PatientTAT";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -89,25 +100,39 @@ function App() {
   // Function to navigate based on role (copied from your Login.js)
 const navigateRole = (userRole) => {
     switch (userRole) {
-      case "Receptionist":
+      case "Diagnostics General Manager":
+        navigate("/Dashboard");
+        break;
+      case "Lab Receptionist":
         navigate("/PatientBilling");
         break;
       case "Sample Collector":
         navigate("/PatientForm");
         break;
-      case "Technician":
+      case "Lab Technician":
         navigate("/SampleStatusUpdate");
         break;
       case "Doctor":
         navigate("/PatientList");
         break;
+      case "Sales Person":
+        navigate("/SalesVisitLog");
+        break;
+      case "HR":
+        navigate("/LogisticMap");
+        break;
       case "CEO":
         navigate("/CHCreport");
+        break;
+      case "Accounts":
+        navigate("/Invoice");
         break;
       default:
         navigate("/PatientForm"); // Default fallback
     }
   };
+
+  
 
   // Check token and navigate based on role
   useEffect(() => {
@@ -207,7 +232,10 @@ const navigateRole = (userRole) => {
             <Route path="/AppointmentBooking" element={<AppointmentBooking />} />
             <Route path="/PatientForm" element={<PatientForm />} />
             <Route path="/PatientBilling" element={<PatientBilling />} />
+            <Route path="/PaymentDashboard" element={<PaymentDashboard />} />
+            <Route path="/RegisterDashboard" element={<RegisterDashboard />} />
             <Route path="/PrintBill" element={<PrintBill />} />
+            <Route path="/Estimate" element={<Estimate />} />
 
             {/* Barcode */}
             <Route path="/BarcodeGeneration" element={<BarcodeGeneration />} />
@@ -227,6 +255,10 @@ const navigateRole = (userRole) => {
             {/* Finance */}
             <Route path="/CashTally" element={<CashTally />} />
             <Route path="/Invoice" element={<Invoice />} />
+            <Route path="/Refund" element={<Refund />} />
+            <Route path="/Cancellation" element={<Cancellation />} />
+            <Route path="/RefundAndCancellationLog" element={<RefundAndCancellationLog />} />
+            
 
             {/* Test Approval */}
             <Route path="/PatientList" element={<PatientList />} />
@@ -239,13 +271,18 @@ const navigateRole = (userRole) => {
             <Route path="/SalesVisitLogReport" element={<SalesVisitLogReport />} />
             <Route path="/SalesindividualReport" element={<SalesindividualReport />} />
 
+            <Route path="/B2B" element={<B2B />} />
+            <Route path="/B2BApproval" element={<B2BApproval />} />
+            <Route path="/B2BFinalApproval" element={<B2BFinalApproval />} />
+            <Route path="/B2BReport" element={<B2BReport />} />
+
 
             {/* Diagnostics Report */}
             <Route path="/Dashboard" element={<Dashboard />} />      
             <Route path="/Testcount" element={<Testcount />} />     
             <Route path="/TestSorting" element={<TestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
-            <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
+
           {/* Franchise Report */}
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
             <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
@@ -260,6 +297,7 @@ const navigateRole = (userRole) => {
 
           {/* MIS */}
             <Route path="/MIS" element={<MIS/>} />
+            <Route path="/PatientTAT" element={<PatientDataTable/>} />
             <Route path="/ShanmugaMIS" element={<ShanmugaMIS/>} />
             <Route path="/FranchiseMIS" element={<FranchiseMIS/>} />
 
