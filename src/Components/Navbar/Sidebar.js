@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { NavLink } from "react-router-dom";
 import {
-  FaHome,
   FaUser,
-  FaUserPlus,
+  FaDollarSign,
   FaBars,
   FaTimes,
   FaChevronDown,
@@ -1072,6 +1071,41 @@ const Sidebar = () => {
                   <GrOverview />
                 </IconWrapper>
                 Patient Summary
+              </SidebarNavLink>
+            </>
+          )}
+
+
+          {role === "PH" && (
+            <>
+              <SidebarNavLink
+                to="/PreethamHospitalDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartPie />
+                </IconWrapper>
+                Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink
+                to="/Estimate"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaDollarSign />
+                </IconWrapper>
+                Bill Estimate
+              </SidebarNavLink>
+
+              <SidebarNavLink
+                to="/PreethamHospitalReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
               </SidebarNavLink>
             </>
           )}

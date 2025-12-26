@@ -77,6 +77,8 @@ function getUserRole(allowedActions) {
     return "CEO";  
   } else if (allowedActions.includes("SD-R-HR")) {
     return "HR";
+  } else if (allowedActions.includes("SD-R-PH")) {
+    return "PH";
 
   } else {
     return "Accounts"; // Default role if none of the specific roles are found
