@@ -32,6 +32,7 @@ import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
 // import Savitha from "../Images/Savitha.png";
 import Vijayan from "../Images/Vijayan.png";
+import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 
@@ -866,9 +867,9 @@ const handleWhatsAppShare = async (patient) => {
 
       // Adding Consultant names and qualifications
       const consultants = [
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist"],
+        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
         ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. R. Vijayan Ph.D.", "Consultant Biochemist", Vijayan],
+        ["Dr. R. Vijayan Ph.D.", "Consultant Biochemist"],
       ];
 
       const patientRefNo =
