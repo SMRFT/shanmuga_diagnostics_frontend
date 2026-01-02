@@ -617,7 +617,7 @@ const SampleStatus = () => {
     setLoadingTestDetails(true);
     try {
       const testDetailsPromises = testIds.map((testId) =>
-        apiRequest(`${Labbaseurl}test_details/?test_id=${testId}`, "GET")
+        apiRequest(`${Labbaseurl}testdetails/?test_id=${testId}`, "GET")
       );
 
       const results = await Promise.all(testDetailsPromises);
