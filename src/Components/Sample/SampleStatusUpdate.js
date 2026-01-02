@@ -1,4 +1,4 @@
-"use client";
+// Fetch outsource labs on"use client";
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -124,6 +124,7 @@ const Title = styled.h1`
     font-size: 1.875rem;
   }
 `;
+
 
 const FilterContainer = styled.div`
   display: flex;
@@ -722,8 +723,67 @@ const SampleStatusUpdate = () => {
   const [statusChanges, setStatusChanges] = useState({});
   const [remarks, setRemarks] = useState({});
   const [emergencyFilter, setEmergencyFilter] = useState("All");
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [outsourceLabs, setOutsourceLabs] = useState([]);
+  const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
   const storedName = localStorage.getItem("name");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  // Update current time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fetch outsource labs on component mount
+  useEffect(() => {
+    const fetchOutsourceLabs = async () => {
+      try {
+        console.log("Fetching outsource labs from:", `${Labbaseurl}get_outsource_labs/`);
+        const response = await apiRequest(
+          `${Labbaseurl}get_outsource_labs/`,
+          "GET"
+        );
+
+        console.log("Full API response:", response);
+        console.log("response.data:", response.data);
+        console.log("response.success:", response.success);
+
+        // Handle different response structures
+        let labs = [];
+        
+        if (response && response.data) {
+          // Check if data is directly an array
+          if (Array.isArray(response.data)) {
+            labs = response.data;
+          }
+          // Check if data has a nested data property
+          else if (response.data.data && Array.isArray(response.data.data)) {
+            labs = response.data.data;
+          }
+          // Check if it's wrapped in success property
+          else if (response.success && Array.isArray(response.data)) {
+            labs = response.data;
+          }
+        }
+
+        console.log("Extracted labs array:", labs);
+        console.log("Labs array length:", labs.length);
+        setOutsourceLabs(labs);
+        
+      } catch (err) {
+        console.error("Error fetching outsource labs:", err);
+        setOutsourceLabs([]);
+      }
+    };
+
+    if (Labbaseurl) {
+      fetchOutsourceLabs();
+    }
+  }, [Labbaseurl]);
 
   useEffect(() => {
     const fetchSampleCollected = async () => {
@@ -782,6 +842,16 @@ const SampleStatusUpdate = () => {
         return updatedRemarks;
       });
     }
+
+    if (newStatus !== "Outsource") {
+      setSelectedOutsourceLab((prev) => {
+        const updated = { ...prev };
+        if (updated[`${patientId}-${testIndex}`]) {
+          delete updated[`${patientId}-${testIndex}`];
+        }
+        return updated;
+      });
+    }
   };
 
   const handleRemarksChange = (patientId, testIndex, value) => {
@@ -791,14 +861,28 @@ const SampleStatusUpdate = () => {
     }));
   };
 
+  const handleOutsourceLabChange = (patientId, testIndex, labName) => {
+    setSelectedOutsourceLab((prev) => ({
+      ...prev,
+      [`${patientId}-${testIndex}`]: labName,
+    }));
+  };
+
   const updateTestStatus = async (patientId, testIndex) => {
     const updatedStatus =
       statusChanges[selectedPatient.patient_id]?.[testIndex];
     const testDetails = selectedPatient.testdetails[testIndex];
     const updatedRemarks = remarks[`${patientId}-${testIndex}`];
+    const outsourceLabName = selectedOutsourceLab[`${patientId}-${testIndex}`];
     
     if (!updatedStatus) {
       setError("Please select a status for the test before updating.");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    if (updatedStatus === "Outsource" && !outsourceLabName) {
+      setError("Please select an outsource lab.");
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -818,6 +902,7 @@ const SampleStatusUpdate = () => {
               received_by: updatedStatus === "Received" ? storedName : null,
               rejected_by: updatedStatus === "Rejected" ? storedName : null,
               outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+              outsource_lab: updatedStatus === "Outsource" ? outsourceLabName : null,
             },
           ],
         }
@@ -880,6 +965,7 @@ const SampleStatusUpdate = () => {
       sample.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sample.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sample.segment.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sample.B2B.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sample.barcode.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesEmergency =
@@ -958,7 +1044,7 @@ const SampleStatusUpdate = () => {
               </SearchIcon>
               <SearchInput
                 type="text"
-                placeholder="Search by Barcode, Patient name, ID, or Segment..."
+                placeholder="B2B Name, Barcode, Patient name, ID, or Segment..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -1001,6 +1087,7 @@ const SampleStatusUpdate = () => {
                         <Th>Barcode</Th>
                         <Th>Age</Th>
                         <Th>Segment</Th>
+                        <Th>B2B Name</Th>
                         <Th>Status</Th>
                         <Th>Actions</Th>
                       </tr>
@@ -1016,6 +1103,7 @@ const SampleStatusUpdate = () => {
                           <Td>{sample.barcode}</Td>
                           <Td>{sample.age}</Td>
                           <Td>{sample.segment || "N/A"}</Td>
+                          <Td>{sample.B2B || "N/A"}</Td>
                           <Td>
                             {sample.is_emergency ? (
                               <EmergencyBadge emergency>
@@ -1053,6 +1141,17 @@ const SampleStatusUpdate = () => {
               )}
             </>
           )}
+          <div
+          style={{
+            padding: "1rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.875rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+        </div>
         </Card>
 
         {selectedPatient && Array.isArray(selectedPatient.testdetails) && (
@@ -1097,14 +1196,7 @@ const SampleStatusUpdate = () => {
                     {selectedPatient.patient_id}
                   </PatientInfoValue>
                 </PatientInfoItem>
-                <PatientInfoItem>
-                  <Calendar size={16} />
-                  <PatientInfoLabel>Date:</PatientInfoLabel>
-                  <PatientInfoValue>
-                    {new Date(selectedPatient.date).toLocaleDateString("en-GB")}
-                  </PatientInfoValue>
-                </PatientInfoItem>
-                <PatientInfoItem>
+                                <PatientInfoItem>
                   <Tag size={16} />
                   <PatientInfoLabel>Barcode:</PatientInfoLabel>
                   <PatientInfoValue>{selectedPatient.barcode}</PatientInfoValue>
@@ -1114,6 +1206,22 @@ const SampleStatusUpdate = () => {
                   <PatientInfoLabel>Age:</PatientInfoLabel>
                   <PatientInfoValue>{selectedPatient.age}</PatientInfoValue>
                 </PatientInfoItem>
+                <PatientInfoItem>
+                  <Clock size={16} color={theme.colors.primary} />
+                  <PatientInfoLabel>Current Time::</PatientInfoLabel>
+                  <PatientInfoValue>{format(currentTime, "dd/MM/yyyy hh:mm:ss a")}</PatientInfoValue>
+                </PatientInfoItem>
+                  <PatientInfoItem>
+                  <Activity size={16} color={theme.colors.success} />
+                  <PatientInfoLabel>Branch:</PatientInfoLabel>
+                  <PatientInfoValue>{samples.length > 0 ? samples[0].branch : "Shanmuga Reference Lab"}</PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <User size={16} color={theme.colors.info} />
+                  <PatientInfoLabel>Technician:</PatientInfoLabel>
+                  <PatientInfoValue>{storedName || "N/A"}</PatientInfoValue>
+                </PatientInfoItem>
+
                 <PatientInfoItem>
                   <AlertCircle size={16} />
                   <PatientInfoLabel>Status:</PatientInfoLabel>
@@ -1133,6 +1241,7 @@ const SampleStatusUpdate = () => {
                 </PatientInfoItem>
               </PatientInfoCard>
 
+
               <TableContainer>
                 <Table>
                   <thead>
@@ -1142,6 +1251,7 @@ const SampleStatusUpdate = () => {
                       <Th>Department</Th>
                       <Th>Status</Th>
                       <Th>Sample Collector</Th>
+                      <Th>Outsource Lab</Th>
                       <Th>Reason for Rejection</Th>
                       <Th>Actions</Th>
                     </tr>
@@ -1174,6 +1284,49 @@ const SampleStatusUpdate = () => {
                           </Select>
                         </Td>
                         <Td>{detail.samplecollector}</Td>
+                        <Td>
+                          {statusChanges[selectedPatient.patient_id]?.[
+                            testIndex
+                          ] === "Outsource" && (
+                            <div>
+                              <Select
+                                value={
+                                  selectedOutsourceLab[
+                                    `${selectedPatient.patient_id}-${testIndex}`
+                                  ] || ""
+                                }
+                                onChange={(e) =>
+                                  handleOutsourceLabChange(
+                                    selectedPatient.patient_id,
+                                    testIndex,
+                                    e.target.value
+                                  )
+                                }
+                              >
+                                <option value="">Select Outsource Lab</option>
+                                {Array.isArray(outsourceLabs) && outsourceLabs.length > 0 ? (
+                                  outsourceLabs.map((lab, index) => (
+                                    <option key={lab.labID || index} value={lab.labName}>
+                                      {lab.labName}
+                                    </option>
+                                  ))
+                                ) : (
+                                  <option value="" disabled>No labs available</option>
+                                )}
+                              </Select>
+                              {outsourceLabs.length === 0 && (
+                                <div style={{ fontSize: "0.75rem", color: theme.colors.warning, marginTop: "0.25rem" }}>
+                                  Loading labs... (Found: {outsourceLabs.length} labs)
+                                </div>
+                              )}
+                              {outsourceLabs.length > 0 && (
+                                <div style={{ fontSize: "0.75rem", color: theme.colors.success, marginTop: "0.25rem" }}>
+                                  {outsourceLabs.length} labs available
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Td>
                         <Td>
                           {statusChanges[selectedPatient.patient_id]?.[
                             testIndex

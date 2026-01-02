@@ -818,6 +818,8 @@ const FranchiseBatchApproval = () => {
   const [selectAllReceived, setSelectAllReceived] = useState(false);
 const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
   const storedName = localStorage.getItem("name");
+  const [outsourceLabs, setOutsourceLabs] = useState([]);
+const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -836,6 +838,45 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
     setFromDate(currentDate);
     setToDate(currentDate);
   }, []);
+
+  // Fetch outsource labs on component mount
+useEffect(() => {
+  const fetchOutsourceLabs = async () => {
+    try {
+      console.log("Fetching outsource labs from:", `${Labbaseurl}get_outsource_labs/`);
+      const response = await apiRequest(
+        `${Labbaseurl}get_outsource_labs/`,
+        "GET"
+      );
+
+      console.log("Full API response:", response);
+      console.log("response.data:", response.data);
+
+      // Handle different response structures
+      let labs = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          labs = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          labs = response.data.data;
+        }
+      }
+
+      console.log("Extracted labs array:", labs);
+      console.log("Labs array length:", labs.length);
+      setOutsourceLabs(labs);
+      
+    } catch (err) {
+      console.error("Error fetching outsource labs:", err);
+      setOutsourceLabs([]);
+    }
+  };
+
+  if (Labbaseurl) {
+    fetchOutsourceLabs();
+  }
+}, [Labbaseurl]);
 
   const fetchBatches = async () => {
     setLoading(true);
@@ -913,23 +954,43 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
   }
 };
 
-  const handleStatusChange = (sampleIndex, testIndex, newStatus) => {
-    const key = `${sampleIndex}-${testIndex}`;
-    setStatusChanges((prev) => ({
-      ...prev,
-      [key]: newStatus,
-    }));
 
-    if (newStatus !== "Rejected") {
-      setRemarks((prev) => {
-        const updatedRemarks = { ...prev };
-        if (updatedRemarks[key]) {
-          delete updatedRemarks[key];
-        }
-        return updatedRemarks;
-      });
-    }
-  };
+const handleOutsourceLabChange = (sampleIndex, testIndex, labName) => {
+  const key = `${sampleIndex}-${testIndex}`;
+  setSelectedOutsourceLab((prev) => ({
+    ...prev,
+    [key]: labName,
+  }));
+};
+
+  const handleStatusChange = (sampleIndex, testIndex, newStatus) => {
+  const key = `${sampleIndex}-${testIndex}`;
+  setStatusChanges((prev) => ({
+    ...prev,
+    [key]: newStatus,
+  }));
+
+  if (newStatus !== "Rejected") {
+    setRemarks((prev) => {
+      const updatedRemarks = { ...prev };
+      if (updatedRemarks[key]) {
+        delete updatedRemarks[key];
+      }
+      return updatedRemarks;
+    });
+  }
+
+  // Clear outsource lab selection when status is not Outsource
+  if (newStatus !== "Outsource") {
+    setSelectedOutsourceLab((prev) => {
+      const updated = { ...prev };
+      if (updated[key]) {
+        delete updated[key];
+      }
+      return updated;
+    });
+  }
+};
 
   const handleRemarksChange = (sampleIndex, testIndex, value) => {
     const key = `${sampleIndex}-${testIndex}`;
@@ -939,78 +1000,6 @@ const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
     }));
   };
 
-  const updateTestStatus = async (sampleIndex, testIndex) => {
-    if (!sampleData || !sampleData[sampleIndex]) return;
-
-    const key = `${sampleIndex}-${testIndex}`;
-    const updatedStatus = statusChanges[key];
-    const sample = sampleData[sampleIndex];
-    const testDetails = sample.testdetails[testIndex];
-    const updatedRemarks = remarks[key];
-
-    if (!updatedStatus) {
-      setError("Please select a status for the test before updating.");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
-
-    try {
-      const response = await apiRequest(
-        `${Labbaseurl}update_franchise_sample/${sample.barcode}/`,
-        "PUT",
-        {
-          updates: [
-            {
-              test_id: testDetails.test_id,
-              testname: testDetails.testname,
-              samplestatus: updatedStatus,
-              remarks: updatedRemarks || null,
-              received_by: updatedStatus === "Received" ? storedName : null,
-              rejected_by: updatedStatus === "Rejected" ? storedName : null,
-              outsourced_by: updatedStatus === "Outsource" ? storedName : null,
-              batch_number: sample.batch_number,
-            },
-          ],
-        }
-      );
-
-      if (response.success && response.status === 200) {
-        setSuccess("Sample status updated successfully!");
-        setTimeout(() => setSuccess(""), 3000);
-
-        setSavedTests((prev) => ({
-          ...prev,
-          [key]: true,
-        }));
-
-        // Update the local sampleData
-        setSampleData((prevData) => 
-          prevData.map((sampleItem, sIdx) =>
-            sIdx === sampleIndex
-              ? {
-                  ...sampleItem,
-                  testdetails: sampleItem.testdetails.map((detail, tIdx) =>
-                    tIdx === testIndex
-                      ? {
-                          ...detail,
-                          samplestatus: updatedStatus,
-                          remarks: updatedRemarks || null,
-                        }
-                      : detail
-                  ),
-                }
-              : sampleItem
-          )
-        );
-      } else {
-        setError(response.error || "Failed to update sample status");
-        setTimeout(() => setError(""), 3000);
-      }
-    } catch (err) {
-      setError("Failed to update sample status");
-      setTimeout(() => setError(""), 3000);
-    }
-  };
 
   useEffect(() => {
     const filtered = batches.filter((batch) => {
@@ -1141,8 +1130,15 @@ const bulkUpdateAllTests = async () => {
       sample.testdetails.forEach((detail, testIndex) => {
         const key = `${sampleIndex}-${testIndex}`;
         const updatedStatus = statusChanges[key];
+        const outsourceLabName = selectedOutsourceLab[key];
         
         if (updatedStatus) {
+          // Validate outsource lab selection
+          if (updatedStatus === "Outsource" && !outsourceLabName) {
+            setError(`Please select an outsource lab for ${detail.testname}`);
+            throw new Error("Outsource lab not selected");
+          }
+          
           sampleUpdates.push({
             test_id: detail.test_id,
             testname: detail.testname,
@@ -1151,6 +1147,7 @@ const bulkUpdateAllTests = async () => {
             received_by: updatedStatus === "Received" ? storedName : null,
             rejected_by: updatedStatus === "Rejected" ? storedName : null,
             outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+            outsource_lab: updatedStatus === "Outsource" ? outsourceLabName : null,
             batch_number: sample.batch_number,
           });
         }
@@ -1181,14 +1178,12 @@ const bulkUpdateAllTests = async () => {
     if (result.success) {
       setSuccess(`Successfully updated ${result.success_count || bulkUpdates.length} test statuses!`);
       
-      // Mark all updated tests as saved
       const newSavedTests = {};
       Object.keys(statusChanges).forEach(key => {
         newSavedTests[key] = true;
       });
       setSavedTests(prev => ({ ...prev, ...newSavedTests }));
       
-      // Update local sample data
       setSampleData(prevData => 
         prevData.map((sampleItem, sIdx) => ({
           ...sampleItem,
@@ -1201,6 +1196,7 @@ const bulkUpdateAllTests = async () => {
                 ...detail,
                 samplestatus: updatedStatus,
                 remarks: remarks[key] || null,
+                outsource_lab: selectedOutsourceLab[key] || null,
               };
             }
             return detail;
@@ -1216,8 +1212,10 @@ const bulkUpdateAllTests = async () => {
     
   } catch (error) {
     console.error("Bulk update error:", error);
-    setError("Failed to update test statuses. Please try again.");
-    setTimeout(() => setError(""), 3000);
+    if (error.message !== "Outsource lab not selected") {
+      setError("Failed to update test statuses. Please try again.");
+      setTimeout(() => setError(""), 3000);
+    }
   } finally {
     setBulkUpdateInProgress(false);
   }
@@ -1902,16 +1900,17 @@ const bulkUpdateAllTests = async () => {
                     <TableContainer>
                       <Table>
                         <TableHeader>
-                          <tr>
-                            <th>Test Name</th>
-                            <th>Container Type</th>
-                            <th>Department</th>
-                            <th>Current Status</th>
-                            <th>Update Status</th>
-                            <th>Sample Collector</th>
-                            <th>Reason for Rejection</th>
-                          </tr>
-                        </TableHeader>
+  <tr>
+    <th>Test Name</th>
+    <th>Container Type</th>
+    <th>Department</th>
+    <th>Current Status</th>
+    <th>Update Status</th>
+    <th>Sample Collector</th>
+    <th>Outsource Lab</th>
+    <th>Reason for Rejection</th>
+  </tr>
+</TableHeader>
                         <TableBody>
                           {sample.testdetails.map((detail, testIndex) => {
                             const key = `${sampleIndex}-${testIndex}`;
@@ -1951,6 +1950,44 @@ const bulkUpdateAllTests = async () => {
                                   </Select>
                                 </td>
                                 <td>{detail.samplecollector || 'N/A'}</td>
+                                <td>
+  {statusChanges[key] === "Outsource" && !isTestSaved && (
+    <div>
+      <Select
+        value={selectedOutsourceLab[key] || ""}
+        onChange={(e) =>
+          handleOutsourceLabChange(
+            sampleIndex,
+            testIndex,
+            e.target.value
+          )
+        }
+        disabled={bulkUpdateInProgress}
+      >
+        <option value="">Select Outsource Lab</option>
+        {Array.isArray(outsourceLabs) && outsourceLabs.length > 0 ? (
+          outsourceLabs.map((lab, index) => (
+            <option key={lab.labID || index} value={lab.labName}>
+              {lab.labName}
+            </option>
+          ))
+        ) : (
+          <option value="" disabled>No labs available</option>
+        )}
+      </Select>
+      {outsourceLabs.length === 0 && (
+        <div style={{ fontSize: "0.75rem", color: "#f59e0b", marginTop: "0.25rem" }}>
+          Loading labs...
+        </div>
+      )}
+      {outsourceLabs.length > 0 && (
+        <div style={{ fontSize: "0.75rem", color: "#059669", marginTop: "0.25rem" }}>
+          {outsourceLabs.length} labs available
+        </div>
+      )}
+    </div>
+  )}
+</td>
                                 <td>
                                   {isStatusRejected && !isTestSaved && (
                                     <TextArea

@@ -918,6 +918,17 @@ const HmsSampleStatusUpdate = () => {
               )}
             </>
           )}
+          <div
+          style={{
+            padding: "1rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.875rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+        </div>
         </Card>
 
         {selectedPatient && Array.isArray(selectedPatient.testdetails) && (

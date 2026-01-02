@@ -382,6 +382,13 @@ const SubTitleCell = styled.td`
   font-style: italic;
   border-left: 3px solid var(--secondary);
 `;
+const OutsourcedBadge = styled(StatusBadge)`
+  background-color: rgba(246, 160, 233, 0.15);
+  color: #d75de0ff;
+  animation: ${blink} 1.5s ease-in-out infinite;
+  font-weight: 600;
+  border: 1px solid #d75de0ff;
+`;
 
 function DoctorForm() {
   const [testValues, setTestValues] = useState([]);
@@ -646,10 +653,15 @@ function DoctorForm() {
           rows.push(
             <TestHeaderRow key={`test-${recordIndex}-${detailIndex}`}>
               <TestTitleCell colSpan="2">
-                <strong>
-                  {testNumber}. {detail.testname || "N/A"}
-                </strong>
-              </TestTitleCell>
+  <strong>
+    {testNumber}. {detail.testname || "N/A"}
+    {detail.outsourced && (
+      <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
+        Outsourced
+      </OutsourcedBadge>
+    )}
+  </strong>
+</TestTitleCell>
               <td></td>
               <td></td>
               <td></td>
@@ -741,10 +753,15 @@ function DoctorForm() {
           rows.push(
             <TestHeaderRow key={`test-no-params-${recordIndex}-${detailIndex}`}>
               <TestTitleCellMerged colSpan="2">
-                <strong>
-                  {testNumber}. {detail.testname || "N/A"}
-                </strong>
-              </TestTitleCellMerged>
+  <strong>
+    {testNumber}. {detail.testname || "N/A"}
+    {detail.outsourced && (
+      <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
+        Outsourced
+      </OutsourcedBadge>
+    )}
+  </strong>
+</TestTitleCellMerged>
               <td>{detail.specimen_type || "N/A"}</td>
               <ValueCell>
                 <ValueContainer>

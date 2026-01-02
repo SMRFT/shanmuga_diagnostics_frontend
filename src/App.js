@@ -43,13 +43,11 @@ import Hmssamplestatus from "./Components/HMS/Hmssamplestatus";
 import HmsSampleStatusUpdate from "./Components/HMS/HmsSampleStatusUpdate";
 import HMSBarcodeGeneration from "./Components/HMS/HMSBarcodeGeneration";
 import HMSBarcodeTestDetails from "./Components/HMS/HMSBarcodeTestDetails";
-import HMSPatientDetails from "./Components/HMS/HMSPatientDetails";
 import HmsTestDetails from "./Components/HMS/HmsTestDetails";
 import PrintBill from "./Components/Patients/PrintBill";
 import Logisticsmap from "./Components/Logistics/Logisticsmap";
 import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
 import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
-import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
@@ -70,6 +68,9 @@ import Refund from "./Components/Refund/Refund";
 import Cancellation from "./Components/Refund/Cancellation";
 import RefundAndCancellationLog from "./Components/Refund/RefundAndCancellationLog";
 import PatientDataTable from "./Components/Mis/PatientTAT";
+import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
+import OSTestDetails from "./Components/OSManangement/OSTestDetails";
+import OutSourceDetails from "./Components/OSManangement/OutSourceDetails";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -251,6 +252,8 @@ const navigateRole = (userRole) => {
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
             <Route path="/TestDetails" element={<TestDetails />} />
+            <Route path="/OutSourceDetails" element={<OutSourceDetails />} />
+            <Route path="/OSTestDetails" element={<OSTestDetails />} />
 
             {/* Finance */}
             <Route path="/CashTally" element={<CashTally />} />
@@ -313,7 +316,6 @@ const navigateRole = (userRole) => {
             <Route path="/HmsSampleStatusUpdate" element={<HmsSampleStatusUpdate/>} />
             <Route path="/HMSBarcodeGeneration" element={<HMSBarcodeGeneration/>} />
             <Route path="/HMSBarcodeTestDetails" element={<HMSBarcodeTestDetails/>} />
-            <Route path="/HMSPatientDetails" element={<HMSPatientDetails/>} />
             <Route path="/HmsTestDetails" element={<HmsTestDetails/>} />
 
           {/* HMS Report */}          
