@@ -29,6 +29,7 @@ import "react-toastify/dist/ReactToastify.css";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
 import Vijayan from "../Images/Vijayan.png";
+import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 
@@ -570,8 +571,6 @@ const CorporatePatientOverview = () => {
 
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
-      // setLoading(true);
-
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}corporate_patient_test_details/?barcode=${patient.barcode}`,
@@ -588,9 +587,8 @@ const CorporatePatientOverview = () => {
       console.log("API Response:", response.data);
       let patientDetails = response.data;
       if (Array.isArray(response.data)) {
-        // Merge testdetails from all records
         patientDetails = {
-          ...response.data[0], // Use first record for base patient info
+          ...response.data[0],
           testdetails: response.data.flatMap(
             (record) => record.testdetails || []
           ),
@@ -608,40 +606,17 @@ const CorporatePatientOverview = () => {
         return null;
       }
 
-      // Enhanced Unicode character mapping for medical units
       const unicodeMap = {
-        // Greek letters
-        μ: "µ", // Alternative mu symbol that works better in PDF
-        α: "α",
-        β: "β",
-        γ: "γ",
-        δ: "δ",
-        Ω: "Ω",
-        // Superscript numbers
-        "²": "²",
-        "³": "³",
-        "⁴": "⁴",
-        // Medical symbols
-        "°": "°",
-        "±": "±",
-        "×": "x",
-        "÷": "/",
-        // Common Unicode escapes
-        "\\u03bc": "µ", // μ
-        "\\u00b5": "µ", // µ (micro sign)
-        "\\u00b0": "°", // degree
-        "\\u00b1": "±", // plus-minus
-        "\\u00b2": "²", // superscript 2
-        "\\u00b3": "³", // superscript 3
+        μ: "µ", α: "α", β: "β", γ: "γ", δ: "δ", Ω: "Ω",
+        "²": "²", "³": "³", "⁴": "⁴", "°": "°", "±": "±",
+        "×": "x", "÷": "/",
+        "\\u03bc": "µ", "\\u00b5": "µ", "\\u00b0": "°",
+        "\\u00b1": "±", "\\u00b2": "²", "\\u00b3": "³",
       };
 
-      // Enhanced function to handle Unicode characters in text
       const processUnicodeText = (text) => {
         if (!text) return "";
-
         let processedText = text;
-
-        // Handle Unicode escape sequences first
         processedText = processedText.replace(
           /\\u([0-9a-fA-F]{4})/g,
           (match, hex) => {
@@ -649,35 +624,28 @@ const CorporatePatientOverview = () => {
             return unicodeMap[char] || char;
           }
         );
-
-        // Handle direct Unicode characters
         Object.keys(unicodeMap).forEach((unicode) => {
           const regex = new RegExp(unicode, "g");
           processedText = processedText.replace(regex, unicodeMap[unicode]);
         });
-
         return processedText;
       };
 
-      // Function to extract the number from patient_ref_no
       const extractPatientRefNoNumber = (refNo) => {
         if (!refNo) return "N/A";
         const numberPart = refNo.split("+")[0];
         return numberPart;
       };
 
-      // Adding Consultant names and qualifications
       const consultants = [
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist"],
         ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. R. Vijayan Ph.D.", "Consultant Biochemist", Vijayan],
+        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
       ];
 
       const patientRefNo =
         patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
       const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
 
-      // Generate Barcode only if patientRefNoNumber is not "N/A"
       let barcodeImage = null;
       if (patientRefNoNumber !== "N/A") {
         const barcodeCanvas = document.createElement("canvas");
@@ -692,84 +660,45 @@ const CorporatePatientOverview = () => {
         barcodeImage = barcodeCanvas.toDataURL("image/png");
       }
 
-      // FIXED: Define consistent margins and dimensions regardless of letterpad
       const leftMargin = 10;
-      const rightMargin = leftMargin + 190; // Total document width is 210, content width is 190
-      const contentWidth = rightMargin - leftMargin; // Consistent content width (190)
+      const rightMargin = leftMargin + 190;
+      const contentWidth = rightMargin - leftMargin;
+      const headerHeight = 30;
+      const footerHeight = 20;
+      const contentYStart = headerHeight + 20;
+      const signatureHeight = 25;
+      const disclaimerHeight = 0;
+      const tableHeaderHeight = 10;
 
-      // FIXED: Consistent header and footer heights regardless of letterpad
-      const headerHeight = 30; // Always reserve space for header
-      const footerHeight = 20; // Always reserve space for footer
-      const contentYStart = headerHeight + 20; // Start content below the header area
-      const signatureHeight = 25; // Height needed for signatures
-      const disclaimerHeight = 0; // No disclaimer needed
-      const tableHeaderHeight = 10; // Height needed for table header
-
-      // Column widths adjusted to fit within content margins
       const colWidths = [
-        contentWidth * 0.28, // Test Description
-        contentWidth * 0.12, // Specimen Type
-        contentWidth * 0.05, // Extra Gap (Added)
-        contentWidth * 0.13, // Value(s)
-        contentWidth * 0.1, // Unit
-        contentWidth * 0.17, // Reference Range
-        contentWidth * 0.15, // Method (Moved to last)
+        contentWidth * 0.28, contentWidth * 0.12, contentWidth * 0.05,
+        contentWidth * 0.13, contentWidth * 0.1, contentWidth * 0.17,
+        contentWidth * 0.15,
       ];
 
-      // Patient information (left and right sides)
       const leftDetails = [
         { label: "UHID", value: patientDetails.patient_id || "N/A" },
-        {
-          label: "Name",
-          value: patientDetails.patientname || "No name provided",
-        },
-        {
-          label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${
-            patientDetails.gender || "N/A"
-          }`,
-        },
+        { label: "Name", value: patientDetails.patientname || "No name provided" },
+        { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
         { label: "Referral", value: patientDetails.refby || "SELF" },
       ];
 
       const rightDetails = [
-        {
-          label: "Collected On",
-          value:
-            format(
-              new Date(patientDetails.testdetails[0].samplecollected_time),
-              "dd MMM yy / HH:mm"
-            ) || "N/A",
-        },
-        {
-          label: "Received On",
-          value:
-            format(
-              new Date(patientDetails.testdetails[0].received_time),
-              "dd MMM yy / HH:mm"
-            ) || "N/A",
-        },
-        {
-          label: "Reported Date",
-          value: format(new Date(), "dd MMM yy / hh:mm"),
-        },
+        { label: "Collected On", value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A" },
+        { label: "Received On", value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A" },
+        { label: "Reported Date", value: format(new Date(), "dd MMM yy / hh:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
 
-      // Function to calculate max width for alignment
       const calculateMaxLabelWidth = (details) => {
         const tempDoc = new jsPDF();
-        return Math.max(
-          ...details.map((item) => tempDoc.getTextWidth(item.label))
-        );
+        return Math.max(...details.map((item) => tempDoc.getTextWidth(item.label)));
       };
 
-      // Create the actual document
       const doc = new jsPDF();
       let pageCount = 1;
-      let isTableStarted = false; // Track if we're in the table section
+      let isTableStarted = false;
 
-      // Add Patient Info function
       const addPatientInfo = (yPos) => {
         const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
         const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
@@ -801,132 +730,46 @@ const CorporatePatientOverview = () => {
             doc.setFont("helvetica", "normal");
             doc.text(right.value, rightValueX, patientInfoY);
 
-            if (
-              right.label === "Patient Ref.No" &&
-              patientRefNoNumber !== "N/A" &&
-              barcodeImage
-            ) {
-              doc.addImage(
-                barcodeImage,
-                "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 10,
-                patientInfoY + 2,
-                25,
-                8
-              );
+            if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
+              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 10, patientInfoY + 2, 25, 8);
             }
           }
-
           patientInfoY += 5;
         }
-
         return patientInfoY;
       };
-      
 
-      // Function to add header and footer with consistent positioning
       const addHeaderFooter = () => {
         if (withLetterpad) {
-          // Position header at the very top of the page with no left margin
-          doc.addImage(
-            headerImage,
-            "PNG",
-            0,
-            10,
-            doc.internal.pageSize.width,
-            headerHeight
-          );
-
-          // Position footer at the very bottom of the page with no left margin
+          doc.addImage(headerImage, "PNG", 0, 10, doc.internal.pageSize.width, headerHeight);
           const footerY = doc.internal.pageSize.height - footerHeight;
-          doc.addImage(
-            FooterImage,
-            "PNG",
-            0,
-            footerY,
-            doc.internal.pageSize.width,
-            footerHeight
-          );
+          doc.addImage(FooterImage, "PNG", 0, footerY, doc.internal.pageSize.width, footerHeight);
         } else {
-          // For non-letterpad version, add a simple header placeholder to maintain consistent spacing
           doc.setFontSize(8);
           doc.setFont("helvetica", "normal");
-          doc.setTextColor(255, 255, 255); // White text (invisible)
+          doc.setTextColor(255, 255, 255);
           doc.text("Header Space", leftMargin, 10);
-          doc.setTextColor(0, 0, 0); // Reset to black
+          doc.setTextColor(0, 0, 0);
         }
       };
 
-      // Enhanced text rendering function with Unicode support
-      const renderUnicodeText = (text, x, y, options = {}) => {
-        const processedText = processUnicodeText(text);
-
-        // Handle special cases for common medical units
-        if (processedText.includes("µ")) {
-          // Split text around µ symbol and render parts separately
-          const parts = processedText.split("µ");
-          let currentX = x;
-
-          parts.forEach((part, index) => {
-            if (index > 0) {
-              // Render µ symbol
-              doc.setFont("helvetica", options.fontStyle || "normal");
-              doc.text("µ", currentX, y);
-              currentX += doc.getTextWidth("µ");
-            }
-
-            if (part) {
-              doc.text(part, currentX, y);
-              currentX += doc.getTextWidth(part);
-            }
-          });
-        } else {
-          // Normal text rendering
-          doc.text(processedText, x, y);
-        }
-      };
-
-      // Function to draw table header
       const drawTableHeader = (yPos) => {
-        // Draw Top Line - Use leftMargin and rightMargin for consistency
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
-
-        // Table Header
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-
-        // Updated headers array to match colWidths
-        const headers = [
-          "Test",
-          "Specimen",
-          "",
-          "Result",
-          "Units",
-          "Reference Value",
-          "Method",
-        ];
-
+        const headers = ["Test", "Specimen", "", "Result", "Units", "Reference Value", "Method"];
         let xPos = leftMargin;
-
         headers.forEach((header, index) => {
-          if (header) {
-            // Avoid printing the extra gap column header
-            doc.text(header, xPos, yPos);
-          }
-          xPos += colWidths[index]; // Move to the next column
+          if (header) doc.text(header, xPos, yPos);
+          xPos += colWidths[index];
         });
-
         yPos += 3;
-
-        // Draw Bottom Line - Use leftMargin and rightMargin for consistency
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
-
         return yPos;
       };
 
-      // Function to wrap text and return height with improved line height
       const wrapText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
         if (!text) return 0;
         const splitText = doc.splitTextToSize(text, maxWidth);
@@ -936,91 +779,64 @@ const CorporatePatientOverview = () => {
         return splitText.length * lineHeight;
       };
 
-      // Function to add signatures with consistent positioning
       const addSignatures = () => {
         const pageHeight = doc.internal.pageSize.height;
-        // Calculate signature position with more space from footer
-        const signaturesY = pageHeight - footerHeight - signatureHeight - 10; // Added extra 10 units for more space
-
-        // REDUCED signature width from 40 to 30
+        const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
         const signatureWidth = 35;
-        const availableWidth = contentWidth - (signatureWidth / 2) * 2; // Space between left and right most signatures
-        const signatureSpacing = availableWidth / (consultants.length - 1); // Space between each signature
+        const availableWidth = contentWidth - (signatureWidth / 2) * 2;
+        const signatureSpacing = availableWidth / (consultants.length - 1);
+
+        const approvers = new Set();
+        patientDetails.testdetails.forEach((test) => {
+          if (test.approve_by && test.approve_by.trim() !== "") {
+            approvers.add(test.approve_by.toLowerCase());
+          }
+        });
 
         consultants.forEach((consultant, index) => {
-          // Calculate position based on leftMargin to ensure consistency
           const xPosition = leftMargin + index * signatureSpacing;
+          const consultantName = consultant[0].toLowerCase();
+          const shouldShowSignature = 
+            consultantName.includes("brindha") && approvers.has("brindha") ||
+            consultantName.includes("vijayan") && approvers.has("vijayan");
 
-          // Add Signature (if available) with reduced width
-          if (consultant[2]) {
-            doc.addImage(
-              consultant[2],
-              "PNG",
-              xPosition,
-              signaturesY,
-              signatureWidth,
-              15
-            );
+          if (consultant[2] && shouldShowSignature) {
+            doc.addImage(consultant[2], "PNG", xPosition, signaturesY, signatureWidth, 15);
           }
-
-          // Print name below the signature with REDUCED spacing
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
           doc.text(consultant[0], xPosition, signaturesY + 15);
-
-          // Print qualification below the name with REDUCED spacing
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           doc.text(consultant[1], xPosition, signaturesY + 20);
         });
       };
 
-      // Function to check if we need to add a new page with consistent calculations
       const checkForNewPage = (yPos, estimatedHeight) => {
-  const pageHeight = doc.internal.pageSize.height;
-  // Use consistent footer space calculation for both versions
-  const footerStart =
-    pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12); // Added extra space
+        const pageHeight = doc.internal.pageSize.height;
+        const footerStart = pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
+        if (yPos + estimatedHeight >= footerStart) {
+          addSignatures();
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter();
+          let newYPos = contentYStart;
+          newYPos = addPatientInfo(newYPos);
+          newYPos += 10;
+          if (isTableStarted) {
+            newYPos = drawTableHeader(newYPos);
+          }
+          return newYPos;
+        }
+        return yPos;
+      };
 
-  // If content is approaching footer, move to a new page
-  if (yPos + estimatedHeight >= footerStart) {
-    // Add signatures to current page before creating new page
-    addSignatures();
-
-    doc.addPage();
-    pageCount++;
-    addHeaderFooter(); // Add header/footer
-
-    let newYPos = contentYStart;
-    newYPos = addPatientInfo(newYPos); // Add patient info on new page
-    
-    // ADD THIS LINE: Add extra space after patient info on new pages too
-    newYPos += 10; // Same spacing as first page
-
-    // If we're in the table section, add table header on new page
-    if (isTableStarted) {
-      newYPos = drawTableHeader(newYPos);
-    }
-
-    return newYPos; // Reset Y position for new page
-  }
-  return yPos;
-};
-
-
-      // Function to determine whether a value is high or low compared to reference range
       const getHighLowStatus = (value, reference) => {
         if (!value || !reference) return null;
-
-        // Convert value to number if possible
         const numValue = Number.parseFloat(value);
         if (isNaN(numValue)) return null;
-
-        // Handle different reference range formats
         if (reference.includes("-")) {
-          const [min, max] = reference
-            .split("-")
-            .map((v) => Number.parseFloat(v));
+          const [min, max] = reference.split("-").map((v) => Number.parseFloat(v));
           if (!isNaN(min) && !isNaN(max)) {
             if (numValue < min) return "L";
             if (numValue > max) return "H";
@@ -1032,412 +848,227 @@ const CorporatePatientOverview = () => {
           const min = Number.parseFloat(reference.replace(">", ""));
           if (!isNaN(min) && numValue < min) return "L";
         }
-
         return null;
       };
 
-      // Function to draw arrow symbols using lines (compatible with all PDF fonts)
       const drawArrowSymbol = (doc, x, y, direction) => {
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.5);
-
         if (direction === "up") {
-          // Draw up arrow using lines
-          doc.line(x, y, x + 1, y - 1); // Left diagonal
-          doc.line(x + 1, y - 1, x + 2, y); // Right diagonal
-          doc.line(x + 1, y - 1, x + 1, y + 2); // Vertical line
+          doc.line(x, y, x + 1, y - 1);
+          doc.line(x + 1, y - 1, x + 2, y);
+          doc.line(x + 1, y - 1, x + 1, y + 2);
         } else if (direction === "down") {
-          // Draw down arrow using lines
-          doc.line(x, y, x + 1, y + 1); // Left diagonal
-          doc.line(x + 1, y + 1, x + 2, y); // Right diagonal
-          doc.line(x + 1, y + 1, x + 1, y - 2); // Vertical line
+          doc.line(x, y, x + 1, y + 1);
+          doc.line(x + 1, y + 1, x + 2, y);
+          doc.line(x + 1, y + 1, x + 1, y - 2);
         }
       };
 
-      // Start generating the actual PDF
       addHeaderFooter();
-
-      // Use addPatientInfo function
       let currentYPosition = addPatientInfo(contentYStart);
-      currentYPosition += 10; 
+      currentYPosition += 10;
 
-      // Test rendering logic with better page break handling and consistent alignment
       if (patientDetails.testdetails.length) {
-        // Mark that we're starting the table section
         isTableStarted = true;
-
-        // Check if we need a new page for the table header
         currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
-
         let yPos = currentYPosition;
-
-        // Draw initial table header
         yPos = drawTableHeader(yPos);
 
-        // Group Tests by Department
-        const testsByDepartment = patientDetails.testdetails.reduce(
-          (acc, test) => {
-            (acc[test.department] = acc[test.department] || []).push(test);
-            return acc;
-          },
-          {}
-        );
+        const testsByDepartment = patientDetails.testdetails.reduce((acc, test) => {
+          (acc[test.department] = acc[test.department] || []).push(test);
+          return acc;
+        }, {});
 
         Object.keys(testsByDepartment).forEach((department) => {
-  // Check if we need a new page for the department with at least one test row
-  const departmentHeight = 25; // Height for department header + minimum content
-  yPos = checkForNewPage(yPos, departmentHeight);
-
-  // Department Title with Underline - Center within content margins
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  const textWidth = doc.getTextWidth(department.toUpperCase());
-
-  // Center within content margins
-  const centerX = leftMargin + contentWidth / 2;
-  doc.text(department.toUpperCase(), centerX, yPos, {
-    align: "center",
-  });
-  doc.line(
-    centerX - textWidth / 2,
-    yPos + 2,
-    centerX + textWidth / 2,
-    yPos + 2
-  );
-
-  yPos += 10;
-
-  // Render each test and its parameters
-  testsByDepartment[department].forEach((test) => {
-    // Group parameters by sub_title
-    const parametersBySubtitle = {};
-    
-    if (test.parameters && test.parameters.length > 0) {
-      test.parameters.forEach((param) => {
-        const subtitle = param.sub_title || ""; // Use empty string if no subtitle
-        if (!parametersBySubtitle[subtitle]) {
-          parametersBySubtitle[subtitle] = [];
-        }
-        parametersBySubtitle[subtitle].push(param);
-      });
-    }
-
-    // Check if we need a new page for the test name with at least one parameter
-    const testHeaderHeight = 20; // Height for test name + minimum content
-    yPos = checkForNewPage(yPos, testHeaderHeight);
-
-    // Render main test first
-    doc.setFontSize(10);
-
-    // Start positions for each column
-    let xPos = leftMargin;
-
-    // Main test name in bold
-    doc.setFont("helvetica", "bold");
-    const testNameText = test.testname;
-    const testNameHeight = wrapText(
-      doc,
-      testNameText,
-      colWidths[0] - 2,
-      xPos,
-      yPos,
-      4
-    );
-    xPos += colWidths[0];
-
-    // Reset font to normal for other columns
-    doc.setFont("helvetica", "normal");
-
-    // Specimen Type with word wrap
-    const specimenHeight = wrapText(
-      doc,
-      test.specimen_type || "",
-      colWidths[1] - 2,
-      xPos,
-      yPos,
-      4
-    );
-    xPos += colWidths[1];
-
-    // Extra Gap
-    xPos += colWidths[2];
-
-    // Value(s) - Show indicator after the value with word wrap
-    const statusIndicator = test.isHigh
-      ? "H"
-      : test.isLow
-      ? "L"
-      : getHighLowStatus(test.value, test.reference_range);
-
-    const valueText = test.value || "";
-
-    // Keep value bold when there's an indicator
-    if (statusIndicator) {
-      doc.setFont("helvetica", "bold");
-      if (statusIndicator === "H") {
-        doc.setTextColor(255, 0, 0); // Red for high
-      } else if (statusIndicator === "L") {
-        doc.setTextColor(0, 0, 255); // Blue for low
-      }
-      const valueHeight = wrapText(
-        doc,
-        valueText,
-        colWidths[3] - 2,
-        xPos,
-        yPos,
-        4
-      );
-
-      // Display indicator AFTER the value
-      const valueWidth = doc.getTextWidth(valueText);
-      if (statusIndicator === "H") {
-        drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-      } else if (statusIndicator === "L") {
-        drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
-      }
-      doc.setTextColor(0, 0, 0); // Reset to black
-      doc.setFont("helvetica", "normal");
-    } else {
-      const valueHeight = wrapText(
-        doc,
-        valueText,
-        colWidths[3] - 2,
-        xPos,
-        yPos,
-        4
-      );
-    }
-    xPos += colWidths[3];
-
-    // Unit with word wrap
-    const unitHeight = wrapText(
-      doc,
-      processUnicodeText(test.unit || ""),
-      colWidths[4] - 2,
-      xPos,
-      yPos,
-      4
-    );
-    xPos += colWidths[4];
-
-    // Reference Range with word wrap
-    const referenceRangeHeight = wrapText(
-      doc,
-      test.reference_range || "",
-      colWidths[5] - 2,
-      xPos,
-      yPos,
-      4
-    );
-    xPos += colWidths[5];
-
-    // Method with word wrap
-    doc.setTextColor(0, 0, 0);
-    const methodText = (test.method || "")
-      .replace(/\bMethod\b/i, "")
-      .trim();
-    const methodHeight = wrapText(
-      doc,
-      methodText,
-      colWidths[6] - 2,
-      xPos,
-      yPos,
-      4
-    );
-
-    // Calculate row height
-    const maxContentHeight = Math.max(
-      testNameHeight,
-      specimenHeight,
-      referenceRangeHeight,
-      methodHeight,
-      unitHeight
-    );
-    yPos += Math.max(maxContentHeight, 6) + 2;
-
-    // Reset styling
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-
-    // Now render parameters grouped by sub_title
-    Object.keys(parametersBySubtitle).forEach((subtitle) => {
-      // If subtitle exists and is not empty, check if we can fit subtitle + at least one parameter
-      if (subtitle && subtitle.trim() !== "") {
-        const subtitleWithParamHeight = 25; // Height for subtitle + one parameter row
-        yPos = checkForNewPage(yPos, subtitleWithParamHeight);
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text(subtitle, leftMargin, yPos);
-        yPos += 6;
-      }
-
-      // Render all parameters under this subtitle
-      parametersBySubtitle[subtitle].forEach((currentTest) => {
-        const estimatedHeight = 18;
-        yPos = checkForNewPage(yPos, estimatedHeight);
-
-        doc.setFontSize(10);
-        let xPos = leftMargin;
-
-        // Parameter name (normal font) with word wrap
-        doc.setFont("helvetica", "normal");
-        const testNameText = currentTest.name;
-        const testNameHeight = wrapText(
-          doc,
-          testNameText,
-          colWidths[0] - 2,
-          xPos,
-          yPos,
-          4
-        );
-        xPos += colWidths[0];
-
-        // Specimen Type with word wrap
-        const specimenHeight = wrapText(
-          doc,
-          currentTest.specimen_type || "",
-          colWidths[1] - 2,
-          xPos,
-          yPos,
-          4
-        );
-        xPos += colWidths[1];
-
-        // Extra Gap
-        xPos += colWidths[2];
-
-        // Value(s) with indicator and word wrap
-        const statusIndicator = currentTest.isHigh
-          ? "H"
-          : currentTest.isLow
-          ? "L"
-          : getHighLowStatus(
-              currentTest.value,
-              currentTest.reference_range
-            );
-
-        const valueText = currentTest.value || "";
-        let valueHeight = 0;
-
-        if (statusIndicator) {
+          const departmentHeight = 25;
+          yPos = checkForNewPage(yPos, departmentHeight);
           doc.setFont("helvetica", "bold");
-          if (statusIndicator === "H") {
-            doc.setTextColor(255, 0, 0);
-          } else if (statusIndicator === "L") {
-            doc.setTextColor(0, 0, 255);
-          }
-          valueHeight = wrapText(
-            doc,
-            valueText,
-            colWidths[3] - 2,
-            xPos,
-            yPos,
-            4
-          );
+          doc.setFontSize(10);
+          const textWidth = doc.getTextWidth(department.toUpperCase());
+          const centerX = leftMargin + contentWidth / 2;
+          doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
+          doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
+          yPos += 10;
 
-          const valueWidth = doc.getTextWidth(valueText);
-          if (statusIndicator === "H") {
-            drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-          } else if (statusIndicator === "L") {
-            drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
-          }
-          doc.setTextColor(0, 0, 0);
-          doc.setFont("helvetica", "normal");
-        } else {
-          valueHeight = wrapText(
-            doc,
-            valueText,
-            colWidths[3] - 2,
-            xPos,
-            yPos,
-            4
-          );
-        }
-        xPos += colWidths[3];
+          testsByDepartment[department].forEach((test) => {
+            const parametersBySubtitle = {};
+            if (test.parameters && test.parameters.length > 0) {
+              test.parameters.forEach((param) => {
+                const subtitle = param.sub_title || "";
+                if (!parametersBySubtitle[subtitle]) {
+                  parametersBySubtitle[subtitle] = [];
+                }
+                parametersBySubtitle[subtitle].push(param);
+              });
+            }
 
-        // Unit with word wrap
-        const unitHeight = wrapText(
-          doc,
-          processUnicodeText(currentTest.unit || ""),
-          colWidths[4] - 2,
-          xPos,
-          yPos,
-          4
-        );
-        xPos += colWidths[4];
+            const testHeaderHeight = 20;
+            yPos = checkForNewPage(yPos, testHeaderHeight);
+            doc.setFontSize(10);
+            let xPos = leftMargin;
 
-        // Reference Range with word wrap
-        const referenceRangeHeight = wrapText(
-          doc,
-          currentTest.reference_range || "",
-          colWidths[5] - 2,
-          xPos,
-          yPos,
-          4
-        );
-        xPos += colWidths[5];
+            doc.setFont("helvetica", "bold");
+            const testNameText = test.testname;
+            const testNameHeight = wrapText(doc, testNameText, colWidths[0] - 2, xPos, yPos, 4);
+            xPos += colWidths[0];
+            doc.setFont("helvetica", "normal");
 
-        // Method with word wrap
-        const methodText = (currentTest.method || "")
-          .replace(/\bMethod\b/i, "")
-          .trim();
-        const methodHeight = wrapText(
-          doc,
-          methodText,
-          colWidths[6] - 2,
-          xPos,
-          yPos,
-          4
-        );
+            const specimenHeight = wrapText(doc, test.specimen_type || "", colWidths[1] - 2, xPos, yPos, 4);
+            xPos += colWidths[1];
+            xPos += colWidths[2];
 
-        // Calculate row height
-        const maxContentHeight = Math.max(
-          testNameHeight,
-          specimenHeight,
-          valueHeight,
-          unitHeight,
-          referenceRangeHeight,
-          methodHeight
-        );
-        yPos += Math.max(maxContentHeight, 6) + 2;
+            const statusIndicator = test.isHigh ? "H" : test.isLow ? "L" : getHighLowStatus(test.value, test.reference_range);
+            const valueText = test.value || "";
 
-        // Reset styling
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-      });
-    });
+            if (statusIndicator) {
+              doc.setFont("helvetica", "bold");
+              if (statusIndicator === "H") {
+                doc.setTextColor(255, 0, 0);
+              } else if (statusIndicator === "L") {
+                doc.setTextColor(0, 0, 255);
+              }
+              const valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
+              const valueWidth = doc.getTextWidth(valueText);
+              if (statusIndicator === "H") {
+                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+              } else if (statusIndicator === "L") {
+                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+              }
+              doc.setTextColor(0, 0, 0);
+              doc.setFont("helvetica", "normal");
+            } else {
+              const valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
+            }
+            xPos += colWidths[3];
 
-    // Add "Verified by" under each test
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(
-      `Verified by: ${test.verified_by || "N/A"}`,
-      leftMargin,
-      yPos
-    );
-    yPos += 8;
+            const unitHeight = wrapText(doc, processUnicodeText(test.unit || ""), colWidths[4] - 2, xPos, yPos, 4);
+            xPos += colWidths[4];
 
-    // Reset font
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-  });
+            const referenceRangeHeight = wrapText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, 4);
+            xPos += colWidths[5];
 
-  yPos += 4;
-});
+            doc.setTextColor(0, 0, 0);
+            const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
+            const methodHeight = wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4);
 
+            const maxContentHeight = Math.max(testNameHeight, specimenHeight, referenceRangeHeight, methodHeight, unitHeight);
+            yPos += Math.max(maxContentHeight, 6) + 2;
+
+            if (test.outsourced === true) {
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
+              doc.text("(Outsourced)", leftMargin, yPos);
+              yPos += 4;
+            }
+
+            if (!test.parameters || test.parameters.length === 0) {
+              if (test.comment && test.comment.trim() !== "") {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                const commentText = `Note: ${test.comment}`;
+                const commentHeight = wrapText(doc, commentText, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2, leftMargin, yPos, 3.5);
+                yPos += commentHeight + 2;
+              }
+            }
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+
+            Object.keys(parametersBySubtitle).forEach((subtitle) => {
+              if (subtitle && subtitle.trim() !== "") {
+                const subtitleWithParamHeight = 25;
+                yPos = checkForNewPage(yPos, subtitleWithParamHeight);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.text(subtitle, leftMargin, yPos);
+                yPos += 6;
+              }
+
+              parametersBySubtitle[subtitle].forEach((currentTest) => {
+                const estimatedHeight = 18;
+                yPos = checkForNewPage(yPos, estimatedHeight);
+                doc.setFontSize(10);
+                let xPos = leftMargin;
+
+                doc.setFont("helvetica", "normal");
+                const testNameText = currentTest.name;
+                const testNameHeight = wrapText(doc, testNameText, colWidths[0] - 2, xPos, yPos, 4);
+                xPos += colWidths[0];
+
+                const specimenHeight = wrapText(doc, currentTest.specimen_type || "", colWidths[1] - 2, xPos, yPos, 4);
+                xPos += colWidths[1];
+                xPos += colWidths[2];
+
+                const statusIndicator = currentTest.isHigh ? "H" : currentTest.isLow ? "L" : getHighLowStatus(currentTest.value, currentTest.reference_range);
+                const valueText = currentTest.value || "";
+                let valueHeight = 0;
+
+                if (statusIndicator) {
+                  doc.setFont("helvetica", "bold");
+                  if (statusIndicator === "H") {
+                    doc.setTextColor(255, 0, 0);
+                  } else if (statusIndicator === "L") {
+                    doc.setTextColor(0, 0, 255);
+                  }
+                  valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
+                  const valueWidth = doc.getTextWidth(valueText);
+                  if (statusIndicator === "H") {
+                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+                  } else if (statusIndicator === "L") {
+                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+                  }
+                  doc.setTextColor(0, 0, 0);
+                  doc.setFont("helvetica", "normal");
+                } else {
+                  valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
+                }
+                xPos += colWidths[3];
+
+                const unitHeight = wrapText(doc, processUnicodeText(currentTest.unit || ""), colWidths[4] - 2, xPos, yPos, 4);
+                xPos += colWidths[4];
+
+                const referenceRangeHeight = wrapText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, 4);
+                xPos += colWidths[5];
+
+                const methodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
+                const methodHeight = wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4);
+
+                const maxContentHeight = Math.max(testNameHeight, specimenHeight, valueHeight, unitHeight, referenceRangeHeight, methodHeight);
+                yPos += Math.max(maxContentHeight, 6) + 2;
+
+                if (currentTest.comment && currentTest.comment.trim() !== "") {
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
+                  const commentText = `Note: ${currentTest.comment}`;
+                  const commentHeight = wrapText(doc, commentText, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2, leftMargin, yPos, 3.5);
+                  yPos += commentHeight + 2;
+                }
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+              });
+            });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Verified by: ${test.verified_by || "N/A"}`, leftMargin, yPos);
+            yPos += 8;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+          });
+          yPos += 4;
+        });
         currentYPosition = yPos;
       }
 
-      // Mark that we're no longer in the table section
       isTableStarted = false;
 
-      // Consistent space checking for both versions
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart =
-          pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
-
+        const footerStart = pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
         if (currentYPosition + 10 >= footerStart) {
           addSignatures();
           doc.addPage();
@@ -1448,55 +1079,29 @@ const CorporatePatientOverview = () => {
         return currentYPosition;
       };
 
-      // Use this function before adding final content
       currentYPosition = ensureSpaceForFooter(currentYPosition);
-
-      // End of report - Center within content margins
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
-      doc.text("**End of the Report**", centerX, currentYPosition, {
-        align: "center",
-      });
-
-      // Add signatures at the bottom of the last page
+      doc.text("**End of the Report**", centerX, currentYPosition, { align: "center" });
       addSignatures();
 
-      // Get the final page count AFTER all content is rendered
       const finalPageCount = pageCount;
-
-      // Add page numbers with consistent positioning for both versions
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
-
-        // Calculate position below signatures consistently
         const pageHeight = doc.internal.pageSize.height;
         const pageNumberY = pageHeight - footerHeight - 10;
-
-        // Add the page number centered below signatures
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const centerX = leftMargin + contentWidth / 2;
-        doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, {
-          align: "center",
-        });
+        doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, { align: "center" });
       }
 
-      // Generate the PDF as a Blob and set file name with patientID
       const patientID = patientDetails.patient_id || "Unknown";
-      const pdfFileName = `PatientReport_${patientID}.pdf`;
+      const patientName = (patientDetails.patientname || "Unknown");
+      const pdfFileName = `${patientName}_${patientID}.pdf`;
+      doc.save(pdfFileName);
       const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-
-      // Create a temporary link to trigger download
-      const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = pdfFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(pdfUrl); // Clean up the URL
-
       setLoading(false);
       return pdfBlob;
     } catch (error) {

@@ -280,6 +280,27 @@ const TextArea = styled.textarea`
   }
 `;
 
+const CommentBox = styled.div`
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--gray-light);
+`;
+
+const CommentLabel = styled(Label)`
+  color: var(--secondary);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
+`;
+
+const CommentTextArea = styled(TextArea)`
+  min-height: 5px;
+  min-width: 1000px;
+  background-color: white;
+`;
+
 const ParameterSection = styled.div`
   margin-top: 1.5rem;
   border-top: 1px solid var(--gray-light);
@@ -372,6 +393,8 @@ function OSTestDetails() {
   const [testDetails, setTestDetails] = useState([]);
   const [values, setValues] = useState({});
   const [remarks, setRemarks] = useState({});
+  const [comments, setComments] = useState({});
+  const [parameterComments, setParameterComments] = useState({});
   const [parameterRemarks, setParameterRemarks] = useState("");
   const [editMode, setEditMode] = useState({});
   const [parameterEditMode, setParameterEditMode] = useState(false);
@@ -578,6 +601,21 @@ function OSTestDetails() {
     }));
   };
 
+  const handleCommentChange = (testname, event) => {
+    setComments((prevComments) => ({
+      ...prevComments,
+      [testname]: event.target.value,
+    }));
+  };
+
+  const handleParameterCommentChange = (testname, paramName, event) => {
+    const uniqueKey = `${testname}_${paramName}`;
+    setParameterComments((prevComments) => ({
+      ...prevComments,
+      [uniqueKey]: event.target.value,
+    }));
+  };
+
   const handleParameterRemarksChange = (event) => {
     setParameterRemarks(event.target.value);
   };
@@ -725,6 +763,7 @@ function OSTestDetails() {
                 reference_range: param.reference_range || "",
                 method: param.method || "",
                 sub_title: subtitle,
+                comment: parameterComments[uniqueKey] || "",
               });
             });
           });
@@ -756,6 +795,7 @@ function OSTestDetails() {
             department: test.department || "",
             NABL: test.NABL || "",
             remarks: remarks[test.testname] || "",
+            comment: comments[test.testname] || "",
             rerun: editMode[test.testname] ? false : test.rerun,
             approve: false,
             approve_time: "null",
@@ -990,6 +1030,15 @@ function OSTestDetails() {
                       </FormGroup>
                     </FormRow>
 
+                    <CommentBox>
+                      <CommentLabel>Comments (Optional)</CommentLabel>
+                      <CommentTextArea
+                        value={comments[test.testname] || ""}
+                        onChange={(e) => handleCommentChange(test.testname, e)}
+                        placeholder="Add any comments or observations..."
+                      />
+                    </CommentBox>
+
                     {(!initialValues[test.testname] ||
                       initialValues[test.testname].trim() === "") &&
                       values[test.testname] &&
@@ -1115,6 +1164,15 @@ function OSTestDetails() {
                                     <Input type="text" value={param.method || ""} disabled />
                                   </FormGroup>
                                 </FormRow>
+
+                                <CommentBox>
+                                  <CommentLabel>Comments (Optional)</CommentLabel>
+                                  <CommentTextArea
+                                    value={parameterComments[uniqueKey] || ""}
+                                    onChange={(e) => handleParameterCommentChange(test.testname, paramName, e)}
+                                    placeholder="Add any comments or observations for this parameter..."
+                                  />
+                                </CommentBox>
                               </ParameterCard>
                             );
                           })}

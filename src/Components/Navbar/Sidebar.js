@@ -485,6 +485,23 @@ const Sidebar = () => {
 
           {role === "Lab Technician" && (
             <>
+             <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                
+                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Billing
+                </SubLink>
+               
+              </DropdownContent>
               <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
@@ -524,6 +541,9 @@ const Sidebar = () => {
                 <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
                   Report Generation
                 </SubLink>
+                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                  O/S Report Generation
+                </SubLink>  
               </DropdownContent>
 
               <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
@@ -647,6 +667,9 @@ const Sidebar = () => {
                 <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
                   Report Generation
                 </SubLink>
+                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                  O/S Report Generation
+                </SubLink>  
                 <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
                   Report Authorization
                 </SubLink>
@@ -1023,6 +1046,9 @@ const Sidebar = () => {
                 <SubLink to="/LogisticManagementAdmin" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Task Assigning
                 </SubLink>
+                <SubLink to="/LogisticManagementApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Approval
+                </SubLink>
                 <SubLink to="/LogisticsDashboard" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Dashboard
                 </SubLink>
@@ -1042,6 +1068,9 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.salesDetails}>
+                <SubLink to="/SalesVisit" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Visit Form
+                </SubLink>
                 <SubLink to="/SalesVisitLogReport" onClick={() => setIsSidebarOpen(false)}>
                   Sales Visit Report
                 </SubLink>
@@ -1085,6 +1114,12 @@ const Sidebar = () => {
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
+              </SidebarNavLink>
+              <SidebarNavLink to="/CHCReport" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Corporate Report Approval
               </SidebarNavLink>
 
               <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
@@ -1380,6 +1415,31 @@ const Sidebar = () => {
 
           {role === "CEO" && (
             <>
+            <DropdownHeader isOpen={dropdowns.b2bDetails} onClick={() => toggleDropdown("b2bDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaClinicMedical />
+                  </IconWrapper>
+                  B2B Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.b2bDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.b2bDetails}>                
+                <SubLink
+                  to="/B2BApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  B2B Approval
+                </SubLink>
+                <SubLink
+                  to="/B2BPackage"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  B2B Package
+                </SubLink>
+              </DropdownContent>
+
               <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
