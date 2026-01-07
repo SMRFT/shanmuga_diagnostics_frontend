@@ -417,6 +417,7 @@ const MENU_CONFIG = {
       icon: <TestTube2 size={18} />,
       items: [
         { title: "Diagnostics Sample Accessioning", path: "/SampleStatusUpdate" },
+        { title: "HMS Sample Collection", path: "/Hmssamplestatus" },
         { title: "HMS Sample Accessioning", path: "/HmsSampleStatusUpdate" },
         { title: "Rejected Samples", path: "/RejectedSamples" },
         { title: "Outsourced Samples", path: "/OutsourcedSamples" },
@@ -432,6 +433,7 @@ const MENU_CONFIG = {
       icon: <FileText size={18} />,
       items: [
         { title: "Report Generation", path: "/PatientDetails" },
+        { title: "O/S Report Generation", path: "/OutSourceDetails" },
       ],
     },
     {
@@ -553,6 +555,120 @@ const MENU_CONFIG = {
   ],
   Admin: [
     {
+      type: "link",
+      title: "Dashboard",
+      path: "/MDashboard",
+      icon: <PieChart size={18} />,
+    },
+    {
+      type: "link",
+      title: "Billing Dashboard",
+      path: "/RegisterDashboard",
+      icon: <Activity size={18} />,
+    },
+    {
+      type: "dropdown",
+      id: "b2bDetails",
+      title: "B2B Details",
+      icon: <Building2 size={18} />,
+      items: [
+        { title: "B2B", path: "/B2B" },
+        { title: "B2B Report", path: "/B2BReport" },
+        { title: "B2B Approval", path: "/B2BApproval" },
+        { title: "B2B Package", path: "/B2BPackage" },
+      ],
+    },
+    { type: "divider" },
+    {
+      type: "dropdown",
+      id: "patientDetails",
+      title: "Patient Details",
+      icon: <User size={18} />,
+      items: [
+        { title: "Registration", path: "/PatientForm" },
+      ],
+    },
+    {
+      type: "dropdown",
+      id: "billingDetails",
+      title: "Billing",
+      icon: <CreditCard size={18} />,
+      items: [
+        { title: "Bill Estimate", path: "/Estimate" },
+        { title: "Diagnostics Billing", path: "/PatientBilling" },
+        { title: "HMS Billing", path: "/HmsBilling" },
+        { title: "Patient Overview", path: "/PrintBill" },
+      ],
+    },
+    {
+      type: "dropdown",
+      id: "barcodeDetails",
+      title: "Barcode",
+      icon: <ScanBarcode size={18} />,
+      items: [
+        {
+          title: "Diagnostics Barcode Generation",
+          path: "/BarcodeGeneration",
+        },
+        { title: "HMS Barcode Generation", path: "/HMSBarcodeGeneration" },
+      ],
+    },
+    {
+      type: "dropdown",
+      id: "sampleDetails",
+      title: "Sample",
+      icon: <TestTube2 size={18} />,
+      items: [
+        { title: "Diagnostics Sample Collection", path: "/SampleStatus" },
+        { title: "HMS Sample Collection", path: "/Hmssamplestatus" },
+        { title: "Diagnostics Sample Accessioning", path: "/SampleStatusUpdate" },
+        { title: "HMS Sample Accessioning", path: "/HmsSampleStatusUpdate" },
+        { title: "corporate Batch Approval", path: "/CorporateBatchApproval" },
+        { title: "Franchise Batch Approval", path: "/FranchiseBatchApproval" },
+      ],
+    },
+    {
+      type: "dropdown",
+      id: "reportDetails",
+      title: "Report",
+      icon: <FileText size={18} />,
+      items: [
+        { title: "Report Generation", path: "/PatientDetails" },
+        { title: "Report Authorization", path: "/PatientList" },
+      ],
+    },
+    {
+      type: "dropdown",
+      id: "osreportDetails",
+      title: "Out Source Management",
+      icon: <FileText size={18} />,
+      items: [{ title: "O/S Report Generation", path: "/OutSourceDetails" }],
+    },
+    {
+      type: "dropdown",
+      id: "logisticsDetails",
+      title: "Logistics",
+      icon: <Truck size={18} />,
+      items: [
+        { title: "Logistics Task Assigning", path: "/LogisticManagementAdmin" },
+        { title: "Logistics Approval", path: "/LogisticManagementApproval" },
+        { title: "Logistics Dashboard", path: "/LogisticsDashboard" },
+        { title: "Logistics Tracking", path: "/LogisticMap" },
+      ],
+    },
+    {
+      type: "dropdown",
+      id: "salesDetails",
+      title: "Sales",
+      icon: <Briefcase size={18} />,
+      items: [
+        { title: "Sales Visit Form", path: "/SalesVisit" },
+        { title: "Sales Visit Report", path: "/SalesVisitLogReport" },
+        { title: "Sales Visit Dashboard", path: "/SalesDashboard" },
+        { title: "Sales Visit Edit", path: "/SalesDetailsEdit" },
+      ],
+    },
+    {
       type: "dropdown",
       id: "financeDetails",
       title: "Finance",
@@ -560,14 +676,45 @@ const MENU_CONFIG = {
       items: [
         { title: "Invoice", path: "/Invoice" },
         { title: "Cash Tally", path: "/CashTally" },
-        { title: "Ledger Balance", path: "/Ledgerbalance" },
+        { title: "Refund", path: "/Refund" },
+        { title: "Cancellation", path: "/Cancellation" },
       ],
     },
+    { type: "divider" },
     {
       type: "link",
       title: "Report Dashboard",
       path: "/PatientOverview",
       icon: <LayoutDashboard size={18} />,
+    },
+    {
+      type: "link",
+      title: "Corporate Report Approval",
+      path: "/CHCReport",
+      icon: <Briefcase size={18} />,
+    },
+    {
+      type: "link",
+      title: "Test Edit",
+      path: "/TestEdit",
+      icon: <FileSpreadsheet size={18} />,
+    },
+    {
+      type: "link",
+      title: "Test Count",
+      path: "/Testcount",
+      icon: <LayoutDashboard size={18} />,
+    },
+    {
+      type: "dropdown",
+      id: "misDetails",
+      title: "MIS",
+      icon: <BarChart3 size={18} />,
+      items: [
+        { title: "Patient Summary", path: "/PatientTAT" },
+        { title: "Overall TAT", path: "/MIS" },
+        { title: "Logistics TAT", path: "/LogisticsTAT" },
+      ],
     },
   ],
   "Diagnostics General Manager": [
@@ -658,7 +805,7 @@ const MENU_CONFIG = {
       items: [
         { title: "Sales Visit Report", path: "/SalesVisitLogReport" },
         { title: "Sales Visit Dashboard", path: "/SalesDashboard" },
-        // { title: "Sales Visit Edit", path: "/SalesDetailsEdit" },
+        { title: "Sales Visit Edit", path: "/SalesDetailsEdit" },
       ],
     },
     {
@@ -687,6 +834,12 @@ const MENU_CONFIG = {
       title: "Test Edit",
       path: "/TestEdit",
       icon: <FileSpreadsheet size={18} />,
+    },
+    {
+      type: "link",
+      title: "Test Count",
+      path: "/Testcount",
+      icon: <LayoutDashboard size={18} />,
     },
     {
       type: "dropdown",
@@ -757,6 +910,7 @@ const MENU_CONFIG = {
       items: [
         { title: "Report Generation", path: "/PatientDetails" },
         { title: "Report Authorization", path: "/PatientList" },
+        { title: "O/S Report Generation", path: "/OutSourceDetails" },
       ],
     },
     {
@@ -785,6 +939,15 @@ const MENU_CONFIG = {
     },
   ],
   CEO: [
+    {
+      type: "dropdown",
+      id: "b2bDetails",
+      title: "B2B Details",
+      icon: <Building2 size={18} />,
+      items: [
+        { title: "B2B Approval", path: "/B2BApproval" },
+      ],
+    },
     {
       type: "dropdown",
       id: "reportDetails",
