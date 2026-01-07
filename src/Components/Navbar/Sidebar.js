@@ -1,53 +1,48 @@
-import { useState, useEffect } from "react";
-import styled, { keyframes, css } from "styled-components";
-import { NavLink } from "react-router-dom";
+"use client"
+
+import { useState, useEffect } from "react"
+import styled, { keyframes, css } from "styled-components"
+import { NavLink } from "react-router-dom"
 import {
-  User,
-  CreditCard,
-  ScanBarcode,
-  TestTube2,
-  Truck,
-  Building2,
-  LayoutDashboard,
-  FileText,
-  DollarSign,
-  Briefcase,
-  FileBarChart,
-  Send,
-  BarChart3,
-  TrendingUp,
-  Receipt,
-  PieChart,
-  MapPin,
-  LogOut,
-  Menu,
-  X,
-  ChevronDown,
-  Timer,
-  Wallet,
-  ClipboardList,
-  Stethoscope,
-  Activity,
-  FileSpreadsheet
-} from "lucide-react";
+  FaUser,
+  FaBars,
+  FaTimes,
+  FaChevronDown,
+  FaWpforms,
+  FaEdit,
+  FaChartPie,
+  FaFileInvoiceDollar,
+  FaCreditCard,
+  FaBarcode,
+  FaVial,
+  FaFileAlt,
+  FaSignOutAlt,
+  FaUserCircle
+} from "react-icons/fa"
+import { PiTestTubeDuotone } from "react-icons/pi"
+import { GrOverview } from "react-icons/gr"
+import { TbReport } from "react-icons/tb"
+import { FaClinicMedical } from "react-icons/fa"
+import { FaMapMarkerAlt } from "react-icons/fa"
+import { DollarSign } from "lucide-react"
 
 const slideIn = keyframes`
  from { transform: translateX(-20px); opacity: 0; }
  to { transform: translateX(0); opacity: 1; }
-`;
+`
 
 const gradientAnimation = keyframes`
  0% { background-position: 0% 50%; }
  50% { background-position: 100% 50%; }
  100% { background-position: 0% 50%; }
-`;
+`
 
 const glassEffect = css`
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-`;
+`
 
 const SidebarContainer = styled.div`
   background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
@@ -61,8 +56,7 @@ const SidebarContainer = styled.div`
   left: 0;
   overflow-y: auto;
   z-index: 1000;
-  transform: ${({ isOpen }) =>
-    isOpen ? "translateX(0)" : "translateX(-100%)"};
+  transform: ${({ isOpen }) => (isOpen ? "translateX(0)" : "translateX(-100%)")};
   transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -85,13 +79,13 @@ const SidebarContainer = styled.div`
   @media (min-width: 769px) {
     transform: translateX(0);
   }
-`;
+`
 
 const SignOutWrapper = styled.div`
   margin-top: auto;
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-`;
+`
 
 const LogoContainer = styled.div`
   padding: 24px 20px;
@@ -107,7 +101,58 @@ const LogoContainer = styled.div`
     margin: 0;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-`;
+`
+
+const UserInfoContainer = styled.div`
+  ${glassEffect}
+  padding: 20px;
+  margin: 10px 15px 20px 15px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+`
+
+const UserAvatar = styled.div`
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+`
+
+const UserDetails = styled.div`
+  text-align: center;
+  width: 100%;
+`
+
+const UserName = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`
+
+const UserRole = styled.div`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  margin-bottom: 4px;
+`
+
+const EmployeeId = styled.div`
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+`
+
 
 const SidebarToggle = styled.button`
   display: none;
@@ -133,11 +178,11 @@ const SidebarToggle = styled.button`
     align-items: center;
     justify-content: center;
   }
-`;
+`
 
 const SidebarContent = styled.div`
   padding: 0 15px 20px;
-`;
+`
 
 const SectionDivider = styled.div`
   margin: 15px 0;
@@ -148,7 +193,7 @@ const SectionDivider = styled.div`
     rgba(255, 255, 255, 0.5),
     transparent
   );
-`;
+`
 
 const SidebarNavLink = styled(NavLink)`
   color: white;
@@ -160,7 +205,6 @@ const SidebarNavLink = styled(NavLink)`
   font-weight: 500;
   border-radius: 12px;
   margin-bottom: 5px;
-  white-space: nowrap;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -190,7 +234,7 @@ const SidebarNavLink = styled(NavLink)`
     font-weight: 600;
     transform: translateX(5px);
   }
-`;
+`
 
 const DropdownHeader = styled.div`
   color: white;
@@ -216,7 +260,7 @@ const DropdownHeader = styled.div`
       ${glassEffect}
       transform: translateX(5px);
     `}
-`;
+`
 
 const DropdownContent = styled.div`
   overflow: hidden;
@@ -227,7 +271,7 @@ const DropdownContent = styled.div`
   & > * {
     animation: ${slideIn} 0.3s ease forwards;
   }
-`;
+`
 
 const SubLink = styled(NavLink)`
   color: white;
@@ -236,7 +280,6 @@ const SubLink = styled(NavLink)`
   font-size: 14px;
   display: flex;
   align-items: center;
-  white-space: nowrap;
   border-radius: 12px;
   margin-bottom: 4px;
   transition: all 0.3s ease;
@@ -263,7 +306,7 @@ const SubLink = styled(NavLink)`
     background: rgba(255, 255, 255, 0.15);
     font-weight: 600;
   }
-`;
+`
 
 const IconWrapper = styled.span`
   margin-right: 12px;
@@ -271,831 +314,1295 @@ const IconWrapper = styled.span`
   align-items: center;
   justify-content: center;
   font-size: 18px;
-`;
+`
 
-const ChevronIcon = styled(ChevronDown)`
+const ChevronIcon = styled(FaChevronDown)`
   transition: transform 0.3s ease;
   transform: ${(props) => (props.isOpen ? "rotate(180deg)" : "rotate(0)")};
-  width: 18px;
-  height: 18px;
-`;
-
-const MENU_CONFIG = {
-  "Sample Collector": [
-    {
-      type: "dropdown",
-      id: "patientDetails",
-      title: "Patient Details",
-      icon: <User size={18} />,
-      items: [
-        { title: "Appointment Booking", path: "/AppointmentBooking" },
-        { title: "Registration", path: "/PatientForm" },
-        { title: "Bill Estimate", path: "/Estimate" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "billingDetails",
-      title: "Billing",
-      icon: <CreditCard size={18} />,
-      items: [
-        { title: "Diagnostics Billing", path: "/PatientBilling" },
-        { title: "HMS Billing", path: "/HmsBilling" },
-        { title: "Patient Overview", path: "/PrintBill" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "barcodeDetails",
-      title: "Barcode",
-      icon: <ScanBarcode size={18} />,
-      items: [
-        {
-          title: "Diagnostics Barcode Generation",
-          path: "/BarcodeGeneration",
-        },
-        { title: "HMS Barcode Generation", path: "/HMSBarcodeGeneration" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "sampleDetails",
-      title: "Sample",
-      icon: <TestTube2 size={18} />,
-      items: [
-        { title: "Diagnostics Sample Collection", path: "/SampleStatus" },
-        { title: "HMS Sample Collection", path: "/Hmssamplestatus" },
-        { title: "Home Collection Report", path: "/HomeCollectionReport" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "logisticsDetails",
-      title: "Logistics",
-      icon: <Truck size={18} />,
-      items: [{ title: "Logistics Approval", path: "/LogisticManagementApproval" }],
-    },
-    {
-      type: "link",
-      title: "B2B Master",
-      path: "/B2B",
-      icon: <Building2 size={18} />,
-    },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-  ],
-  "Lab Receptionist": [
-    {
-      type: "dropdown",
-      id: "patientDetails",
-      title: "Patient Details",
-      icon: <User size={18} />,
-      items: [
-        { title: "Diagnostics Billing", path: "/PatientBilling" },
-        { title: "Patient Overview", path: "/PrintBill" },
-        { title: "Bill Estimate", path: "/Estimate" },
-      ],
-    },
-    {
-      type: "link",
-      title: "Patient Summary",
-      path: "/PatientTAT",
-      icon: <Timer size={18} />,
-    },
-    {
-      type: "link",
-      title: "Payment Dashboard",
-      path: "/PaymentDashboard",
-      icon: <Wallet size={18} />,
-    },
-    {
-      type: "link",
-      title: "Billing Dashboard",
-      path: "/RegisterDashboard",
-      icon: <Activity size={18} />,
-    },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-  ],
-  "Lab Technician": [
-    {
-      type: "dropdown",
-      id: "billingDetails",
-      title: "Billing",
-      icon: <CreditCard size={18} />,
-      items: [
-        { title: "Diagnostics Billing", path: "/PatientBilling" },
-        { title: "HMS Billing", path: "/HmsBilling" },
-        { title: "Patient Overview", path: "/PrintBill" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "barcodeDetails",
-      title: "Barcode",
-      icon: <ScanBarcode size={18} />,
-      items: [
-        {
-          title: "Diagnostics Barcode Generation",
-          path: "/BarcodeGeneration",
-        },
-        { title: "HMS Barcode Generation", path: "/HMSBarcodeGeneration" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "sampleDetails",
-      title: "Sample",
-      icon: <TestTube2 size={18} />,
-      items: [
-        { title: "Diagnostics Sample Accessioning", path: "/SampleStatusUpdate" },
-        { title: "HMS Sample Collection", path: "/Hmssamplestatus" },
-        { title: "HMS Sample Accessioning", path: "/HmsSampleStatusUpdate" },
-        { title: "Rejected Samples", path: "/RejectedSamples" },
-        { title: "Outsourced Samples", path: "/OutsourcedSamples" },
-        { title: "Home Collection Report", path: "/HomeCollectionReport" },
-        { title: "corporate Batch Approval", path: "/CorporateBatchApproval" },
-        { title: "Franchise Batch Approval", path: "/FranchiseBatchApproval" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "reportDetails",
-      title: "Report",
-      icon: <FileText size={18} />,
-      items: [
-        { title: "Report Generation", path: "/PatientDetails" },
-        { title: "O/S Report Generation", path: "/OutSourceDetails" },
-      ],
-    },
-    {
-      type: "link",
-      title: "Test Edit",
-      path: "/TestEdit",
-      icon: <FileSpreadsheet size={18} />,
-    },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "link",
-      title: "Sent Logs",
-      path: "/CommunicationLogs",
-      icon: <Send size={18} />,
-    },
-    {
-      type: "link",
-      title: "MIS Report",
-      path: "/MIS",
-      icon: <BarChart3 size={18} />,
-    },
-  ],
-  "Sales Person": [
-    {
-      type: "dropdown",
-      id: "patientDetails",
-      title: "Patient Details",
-      icon: <User size={18} />,
-      items: [
-        { title: "Appointment Booking", path: "/AppointmentBooking" },
-        { title: "Registration", path: "/PatientForm" },
-        { title: "Bill Estimate", path: "/Estimate" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "billingDetails",
-      title: "Billing",
-      icon: <CreditCard size={18} />,
-      items: [
-        { title: "Diagnostics Billing", path: "/PatientBilling" },
-        { title: "HMS Billing", path: "/HmsBilling" },
-        { title: "Patient Overview", path: "/PrintBill" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "barcodeDetails",
-      title: "Barcode",
-      icon: <ScanBarcode size={18} />,
-      items: [
-        {
-          title: "Diagnostics Barcode Generation",
-          path: "/BarcodeGeneration",
-        },
-        { title: "HMS Barcode Generation", path: "/HMSBarcodeGeneration" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "sampleDetails",
-      title: "Sample",
-      icon: <TestTube2 size={18} />,
-      items: [
-        { title: "Diagnostics Sample Collection", path: "/SampleStatus" },
-        { title: "HMS Sample Collection", path: "/Hmssamplestatus" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "salesDetails",
-      title: "Sales",
-      icon: <Briefcase size={18} />,
-      items: [
-        { title: "Sales Visit Form", path: "/SalesVisit" },
-        { title: "Sales Report", path: "/SalesindividualReport" },
-      ],
-    },
-    {
-      type: "link",
-      title: "B2B Master",
-      path: "/B2B",
-      icon: <Building2 size={18} />,
-    },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-  ],
-  Accounts: [
-    {
-      type: "dropdown",
-      id: "financeDetails",
-      title: "Finance",
-      icon: <Receipt size={18} />,
-      items: [
-        { title: "Invoice", path: "/Invoice" },
-        { title: "Cash Tally", path: "/CashTally" },
-        { title: "Refund", path: "/Refund" },
-        { title: "Cancellation", path: "/Cancellation" },
-        { title: "Refund And Cancellation Log", path: "/RefundAndCancellationLog" },
-        { title: "Payment Dashboard", path: "/PaymentDashboard" },
-
-      ],
-    },
-    {
-      type: "link",
-      title: "Patient Summary",
-      path: "/PatientTAT",
-      icon: <Timer size={18} />,
-    },
-  ],
-  Admin: [
-    {
-      type: "link",
-      title: "Dashboard",
-      path: "/MDashboard",
-      icon: <PieChart size={18} />,
-    },
-    {
-      type: "link",
-      title: "Billing Dashboard",
-      path: "/RegisterDashboard",
-      icon: <Activity size={18} />,
-    },
-    {
-      type: "dropdown",
-      id: "b2bDetails",
-      title: "B2B Details",
-      icon: <Building2 size={18} />,
-      items: [
-        { title: "B2B", path: "/B2B" },
-        { title: "B2B Report", path: "/B2BReport" },
-        { title: "B2B Approval", path: "/B2BApproval" },
-        { title: "B2B Package", path: "/B2BPackage" },
-      ],
-    },
-    { type: "divider" },
-    {
-      type: "dropdown",
-      id: "patientDetails",
-      title: "Patient Details",
-      icon: <User size={18} />,
-      items: [
-        { title: "Registration", path: "/PatientForm" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "billingDetails",
-      title: "Billing",
-      icon: <CreditCard size={18} />,
-      items: [
-        { title: "Bill Estimate", path: "/Estimate" },
-        { title: "Diagnostics Billing", path: "/PatientBilling" },
-        { title: "HMS Billing", path: "/HmsBilling" },
-        { title: "Patient Overview", path: "/PrintBill" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "barcodeDetails",
-      title: "Barcode",
-      icon: <ScanBarcode size={18} />,
-      items: [
-        {
-          title: "Diagnostics Barcode Generation",
-          path: "/BarcodeGeneration",
-        },
-        { title: "HMS Barcode Generation", path: "/HMSBarcodeGeneration" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "sampleDetails",
-      title: "Sample",
-      icon: <TestTube2 size={18} />,
-      items: [
-        { title: "Diagnostics Sample Collection", path: "/SampleStatus" },
-        { title: "HMS Sample Collection", path: "/Hmssamplestatus" },
-        { title: "Diagnostics Sample Accessioning", path: "/SampleStatusUpdate" },
-        { title: "HMS Sample Accessioning", path: "/HmsSampleStatusUpdate" },
-        { title: "corporate Batch Approval", path: "/CorporateBatchApproval" },
-        { title: "Franchise Batch Approval", path: "/FranchiseBatchApproval" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "reportDetails",
-      title: "Report",
-      icon: <FileText size={18} />,
-      items: [
-        { title: "Report Generation", path: "/PatientDetails" },
-        { title: "Report Authorization", path: "/PatientList" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "osreportDetails",
-      title: "Out Source Management",
-      icon: <FileText size={18} />,
-      items: [{ title: "O/S Report Generation", path: "/OutSourceDetails" }],
-    },
-    {
-      type: "dropdown",
-      id: "logisticsDetails",
-      title: "Logistics",
-      icon: <Truck size={18} />,
-      items: [
-        { title: "Logistics Task Assigning", path: "/LogisticManagementAdmin" },
-        { title: "Logistics Approval", path: "/LogisticManagementApproval" },
-        { title: "Logistics Dashboard", path: "/LogisticsDashboard" },
-        { title: "Logistics Tracking", path: "/LogisticMap" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "salesDetails",
-      title: "Sales",
-      icon: <Briefcase size={18} />,
-      items: [
-        { title: "Sales Visit Form", path: "/SalesVisit" },
-        { title: "Sales Visit Report", path: "/SalesVisitLogReport" },
-        { title: "Sales Visit Dashboard", path: "/SalesDashboard" },
-        { title: "Sales Visit Edit", path: "/SalesDetailsEdit" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "financeDetails",
-      title: "Finance",
-      icon: <Receipt size={18} />,
-      items: [
-        { title: "Invoice", path: "/Invoice" },
-        { title: "Cash Tally", path: "/CashTally" },
-        { title: "Refund", path: "/Refund" },
-        { title: "Cancellation", path: "/Cancellation" },
-      ],
-    },
-    { type: "divider" },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "link",
-      title: "Corporate Report Approval",
-      path: "/CHCReport",
-      icon: <Briefcase size={18} />,
-    },
-    {
-      type: "link",
-      title: "Test Edit",
-      path: "/TestEdit",
-      icon: <FileSpreadsheet size={18} />,
-    },
-    {
-      type: "link",
-      title: "Test Count",
-      path: "/Testcount",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "dropdown",
-      id: "misDetails",
-      title: "MIS",
-      icon: <BarChart3 size={18} />,
-      items: [
-        { title: "Patient Summary", path: "/PatientTAT" },
-        { title: "Overall TAT", path: "/MIS" },
-        { title: "Logistics TAT", path: "/LogisticsTAT" },
-      ],
-    },
-  ],
-  "Diagnostics General Manager": [
-    {
-      type: "link",
-      title: "Dashboard",
-      path: "/MDashboard",
-      icon: <PieChart size={18} />,
-    },
-    {
-      type: "link",
-      title: "Billing Dashboard",
-      path: "/RegisterDashboard",
-      icon: <Activity size={18} />,
-    },
-    {
-      type: "dropdown",
-      id: "b2bDetails",
-      title: "B2B Details",
-      icon: <Building2 size={18} />,
-      items: [
-        { title: "B2B", path: "/B2B" },
-        { title: "B2B Report", path: "/B2BReport" },
-      ],
-    },
-    { type: "divider" },
-    {
-      type: "dropdown",
-      id: "patientDetails",
-      title: "Patient Details",
-      icon: <User size={18} />,
-      items: [
-        { title: "Appointment Booking", path: "/AppointmentBooking" },
-        { title: "Registration", path: "/PatientForm" },
-        { title: "Bill Estimate", path: "/Estimate" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "billingDetails",
-      title: "Billing",
-      icon: <CreditCard size={18} />,
-      items: [
-        { title: "Diagnostics Billing", path: "/PatientBilling" },
-        { title: "HMS Billing", path: "/HmsBilling" },
-        { title: "Patient Overview", path: "/PrintBill" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "barcodeDetails",
-      title: "Barcode",
-      icon: <ScanBarcode size={18} />,
-      items: [
-        {
-          title: "Diagnostics Barcode Generation",
-          path: "/BarcodeGeneration",
-        },
-        { title: "HMS Barcode Generation", path: "/HMSBarcodeGeneration" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "sampleDetails",
-      title: "Sample",
-      icon: <TestTube2 size={18} />,
-      items: [
-        { title: "Diagnostics Sample Collection", path: "/SampleStatus" },
-        { title: "HMS Sample Collection", path: "/Hmssamplestatus" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "logisticsDetails",
-      title: "Logistics",
-      icon: <Truck size={18} />,
-      items: [
-        { title: "Logistics Task Assigning", path: "/LogisticManagementAdmin" },
-        { title: "Logistics Dashboard", path: "/LogisticsDashboard" },
-        { title: "Logistics Tracking", path: "/LogisticMap" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "salesDetails",
-      title: "Sales",
-      icon: <Briefcase size={18} />,
-      items: [
-        { title: "Sales Visit Report", path: "/SalesVisitLogReport" },
-        { title: "Sales Visit Dashboard", path: "/SalesDashboard" },
-        { title: "Sales Visit Edit", path: "/SalesDetailsEdit" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "financeDetails",
-      title: "Finance",
-      icon: <Receipt size={18} />,
-      items: [
-        { title: "Invoice", path: "/Invoice" },
-        { title: "Cash Tally", path: "/CashTally" },
-        { title: "Ledger Balance", path: "/Ledgerbalance" },
-        { title: "Refund", path: "/Refund" },
-        { title: "Cancellation", path: "/Cancellation" },
-        { title: "Payment Dashboard", path: "/PaymentDashboard" },
-      ],
-    },
-    { type: "divider" },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "link",
-      title: "Test Edit",
-      path: "/TestEdit",
-      icon: <FileSpreadsheet size={18} />,
-    },
-    {
-      type: "link",
-      title: "Test Count",
-      path: "/Testcount",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "dropdown",
-      id: "misDetails",
-      title: "MIS",
-      icon: <BarChart3 size={18} />,
-      items: [
-        { title: "Patient Summary", path: "/PatientTAT" },
-        { title: "Overall TAT", path: "/MIS" },
-        { title: "Logistics TAT", path: "/LogisticsTAT" },
-        { title: "Rejected Samples", path: "/RejectedSamples" },
-        { title: "Test Count", path: "/Testcount" },
-        { title: "Communication Logs", path: "/CommunicationLogs" },
-        { title: "Home Collection Report", path: "/HomeCollectionReport" },
-        { title: "Outsourced Samples", path: "/OutsourcedSamples" },
-      ],
-    },
-  ],
-  Doctor: [
-    {
-      type: "dropdown",
-      id: "patientDetails",
-      title: "Patient Details",
-      icon: <User size={18} />,
-      items: [{ title: "Registration", path: "/PatientForm" }],
-    },
-    {
-      type: "dropdown",
-      id: "billingDetails",
-      title: "Billing",
-      icon: <CreditCard size={18} />,
-      items: [
-        { title: "Diagnostics Billing", path: "/PatientBilling" },
-        { title: "HMS Billing", path: "/HmsBilling" },
-        { title: "Patient Overview", path: "/PrintBill" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "barcodeDetails",
-      title: "Barcode",
-      icon: <ScanBarcode size={18} />,
-      items: [
-        {
-          title: "Diagnostics Barcode Generation",
-          path: "/BarcodeGeneration",
-        },
-        { title: "HMS Barcode Generation", path: "/HMSBarcodeGeneration" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "sampleDetails",
-      title: "Sample",
-      icon: <TestTube2 size={18} />,
-      items: [
-        { title: "Diagnostics Sample Accessioning", path: "/SampleStatusUpdate" },
-        { title: "HMS Sample Accessioning", path: "/HmsSampleStatusUpdate" },
-        { title: "corporate Batch Approval", path: "/CorporateBatchApproval" },
-        { title: "Franchise Batch Approval", path: "/FranchiseBatchApproval" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "reportDetails",
-      title: "Report",
-      icon: <FileText size={18} />,
-      items: [
-        { title: "Report Generation", path: "/PatientDetails" },
-        { title: "Report Authorization", path: "/PatientList" },
-        { title: "O/S Report Generation", path: "/OutSourceDetails" },
-      ],
-    },
-    {
-      type: "link",
-      title: "Test Edit",
-      path: "/TestEdit", // Preserving original messy link structure per request/analysis
-      icon: <FileSpreadsheet size={18} />,
-    },
-    {
-      type: "link",
-      title: "Test Count",
-      path: "/Testcount",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "link",
-      title: "MIS Report",
-      path: "/MIS",
-      icon: <BarChart3 size={18} />,
-    },
-  ],
-  CEO: [
-    {
-      type: "dropdown",
-      id: "b2bDetails",
-      title: "B2B Details",
-      icon: <Building2 size={18} />,
-      items: [
-        { title: "B2B Approval", path: "/B2BApproval" },
-      ],
-    },
-    {
-      type: "dropdown",
-      id: "reportDetails",
-      title: "Report",
-      icon: <FileText size={18} />,
-      items: [
-        { title: "Report Generation", path: "/PatientDetails" },
-        { title: "Report Authorization", path: "/PatientList" },
-      ],
-    },
-    {
-      type: "link",
-      title: "Report Dashboard",
-      path: "/PatientOverview",
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      type: "link",
-      title: "Corporate Report Approval",
-      path: "/CHCReport",
-      icon: <Briefcase size={18} />,
-    },
-    {
-      type: "link",
-      title: "MIS Report",
-      path: "/MIS",
-      icon: <BarChart3 size={18} />,
-    },
-  ],
-  HR: [
-    {
-      type: "link",
-      title: "Logistics Tracking",
-      path: "/LiveTrackingDashboard",
-      icon: <MapPin size={18} />,
-    },
-  ],
-};
+`
 
 const Sidebar = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [role, setRole] = useState("");
-  const [name, setName] = useState("");
-  const [dropdowns, setDropdowns] = useState({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [role, setRole] = useState("")
+  const [name, setName] = useState("")
+  const [employeeId, setEmployeeId] = useState("")
 
-  const toggleDropdown = (id) => {
-    setDropdowns((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
+  const [dropdowns, setDropdowns] = useState({
+    patientDetails: false,
+    barcodeDetails: false,
+    sampleDetails: false,
+    reportDetails: false,
+    osreportDetails: false,
+    salesDetails: false,
+    logisticsDetails: false,
+    financeDetails: false,
+    misDetails: false,
+    b2bDetails: false,
+  })
+
+  const toggleDropdown = (dropdown) => {
+    setDropdowns({
+      ...dropdowns,
+      [dropdown]: !dropdowns[dropdown],
+    })
+  }
 
   useEffect(() => {
-    const userRole = localStorage.getItem("role");
-    const userName = localStorage.getItem("name");
+    const userRole = localStorage.getItem("role")
+    const userName = localStorage.getItem("name")
+    const userEmployeeId = localStorage.getItem("employee_id") || localStorage.getItem("employeeId")
 
-    setRole(userRole || "");
-    setName(userName || "");
-  }, []);
+    setRole(userRole || "")
+    setName(userName || "User")
+    setEmployeeId(userEmployeeId || "N/A")
+  }, [])
+
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const renderMenuItems = () => {
-    const items = MENU_CONFIG[role];
-    if (!items) return null;
-
-    return items.map((item, index) => {
-      if (item.type === "divider") {
-        return <SectionDivider key={`divider-${index}`} />;
-      }
-
-      if (item.type === "dropdown") {
-        return (
-          <div key={item.id}>
-            <DropdownHeader
-              isOpen={dropdowns[item.id]}
-              onClick={() => toggleDropdown(item.id)}
-            >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <IconWrapper>{item.icon}</IconWrapper>
-                {item.title}
-              </div>
-              <ChevronIcon isOpen={dropdowns[item.id]} />
-            </DropdownHeader>
-            <DropdownContent isOpen={dropdowns[item.id]}>
-              {item.items.map((subItem, subIndex) => (
-                <SubLink
-                  key={subIndex}
-                  to={subItem.path}
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  {subItem.title}
-                </SubLink>
-              ))}
-            </DropdownContent>
-          </div>
-        );
-      }
-
-      if (item.type === "link") {
-        return (
-          <SidebarNavLink
-            key={index}
-            to={item.path}
-            onClick={() => setIsSidebarOpen(false)}
-          >
-            <IconWrapper>{item.icon}</IconWrapper>
-            {item.title}
-          </SidebarNavLink>
-        );
-      }
-
-      return null;
-    });
-  };
+    setIsSidebarOpen(!isSidebarOpen)
+  }
 
   return (
     <>
-      <SidebarToggle onClick={toggleSidebar}>
-        {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-      </SidebarToggle>
+      <SidebarToggle onClick={toggleSidebar}>{isSidebarOpen ? <FaTimes /> : <FaBars />}</SidebarToggle>
 
       <SidebarContainer isOpen={isSidebarOpen}>
+
+
         <LogoContainer>
-          <h1>Shanmuga Diagnostics</h1>
+          <h1>Shanmuga</h1>
+          <h1>Diagnostics</h1>
         </LogoContainer>
 
-        <SidebarContent>{renderMenuItems()}</SidebarContent>
+        <UserInfoContainer>
+          <UserDetails>
+            <UserName>{name}</UserName>
+            <EmployeeId>ID : {employeeId}</EmployeeId>
+            <UserRole>Role : {role}</UserRole>
+          </UserDetails>
+        </UserInfoContainer>
+
+        <SidebarContent>
+          {role === "Sample Collector" && (
+            <>
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaUser />
+                  </IconWrapper>
+                  Patient Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/AppointmentBooking" onClick={() => setIsSidebarOpen(false)}>
+                  Appointment Booking
+                </SubLink>
+                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                  Registration
+                </SubLink>
+                <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
+                  Bill Estimate
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Billing
+                </SubLink>
+                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Billing
+                </SubLink>
+                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Overview
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Barcode Generation
+                </SubLink>
+                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Barcode Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaVial />
+                  </IconWrapper>
+                  Sample
+                </div>
+                <ChevronIcon isOpen={dropdowns.sampleDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.sampleDetails}>
+                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Sample Collection
+                </SubLink>
+                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Collection
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaWpforms />
+                  </IconWrapper>
+                  Logistics
+                </div>
+                <ChevronIcon isOpen={dropdowns.logisticsDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink to="/LogisticManagementApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Approval
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                B2B Master
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+            </>
+          )}
+
+          {role === "Lab Receptionist" && (
+            <>
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaUser />
+                  </IconWrapper>
+                  Patient Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Billing
+                </SubLink>
+                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Overview
+                </SubLink>
+                <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
+                  Bill Estimate
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <DollarSign />
+                </IconWrapper>
+                Patient Summary
+              </SidebarNavLink>
+              <SidebarNavLink to="/PaymentDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <DollarSign />
+                </IconWrapper>
+                Payment Dashboard
+              </SidebarNavLink>
+              <SidebarNavLink to="/RegisterDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Billing Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+            </>
+          )}
+
+          {role === "Lab Technician" && (
+            <>
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Billing
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Barcode Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <PiTestTubeDuotone />
+                  </IconWrapper>
+                  Sample
+                </div>
+                <ChevronIcon isOpen={dropdowns.sampleDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.sampleDetails}>
+                <SubLink to="/SampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Sample Accessioning and Distribution
+                </SubLink>
+                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Collection
+                </SubLink>
+                <SubLink to="/HmsSampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Accessioning and Distribution
+                </SubLink>
+                <SubLink to="/CorporateBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Corporate Batch Approval and Distribution
+                </SubLink>
+                <SubLink to="/FranchiseBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Franchise Batch Approval and Distribution
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileAlt />
+                  </IconWrapper>
+                  Report
+                </div>
+                <ChevronIcon isOpen={dropdowns.reportDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.reportDetails}>
+                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                  Report Generation
+                </SubLink>
+                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                  O/S Report Generation
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <FaEdit />
+                </IconWrapper>
+                Test Edit
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                MIS Report
+              </SidebarNavLink>
+            </>
+          )}
+
+          {role === "Doctor" && (
+            <>
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaUser />
+                  </IconWrapper>
+                  Patient Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                  Registration
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Billing
+                </SubLink>
+                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Billing
+                </SubLink>
+                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Overview
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Barcode Generation
+                </SubLink>
+                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Barcode Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <PiTestTubeDuotone />
+                  </IconWrapper>
+                  Sample
+                </div>
+                <ChevronIcon isOpen={dropdowns.sampleDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.sampleDetails}>
+                <SubLink to="/SampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Sample Accessioning and Distribution
+                </SubLink>
+                <SubLink to="/HmsSampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Accessioning and Distribution
+                </SubLink>
+                <SubLink to="/CorporateBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Corporate Batch Approval
+                </SubLink>
+                <SubLink to="/FranchiseBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Franchise Batch Approval
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileAlt />
+                  </IconWrapper>
+                  Report
+                </div>
+                <ChevronIcon isOpen={dropdowns.reportDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.reportDetails}>
+                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                  Report Generation
+                </SubLink>
+                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                  O/S Report Generation
+                </SubLink>
+                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                  Report Authorization
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Test Edit
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/Testcount" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Test Count
+              </SidebarNavLink>
+
+
+              <SidebarNavLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                MIS Report
+              </SidebarNavLink>
+            </>
+          )}
+
+          {role === "Sales Person" && (
+            <>
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaUser />
+                  </IconWrapper>
+                  Patient Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/AppointmentBooking" onClick={() => setIsSidebarOpen(false)}>
+                  Appointment Booking
+                </SubLink>
+                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                  Registration
+                </SubLink>
+                <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
+                  Bill Estimate
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Billing
+                </SubLink>
+                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Billing
+                </SubLink>
+                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Overview
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Barcode Generation
+                </SubLink>
+                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Barcode Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaVial />
+                  </IconWrapper>
+                  Sample
+                </div>
+                <ChevronIcon isOpen={dropdowns.sampleDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.sampleDetails}>
+                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Sample Collection
+                </SubLink>
+                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Collection
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.salesDetails} onClick={() => toggleDropdown("salesDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <TbReport />
+                  </IconWrapper>
+                  Sales
+                </div>
+                <ChevronIcon isOpen={dropdowns.salesDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.salesDetails}>
+                <SubLink to="/SalesVisit" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Visit Form
+                </SubLink>
+                <SubLink to="/SalesindividualReport" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Report
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                B2B Master
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+            </>
+          )}
+
+          {role === "Accounts" && (
+            <>
+              <DropdownHeader isOpen={dropdowns.financeDetails} onClick={() => toggleDropdown("financeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileInvoiceDollar />
+                  </IconWrapper>
+                  Finance
+                </div>
+                <ChevronIcon isOpen={dropdowns.financeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.financeDetails}>
+                <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
+                  Invoice
+                </SubLink>
+                <SubLink to="/CashTally" onClick={() => setIsSidebarOpen(false)}>
+                  Cash Tally
+                </SubLink>
+                <SubLink to="/Refund" onClick={() => setIsSidebarOpen(false)}>
+                  Refund
+                </SubLink>
+                <SubLink to="/Cancellation" onClick={() => setIsSidebarOpen(false)}>
+                  Cancellation
+                </SubLink>
+                <SubLink to="/RefundAndCancellationLog" onClick={() => setIsSidebarOpen(false)}>
+                  Refund And Cancellation Log
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Patient Summary
+              </SidebarNavLink>
+            </>
+          )}
+
+          {role === "Admin" && (
+            <>
+              <SidebarNavLink to="/MDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <FaChartPie />
+                </IconWrapper>
+                Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/RegisterDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Billing Dashboard
+              </SidebarNavLink>
+
+              <DropdownHeader isOpen={dropdowns.b2bDetails} onClick={() => toggleDropdown("b2bDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaClinicMedical />
+                  </IconWrapper>
+                  B2B Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.b2bDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.b2bDetails}>
+                <SubLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
+                  B2B
+                </SubLink>
+                <SubLink to="/B2BReport" onClick={() => setIsSidebarOpen(false)}>
+                  B2B Report
+                </SubLink>
+                <SubLink to="/B2BApproval" onClick={() => setIsSidebarOpen(false)}>
+                  B2B Approval
+                </SubLink>
+                <SubLink to="/B2BPackage" onClick={() => setIsSidebarOpen(false)}>
+                  B2B Package
+                </SubLink>
+              </DropdownContent>
+
+              <SectionDivider />
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaUser />
+                  </IconWrapper>
+                  Patient Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                  Registration
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
+                  Bill Estimate
+                </SubLink>
+                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Billing
+                </SubLink>
+                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Billing
+                </SubLink>
+                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Overview
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Barcode Generation
+                </SubLink>
+                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Barcode Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <PiTestTubeDuotone />
+                  </IconWrapper>
+                  Sample
+                </div>
+                <ChevronIcon isOpen={dropdowns.sampleDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.sampleDetails}>
+                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Sample Collection
+                </SubLink>
+                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Collection
+                </SubLink>
+                <SubLink to="/SampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Sample Accessioning and Distribution
+                </SubLink>
+                <SubLink to="/HmsSampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Accessioning and Distribution
+                </SubLink>
+                <SubLink to="/CorporateBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Corporate Batch Approval
+                </SubLink>
+                <SubLink to="/FranchiseBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Franchise Batch Approval
+                </SubLink>
+                <SubLink to="/OutsourcedSamples" onClick={() => setIsSidebarOpen(false)}>
+                  Outsourced Samples
+                </SubLink>
+                <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
+                  Home Collection Report
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileAlt />
+                  </IconWrapper>
+                  Report
+                </div>
+                <ChevronIcon isOpen={dropdowns.reportDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.reportDetails}>
+                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                  Report Generation
+                </SubLink>
+                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                  Report Authorization
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.osreportDetails} onClick={() => toggleDropdown("osreportDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileAlt />
+                  </IconWrapper>
+                  Out Source Management
+                </div>
+                <ChevronIcon isOpen={dropdowns.osreportDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.osreportDetails}>
+                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                  O/S Report Generation
+                </SubLink>
+              </DropdownContent>
+
+
+              <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaWpforms />
+                  </IconWrapper>
+                  Logistics
+                </div>
+                <ChevronIcon isOpen={dropdowns.logisticsDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink to="/LogisticManagementAdmin" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Task Assigning
+                </SubLink>
+                <SubLink to="/LogisticManagementApproval" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Approval
+                </SubLink>
+                <SubLink to="/LogisticsDashboard" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Dashboard
+                </SubLink>
+                <SubLink to="/LogisticMap" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Tracking
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.salesDetails} onClick={() => toggleDropdown("salesDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <TbReport />
+                  </IconWrapper>
+                  Sales
+                </div>
+                <ChevronIcon isOpen={dropdowns.salesDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.salesDetails}>
+                <SubLink to="/SalesVisit" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Visit Form
+                </SubLink>
+                <SubLink to="/SalesVisitLogReport" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Visit Report
+                </SubLink>
+                <SubLink to="/SalesDashboard" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Visit Dashboard
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.financeDetails} onClick={() => toggleDropdown("financeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileInvoiceDollar />
+                  </IconWrapper>
+                  Finance
+                </div>
+                <ChevronIcon isOpen={dropdowns.financeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.financeDetails}>
+                <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
+                  Invoice
+                </SubLink>
+                <SubLink to="/CashTally" onClick={() => setIsSidebarOpen(false)}>
+                  Cash Tally
+                </SubLink>
+                <SubLink to="/Refund" onClick={() => setIsSidebarOpen(false)}>
+                  Refund
+                </SubLink>
+                <SubLink to="/Cancellation" onClick={() => setIsSidebarOpen(false)}>
+                  Cancellation
+                </SubLink>
+              </DropdownContent>
+
+              <SectionDivider />
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+              <SidebarNavLink to="/CHCReport" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Corporate Report Approval
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Test Edit
+              </SidebarNavLink>
+
+
+
+              <DropdownHeader isOpen={dropdowns.misDetails} onClick={() => toggleDropdown("misDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <GrOverview />
+                  </IconWrapper>
+                  MIS
+                </div>
+                <ChevronIcon isOpen={dropdowns.misDetails} />
+              </DropdownHeader>
+              <DropdownContent isOpen={dropdowns.misDetails}>
+                <SubLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Summary
+                </SubLink>
+                <SubLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+                  Overall TAT
+                </SubLink>
+                <SubLink to="/LogisticsTAT" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics TAT
+                </SubLink>
+                <SubLink to="/CommunicationLogs" onClick={() => setIsSidebarOpen(false)}>
+                  Communication Logs
+                </SubLink>
+                <SubLink to="/Testcount" onClick={() => setIsSidebarOpen(false)}>
+                  Test Count
+                </SubLink>
+                <SubLink to="/OutsourcedSamples" onClick={() => setIsSidebarOpen(false)}>
+                  Outsourced Samples
+                </SubLink>
+                <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
+                  Home Collection Report
+                </SubLink>
+              </DropdownContent>
+            </>
+          )}
+
+          {role === "Diagnostics General Manager" && (
+            <>
+              <SidebarNavLink to="/MDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <FaChartPie />
+                </IconWrapper>
+                Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/RegisterDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Billing Dashboard
+              </SidebarNavLink>
+
+              <DropdownHeader isOpen={dropdowns.b2bDetails} onClick={() => toggleDropdown("b2bDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaClinicMedical />
+                  </IconWrapper>
+                  B2B Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.b2bDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.b2bDetails}>
+                <SubLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
+                  B2B
+                </SubLink>
+                <SubLink to="/B2BReport" onClick={() => setIsSidebarOpen(false)}>
+                  B2B Report
+                </SubLink>
+                {/* <SubLink
+                  to="/B2BApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  B2B Approval
+                </SubLink>
+                <SubLink
+                  to="/B2BPackage"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  B2B Package
+                </SubLink> */}
+              </DropdownContent>
+
+              <SectionDivider />
+
+              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaUser />
+                  </IconWrapper>
+                  Patient Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.patientDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.patientDetails}>
+                <SubLink to="/AppointmentBooking" onClick={() => setIsSidebarOpen(false)}>
+                  Appointment Booking
+                </SubLink>
+                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                  Registration
+                </SubLink>
+                <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
+                  Bill Estimate
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.billingDetails} onClick={() => toggleDropdown("billingDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaCreditCard />
+                  </IconWrapper>
+                  Billing
+                </div>
+                <ChevronIcon isOpen={dropdowns.billingDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.billingDetails}>
+                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Billing
+                </SubLink>
+                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Billing
+                </SubLink>
+                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Overview
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Barcode Generation
+                </SubLink>
+                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Barcode Generation
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaVial />
+                  </IconWrapper>
+                  Sample
+                </div>
+                <ChevronIcon isOpen={dropdowns.sampleDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.sampleDetails}>
+                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                  Diagnostics Sample Collection
+                </SubLink>
+                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Collection
+                </SubLink>
+
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaWpforms />
+                  </IconWrapper>
+                  Logistics
+                </div>
+                <ChevronIcon isOpen={dropdowns.logisticsDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink to="/LogisticManagementAdmin" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Task Assigning
+                </SubLink>
+                <SubLink to="/LogisticsDashboard" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Dashboard
+                </SubLink>
+                <SubLink to="/LogisticMap" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics Tracking
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.salesDetails} onClick={() => toggleDropdown("salesDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <TbReport />
+                  </IconWrapper>
+                  Sales
+                </div>
+                <ChevronIcon isOpen={dropdowns.salesDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.salesDetails}>
+                <SubLink to="/SalesVisitLogReport" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Visit Report
+                </SubLink>
+                <SubLink to="/SalesDashboard" onClick={() => setIsSidebarOpen(false)}>
+                  Sales Visit Dashboard
+                </SubLink>
+
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.financeDetails} onClick={() => toggleDropdown("financeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileInvoiceDollar />
+                  </IconWrapper>
+                  Finance
+                </div>
+                <ChevronIcon isOpen={dropdowns.financeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.financeDetails}>
+                <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
+                  Invoice
+                </SubLink>
+                <SubLink to="/CashTally" onClick={() => setIsSidebarOpen(false)}>
+                  Cash Tally
+                </SubLink>
+                <SubLink to="/Refund" onClick={() => setIsSidebarOpen(false)}>
+                  Refund
+                </SubLink>
+                <SubLink to="/Cancellation" onClick={() => setIsSidebarOpen(false)}>
+                  Cancellation
+                </SubLink>
+              </DropdownContent>
+
+              <SectionDivider />
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Test Edit
+              </SidebarNavLink>
+
+              <DropdownHeader isOpen={dropdowns.misDetails} onClick={() => toggleDropdown("misDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <GrOverview />
+                  </IconWrapper>
+                  MIS
+                </div>
+                <ChevronIcon isOpen={dropdowns.misDetails} />
+              </DropdownHeader>
+              <DropdownContent isOpen={dropdowns.misDetails}>
+                <SubLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+                  Patient Summary
+                </SubLink>
+                <SubLink to="/Testcount" onClick={() => setIsSidebarOpen(false)}>
+                  Test Count
+                </SubLink>
+                <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
+                  B2B Ledger Balance
+                </SubLink>
+                <SubLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+                  Overall TAT
+                </SubLink>
+                <SubLink to="/LogisticsTAT" onClick={() => setIsSidebarOpen(false)}>
+                  Logistics TAT
+                </SubLink>
+                <SubLink to="/CommunicationLogs" onClick={() => setIsSidebarOpen(false)}>
+                  Communication Logs
+                </SubLink>
+                <SubLink to="/OutsourcedSamples" onClick={() => setIsSidebarOpen(false)}>
+                  Outsourced Samples
+                </SubLink>
+                <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
+                  Home Collection Report
+                </SubLink>
+                <SubLink to="/RejectedSamples" onClick={() => setIsSidebarOpen(false)}>
+                  Rejected Samples
+                </SubLink>
+              </DropdownContent>
+            </>
+          )}
+
+          {role === "CEO" && (
+            <>
+              <DropdownHeader isOpen={dropdowns.b2bDetails} onClick={() => toggleDropdown("b2bDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaClinicMedical />
+                  </IconWrapper>
+                  B2B Details
+                </div>
+                <ChevronIcon isOpen={dropdowns.b2bDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.b2bDetails}>
+                <SubLink
+                  to="/B2BApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  B2B Approval
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaFileAlt />
+                  </IconWrapper>
+                  Report
+                </div>
+                <ChevronIcon isOpen={dropdowns.reportDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.reportDetails}>
+                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                  Report Generation
+                </SubLink>
+                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                  Report Authorization
+                </SubLink>
+              </DropdownContent>
+
+              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/CHCReport" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Corporate Report Approval
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                MIS Report
+              </SidebarNavLink>
+            </>
+          )}
+
+          {role === "HR" && (
+            <>
+              <SidebarNavLink to="/LiveTrackingDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <FaMapMarkerAlt />
+                </IconWrapper>
+                Logistics Tracking
+              </SidebarNavLink>
+            </>
+          )}
+        </SidebarContent>
         <SignOutWrapper>
           <SidebarNavLink
             to="#"
             onClick={() => {
-              setIsSidebarOpen(false);
-              window.location.href = "/Login";
+              setIsSidebarOpen(false)
+              window.location.href = "/Login"
             }}
           >
             <IconWrapper>
-              <LogOut size={18} />
+              <FaSignOutAlt />
             </IconWrapper>
             Sign Out
           </SidebarNavLink>
         </SignOutWrapper>
       </SidebarContainer>
     </>
-  );
-};
+  )
+}
 
-export default Sidebar;
-
+export default Sidebar
