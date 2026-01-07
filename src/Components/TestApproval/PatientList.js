@@ -606,22 +606,31 @@ function PatientList() {
   const safePatientList = Array.isArray(patientList) ? patientList : [];
 
   const groupedByBarcode = safePatientList.reduce((acc, patient) => {
-    const barcode = patient.barcode;
-    if (!acc[barcode]) {
-      acc[barcode] = { 
-        ...patient, 
-        testdetails: [...(patient.testdetails || [])],
-        is_emergency: patient.is_emergency || false,
-        patient_history: patient.patient_history || ""
-      };
-    } else {
-      acc[barcode].testdetails = [
-        ...acc[barcode].testdetails,
-        ...(patient.testdetails || []),
-      ];
-    }
-    return acc;
-  }, {});
+  const barcode = patient.barcode;
+  if (!acc[barcode]) {
+    acc[barcode] = { 
+      ...patient, 
+      testdetails: patient.testdetails ? patient.testdetails.map(test => ({
+        ...test,
+        created_date: patient.created_date // Add created_date to each test
+      })) : [],
+      is_emergency: patient.is_emergency || false,
+      patient_history: patient.patient_history || ""
+    };
+  } else {
+    // When merging tests from multiple records, preserve their individual created_dates
+    const testsWithCreatedDate = patient.testdetails ? patient.testdetails.map(test => ({
+      ...test,
+      created_date: patient.created_date
+    })) : [];
+    
+    acc[barcode].testdetails = [
+      ...acc[barcode].testdetails,
+      ...testsWithCreatedDate,
+    ];
+  }
+  return acc;
+}, {});
   
   const uniquePatients = Object.values(groupedByBarcode);
 

@@ -1015,11 +1015,23 @@ const handlePrint = async (withLetterpad) => {
     }
 
     // UPDATED: Use patientName in filename
-    const patientID = patientDetails.patient_id || "Unknown";
-    const patientName = (patientDetails.patientname || "Unknown");
-    const pdfFileName = `${patientName}_${patientID}.pdf`;
+    // MODIFIED: Open PDF in new tab instead of downloading
+const patientID = patientDetails.patient_id || "Unknown";
+const patientName = (patientDetails.patientname || "Unknown");
+const pdfFileName = `${patientName}_${patientID}.pdf`;
 
-    doc.save(pdfFileName);
+// Generate blob and open in new tab
+const pdfBlob = doc.output("blob");
+const pdfUrl = URL.createObjectURL(pdfBlob);
+
+// Open in new tab
+const newTab = window.open(pdfUrl, "_blank");
+
+// Optional: Revoke URL after a delay to free up memory
+setTimeout(() => {
+  URL.revokeObjectURL(pdfUrl);
+}, 1000);
+return pdfBlob;
   } catch (error) {
     console.error("Error while generating the PDF:", error);
     toast.error("An unexpected error occurred while generating the PDF");

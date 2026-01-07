@@ -1,12 +1,14 @@
-"use client"
+import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
+import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components";
+import { Calendar, Search, Check, X, AlertCircle, CheckCircle } from 'lucide-react';
+import apiRequest from "../Auth/apiRequest";
 
-import { useState, useEffect } from "react"
-import { format } from "date-fns"
-import styled, { createGlobalStyle, ThemeProvider } from "styled-components"
-import { Calendar, Search, Check, X, AlertCircle, CheckCircle } from "lucide-react"
-import apiRequest from "../Auth/apiRequest"
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+`;
 
-// Theme
 const theme = {
   colors: {
     primary: "#4f46e5",
@@ -28,6 +30,7 @@ const theme = {
     md: "0.375rem",
     lg: "0.5rem",
     xl: "0.75rem",
+    full: "9999px",
   },
   shadows: {
     sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
@@ -40,9 +43,8 @@ const theme = {
     lg: "1024px",
     xl: "1280px",
   },
-}
+};
 
-// Global styles
 const GlobalStyle = createGlobalStyle`
   * {
     box-sizing: border-box;
@@ -56,170 +58,296 @@ const GlobalStyle = createGlobalStyle`
     background-color: ${(props) => props.theme.colors.backgroundAlt};
     line-height: 1.5;
   }
-`
+`;
 
-// Styled components
 const Container = styled.div`
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-`
+  margin: 2rem auto;
+  padding: 0 1rem;
+
+  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
+    padding: 0 2rem;
+  }
+`;
 
 const Card = styled.div`
-  background: ${(props) => props.theme.colors.background};
+  background-color: ${(props) => props.theme.colors.background};
   border-radius: ${(props) => props.theme.borderRadius.lg};
-  box-shadow: ${(props) => props.theme.shadows.lg};
-  padding: 2rem;
-`
+  box-shadow: ${(props) => props.theme.shadows.md};
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+`;
 
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 1rem;
-`
+  margin-bottom: 1.5rem;
+
+  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+`;
 
 const Title = styled.h1`
-  font-size: 1.875rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 600;
   color: ${(props) => props.theme.colors.text};
-`
+
+  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
+    font-size: 1.875rem;
+  }
+`;
 
 const DatePickerWrapper = styled.div`
   position: relative;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
-`
+`;
 
 const DateButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  background-color: ${(props) => props.theme.colors.background};
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: ${(props) => props.theme.borderRadius.md};
-  background: ${(props) => props.theme.colors.background};
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
   color: ${(props) => props.theme.colors.text};
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease;
 
   &:hover {
-    border-color: ${(props) => props.theme.colors.primary};
+    border-color: ${(props) => props.theme.colors.borderDark};
   }
-`
+`;
 
 const DateDisplay = styled.span`
-  font-size: 0.875rem;
-`
+  font-weight: 500;
+`;
+
+const CalendarContainer = styled.div`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 10;
+  margin-top: 0.5rem;
+  background-color: ${(props) => props.theme.colors.background};
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  box-shadow: ${(props) => props.theme.shadows.lg};
+  padding: 1rem;
+  border: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const CalendarGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+`;
+
+const CalendarHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+`;
+
+const CalendarDay = styled.button`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  border: none;
+  background-color: ${(props) =>
+    props.selected ? props.theme.colors.primary : "transparent"};
+  color: ${(props) => (props.selected ? "white" : props.theme.colors.text)};
+  cursor: pointer;
+
+  &:hover {
+    background-color: ${(props) =>
+      props.selected
+        ? props.theme.colors.primaryHover
+        : props.theme.colors.backgroundAlt};
+  }
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+`;
 
 const SearchContainer = styled.div`
   position: relative;
-  margin-bottom: 1.5rem;
-`
-
-const SearchIcon = styled.div`
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: ${(props) => props.theme.colors.textLight};
-`
+  width: 100%;
+  max-width: 24rem;
+`;
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  padding: 0.625rem 1rem 0.625rem 2.5rem;
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: ${(props) => props.theme.borderRadius.md};
   font-size: 0.875rem;
-  transition: all 0.2s ease-in-out;
+  color: ${(props) => props.theme.colors.text};
+  background-color: ${(props) => props.theme.colors.background};
 
   &:focus {
     outline: none;
     border-color: ${(props) => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 1px ${(props) => props.theme.colors.primary};
   }
-`
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${(props) => props.theme.colors.textLight};
+`;
 
 const Table = styled.table`
   width: 100%;
-  border-collapse: collapse;
-  background: ${(props) => props.theme.colors.background};
-  border-radius: ${(props) => props.theme.borderRadius.lg};
-  overflow: hidden;
-  box-shadow: ${(props) => props.theme.shadows.sm};
-`
+  border-collapse: separate;
+  border-spacing: 0;
+`;
 
 const Th = styled.th`
-  background: ${(props) => props.theme.colors.backgroundAlt};
-  padding: 1rem;
   text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: ${(props) => props.theme.colors.text};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: ${(props) => props.theme.colors.textLight};
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
-`
+`;
 
 const Td = styled.td`
   padding: 1rem;
+  font-size: 0.875rem;
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
-  color: ${(props) => props.theme.colors.text};
-`
+  vertical-align: middle;
+`;
 
 const Tr = styled.tr`
   &:hover {
-    background: ${(props) => props.theme.colors.backgroundAlt};
+    background-color: ${(props) => props.theme.colors.backgroundAlt};
   }
-`
+`;
+
+const EmergencyBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: ${(props) => props.theme.borderRadius.full};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  ${(props) =>
+    props.emergency &&
+    css`
+      background-color: ${props.theme.colors.danger};
+      color: white;
+      animation: ${blink} 1.5s ease-in-out infinite;
+    `}
+
+  ${(props) =>
+    props.normal &&
+    css`
+      background-color: ${props.theme.colors.success}20;
+      color: ${props.theme.colors.success};
+    `}
+`;
 
 const Button = styled.button`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: ${(props) => (props.small ? "0.375rem 0.75rem" : "0.5rem 1rem")};
-  border: none;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  font-size: ${(props) => (props.small ? "0.75rem" : "0.875rem")};
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
   font-weight: 500;
+  border-radius: ${(props) => props.theme.borderRadius.md};
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  
+  transition: all 0.2s ease;
+
   ${(props) =>
     props.primary &&
     `
-    background: ${props.theme.colors.primary};
+    background-color: ${props.theme.colors.primary};
     color: white;
+    border: none;
+    
     &:hover {
-      background: ${props.theme.colors.primaryHover};
+      background-color: ${props.theme.colors.primaryHover};
+    }
+  `}
+
+  ${(props) =>
+    props.secondary &&
+    `
+    background-color: white;
+    color: ${props.theme.colors.text};
+    border: 1px solid ${props.theme.colors.border};
+    
+    &:hover {
+      background-color: ${props.theme.colors.backgroundAlt};
     }
   `}
   
   ${(props) =>
     props.success &&
     `
-    background: ${props.theme.colors.success};
+    background-color: ${props.theme.colors.success};
     color: white;
+    border: none;
+    
     &:hover {
-      background: #059669;
+      background-color: ${props.theme.colors.success}e6;
     }
   `}
   
   ${(props) =>
-    props.secondary &&
+    props.danger &&
     `
-    background: ${props.theme.colors.secondary};
+    background-color: ${props.theme.colors.danger};
     color: white;
+    border: none;
+    
     &:hover {
-      background: ${props.theme.colors.secondaryHover};
+      background-color: ${props.theme.colors.danger}e6;
     }
   `}
-
+  
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+
+    &:hover {
+      background-color: ${(props) =>
+        props.success
+          ? props.theme.colors.success
+          : props.primary
+          ? props.theme.colors.primary
+          : props.secondary
+          ? "white"
+          : "initial"};
+    }
   }
-`
+`;
 
 const Modal = styled.div`
   position: fixed;
@@ -227,189 +355,148 @@ const Modal = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  margin-left: 15%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`
+  align-items: center;
+  z-index: 50;
+`;
 
 const ModalContent = styled.div`
-  background: ${(props) => props.theme.colors.background};
+  background-color: ${(props) => props.theme.colors.background};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   box-shadow: ${(props) => props.theme.shadows.lg};
-  width: 100%;
-  max-width: 900px;
+  width: 90%;
+  max-width: 1100px;
   max-height: 90vh;
   overflow-y: auto;
-`
+  padding: 1.5rem;
+`;
 
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
-`
+`;
 
 const ModalTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;
-  color: ${(props) => props.theme.colors.text};
-`
+`;
 
 const CloseButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
   color: ${(props) => props.theme.colors.textLight};
-  padding: 0.25rem;
-  border-radius: ${(props) => props.theme.borderRadius.sm};
-  
+
   &:hover {
-    background: ${(props) => props.theme.colors.backgroundAlt};
+    color: ${(props) => props.theme.colors.text};
   }
-`
+`;
 
 const Select = styled.select`
-  padding: 0.375rem 0.75rem;
+  width: fit-content;
+  padding: 0.5rem;
   border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.borderRadius.sm};
+  border-radius: ${(props) => props.theme.borderRadius.md};
   font-size: 0.875rem;
-  background: ${(props) => props.theme.colors.background};
-  color: ${(props) => props.theme.colors.text};
-  
+  background-color: ${(props) => props.theme.colors.background};
+
   &:focus {
     outline: none;
     border-color: ${(props) => props.theme.colors.primary};
   }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`
+`;
 
 const Checkbox = styled.input.attrs({ type: "checkbox" })`
   width: 1rem;
   height: 1rem;
-  accent-color: ${(props) => props.theme.colors.primary};
   cursor: pointer;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`
-
-const Alert = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  margin-bottom: 1rem;
-  
-  ${(props) =>
-    props.error &&
-    `
-    background: #fef2f2;
-    color: #dc2626;
-    border: 1px solid #fecaca;
-  `}
-  
-  ${(props) =>
-    props.success &&
-    `
-    background: #f0fdf4;
-    color: #16a34a;
-    border: 1px solid #bbf7d0;
-  `}
-`
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-  color: ${(props) => props.theme.colors.textLight};
-`
-
-const EmptyStateText = styled.p`
-  font-size: 1rem;
-  margin-top: 0.5rem;
-`
+`;
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
+  gap: 0.5rem;
   margin-top: 1.5rem;
-  padding: 1.5rem;
-  border-top: 1px solid ${(props) => props.theme.colors.border};
-`
+  justify-content: flex-end;
+`;
 
-// Calendar components
-const CalendarContainer = styled.div`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 1000;
-  background: ${(props) => props.theme.colors.background};
-  border: 1px solid ${(props) => props.theme.colors.border};
+const Alert = styled.div`
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
-  box-shadow: ${(props) => props.theme.shadows.lg};
-  padding: 1rem;
-  min-width: 280px;
-`
-
-const CalendarHeader = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-`
+  gap: 0.5rem;
 
-const CalendarGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-`
+  ${(props) =>
+    props.success &&
+    `
+    background-color: ${props.theme.colors.success}20;
+    color: ${props.theme.colors.success};
+  `}
 
-const CalendarDay = styled.button`
-  padding: 0.5rem;
-  border: none;
-  background: ${(props) => (props.selected ? props.theme.colors.primary : "transparent")};
-  color: ${(props) => (props.selected ? "white" : props.theme.colors.text)};
-  border-radius: ${(props) => props.theme.borderRadius.sm};
-  cursor: ${(props) => (props.disabled ? "default" : "pointer")};
-  opacity: ${(props) => (props.disabled ? 0.3 : 1)};
-  
-  &:hover:not(:disabled) {
-    background: ${(props) => (props.selected ? props.theme.colors.primaryHover : props.theme.colors.backgroundAlt)};
-  }
-`
+  ${(props) =>
+    props.error &&
+    `
+    background-color: ${props.theme.colors.danger}20;
+    color: ${props.theme.colors.danger};
+  `}
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+`;
+
+const EmptyStateText = styled.p`
+  color: ${(props) => props.theme.colors.textLight};
+  margin-top: 1rem;
+  max-width: 24rem;
+`;
+
 
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate))
-  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
-  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay()
+  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
+  const daysInMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() + 1,
+    0
+  ).getDate();
+  const firstDayOfMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth(),
+    1
+  ).getDay();
 
-  const days = []
+  const days = [];
   for (let i = 0; i < firstDayOfMonth; i++) {
-    days.push(null)
+    days.push(null);
   }
   for (let i = 1; i <= daysInMonth; i++) {
-    days.push(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i))
+    days.push(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i));
   }
 
   const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
-  }
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    );
+  };
 
   const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
-  }
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+    );
+  };
 
   const isSelectedDate = (date) => {
     return (
@@ -417,8 +504,8 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
       date.getDate() === selectedDate.getDate() &&
       date.getMonth() === selectedDate.getMonth() &&
       date.getFullYear() === selectedDate.getFullYear()
-    )
-  }
+    );
+  };
 
   return (
     <CalendarContainer>
@@ -438,7 +525,12 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
           </div>
         ))}
         {days.map((day, index) => (
-          <CalendarDay key={index} selected={isSelectedDate(day)} onClick={() => day && onChange(day)} disabled={!day}>
+          <CalendarDay
+            key={index}
+            selected={isSelectedDate(day)}
+            onClick={() => day && onChange(day)}
+            disabled={!day}
+          >
             {day ? day.getDate() : ""}
           </CalendarDay>
         ))}
@@ -449,323 +541,485 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
         </Button>
       </ButtonGroup>
     </CalendarContainer>
-  )
-}
+  );
+};
 
 const HmsSampleStatus = () => {
-  const storedName = localStorage.getItem("name")
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [fromDate, setFromDate] = useState(new Date())
-  const [toDate, setToDate] = useState(new Date())
-  const [showFromDatePicker, setShowFromDatePicker] = useState(false)
-  const [showToDatePicker, setShowToDatePicker] = useState(false)
-  const [patients, setPatients] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [successMessage, setSuccessMessage] = useState(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedBarcode, setSelectedBarcode] = useState(null)
-  const [showModal, setShowModal] = useState(false)
-  const [currentPatientTests, setCurrentPatientTests] = useState([])
-  const [selectedTests, setSelectedTests] = useState([])
-  const [loadingTestDetails, setLoadingTestDetails] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+  const storedName = typeof window !== 'undefined' ? localStorage.getItem("name") : null;
+  const [fromDate, setFromDate] = useState(new Date());
+  const [toDate, setToDate] = useState(new Date());
+  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
+  const [selectedBarcode, setSelectedBarcode] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [currentPatientTests, setCurrentPatientTests] = useState([]);
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [loadingTestDetails, setLoadingTestDetails] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [currentDateTime, setCurrentDateTime] = useState("");
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentDateTime(format(now, "yyyy-MM-dd HH:mm:ss"));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchPatientsByDate = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const localFromDate = new Date(fromDate)
-        localFromDate.setMinutes(localFromDate.getMinutes() - localFromDate.getTimezoneOffset())
-        const formattedFromDate = localFromDate.toISOString().split("T")[0]
+        const localFromDate = new Date(fromDate);
+        localFromDate.setMinutes(
+          localFromDate.getMinutes() - localFromDate.getTimezoneOffset()
+        );
+        const formattedFromDate = localFromDate.toISOString().split("T")[0];
 
-        const localToDate = new Date(toDate)
-        localToDate.setMinutes(localToDate.getMinutes() - localToDate.getTimezoneOffset())
-        const formattedToDate = localToDate.toISOString().split("T")[0]
+        const localToDate = new Date(toDate);
+        localToDate.setMinutes(
+          localToDate.getMinutes() - localToDate.getTimezoneOffset()
+        );
+        const formattedToDate = localToDate.toISOString().split("T")[0];
 
         const result = await apiRequest(
           `${Labbaseurl}hms_sample_patient/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
-          "GET",
-        )
+          "GET"
+        );
 
         if (result.success) {
-          const patientsData = typeof result.data === "string" ? JSON.parse(result.data) : result.data
-          setPatients(patientsData.data || [])
+          const patientsData =
+            typeof result.data === "string"
+              ? JSON.parse(result.data)
+              : result.data;
+          setPatients(patientsData.data || []);
         } else {
-          setError(result.error)
+          setError(result.error);
         }
       } catch (err) {
-        setError(err.message)
+        setError(err.message);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchPatientsByDate()
-  }, [fromDate, toDate])
+    fetchPatientsByDate();
+  }, [fromDate, toDate, Labbaseurl]);
 
-  // Updated function to fetch test details and merge with existing data
   const fetchTestDetailsByIds = async (testIds) => {
-    setLoadingTestDetails(true)
+    setLoadingTestDetails(true);
     try {
       const testDetailsPromises = testIds.map((testId) =>
-        apiRequest(`${Labbaseurl}hms_testdetails/?test_id=${testId}`, "GET"),
-      )
+        apiRequest(`${Labbaseurl}testdetails/?test_id=${testId}`, "GET")
+      );
 
-      const results = await Promise.all(testDetailsPromises)
-      const allTestDetails = []
+      const results = await Promise.all(testDetailsPromises);
+      const allTestDetails = [];
 
       results.forEach((result) => {
         if (result.success) {
-          const data = result.data.data || result.data
+          const data = result.data.data || result.data;
           if (Array.isArray(data)) {
-            allTestDetails.push(...data)
+            allTestDetails.push(...data);
           } else if (data) {
-            allTestDetails.push(data)
+            allTestDetails.push(data);
           }
         }
-      })
+      });
 
-      return allTestDetails
+      return allTestDetails;
     } catch (err) {
-      console.error("Error fetching test details:", err)
-      return []
+      console.error("Error fetching test details:", err);
+      return [];
     } finally {
-      setLoadingTestDetails(false)
+      setLoadingTestDetails(false);
     }
-  }
+  };
 
-  const fetchSampleStatus = async (barcode) => {
-    setLoadingTestDetails(true)
+  const fetchSampleStatus = async (patientId, barcode) => {
+    setLoadingTestDetails(true);
     try {
-      const patient = patients.find((p) => p.barcode === barcode)
+      const patient = patients.find(
+        (p) => p.patient_id === patientId && p.barcode === barcode
+      );
 
       if (!patient || !patient.testdetails) {
-        setError("No test details found for the selected barcode")
-        return
+        setError("No test details found for the selected patient and barcode");
+        return;
       }
 
-      // Get test_ids from patient's testdetails
-      const testIds = patient.testdetails.map((test) => test.test_id)
+      const testIds = patient.testdetails.map((test) => test.test_id);
+      const detailedTestInfo = await fetchTestDetailsByIds(testIds);
 
-      // Fetch detailed test information
-      const detailedTestInfo = await fetchTestDetailsByIds(testIds)
-
-      // Check if sample status exists in MongoDB
-      const result = await apiRequest(`${Labbaseurl}hms_check_sample_status/${barcode}/`, "GET")
+      const result = await apiRequest(
+        `${Labbaseurl}hms_check_sample_status/${barcode}/`,
+        "GET"
+      );
 
       if (result.success && result.data.exists) {
         try {
-          const response = await apiRequest(`${Labbaseurl}hms_sample_status_data/${barcode}/`, "GET")
+          const response = await apiRequest(
+            `${Labbaseurl}hms_sample_status_data/${barcode}/`,
+            "GET"
+          );
 
           if (response.success && response.data && response.data.testdetails) {
-            let testdetails = response.data.testdetails
+            let testdetails = response.data.testdetails;
             if (typeof testdetails === "string") {
-              testdetails = JSON.parse(testdetails)
+              testdetails = JSON.parse(testdetails);
             }
 
-            // Filter for Pending tests only and merge with detailed info
             const pendingTests = testdetails
               .filter((test) => test.samplestatus === "Pending")
               .map((test) => {
-                const detailedInfo = detailedTestInfo.find((detail) => detail.test_id === test.test_id)
+                const detailedInfo = detailedTestInfo.find(
+                  (detail) => detail.test_id === test.test_id
+                );
                 return {
                   ...test,
                   status: test.samplestatus || "Pending",
                   department: detailedInfo?.department || test.department || "N/A",
-                  collection_container: detailedInfo?.container || test.container || "N/A",
-                }
-              })
+                  collection_container: detailedInfo?.collection_container || test.container || "N/A",
+                  samplecollector: patient.sample_collector || "N/A",
+                };
+              });
 
             if (pendingTests.length > 0) {
-              setCurrentPatientTests(pendingTests)
+              setCurrentPatientTests(pendingTests);
             } else {
-              // If no pending tests from MongoDB, show all tests from original data with detailed info
               const allTests = patient.testdetails.map((test) => {
-                const detailedInfo = detailedTestInfo.find((detail) => detail.test_id === test.test_id)
+                const detailedInfo = detailedTestInfo.find(
+                  (detail) => detail.test_id === test.test_id
+                );
                 return {
                   ...test,
                   status: "Pending",
                   samplestatus: "Pending",
                   department: detailedInfo?.department || test.department || "N/A",
-                  collection_container: detailedInfo?.container || test.container || "N/A",
-                }
-              })
-              setCurrentPatientTests(allTests)
+                  collection_container: detailedInfo?.collection_container || test.collection_container || "N/A",
+                  container: detailedInfo?.collection_container || test.collection_container || "N/A",
+                  samplecollector: patient.sample_collector || "N/A",
+                };
+              });
+              setCurrentPatientTests(allTests);
             }
           } else {
-            throw new Error("Invalid response from hms_sample_status_data")
+            throw new Error("Invalid response from sample_status_data");
           }
         } catch (statusError) {
-          console.log("Error fetching hms_sample_status_data, using original patient data:", statusError)
-          // Fallback to original patient data with detailed info
+          console.log(
+            "Error fetching sample_status_data, using original patient data:",
+            statusError
+          );
           const allTests = patient.testdetails.map((test) => {
-            const detailedInfo = detailedTestInfo.find((detail) => detail.test_id === test.test_id)
+            const detailedInfo = detailedTestInfo.find(
+              (detail) => detail.test_id === test.test_id
+            );
             return {
               ...test,
               status: "Pending",
               samplestatus: "Pending",
               department: detailedInfo?.department || test.department || "N/A",
-              collection_container: detailedInfo?.container || test.container || "N/A",
-              samplecollector: "N/A",
-            }
-          })
-          setCurrentPatientTests(allTests)
+              collection_container: detailedInfo?.collection_container || test.collection_container || "N/A",
+              container: detailedInfo?.collection_container || test.collection_container || "N/A",
+              samplecollector: patient.sample_collector || "N/A",
+            };
+          });
+          setCurrentPatientTests(allTests);
         }
       } else {
-        // No sample status exists - use original patient data with detailed info
         const allTests = patient.testdetails.map((test) => {
-          const detailedInfo = detailedTestInfo.find((detail) => detail.test_id === test.test_id)
+          const detailedInfo = detailedTestInfo.find(
+            (detail) => detail.test_id === test.test_id
+          );
           return {
             ...test,
             status: "Pending",
             samplestatus: "Pending",
             department: detailedInfo?.department || test.department || "N/A",
-            collection_container: detailedInfo?.container || test.container || "N/A",
-            samplecollector: "N/A",
-          }
-        })
-        setCurrentPatientTests(allTests)
+            collection_container: detailedInfo?.collection_container || test.collection_container || "N/A",
+            container: detailedInfo?.collection_container || test.collection_container || "N/A",
+            samplecollector: patient.sample_collector || "N/A",
+          };
+        });
+        setCurrentPatientTests(allTests);
       }
     } catch (err) {
-      console.error("Error in fetchSampleStatus:", err)
-      setError("Error fetching sample status: " + err.message)
+      console.error("Error in fetchSampleStatus:", err);
+      setError("Error fetching sample status: " + err.message);
     } finally {
-      setLoadingTestDetails(false)
+      setLoadingTestDetails(false);
     }
-  }
+  };
 
   const handleStatusChange = (testId, status) => {
     setCurrentPatientTests((prevTests) =>
-      prevTests.map((test) => (test.test_id === testId ? { ...test, status } : test)),
-    )
-  }
+      prevTests.map((test) =>
+        test.test_id === testId ? { ...test, status } : test
+      )
+    );
+  };
 
   const toggleSelectTest = (testId) => {
-    const isCurrentlySelected = selectedTests.includes(testId)
+    const isCurrentlySelected = selectedTests.includes(testId);
     if (isCurrentlySelected) {
-      setSelectedTests((prevSelected) => prevSelected.filter((id) => id !== testId))
-      handleStatusChange(testId, "Pending")
+      setSelectedTests((prevSelected) =>
+        prevSelected.filter((id) => id !== testId)
+      );
+      handleStatusChange(testId, "Pending");
     } else {
-      setSelectedTests((prevSelected) => [...prevSelected, testId])
-      handleStatusChange(testId, "Sample Collected")
+      setSelectedTests((prevSelected) => [...prevSelected, testId]);
+      handleStatusChange(testId, "Sample Collected");
     }
-  }
-
-  const selectAllTests = () => {
-    const allTestIds = currentPatientTests.map((test) => test.test_id)
-    const allSelected = allTestIds.every((id) => selectedTests.includes(id))
-
-    if (allSelected) {
-      setSelectedTests([])
-      setCurrentPatientTests((prevTests) => prevTests.map((test) => ({ ...test, status: "Pending" })))
-    } else {
-      setSelectedTests(allTestIds)
-      setCurrentPatientTests((prevTests) => prevTests.map((test) => ({ ...test, status: "Sample Collected" })))
-    }
-  }
+  };
 
   const saveAllTestsForPatient = async () => {
-    if (currentPatientTests.length === 0) {
-      setError("No tests available to save")
-      return
-    }
-
-    setIsSaving(true)
-    setError(null)
-
+    setIsSaving(true);
     try {
-      const patient = patients.find((p) => p.barcode === selectedBarcode)
+      const patient = patients.find(
+        (p) =>
+          p.patient_id === selectedPatientId && p.barcode === selectedBarcode
+      );
       if (!patient) {
-        setError("Patient not found")
-        return
+        setError("Patient not found for the selected barcode");
+        setSuccessMessage(null);
+        setTimeout(() => setError(null), 3000);
+        return;
       }
 
-      // Check if sample status already exists
-      const checkResult = await apiRequest(`${Labbaseurl}hms_check_sample_status/${selectedBarcode}/`, "GET")
+      const checkResult = await apiRequest(
+        `${Labbaseurl}check_sample_status/${patient.barcode}/`,
+        "GET"
+      );
 
-      if (checkResult.success && checkResult.data.exists) {
-        // Update existing sample status
-        const testsToUpdate = currentPatientTests.map((test) => ({
-          test_id: test.test_id,
-          testname: test.testname,
-          samplestatus: test.status,
-          collectd_by: test.status === "Sample Collected" ? storedName : null,
-        }))
+      const dataExists = checkResult.success && checkResult.data?.exists;
 
-        const updateResult = await apiRequest(`${Labbaseurl}hms_patch_sample_status/${selectedBarcode}/`, "PATCH", {
-          testdetails: testsToUpdate,
-        })
+      const formatDateTime = (date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const seconds = String(d.getSeconds()).padStart(2, "0");
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      };
 
-        if (updateResult.success) {
-          setSuccessMessage("Sample status updated successfully!")
-          setIsSaved(true)
+      if (dataExists) {
+        const currentTime = formatDateTime(new Date());
+
+        const patchData = {
+          patient_id: patient.patient_id,
+          barcode: patient.barcode,
+          testdetails: currentPatientTests.map((test) => {
+            const isSelected = selectedTests.includes(test.test_id);
+            const status = isSelected ? "Sample Collected" : "Pending";
+
+            return {
+              test_id: test.test_id,
+              testname: test.testname,
+              samplestatus: status,
+              samplecollected_time:
+                status === "Sample Collected" ? currentTime : null,
+              collectd_by: status === "Sample Collected" ? storedName : null,
+            };
+          }),
+        };
+
+        const result = await apiRequest(
+          `${Labbaseurl}sample_statusupdate/${patient.barcode}/`,
+          "PATCH",
+          patchData
+        );
+
+        if (result.success) {
+          setSuccessMessage(
+            result.data?.message || "Sample status updated successfully"
+          );
+          setError(null);
+          setIsSaved(true);
+          setTimeout(() => {
+            window.location.reload();
+            setSuccessMessage(null);
+          }, 3000);
         } else {
-          setError(updateResult.error || "Failed to update sample status")
+          setError(result.error || "Failed to update sample status");
+          setSuccessMessage(null);
+          setTimeout(() => setError(null), 3000);
         }
       } else {
-        // Create new sample status
-        const testsToSave = currentPatientTests.map((test) => ({
-          test_id: test.test_id,
-          testname: test.testname,
-          collection_container: test.container || test.collection_container,
-          department: test.department,
-          samplestatus: test.status,
-          collectd_by: test.status === "Sample Collected" ? storedName : null,
-        }))
+        const formattedDate1 = formatDateTime(new Date(patient.date));
+        const currentTime = formatDateTime(new Date());
 
-        const saveResult = await apiRequest(`${Labbaseurl}hms_sample_status/`, "POST", {
-          barcode: selectedBarcode,
-          date: patient.date,
-          testdetails: testsToSave,
-        })
+        const formattedData = {
+          barcode: patient.barcode,
+          date: formattedDate1,
+          testdetails: currentPatientTests.map((test) => {
+            const isSelected = selectedTests.includes(test.test_id);
+            const status = isSelected ? "Sample Collected" : "Pending";
 
-        if (saveResult.success) {
-          setSuccessMessage("Sample status saved successfully!")
-          setIsSaved(true)
+            return {
+              test_id: test.test_id,
+              testname: test.testname,
+              container: test.container || test.collection_container || "N/A",
+              department: test.department || "N/A",
+              samplestatus: status,
+              samplecollected_time:
+                status === "Sample Collected" ? currentTime : null,
+              received_time: null,
+              rejected_time: null,
+              collectd_by: status === "Sample Collected" ? storedName : null,
+              received_by: null,
+              rejected_by: null,
+              remarks: null,
+            };
+          }),
+        };
+
+        const result = await apiRequest(
+          `${Labbaseurl}hms_sample_status/`,
+          "POST",
+          formattedData
+        );
+
+        if (result.success) {
+          setSuccessMessage(
+            result.data?.message ||
+              `All test data saved successfully for ${
+                patient.patientname || "patient"
+              }`
+          );
+          setError(null);
+          setIsSaved(true);
+          setTimeout(() => {
+            window.location.reload();
+            setSuccessMessage(null);
+          }, 5000);
         } else {
-          setError(saveResult.error || "Failed to save sample status")
+          let errorMessage = result.error || "Failed to save tests";
+
+          if (
+            errorMessage.includes("Please change status as Sample Collected") ||
+            errorMessage.includes("Patient ID already exists")
+          ) {
+            errorMessage = "Please change status as Sample Collected";
+          }
+
+          setError(errorMessage);
+          setSuccessMessage(null);
+          setTimeout(() => setError(null), 5000);
         }
       }
-    } catch (err) {
-      setError("An unexpected error occurred: " + err.message)
+    } catch (error) {
+      console.error("Unexpected error:", error);
+
+      let errorMessage = "An unexpected error occurred";
+      if (
+        error.message &&
+        error.message.includes("Please change status as Sample Collected")
+      ) {
+        errorMessage = "Please change status as Sample Collected";
+      } else if (error.message && error.message.includes("timezone")) {
+        errorMessage = "Please change status as Sample Collected";
+      }
+
+      setError(errorMessage);
+      setSuccessMessage(null);
+      setTimeout(() => setError(null), 5000);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
-  const openModal = async (barcode) => {
-    setSelectedBarcode(barcode)
-    setShowModal(true)
-    setError(null)
-    setSuccessMessage(null)
-    setSelectedTests([])
-    setCurrentPatientTests([])
-    setIsSaving(false)
-    setIsSaved(false)
+  const selectAllTests = () => {
+    const allSelected = currentPatientTests.every((test) =>
+      selectedTests.includes(test.test_id)
+    );
 
-    await fetchSampleStatus(barcode)
-  }
+    if (allSelected) {
+      setSelectedTests([]);
+      setCurrentPatientTests((prevTests) =>
+        prevTests.map((test) => ({ ...test, status: "Pending" }))
+      );
+    } else {
+      const allTestIds = currentPatientTests.map((test) => test.test_id);
+      setSelectedTests(allTestIds);
+      setCurrentPatientTests((prevTests) =>
+        prevTests.map((test) => ({ ...test, status: "Sample Collected" }))
+      );
+    }
+  };
+
+  const openModal = async (patientId, barcode) => {
+    setSelectedPatientId(patientId);
+    setSelectedBarcode(barcode);
+    setShowModal(true);
+    setSelectedTests([]);
+    setCurrentPatientTests([]);
+    setIsSaving(false);
+    setIsSaved(false);
+
+    await fetchSampleStatus(patientId, barcode);
+  };
 
   const closeModal = () => {
-    setShowModal(false)
-    setSelectedBarcode(null)
-    setError(null)
-    setSuccessMessage(null)
-    setSelectedTests([])
-    setCurrentPatientTests([])
-    setIsSaving(false)
-    setIsSaved(false)
-  }
+    setShowModal(false);
+    setSelectedPatientId(null);
+    setSelectedBarcode(null);
+    setError(null);
+    setSuccessMessage(null);
+    setSelectedTests([]);
+    setCurrentPatientTests([]);
+    setIsSaving(false);
+    setIsSaved(false);
+  };
 
-  const filteredPatients = (patients || []).filter(
-    (patient) =>
-      patient.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.barcode?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const filteredPatients = (patients || [])
+    .filter((patient) => {
+      const matchesSearch =
+        patient.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.barcode.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "All" ||
+        (statusFilter === "Emergency" && patient.is_emergency) ||
+        (statusFilter === "Normal" && !patient.is_emergency);
+
+      return matchesSearch && matchesStatus;
+    });
+
+  const getCurrentPatient = () => {
+    return patients.find(
+      (p) => p.patient_id === selectedPatientId && p.barcode === selectedBarcode
+    );
+  };
+
+  const getPaymentMode = () => {
+    const patient = getCurrentPatient();
+    if (!patient || !patient.payment_method) return "N/A";
+    
+    if (typeof patient.payment_method === 'string') {
+      try {
+        const parsed = JSON.parse(patient.payment_method);
+        return parsed.paymentmethod || "N/A";
+      } catch {
+        return "N/A";
+      }
+    }
+    
+    return patient.payment_method.paymentmethod || "N/A";
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -773,7 +1027,7 @@ const HmsSampleStatus = () => {
       <Container>
         <Card>
           <Header>
-            <Title>HMS Patient Sample Status</Title>
+            <Title>HMS Patient Sample Collection</Title>
             <div
               style={{
                 display: "flex",
@@ -783,8 +1037,12 @@ const HmsSampleStatus = () => {
               }}
             >
               <DatePickerWrapper>
-                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>From Date:</label>
-                <DateButton onClick={() => setShowFromDatePicker(!showFromDatePicker)}>
+                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                  From Date:
+                </label>
+                <DateButton
+                  onClick={() => setShowFromDatePicker(!showFromDatePicker)}
+                >
                   <Calendar size={16} />
                   <DateDisplay>{format(fromDate, "yyyy-MM-dd")}</DateDisplay>
                 </DateButton>
@@ -792,8 +1050,8 @@ const HmsSampleStatus = () => {
                   <SimpleDatePicker
                     selectedDate={fromDate}
                     onChange={(date) => {
-                      setFromDate(date)
-                      setShowFromDatePicker(false)
+                      setFromDate(date);
+                      setShowFromDatePicker(false);
                     }}
                     onClose={() => setShowFromDatePicker(false)}
                   />
@@ -801,8 +1059,12 @@ const HmsSampleStatus = () => {
               </DatePickerWrapper>
 
               <DatePickerWrapper>
-                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>To Date:</label>
-                <DateButton onClick={() => setShowToDatePicker(!showToDatePicker)}>
+                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                  To Date:
+                </label>
+                <DateButton
+                  onClick={() => setShowToDatePicker(!showToDatePicker)}
+                >
                   <Calendar size={16} />
                   <DateDisplay>{format(toDate, "yyyy-MM-dd")}</DateDisplay>
                 </DateButton>
@@ -810,8 +1072,8 @@ const HmsSampleStatus = () => {
                   <SimpleDatePicker
                     selectedDate={toDate}
                     onChange={(date) => {
-                      setToDate(date)
-                      setShowToDatePicker(false)
+                      setToDate(date);
+                      setShowToDatePicker(false);
                     }}
                     onClose={() => setShowToDatePicker(false)}
                   />
@@ -820,24 +1082,37 @@ const HmsSampleStatus = () => {
             </div>
           </Header>
 
-          <SearchContainer>
-            <SearchIcon>
-              <Search size={16} />
-            </SearchIcon>
-            <SearchInput
-              type="text"
-              placeholder="Search by Barcode, Patient name, ID"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </SearchContainer>
+          <FilterContainer>
+            <SearchContainer>
+              <SearchIcon>
+                <Search size={16} />
+              </SearchIcon>
+              <SearchInput
+                type="text"
+                placeholder="B2B Name, Barcode, Patient name, ID"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </SearchContainer>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                Status Filter:
+              </label>
+              <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="All">All</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Normal">Normal</option>
+              </Select>
+            </div>
+          </FilterContainer>
 
           {loading ? (
             <EmptyState>
               <div>Loading patients...</div>
             </EmptyState>
           ) : error ? (
-            <Alert error>
+            <Alert error="true">
               <AlertCircle size={16} />
               Error: {error}
             </Alert>
@@ -852,26 +1127,46 @@ const HmsSampleStatus = () => {
                         <Th>Patient Name</Th>
                         <Th>Barcode ID</Th>
                         <Th>Age</Th>
-                        <Th>Gender</Th>
+                        <Th>Status</Th>
                         <Th>Tests</Th>
                         <Th>Actions</Th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredPatients.map((patient) => (
-                        <Tr key={patient.barcode}>
-                          <Td>{patient.patient_id || "N/A"}</Td>
-                          <Td>{patient.patientname || "N/A"}</Td>
+                        <Tr key={`${patient.patient_id}-${patient.barcode}`}>
+                          <Td>{patient.patient_id}</Td>
+                          <Td>{patient.patientname}</Td>
                           <Td>{patient.barcode}</Td>
-                          <Td>{patient.age || "N/A"}</Td>
-                          <Td>{patient.gender || "N/A"}</Td>
+                          <Td>{patient.age}</Td>
                           <Td>
-                            {patient.testdetails && patient.testdetails.length > 0
-                              ? patient.testdetails.map((test) => test.testname).join(", ") || "No tests"
+                            {patient.is_emergency ? (
+                              <EmergencyBadge emergency>
+                                <AlertCircle size={12} />
+                                Emergency
+                              </EmergencyBadge>
+                            ) : (
+                              <EmergencyBadge normal>
+                                <CheckCircle size={12} />
+                                Normal
+                              </EmergencyBadge>
+                            )}
+                          </Td>
+                          <Td>
+                            {patient.testdetails &&
+                            patient.testdetails.length > 0
+                              ? patient.testdetails
+                                  .map((test) => test.testname)
+                                  .join(", ") || "No tests"
                               : "No tests"}
                           </Td>
                           <Td>
-                            <Button primary onClick={() => openModal(patient.barcode)}>
+                            <Button
+                              primary
+                              onClick={() =>
+                                openModal(patient.patient_id, patient.barcode)
+                              }
+                            >
                               View Sample Status
                             </Button>
                           </Td>
@@ -882,10 +1177,13 @@ const HmsSampleStatus = () => {
                 </div>
               ) : (
                 <EmptyState>
-                  <EmptyStateText>No patients with pending tests found for the selected date.</EmptyStateText>
+                  <EmptyStateText>
+                    No patients with pending tests found for the selected date.
+                  </EmptyStateText>
                 </EmptyState>
               )}
             </>
+            
           )}
           <div
           style={{
@@ -900,114 +1198,132 @@ const HmsSampleStatus = () => {
         </div>
         </Card>
 
-        {showModal && selectedBarcode && (
+        {showModal && selectedPatientId && selectedBarcode && (
           <Modal>
             <ModalContent>
               <ModalHeader>
                 <ModalTitle>
-                  {(patients || []).find((p) => p.barcode === selectedBarcode)?.patientname} - Test Details
+                  {getCurrentPatient()?.patientname || "Patient"} - Test Details
                 </ModalTitle>
                 <CloseButton onClick={closeModal}>
                   <X size={20} />
                 </CloseButton>
               </ModalHeader>
 
-              <div style={{ padding: "1.5rem" }}>
-                {error && (
-                  <Alert error>
-                    <AlertCircle size={16} />
-                    {error}
-                  </Alert>
-                )}
+              {error && (
+                <Alert error="true">
+                  <AlertCircle size={16} />
+                  {error}
+                </Alert>
+              )}
 
-                {successMessage && (
-                  <Alert success>
-                    <CheckCircle size={16} />
-                    {successMessage}
-                  </Alert>
-                )}
+              {successMessage && (
+                <Alert success="true">
+                  <CheckCircle size={16} />
+                  {successMessage}
+                </Alert>
+              )}
 
-                {(patients || [])
-                  .filter((patient) => patient.barcode === selectedBarcode)
-                  .map((patient) => (
-                    <div key={patient.barcode}>
-                      <div style={{ marginBottom: "1rem" }}>
-                        <strong>Patient ID:</strong> {patient.patient_id || "N/A"} | <strong>Barcode:</strong>{" "}
-                        {patient.barcode} | <strong>Age:</strong> {patient.age || "N/A"} | <strong>Gender:</strong>{" "}
-                        {patient.gender || "N/A"}
-                      </div>
+             
+              {getCurrentPatient() && (
+                <div>
+                  <div style={{ marginBottom: "1rem" }}>
+                    <strong>Patient ID:</strong> {getCurrentPatient().patient_id} |{" "}
+                    <strong>Barcode:</strong> {getCurrentPatient().barcode} |{" "}
+                    <strong>Age:</strong> {getCurrentPatient().age} |{" "}
+                    <strong>Gender:</strong> {getCurrentPatient().gender || "N/A"} |{" "}
+                    <strong>Current Date & Time:</strong> {currentDateTime} |{" "}
+                    <strong>Technician Name:</strong> {storedName || "N/A"} |{" "}
+                  </div>
 
-                      {loadingTestDetails ? (
-                        <EmptyState>
-                          <div>Loading test details...</div>
-                        </EmptyState>
-                      ) : (
-                        <div style={{ overflowX: "auto" }}>
-                          <Table>
-                            <thead>
-                              <tr>
-                                <Th>Test Name</Th>
-                                <Th>Container Type</Th>
-                                <Th>Department</Th>
-                                <Th>Status</Th>
-                                <Th>
-                                  <Checkbox
-                                    checked={
-                                      currentPatientTests.length > 0 &&
-                                      currentPatientTests.every((test) => selectedTests.includes(test.test_id))
-                                    }
-                                    onChange={selectAllTests}
-                                    disabled={isSaving || isSaved}
-                                  />
-                                </Th>
-
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {currentPatientTests.map((test) => (
-                                <Tr key={test.test_id}>
-                                  <Td>{test.testname}</Td>
-                                  <Td>{test.container || test.collection_container || "N/A"}</Td>
-                                  <Td>{test.department || "N/A"}</Td>
-                                  <Td>
-                                    <Select
-                                      value={test.status || "Pending"}
-                                      onChange={(e) => handleStatusChange(test.test_id, e.target.value)}
-                                      disabled={isSaving || isSaved}
-                                    >
-                                      <option value="Pending">Pending</option>
-                                      <option value="Sample Collected">Collected</option>
-                                    </Select>
-                                  </Td>
-                                  <Td>
-                                    <Checkbox
-                                      checked={selectedTests.includes(test.test_id)}
-                                      onChange={() => toggleSelectTest(test.test_id)}
-                                      disabled={isSaving || isSaved}
-                                    />
-                                  </Td>
-                                </Tr>
-                              ))}
-                            </tbody>
-                          </Table>
-                        </div>
-                      )}
+                  {loadingTestDetails ? (
+                    <EmptyState>
+                      <div>Loading test details...</div>
+                    </EmptyState>
+                  ) : (
+                    <div style={{ overflowX: "auto" }}>
+                      <Table>
+                        <thead>
+                          <tr>
+                            <Th>Test Name</Th>
+                            <Th>Container Type</Th>
+                            <Th>Department</Th>
+                            <Th>Status</Th>
+                            <Th>
+                              <Checkbox
+                                checked={
+                                  currentPatientTests.length > 0 &&
+                                  currentPatientTests.every((test) =>
+                                    selectedTests.includes(test.test_id)
+                                  )
+                                }
+                                onChange={selectAllTests}
+                                disabled={isSaving || isSaved}
+                              />
+                            </Th>
+                            <Th>Sample Collector</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentPatientTests.map((test) => (
+                            <Tr key={test.test_id}>
+                              <Td>{test.testname}</Td>
+                              <Td>{test.container || test.collection_container || "N/A"}</Td>
+                              <Td>{test.department || "N/A"}</Td>
+                              <Td>
+                                <Select
+                                  value={test.status || "Pending"}
+                                  onChange={(e) =>
+                                    handleStatusChange(
+                                      test.test_id,
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={isSaving || isSaved}
+                                >
+                                  <option value="Pending">Pending</option>
+                                  <option value="Sample Collected">
+                                    Collected
+                                  </option>
+                                </Select>
+                              </Td>
+                              <Td>
+                                <Checkbox
+                                  checked={selectedTests.includes(
+                                    test.test_id
+                                  )}
+                                  onChange={() =>
+                                    toggleSelectTest(test.test_id)
+                                  }
+                                  disabled={isSaving || isSaved}
+                                />
+                              </Td>
+                              <Td>{storedName || "N/A"}</Td>
+                            </Tr>
+                          ))}
+                        </tbody>
+                      </Table>
                     </div>
-                  ))}
-              </div>
+                  )}
 
-              <ButtonGroup>
-                <Button success onClick={saveAllTestsForPatient} disabled={loadingTestDetails || isSaving || isSaved}>
-                  <Check size={16} />
-                  {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}
-                </Button>
-              </ButtonGroup>
+                  <ButtonGroup>
+                    <Button
+                      success
+                      onClick={saveAllTestsForPatient}
+                      disabled={loadingTestDetails || isSaving || isSaved}
+                    >
+                      <Check size={16} />
+                      {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}
+                    </Button>
+                  </ButtonGroup>
+                </div>
+              )}
             </ModalContent>
           </Modal>
         )}
       </Container>
     </ThemeProvider>
-  )
-}
+  );
+};
 
-export default HmsSampleStatus
+export default HmsSampleStatus;

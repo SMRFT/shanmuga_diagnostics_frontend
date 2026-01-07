@@ -496,100 +496,46 @@ function DoctorForm() {
   };
 
   const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
-    try {
-      const test = testValues[recordIndex];
-      const testDetail = test?.testdetails[testIndex];
+  try {
+    const test = testValues[recordIndex];
+    const testDetail = test?.testdetails[testIndex];
 
-      if (!test || !testDetail) {
-        throw new Error("Test or test detail not found");
-      }
-
-      const response = await apiRequest(
-        `${Labbaseurl}test-approval/${test.patient_id}/${testIndex}/approve/`,
-        "PATCH",
-        {
-          approve: true,
-          approve_by,
-          barcode: test.barcode,
-          created_date: test.created_date,
-        }
-      );
-
-      if (!response.success) {
-        throw new Error(response.error || "Failed to approve test");
-      }
-
-      if (
-        response.data.message &&
-        (response.data.message.includes("Test approved successfully") ||
-          response.data.message.includes("Test detail approved successfully"))
-      ) {
-        setTestValues((prevValues) => {
-          return prevValues.map((record, idx) => {
-            if (idx === recordIndex) {
-              return {
-                ...record,
-                testdetails: record.testdetails.map((detail, detailIdx) =>
-                  detailIdx === testIndex
-                    ? {
-                        ...detail,
-                        approve: true,
-                        approve_by,
-                        barcode: record.barcode,
-                        created_date: record.created_date,
-                      }
-                    : detail
-                ),
-              };
-            }
-            return record;
-          });
-        });
-        alert("Test approved successfully!");
-      } else {
-        alert("Approval failed: " + (response.data.message || "Unknown error"));
-      }
-    } catch (error) {
-      console.error("Error updating data:", error);
-      alert("Error during approval: " + error.message);
+    if (!test || !testDetail) {
+      throw new Error("Test or test detail not found");
     }
-  };
 
-  const handleTestRerun = async (recordIndex, testIndex) => {
-    try {
-      const test = testValues[recordIndex];
-      const testDetail = test?.testdetails[testIndex];
-
-      if (!testDetail) {
-        throw new Error("Test detail not found");
+    const response = await apiRequest(
+      `${Labbaseurl}test-approval/${test.barcode}/approve/`,
+      "PATCH",
+      {
+        approve: true,
+        approve_by,
+        barcode: test.barcode,
+        created_date: testDetail.created_date,
+        test_id: testDetail.test_id,
       }
+    );
 
-      const response = await apiRequest(
-        `${Labbaseurl}test-rerun/${test.patient_id}/${testIndex}/rerun/`,
-        "PATCH",
-        {
-          rerun: true,
-          barcode: test.barcode,
-          created_date: test.created_date,
-        }
-      );
+    if (!response.success) {
+      throw new Error(response.error || "Failed to approve test");
+    }
 
-      if (!response.success) {
-        throw new Error(response.error || "Failed to initiate rerun");
-      }
-
+    if (
+      response.data.message &&
+      (response.data.message.includes("Test approved successfully") ||
+        response.data.message.includes("Test detail approved successfully"))
+    ) {
       setTestValues((prevValues) => {
         return prevValues.map((record, idx) => {
           if (idx === recordIndex) {
             return {
               ...record,
-              testdetails: record.testdetails.map((detail, detailIdx) =>
-                detailIdx === testIndex
+              testdetails: record.testdetails.map((detail) =>
+                detail.test_id === testDetail.test_id
                   ? {
                       ...detail,
-                      rerun: true,
-                      barcode: detail.barcode,
-                      created_date: detail.created_date,
+                      approve: true,
+                      approve_by,
                     }
                   : detail
               ),
@@ -598,12 +544,64 @@ function DoctorForm() {
           return record;
         });
       });
-      alert("Test rerun initiated successfully!");
-    } catch (error) {
-      console.error("Error updating data:", error);
-      alert("Error during rerun: " + error.message);
+      alert("Test approved successfully!");
+    } else {
+      alert("Approval failed: " + (response.data.message || "Unknown error"));
     }
-  };
+  } catch (error) {
+    console.error("Error updating data:", error);
+    alert("Error during approval: " + error.message);
+  }
+};
+
+const handleTestRerun = async (recordIndex, testIndex) => {
+  try {
+    const test = testValues[recordIndex];
+    const testDetail = test?.testdetails[testIndex];
+
+    if (!testDetail) {
+      throw new Error("Test detail not found");
+    }
+
+    const response = await apiRequest(
+      `${Labbaseurl}test-rerun/${test.barcode}/rerun/`,
+      "PATCH",
+      {
+        rerun: true,
+        barcode: test.barcode,
+        created_date: testDetail.created_date ,
+        test_id: testDetail.test_id,
+      }
+    );
+
+    if (!response.success) {
+      throw new Error(response.error || "Failed to initiate rerun");
+    }
+
+    setTestValues((prevValues) => {
+      return prevValues.map((record, idx) => {
+        if (idx === recordIndex) {
+          return {
+            ...record,
+            testdetails: record.testdetails.map((detail) =>
+              detail.test_id === testDetail.test_id
+                ? {
+                    ...detail,
+                    rerun: true,
+                  }
+                : detail
+            ),
+          };
+        }
+        return record;
+      });
+    });
+    alert("Test rerun initiated successfully!");
+  } catch (error) {
+    console.error("Error updating data:", error);
+    alert("Error during rerun: " + error.message);
+  }
+};
 
   const getStatusBadge = (value, referenceRange) => {
     if (!value || !referenceRange) return null;

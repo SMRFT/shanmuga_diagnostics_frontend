@@ -17,6 +17,7 @@ import {
   FaVial,
   FaFileAlt,
   FaSignOutAlt,
+  FaUserCircle
 } from "react-icons/fa"
 import { PiTestTubeDuotone } from "react-icons/pi"
 import { GrOverview } from "react-icons/gr"
@@ -101,6 +102,57 @@ const LogoContainer = styled.div`
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 `
+
+const UserInfoContainer = styled.div`
+  ${glassEffect}
+  padding: 20px;
+  margin: 10px 15px 20px 15px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+`
+
+const UserAvatar = styled.div`
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+`
+
+const UserDetails = styled.div`
+  text-align: center;
+  width: 100%;
+`
+
+const UserName = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`
+
+const UserRole = styled.div`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  margin-bottom: 4px;
+`
+
+const EmployeeId = styled.div`
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+`
+
 
 const SidebarToggle = styled.button`
   display: none;
@@ -273,6 +325,8 @@ const Sidebar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [role, setRole] = useState("")
   const [name, setName] = useState("")
+  const [employeeId, setEmployeeId] = useState("")
+
   const [dropdowns, setDropdowns] = useState({
     patientDetails: false,
     barcodeDetails: false,
@@ -296,10 +350,13 @@ const Sidebar = () => {
   useEffect(() => {
     const userRole = localStorage.getItem("role")
     const userName = localStorage.getItem("name")
+    const userEmployeeId = localStorage.getItem("employee_id") || localStorage.getItem("employeeId")
 
     setRole(userRole || "")
-    setName(userName || "")
+    setName(userName || "User")
+    setEmployeeId(userEmployeeId || "N/A")
   }, [])
+
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -310,9 +367,20 @@ const Sidebar = () => {
       <SidebarToggle onClick={toggleSidebar}>{isSidebarOpen ? <FaTimes /> : <FaBars />}</SidebarToggle>
 
       <SidebarContainer isOpen={isSidebarOpen}>
-        <LogoContainer>
-          <h1>Shanmuga Diagnostics</h1>
-        </LogoContainer>
+
+
+      <LogoContainer>
+        <h1>Shanmuga</h1>
+        <h1>Diagnostics</h1>
+      </LogoContainer>
+
+      <UserInfoContainer>
+        <UserDetails>
+          <UserName>{name}</UserName>
+          <EmployeeId>ID : {employeeId}</EmployeeId>
+          <UserRole>Role : {role}</UserRole>
+        </UserDetails>
+      </UserInfoContainer>
 
         <SidebarContent>
           {role === "Sample Collector" && (
@@ -496,12 +564,27 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                
                 <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
                   HMS Billing
                 </SubLink>
-               
               </DropdownContent>
+
+               <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaBarcode />
+                  </IconWrapper>
+                  Barcode
+                </div>
+                <ChevronIcon isOpen={dropdowns.barcodeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.barcodeDetails}>
+                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Barcode Generation
+                </SubLink>
+              </DropdownContent>
+
               <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
@@ -515,6 +598,9 @@ const Sidebar = () => {
               <DropdownContent isOpen={dropdowns.sampleDetails}>
                 <SubLink to="/SampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
                   Diagnostics Sample Accessioning and Distribution
+                </SubLink>
+                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                  HMS Sample Collection
                 </SubLink>
                 <SubLink to="/HmsSampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
                   HMS Sample Accessioning and Distribution
@@ -679,22 +765,23 @@ const Sidebar = () => {
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                Test Edit
+                Report Dashboard
               </SidebarNavLink>
 
               <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                Test Count
+                Test Edit
               </SidebarNavLink>
 
               <SidebarNavLink to="/Testcount" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                Report Dashboard
+                Test Count
               </SidebarNavLink>
+
 
               <SidebarNavLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
@@ -1431,12 +1518,6 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   B2B Approval
-                </SubLink>
-                <SubLink
-                  to="/B2BPackage"
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  B2B Package
                 </SubLink>
               </DropdownContent>
 

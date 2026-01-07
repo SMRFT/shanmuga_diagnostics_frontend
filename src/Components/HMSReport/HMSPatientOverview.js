@@ -1535,23 +1535,25 @@ yPos += 8;
       }
 
       // Generate the PDF as a Blob and set file name with patientID
-      const patientID = patientDetails.patient_id || "Unknown";
-      const patientName = (patientDetails.patientname || "Unknown");
-      const pdfFileName = `${patientName}_${patientID}.pdf`;
-      const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
+     // MODIFIED: Open PDF in new tab instead of downloading
+const patientID = patientDetails.patient_id || "Unknown";
+const patientName = (patientDetails.patientname || "Unknown");
+const pdfFileName = `${patientName}_${patientID}.pdf`;
 
-      // Create a temporary link to trigger download
-      const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = pdfFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(pdfUrl); // Clean up the URL
+// Generate blob and open in new tab
+const pdfBlob = doc.output("blob");
+const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      setLoading(false);
-      return pdfBlob;
+// Open in new tab
+const newTab = window.open(pdfUrl, "_blank");
+
+// Optional: Revoke URL after a delay to free up memory
+setTimeout(() => {
+  URL.revokeObjectURL(pdfUrl);
+}, 1000);
+
+setLoading(false);
+return pdfBlob;
     } catch (error) {
       console.error("Error while generating the PDF:", error);
       toast.error("An unexpected error occurred while generating the PDF");
