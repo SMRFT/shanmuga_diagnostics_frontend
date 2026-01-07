@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import styled from "styled-components"
 import { Calendar, Users, FileText, Search, RefreshCw, Download } from "lucide-react"
+import apiRequest from "../Auth/apiRequest"
 
 // Styled Components
 const FormContainer = styled.div`
@@ -302,8 +303,8 @@ const StatusBadge = styled.span`
   border-radius: 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  background: ${props => props.billed ? 
-    'linear-gradient(135deg, #dcfce7, #bbf7d0)' : 
+  background: ${props => props.billed ?
+    'linear-gradient(135deg, #dcfce7, #bbf7d0)' :
     'linear-gradient(135deg, #fee2e2, #fecaca)'};
   color: ${props => props.billed ? '#166534' : '#b91c1c'};
 `
@@ -321,7 +322,7 @@ const PatientDashboard = () => {
   const [endDate, setEndDate] = useState("")
   const [patients, setPatients] = useState([])
   const [loading, setLoading] = useState(false)
-  
+
   // Mock API URL - replace with your actual API endpoint
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
@@ -336,9 +337,12 @@ const PatientDashboard = () => {
     setLoading(true)
     try {
       // Replace this with your actual API call
-      const response = await fetch(`${Labbaseurl}patients_by_date/?start_date=${start}&end_date=${end}`)
-      const data = await response.json()
-      
+      const response = await apiRequest(`${Labbaseurl}patients_by_date/`, "POST", {
+        start_date: start,
+        end_date: end,
+      })
+      const data = response.data
+
       // Handle the API response structure
       if (data.success && Array.isArray(data.data)) {
         setPatients(data.data)
@@ -414,27 +418,27 @@ const PatientDashboard = () => {
     <FormContainer>
       <FormCard>
         <StyledTitle>Patient Registration Dashboard</StyledTitle>
-        
+
         <Header>
           <DatePickerContainer>
             <DateInputGroup>
               <DateLabel>Start Date</DateLabel>
-              <DateInput 
-                type="date" 
-                value={startDate} 
-                onChange={(e) => setStartDate(e.target.value)} 
+              <DateInput
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
               />
             </DateInputGroup>
-            
+
             <DateInputGroup>
               <DateLabel>End Date</DateLabel>
-              <DateInput 
-                type="date" 
-                value={endDate} 
-                onChange={(e) => setEndDate(e.target.value)} 
+              <DateInput
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </DateInputGroup>
-            
+
             <Button onClick={handleSearch}>
               <Search size={16} />
               Search

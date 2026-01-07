@@ -400,15 +400,8 @@ const HMSBarcodeTestDetails = () => {
   // Function to extract barcode from bill number
   const extractBarcodeFromBillNo = (billNumber) => {
     if (!billNumber) return null;
-    
-    // Split by '/' and take the last part
-    const parts = billNumber.split('/');
-    if (parts.length > 1) {
-      return parts[parts.length - 1]; // Returns '000056' from '2425/000056'
-    }
-    
-    // If no '/' found, return the original bill number
-    return billNumber;
+    // Remove all slashes from the bill number to generate the barcode
+    return billNumber.replace(/\//g, "");
   };
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -433,7 +426,7 @@ const HMSBarcodeTestDetails = () => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-      
+
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return false;
@@ -476,11 +469,11 @@ const HMSBarcodeTestDetails = () => {
       setBarcodeData(newBarcodeData);
 
       // Prepare payload for saving
-      const payload = {        
+      const payload = {
         date: formatDate(selectedPatient?.date),
         billnumber: bill_no,
         testdetails: updatedTestDetails,
-        barcode: patientBarcode,        
+        barcode: patientBarcode,
       };
 
       // Save the barcode using your apiRequest method
@@ -517,7 +510,7 @@ const HMSBarcodeTestDetails = () => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-      
+
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return;
@@ -722,7 +715,7 @@ const HMSBarcodeTestDetails = () => {
           ...test,
           barcode: generatedBarcode,
         }));
-        
+
         setTestDetails(updatedTestDetails);
 
         // Create barcode data for display
@@ -918,8 +911,8 @@ const HMSBarcodeTestDetails = () => {
               {selectedPatient?.gender === "Male"
                 ? "M"
                 : selectedPatient?.gender === "Female"
-                ? "F"
-                : ""}
+                  ? "F"
+                  : ""}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
               {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}

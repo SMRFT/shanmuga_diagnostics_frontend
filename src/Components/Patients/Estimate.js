@@ -1,134 +1,174 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import styled from "styled-components";
 import { toast } from "react-toastify";
-import apiRequest from "../Auth/apiRequest"
+import apiRequest from "../Auth/apiRequest";
+import { Search, Trash2, Calculator, Info, CheckCircle, XCircle } from "lucide-react";
+import styled from "styled-components";
+import { useState, useEffect } from "react";
+
 
 // Styled Components
 const Container = styled.div`
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: "Arial", sans-serif;
+  margin: 2rem auto;
+  padding: 0 1.5rem 2rem;
+  font-family: 'Poppins', sans-serif;
 `;
 
 const Header = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
   color: white;
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 30px;
+  padding: 3rem 2rem;
+  border-radius: 24px;
+  margin-bottom: 2.5rem;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(110, 142, 251, 0.15);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%);
+  }
 `;
 
 const Title = styled.h1`
   margin: 0;
   font-size: 2.5rem;
-  font-weight: 300;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 `;
 
 const ControlsSection = styled.div`
   background: white;
-  padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
+  padding: 2rem;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255,255,255,0.5);
 `;
 
 const ToggleContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: 16px;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 16px;
+  width: fit-content;
 `;
 
 const ToggleLabel = styled.label`
   font-weight: 600;
-  color: #333;
-  font-size: 1.1rem;
+  color: #475569;
+  font-size: 1rem;
 `;
 
 const ToggleSwitch = styled.div`
   position: relative;
-  width: 60px;
-  height: 30px;
-  background: ${(props) => (props.isOn ? "#4CAF50" : "#ccc")};
-  border-radius: 15px;
+  width: 56px;
+  height: 32px;
+  background: ${(props) => (props.isOn ? "#10b981" : "#cbd5e1")};
+  border-radius: 20px;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
 
   &::before {
     content: "";
     position: absolute;
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: white;
-    top: 2px;
-    left: ${(props) => (props.isOn ? "32px" : "2px")};
-    transition: left 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    top: 4px;
+    left: ${(props) => (props.isOn ? "28px" : "4px")};
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 `;
 
 const ToggleStatus = styled.span`
   font-weight: 600;
-  color: ${(props) => (props.isB2B ? "#4CAF50" : "#FF6B6B")};
-  font-size: 1rem;
+  color: ${(props) => (props.isB2B ? "#10b981" : "#ef4444")};
+  font-size: 0.95rem;
+  min-width: 80px;
 `;
 
 const SearchContainer = styled.div`
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const SearchIconWrapper = styled.div`
+  position: absolute;
+  left: 16px;
+  color: #94a3b8;
+  pointer-events: none;
 `;
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 16px 16px 16px 48px;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
   font-size: 1rem;
   outline: none;
-  transition: border-color 0.3s ease;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  color: #1e293b;
 
   &:focus {
-    border-color: #667eea;
+    border-color: #a777e3;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(167, 119, 227, 0.1);
   }
 
   &::placeholder {
-    color: #999;
+    color: #94a3b8;
   }
 `;
 
 const DropdownContainer = styled.div`
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
-  max-height: 300px;
+  max-height: 320px;
   overflow-y: auto;
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  margin-top: 5px;
+  padding: 8px;
 `;
 
 const DropdownItem = styled.div`
-  padding: 12px 15px;
+  padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s ease;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
 
   &:hover {
-    background-color: #f8f9fa;
-  }
-
-  &:last-child {
-    border-bottom: none;
+    background-color: #f8fafc;
+    transform: translateX(4px);
   }
 `;
 
@@ -140,24 +180,29 @@ const TestInfo = styled.div`
 
 const TestName = styled.span`
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
+  font-size: 0.95rem;
 `;
 
 const TestRate = styled.span`
-  background: ${(props) => (props.isB2B ? "#E8F5E8" : "#FFE8E8")};
-  color: ${(props) => (props.isB2B ? "#2E7D32" : "#C62828")};
-  padding: 4px 8px;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  background: ${(props) => (props.isB2B ? "#dcfce7" : "#fee2e2")};
+  color: ${(props) => (props.isB2B ? "#15803d" : "#b91c1c")};
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const TableContainer = styled.div`
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(0,0,0,0.02);
 `;
 
 const Table = styled.table`
@@ -166,74 +211,97 @@ const Table = styled.table`
 `;
 
 const TableHeader = styled.thead`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
 `;
 
 const TableRow = styled.tr`
-  &:nth-child(even) {
-    background-color: #f8f9fa;
+  transition: all 0.2s;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
   }
 
   &:hover {
-    background-color: #e3f2fd;
+    background-color: #f8fafc;
   }
 `;
 
 const TableCell = styled.td`
-  padding: 15px;
+  padding: 1.25rem 1.5rem;
   text-align: ${(props) => (props.center ? "center" : "left")};
-  border-bottom: 1px solid #e0e0e0;
   font-size: 0.95rem;
+  color: #475569;
+  vertical-align: middle;
 `;
 
 const TableHeaderCell = styled.th`
-  padding: 18px 15px;
+  padding: 1.25rem 1.5rem;
   text-align: ${(props) => (props.center ? "center" : "left")};
   font-weight: 600;
+  color: #64748b;
+  font-size: 0.85rem;
+  text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
 
 const RemoveButton = styled.button`
-  background: #ff6b6b;
-  color: white;
+  background: #fee2e2;
+  color: #ef4444;
   border: none;
-  padding: 8px 12px;
-  border-radius: 5px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #ff5252;
+    background: #ef4444;
+    color: white;
+    transform: scale(1.05);
   }
 `;
 
 const TotalSection = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
   color: white;
-  padding: 20px;
-  border-radius: 10px;
+  padding: 2.5rem;
+  border-radius: 24px;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(110, 142, 251, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
 `;
 
 const TotalLabel = styled.h2`
-  margin: 0 0 10px 0;
-  font-size: 1.5rem;
-  font-weight: 300;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  opacity: 0.9;
 `;
 
 const TotalAmount = styled.div`
-  font-size: 2.5rem;
-  font-weight: 600;
-  letter-spacing: 1px;
+  font-size: 3.5rem;
+  font-weight: 700;
+  letter-spacing: -1px;
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 40px;
-  color: #666;
+  padding: 4rem 2rem;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 `;
 
 const LoadingSpinner = styled.div`
@@ -284,14 +352,14 @@ const Estimate = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET");
-        
+
         console.log("API Response:", response.data); // Debug log
 
         // Handle the response structure: { success: true, data: [...], count: N }
         const tests = response.data?.data || [];
-        
+
         if (!Array.isArray(tests)) {
           throw new Error("Invalid data format received from API");
         }
@@ -299,8 +367,8 @@ const Estimate = () => {
         // Normalize the data with proper validation
         const normalizedData = tests.map((test) => {
           // Ensure test_id exists and convert to string for uniqueId
-          const testId = test.test_id !== undefined && test.test_id !== null 
-            ? String(test.test_id) 
+          const testId = test.test_id !== undefined && test.test_id !== null
+            ? String(test.test_id)
             : `temp_${Math.random().toString(36).substr(2, 9)}`;
 
           return {
@@ -320,7 +388,7 @@ const Estimate = () => {
 
         setTestOptions(normalizedData);
         setFilteredOptions(normalizedData);
-        
+
         if (normalizedData.length === 0) {
           setError("No tests available in the system");
         }
@@ -346,7 +414,7 @@ const Estimate = () => {
       setShowDropdown(false);
     } else {
       const queryLower = query.toLowerCase().trim();
-      
+
       const filtered = testOptions.filter((test) => {
         const testName = (test.test_name || "").toLowerCase();
         const shortcut = (test.shortcut || "").toLowerCase();
@@ -354,13 +422,13 @@ const Estimate = () => {
         const department = (test.department || "").toLowerCase();
 
         return (
-          testName.includes(queryLower) || 
+          testName.includes(queryLower) ||
           shortcut.includes(queryLower) ||
           testCode.includes(queryLower) ||
           department.includes(queryLower)
         );
       });
-      
+
       console.log("Filtered results:", filtered); // Debug log
       setFilteredOptions(filtered);
       setShowDropdown(filtered.length > 0);
@@ -426,7 +494,10 @@ const Estimate = () => {
   return (
     <Container>
       <Header>
-        <Title>Test Rate Estimator</Title>
+        <Title>
+          <Calculator size={32} />
+          Test Rate Estimator
+        </Title>
       </Header>
 
       <ControlsSection>
@@ -439,18 +510,23 @@ const Estimate = () => {
         </ToggleContainer>
 
         <SearchContainer className="search-container">
-          <SearchInput
-            type="text"
-            placeholder="Search by test name, shortcut, code, or department..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onFocus={() => {
-              if (searchQuery.trim() && filteredOptions.length > 0) {
-                setShowDropdown(true);
-              }
-            }}
-            disabled={loading || error}
-          />
+          <SearchInputWrapper>
+            <SearchIconWrapper>
+              <Search size={20} />
+            </SearchIconWrapper>
+            <SearchInput
+              type="text"
+              placeholder="Search by test name, shortcut, code, or department..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => {
+                if (searchQuery.trim() && filteredOptions.length > 0) {
+                  setShowDropdown(true);
+                }
+              }}
+              disabled={loading || error}
+            />
+          </SearchInputWrapper>
 
           {showDropdown && filteredOptions.length > 0 && (
             <DropdownContainer>
@@ -522,8 +598,9 @@ const Estimate = () => {
                       <TableCell center>
                         <RemoveButton
                           onClick={() => handleRemoveTest(test.uniqueId)}
+                          title="Remove test"
                         >
-                          Remove
+                          <Trash2 size={18} />
                         </RemoveButton>
                       </TableCell>
                     </TableRow>
@@ -532,7 +609,8 @@ const Estimate = () => {
                   <TableRow>
                     <TableCell colSpan="5">
                       <EmptyState>
-                        No tests selected. Use the search box above to add tests.
+                        <Info size={48} style={{ opacity: 0.5 }} />
+                        <div>No tests selected. Use the search box above to add tests.</div>
                       </EmptyState>
                     </TableCell>
                   </TableRow>

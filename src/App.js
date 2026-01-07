@@ -7,6 +7,8 @@ import {
   useNavigate,
 } from "react-router-dom";
 import styled from "styled-components";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import Sidebar from "./Components/Navbar/Sidebar";
 import PatientForm from "./Components/Patients/PatientForm";
@@ -21,8 +23,10 @@ import TestDetails from "./Components/Test/TestDetails";
 import PatientList from "./Components/TestApproval/PatientList";
 import DoctorForm from "./Components/TestApproval/DoctorForm";
 import Dashboard from "./Components/Report/Dashboard";
+import MDashboard from "./Components/Report/MDashboard";
 import TestSorting from "./Components/Report/TestSorting";
 import PatientOverview from "./Components/Report/PatientOverview";
+import CommunicationLogs from "./Components/Report/CommunicationLogs";
 import PatientOverallReport from "./Components/Finance/PatientOverallReport";
 import FranchiseOverview from "./Components/Report/FranchiseOverview";
 import FranchiseBatchApproval from "./Components/Sample/FranchiseBatchApproval";
@@ -31,6 +35,7 @@ import HMSTestSorting from "./Components/HMSReport/HMSTestSorting";
 import HMSPatientOverview from "./Components/HMSReport/HMSPatientOverview";
 import Invoice from "./Components/Finance/Invoice";
 import CashTally from "./Components/Finance/CashTally";
+import LedgerBalance from "./Components/Finance/LedgerBalance";
 import SalesVisitLog from "./Components/Sales/Salesvisitlog";
 import ShanmugaMIS from "./Components/Mis/ShanmugaMIS";
 import MIS from "./Components/Mis/MIS";
@@ -49,7 +54,7 @@ import PrintBill from "./Components/Patients/PrintBill";
 import Logisticsmap from "./Components/Logistics/Logisticsmap";
 import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
 import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
-import CorporateBatchApproval from "./Components/Report/CorparateBatchapproval";
+import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
@@ -70,6 +75,10 @@ import Refund from "./Components/Refund/Refund";
 import Cancellation from "./Components/Refund/Cancellation";
 import RefundAndCancellationLog from "./Components/Refund/RefundAndCancellationLog";
 import PatientDataTable from "./Components/Mis/PatientTAT";
+import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
+import RejectedSamples from "./Components/Lab/RejectedSamples";
+import OutsourcedSamples from "./Components/Lab/OutsourcedSamples";
+import HomeCollectionReport from "./Components/Report/HomeCollectionReport";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -98,7 +107,7 @@ function App() {
   const [hasNavigatedToRole, setHasNavigatedToRole] = useState(false);
 
   // Function to navigate based on role (copied from your Login.js)
-const navigateRole = (userRole) => {
+  const navigateRole = (userRole) => {
     switch (userRole) {
       case "Diagnostics General Manager":
         navigate("/Dashboard");
@@ -132,7 +141,7 @@ const navigateRole = (userRole) => {
     }
   };
 
-  
+
 
   // Check token and navigate based on role
   useEffect(() => {
@@ -207,6 +216,7 @@ const navigateRole = (userRole) => {
 
   return (
     <div>
+      <ToastContainer />
       {/* Conditionally render the Sidebar based on the route */}
       {!hideSidebarRoutes.includes(location.pathname) && role && (
         <Sidebar role={role} />
@@ -243,10 +253,10 @@ const navigateRole = (userRole) => {
 
             {/* Sample Status */}
             <Route path="/SampleStatus" element={<SampleStatus />} />
-            <Route path="/SampleStatusUpdate" element={<SampleStatusUpdate />} />  
+            <Route path="/SampleStatusUpdate" element={<SampleStatusUpdate />} />
 
-            {/* Test Edit */}      
-            <Route path="/TestEdit" element={<TestEdit />} />      
+            {/* Test Edit */}
+            <Route path="/TestEdit" element={<TestEdit />} />
 
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
@@ -255,15 +265,23 @@ const navigateRole = (userRole) => {
             {/* Finance */}
             <Route path="/CashTally" element={<CashTally />} />
             <Route path="/Invoice" element={<Invoice />} />
+            <Route path="/LedgerBalance" element={<LedgerBalance />} />
             <Route path="/Refund" element={<Refund />} />
             <Route path="/Cancellation" element={<Cancellation />} />
             <Route path="/RefundAndCancellationLog" element={<RefundAndCancellationLog />} />
-            
+
+            {/* Lab */}
+            <Route path="/RejectedSamples" element={<RejectedSamples />} />
+            <Route path="/OutsourcedSamples" element={<OutsourcedSamples />} />
+            <Route path="/HomeCollectionReport" element={<HomeCollectionReport />} />
+
+
+
 
             {/* Test Approval */}
             <Route path="/PatientList" element={<PatientList />} />
             <Route path="/DoctorForm" element={<DoctorForm />} />
-            
+
             {/* Sales */}
             <Route path="/SalesVisit" element={<SalesVisitLog />} />
             <Route path="/SalesDashboard" element={<SalesDashboard />} />
@@ -278,48 +296,51 @@ const navigateRole = (userRole) => {
 
 
             {/* Diagnostics Report */}
-            <Route path="/Dashboard" element={<Dashboard />} />      
-            <Route path="/Testcount" element={<Testcount />} />     
+            <Route path="/Dashboard" element={<Dashboard />} />
+            <Route path="/MDashboard" element={<MDashboard />} />
+            <Route path="/Testcount" element={<Testcount />} />
             <Route path="/TestSorting" element={<TestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
+            <Route path="/CommunicationLogs" element={<CommunicationLogs />} />
 
-          {/* Franchise Report */}
+            {/* Franchise Report */}
             <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
             <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
             <Route path="/FranchiseTestSorting" element={<FranchiseTestSorting />} />
 
-          {/* Corporate Report */}
+            {/* Corporate Report */}
             <Route path="/CorporateOverview" element={<CorporateOverview />} />
             <Route path="/CHCReport" element={<CHCReport />} />
-            <Route path="/CHCApproval" element={<CHCApproval/>} />
+            <Route path="/CHCApproval" element={<CHCApproval />} />
             <Route path="/CorporateTestSorting" element={<CorporateTestSorting />} />
 
-          {/* MIS */}
-            <Route path="/MIS" element={<MIS/>} />
-            <Route path="/PatientTAT" element={<PatientDataTable/>} />
-            <Route path="/ShanmugaMIS" element={<ShanmugaMIS/>} />
-            <Route path="/FranchiseMIS" element={<FranchiseMIS/>} />
+            {/* MIS */}
+            <Route path="/MIS" element={<MIS />} />
+            <Route path="/PatientTAT" element={<PatientDataTable />} />
+            <Route path="/ShanmugaMIS" element={<ShanmugaMIS />} />
+            <Route path="/FranchiseMIS" element={<FranchiseMIS />} />
 
-          {/* Logistics */}
-            <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval/>} />
-            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin/>} />  
-            <Route path="/LogisticMap" element={<Logisticsmap/>} />
-            <Route path="/LogisticsTAT" element={<LogisticsTAT/>} />  
+            {/* Logistics */}
+            <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval />} />
+            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin />} />
+            <Route path="/LogisticMap" element={<Logisticsmap />} />
+            <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
+            <Route path="/LogisticsDashboard" element={<LogisticsDashboard />} />
 
-          {/*HMS */}
-            <Route path="/HmsBilling" element={<HmsBilling/>} />
-            <Route path="/Hmssamplestatus" element={<Hmssamplestatus/>} />
-            <Route path="/HmsSampleStatusUpdate" element={<HmsSampleStatusUpdate/>} />
-            <Route path="/HMSBarcodeGeneration" element={<HMSBarcodeGeneration/>} />
-            <Route path="/HMSBarcodeTestDetails" element={<HMSBarcodeTestDetails/>} />
-            <Route path="/HMSPatientDetails" element={<HMSPatientDetails/>} />
-            <Route path="/HmsTestDetails" element={<HmsTestDetails/>} />
+            {/*HMS */}
+            <Route path="/HmsBilling" element={<HmsBilling />} />
+            <Route path="/Hmssamplestatus" element={<Hmssamplestatus />} />
+            <Route path="/HmsSampleStatusUpdate" element={<HmsSampleStatusUpdate />} />
+            <Route path="/HMSBarcodeGeneration" element={<HMSBarcodeGeneration />} />
+            <Route path="/HMSBarcodeTestDetails" element={<HMSBarcodeTestDetails />} />
+            <Route path="/HMSPatientDetails" element={<HMSPatientDetails />} />
+            <Route path="/HmsTestDetails" element={<HmsTestDetails />} />
 
-          {/* HMS Report */}          
+            {/* HMS Report */}
             <Route path="/HMSTestSorting" element={<HMSTestSorting />} />
             <Route path="/HMSPatientOverview" element={<HMSPatientOverview />} />
-            <Route path="/PatientOverallReport" element={<PatientOverallReport />}  />
+            <Route path="/PatientOverallReport" element={<PatientOverallReport />} />
 
             <Route path="/PreethamHospitalReport" element={<PreethamHospitalReport />} />
 
