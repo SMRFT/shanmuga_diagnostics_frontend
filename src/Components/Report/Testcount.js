@@ -1,269 +1,464 @@
 import React, { useEffect, useState } from "react";
-import styled from "styled-components";
-import axios from "axios";
+import styled, { keyframes } from "styled-components";
+import apiRequest from "../Auth/apiRequest";
+import { FaSearch, FaFileDownload, FaCalendarAlt, FaFlask, FaRupeeSign } from "react-icons/fa";
 
-const Wrapper = styled.div`
-  min-height: 100vh;
-  background: linear-gradient(120deg, #f1f5ff 0%, #fdf6ff 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 0 10px 40px;
+// Animations
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
-const MainCard = styled.div`
-  max-width: 900px;
-  width: 100%;
-  margin: 40px auto;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 8px 28px rgba(43,72,104,0.08);
-  padding: 2.5rem;
-  min-height: 500px;
+const Wrapper = styled.div`
+  height: 100vh;
+  padding: 1.5rem;
+  font-family: 'Inter', sans-serif;
+  color: #2d3436;
+  overflow: hidden; 
   display: flex;
   flex-direction: column;
 
-  @media (max-width: 600px) {
-    padding: 1.5rem 1rem;
-    min-height: unset;
+  @media (max-width: 768px) {
+    padding: 1rem;
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  animation: ${fadeIn} 0.6s ease-out;
+`;
+
+// Stats Cards
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const StatCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  border: 1px solid rgba(0,0,0,0.05);
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+`;
+
+const StatIcon = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: ${props => props.bg || '#f0f2f5'};
+  color: ${props => props.color || '#636e72'};
+`;
+
+const StatInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StatLabel = styled.span`
+  color: #636e72;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+`;
+
+const StatValue = styled.span`
+  color: #2d3436;
+  font-size: 1.5rem;
+  font-weight: 700;
+`;
+
+// Card Styles
+const MainCard = styled.div`
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.05);
+`;
+
+const CardHeader = styled.div`
+  padding: 1.5rem;
+  border-bottom: 1px solid #f0f2f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
   }
 `;
 
 const Title = styled.h2`
-  color: #35308d;
+  font-size: 1.5rem;
   font-weight: 700;
-  font-size: 2.2rem;
-  text-align: center;
-  margin-bottom: 2rem;
-  letter-spacing: -1px;
-
-  @media (max-width: 600px) {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-`;
-
-const Controls = styled.div`
+  color: #2d3436;
+  margin: 0;
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  &:before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 24px;
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    border-radius: 3px;
+  }
+`;
+
+// Controls
+const ControlsGrid = styled.div`
+  display: flex;
+  gap: 1rem;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-  justify-content: space-between;
-`;
+  align-items: center;
 
-const FilterInput = styled.input`
-  padding: 8px 12px;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: 1.5px solid #d0d7de;
-  width: 200px;
-
-  @media (max-width: 400px) {
+  @media (max-width: 768px) {
     width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 `;
 
-const SearchInput = styled.input`
-  padding: 8px 12px;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: 1.5px solid #d0d7de;
-  flex-grow: 1;
+const InputGroup = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
 
-  @media (max-width: 400px) {
-    width: 100%;
+const Icon = styled.span`
+  position: absolute;
+  left: 12px;
+  color: #a777e3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+`;
+
+const Input = styled.input`
+  padding: 10px 10px 10px 36px;
+  border: 1.5px solid #e1e4e8;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  background: #fff;
+  color: #2d3436;
+  min-width: 160px;
+
+  &:focus {
+    outline: none;
+    border-color: #a777e3;
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
 `;
 
-const ExportButton = styled.button`
-  background: linear-gradient(90deg, #667eea 0%, #7646b8 100%);
-  color: #fff;
+const Button = styled.button`
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  color: white;
   border: none;
-  border-radius: 7px;
-  font-weight: 700;
-  font-size: 1rem;
-  padding: 8px 16px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   transition: all 0.2s;
 
   &:hover {
-    background: linear-gradient(90deg, #7646b8 0%, #667eea 100%);
-    opacity: 0.95;
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 `;
 
-const ScrollTableWrapper = styled.div`
-  width: 100%;
-  overflow-x: auto;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: 520px;
-  border-radius: 12px;
-  border-collapse: collapse;
-  background: #fbfbfe;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.06);
-  font-size: 1rem;
-`;
-
-const TableHead = styled.thead`
-  background: linear-gradient(90deg, #667eea 0%, #7646b8 100%);
-  color: #fff;
-`;
-
-const Th = styled.th`
-  padding: 12px 16px;
-  font-weight: 700;
-  text-align: left;
-  min-width: 140px;
-
-  @media (max-width: 600px) {
-    font-size: 0.9rem;
-    padding: 8px 12px;
-  }
-`;
-
-const Tr = styled.tr`
-  &:nth-child(even) {
-    background: #f4f5fa;
-  }
-`;
-
-const Td = styled.td`
-  padding: 12px 16px;
+// Table Styles
+const TableContainer = styled.div`
+  flex: 1;
+  overflow: auto;
+  padding: 0;
   
-  @media (max-width: 600px) {
-    padding: 8px 12px;
-    font-size: 0.9rem;
+  /* Custom Scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
   }
 `;
 
-const Info = styled.p`
-  padding: 2rem;
-  color: #899;
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+`;
+
+const THead = styled.thead`
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f8f9fa;
+  
+  th {
+    padding: 16px;
+    color: #4a5568;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #edf2f7;
+    background: #f8f9fa; /* Ensure header isn't transparent */
+  }
+`;
+
+const TRow = styled.tr`
+  border-bottom: 1px solid #edf2f7;
+  transition: background 0.2s;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: #f8f9ff;
+  }
+`;
+
+const TCell = styled.td`
+  padding: 14px 16px;
+  color: #2d3436;
+  font-size: 0.95rem;
+
+  &.amount {
+    font-weight: 600;
+    color: #2d3436;
+    font-family: 'Space Mono', monospace;
+  }
+
+  &.count {
+    color: #636e72;
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+`;
+
+const EmptyState = styled.div`
+  padding: 3rem;
   text-align: center;
-  font-size: 1.1rem;
+  color: #b2bec3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  
+  svg {
+    font-size: 2.5rem;
+    color: #dfe6e9;
+  }
 `;
 
 export default function TestSummary() {
+  // Initialize dates with current month range
+  const [fromDate, setFromDate] = useState(() => {
+    const date = new Date();
+    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-  // Fetch filtered data from API
-  useEffect(() => {
-    const params = {};
-    if (search.trim()) params.search = search.trim();
-    if (fromDate) params.from_date = fromDate;
-    if (toDate) params.to_date = toDate;
 
-    axios.get(`${Labbaseurl}test-summary/`, { params })
-      .then(res => setData(res.data))
-      .catch(err => console.error(err));
-  }, [search, fromDate, toDate]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const payload = {
+          search: search.trim(),
+          from_date: fromDate,
+          to_date: toDate
+        };
+        const result = await apiRequest(`${Labbaseurl}test-summary/`, 'POST', payload);
+        if (result.success) {
+          setData(result.data);
+        } else {
+          console.error(result.error);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchData();
+  }, [search, fromDate, toDate, Labbaseurl]);
 
   const totalCount = data.reduce((sum, row) => sum + Number(row.count || 0), 0);
   const totalAmount = data.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
 
-const exportCSV = () => {
-  if (!data.length) return;
-  const csvRows = [
-    ["Test Name", "Count", "Total Amount"].join(","),
-    ...data.map(row =>
-      [
-        `"${(row?.test_name ?? "").replace(/"/g, '""')}"`,
-        row.count,
-        row.total_amount
-      ].join(",")
-    ),
-    ["Total", totalCount, totalAmount].join(","),
-  ];
-  const csvString = csvRows.join("\n");
-  const blob = new Blob([csvString], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
+  const exportCSV = () => {
+    if (!data.length) return;
+    const csvRows = [
+      ["Test Name", "Count", "Total Amount"].join(","),
+      ...data.map(row =>
+        [
+          `"${(row?.test_name ?? "").replace(/"/g, '""')}"`,
+          row.count,
+          row.total_amount
+        ].join(",")
+      ),
+      ["Total", totalCount, totalAmount].join(","),
+    ];
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "test_summary.csv";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `test_summary_${fromDate}_to_${toDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <Wrapper>
-      <MainCard>
-        <Title>Test Summary</Title>
+      <Container>
+        {/* Top Stats Area */}
+        <StatsGrid>
+          <StatCard>
+            <StatIcon bg="rgba(110, 142, 251, 0.1)" color="#6e8efb">
+              <FaFlask />
+            </StatIcon>
+            <StatInfo>
+              <StatLabel>Total Tests Performed</StatLabel>
+              <StatValue>{totalCount.toLocaleString()}</StatValue>
+            </StatInfo>
+          </StatCard>
 
-        <Controls>
-          <SearchInput
-            type="text"
-            placeholder="Search test name..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            aria-label="Search test name"
-          />
-          <FilterInput
-            type="date"
-            value={fromDate}
-            onChange={e => setFromDate(e.target.value)}
-            aria-label="From date"
-            max={toDate || undefined}
-          />
-          <FilterInput
-            type="date"
-            value={toDate}
-            onChange={e => setToDate(e.target.value)}
-            aria-label="To date"
-            min={fromDate || undefined}
-          />
-          <ExportButton onClick={exportCSV}>⬇️ Export CSV</ExportButton>
-        </Controls>
+          <StatCard>
+            <StatIcon bg="rgba(167, 119, 227, 0.1)" color="#a777e3">
+              <FaRupeeSign />
+            </StatIcon>
+            <StatInfo>
+              <StatLabel>Total Revenue Generated</StatLabel>
+              <StatValue>₹{totalAmount.toLocaleString()}</StatValue>
+            </StatInfo>
+          </StatCard>
+        </StatsGrid>
 
-        <ScrollTableWrapper>
-          <Table>
-            <TableHead>
-              <tr>
-                <Th>Test Name</Th>
-                <Th>Count</Th>
-                <Th>Total Amount</Th>
-              </tr>
-            </TableHead>
-            <tbody>
-              {data.length === 0 ? (
-                <Tr>
-                  <Td colSpan={3} style={{ textAlign: "center", padding: "40px" }}>
-                    No data found.
-                  </Td>
-                </Tr>
-              ) : (
-                data.map((t, i) => (
-                  <Tr key={i}>
-                    <Td>{t.test_name}</Td>
-                    <Td>{t.count}</Td>
-                    <Td>₹{Number(t.total_amount || 0).toLocaleString()}</Td>
-                  </Tr>
-                ))
-              )}
-            </tbody>
-            {data.length > 0 && (
-              <tfoot>
-                <Tr>
-                  <Td style={{ fontWeight: "bold" }}>Total</Td>
-                  <Td style={{ fontWeight: "bold" }}>{totalCount}</Td>
-                  <Td style={{ fontWeight: "bold" }}>
-                    ₹{totalAmount.toLocaleString()}
-                  </Td>
-                </Tr>
-              </tfoot>
-            )}
-          </Table>
-        </ScrollTableWrapper>
-      </MainCard>
+        {/* Main Content Card */}
+        <MainCard>
+          <CardHeader>
+            <Title>Test Analysis</Title>
+            <ControlsGrid>
+              <InputGroup>
+                <Icon><FaSearch /></Icon>
+                <Input
+                  type="text"
+                  placeholder="Search test names..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </InputGroup>
+              <InputGroup>
+                <Icon><FaCalendarAlt /></Icon>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                />
+              </InputGroup>
+              <InputGroup>
+                <Icon><FaCalendarAlt /></Icon>
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                  min={fromDate}
+                />
+              </InputGroup>
+              <Button onClick={exportCSV}>
+                <FaFileDownload /> Export
+              </Button>
+            </ControlsGrid>
+          </CardHeader>
+
+          <TableContainer>
+            <StyledTable>
+              <THead>
+                <tr>
+                  <th>Test Name</th>
+                  <th>Count</th>
+                  <th>Total Revenue</th>
+                </tr>
+              </THead>
+              <tbody>
+                {data.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>
+                      <EmptyState>
+                        <FaSearch />
+                        <p>No test data found for the selected period</p>
+                      </EmptyState>
+                    </td>
+                  </tr>
+                ) : (
+                  data.map((t, i) => (
+                    <TRow key={i}>
+                      <TCell style={{ fontWeight: '500' }}>{t.test_name}</TCell>
+                      <TCell>
+                        <span className="count">{t.count}</span>
+                      </TCell>
+                      <TCell className="amount">₹{Number(t.total_amount || 0).toLocaleString()}</TCell>
+                    </TRow>
+                  ))
+                )}
+              </tbody>
+            </StyledTable>
+          </TableContainer>
+        </MainCard>
+      </Container>
     </Wrapper>
   );
 }

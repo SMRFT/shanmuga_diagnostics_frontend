@@ -276,54 +276,71 @@ const SalesVisitLogReport = () => {
   }, [filter]);
 
   const fetchLogs = async () => {
-  try {
-    setLoading(true);
-    const url = `${Labbaseurl}Adminview_salesexecutive_report/`;
+    try {
+      setLoading(true);
+      const url = `${Labbaseurl}salesexecutive_report/`;
 
-    const params = {
-      fromDate: filter.fromDate,
-      toDate: filter.toDate,
-    };
+      const params = {
+        fromDate: filter.fromDate,
+        toDate: filter.toDate,
+      };
 
-    if (filter.salesPerson) {
-      params.salesExecutive = filter.salesPerson;
+      if (filter.salesPerson) {
+        params.salesExecutive = filter.salesPerson;
+      }
+
+      const response = await apiRequest(url, "POST", params);
+
+      if (response.success && Array.isArray(response.data)) {
+        setLogs(response.data);
+        updateVisitCounts(response.data);
+      } else {
+        console.error("Invalid response format or API error:", response);
+        setLogs([]);
+        updateVisitCounts([]);
+      }
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+    } finally {
+      setLoading(false);
     }
-
-    const response = await apiRequest(url, "GET", null, params); // ✅ use apiRequest
-    setLogs(response.data);
-    updateVisitCounts(response.data);
-  } catch (error) {
-    console.error("Error fetching logs:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
 
- const fetchSalesMapping = async () => {
-  try {
-    const url = `${Labbaseurl}get_sales_executives/`;
-    const response = await apiRequest(url, "GET"); // ✅ use apiRequest
+  const fetchSalesMapping = async () => {
+    try {
+      const url = `${Labbaseurl}get_sales_executives/`;
+      const response = await apiRequest(url, "GET"); // ✅ use apiRequest
 
-    const salesMappingArray = [
-      { id: 0, name: "All" },
-      ...response.data.map((person, index) => ({
-        id: index + 1,
-        name: person.employeeName,
-        employeeId: person.employeeId,
-      })),
-    ];
+      if (response.success && Array.isArray(response.data)) {
+        const salesMappingArray = [
+          { id: 0, name: "All" },
+          ...response.data.map((person, index) => ({
+            id: index + 1,
+            name: person.employeeName,
+            employeeId: person.employeeId,
+          })),
+        ];
 
-    setSalesMapping(salesMappingArray);
-  } catch (error) {
-    console.error("Error fetching salesMapping:", error);
-  }
-};
+        setSalesMapping(salesMappingArray);
+      } else {
+        console.error("Failed to fetch sales executives:", response);
+      }
+    } catch (error) {
+      console.error("Error fetching salesMapping:", error);
+    }
+  };
 
 
 
   const updateVisitCounts = (data) => {
+    if (!Array.isArray(data)) {
+      setSalespersonVisits([]);
+      setTotalVisits(0);
+      return;
+    }
+
     const visitCounts = {};
     let total = 0;
 
@@ -426,7 +443,7 @@ const SalesVisitLogReport = () => {
             <FontAwesomeIcon icon={faUser} />
             SalesExecutive:
           </FilterLabel>
-         <Select
+          <Select
             value={filter.salesPerson}
             onChange={(e) => handleFilterChange("salesPerson", e.target.value)}
           >

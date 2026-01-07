@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import styled, { css } from "styled-components";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import {
   FaPlus,
@@ -159,21 +159,21 @@ const AlertContainer = styled.div`
     props.type === "success"
       ? "rgba(42, 157, 143, 0.1)"
       : props.type === "danger"
-      ? "rgba(230, 57, 70, 0.1)"
-      : "rgba(67, 97, 238, 0.1)"};
+        ? "rgba(230, 57, 70, 0.1)"
+        : "rgba(67, 97, 238, 0.1)"};
 
   color: ${(props) =>
     props.type === "success"
       ? theme.success
       : props.type === "danger"
-      ? theme.error
-      : theme.primary};
+        ? theme.error
+        : theme.primary};
 
   border-left: 4px solid
     ${(props) =>
-      props.type === "success"
-        ? theme.success
-        : props.type === "danger"
+    props.type === "success"
+      ? theme.success
+      : props.type === "danger"
         ? theme.error
         : theme.primary};
 `;
@@ -222,7 +222,7 @@ const FormGroup = styled.div`
 
   ${media.md} {
     min-width: ${(props) =>
-      props.halfWidth ? "calc(50% - 8px)" : "calc(33.333% - 11px)"};
+    props.halfWidth ? "calc(50% - 8px)" : "calc(33.333% - 11px)"};
   }
 `;
 
@@ -497,23 +497,23 @@ const SalesVisitLog = () => {
   }, []);
 
   // Fetch clinical names
- useEffect(() => {
-  const fetchClinicalNames = async () => {
-    try {
-      const res = await apiRequest(
-        `${Labbaseurl}get_all_clinicalnames/`,
-        "GET"
-      );
-      const data = res?.data?.data || res?.data;
-      setClinicalNames(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setClinicalNames([]);
-      console.error("Error fetching names:", err.message || err);
-    }
-  };
+  useEffect(() => {
+    const fetchClinicalNames = async () => {
+      try {
+        const res = await apiRequest(
+          `${Labbaseurl}get_all_clinicalnames/`,
+          "GET"
+        );
+        const data = res?.data?.data || res?.data;
+        setClinicalNames(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setClinicalNames([]);
+        console.error("Error fetching names:", err.message || err);
+      }
+    };
 
-  fetchClinicalNames();
-}, []);
+    fetchClinicalNames();
+  }, []);
 
   // Search drop-down scrolling
   useEffect(() => {
@@ -538,8 +538,8 @@ const SalesVisitLog = () => {
     const { name, value } = e.target;
     const selectedData = name === "clinicalname" || name === "hospitalName"
       ? combinedData.find(
-          item => item.clinicalname === value || item.hospitalName === value
-        )
+        item => item.clinicalname === value || item.hospitalName === value
+      )
       : null;
     if (selectedData) {
       setFormData(prev => ({
@@ -624,10 +624,10 @@ const SalesVisitLog = () => {
 
 
       const response = await apiRequest(
-      `${Labbaseurl}SalesVisitLog/`,
-      "POST",
-      postData
-    );
+        `${Labbaseurl}SalesVisitLog/`,
+        "POST",
+        postData
+      );
 
       if (response.status === 200 || response.status === 201) {
         setMessage({ type: "success", text: "Sales Visit form submitted successfully!" });
@@ -702,6 +702,10 @@ const SalesVisitLog = () => {
                   selected={date}
                   onChange={(date) => setDate(date)}
                   dateFormat="MM/dd/yyyy"
+                  minDate={subDays(new Date(), 3)}
+                  maxDate={new Date()}
+                  placeholderText="Select Date"
+                  onKeyDown={(e) => e.preventDefault()} // Prevent manual typing
                 />
               </DatePickerWrapper>
             </FormGroup>
