@@ -7,9 +7,9 @@ import {
   RotateCcw,
   FileText,
   ChevronLeft,
-  FileTextIcon,
 } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
+
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -105,7 +105,7 @@ const InfoItem = styled.div`
   }
 `;
 
-// Patient History Card - NEW
+// Patient History Card
 const PatientHistoryCard = styled.div`
   background-color: white;
   padding: 1.5rem;
@@ -136,6 +136,31 @@ const NoHistory = styled.p`
   color: var(--gray);
   font-style: italic;
   font-size: 0.875rem;
+`;
+
+// Comment display styles
+const CommentNote = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: rgba(67, 97, 238, 0.08);
+  border-left: 3px solid var(--primary);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--secondary);
+`;
+
+const CommentLabel = styled.span`
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+`;
+
+const CommentText = styled.span`
+  color: var(--dark);
+  line-height: 1.4;
 `;
 
 // Table styles
@@ -383,11 +408,19 @@ const SubTitleCell = styled.td`
   border-left: 3px solid var(--secondary);
 `;
 
+const OutsourcedBadge = styled(StatusBadge)`
+  background-color: rgba(246, 160, 233, 0.15);
+  color: #d75de0ff;
+  animation: ${blink} 1.5s ease-in-out infinite;
+  font-weight: 600;
+  border: 1px solid #d75de0ff;
+`;
+
 function DoctorForm() {
   const [testValues, setTestValues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [patientHistory, setPatientHistory] = useState(""); // NEW
+  const [patientHistory, setPatientHistory] = useState("");
   const approved_by = localStorage.getItem("name");
   const location = useLocation();
   const navigate = useNavigate();
@@ -463,100 +496,46 @@ function DoctorForm() {
   };
 
   const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
-    try {
-      const test = testValues[recordIndex];
-      const testDetail = test?.testdetails[testIndex];
+  try {
+    const test = testValues[recordIndex];
+    const testDetail = test?.testdetails[testIndex];
 
-      if (!test || !testDetail) {
-        throw new Error("Test or test detail not found");
-      }
-
-      const response = await apiRequest(
-        `${Labbaseurl}test-approval/${test.patient_id}/${testIndex}/approve/`,
-        "PATCH",
-        {
-          approve: true,
-          approve_by,
-          barcode: test.barcode,
-          created_date: test.created_date,
-        }
-      );
-
-      if (!response.success) {
-        throw new Error(response.error || "Failed to approve test");
-      }
-
-      if (
-        response.data.message &&
-        (response.data.message.includes("Test approved successfully") ||
-          response.data.message.includes("Test detail approved successfully"))
-      ) {
-        setTestValues((prevValues) => {
-          return prevValues.map((record, idx) => {
-            if (idx === recordIndex) {
-              return {
-                ...record,
-                testdetails: record.testdetails.map((detail, detailIdx) =>
-                  detailIdx === testIndex
-                    ? {
-                        ...detail,
-                        approve: true,
-                        approve_by,
-                        barcode: record.barcode,
-                        created_date: record.created_date,
-                      }
-                    : detail
-                ),
-              };
-            }
-            return record;
-          });
-        });
-        alert("Test approved successfully!");
-      } else {
-        alert("Approval failed: " + (response.data.message || "Unknown error"));
-      }
-    } catch (error) {
-      console.error("Error updating data:", error);
-      alert("Error during approval: " + error.message);
+    if (!test || !testDetail) {
+      throw new Error("Test or test detail not found");
     }
-  };
 
-  const handleTestRerun = async (recordIndex, testIndex) => {
-    try {
-      const test = testValues[recordIndex];
-      const testDetail = test?.testdetails[testIndex];
-
-      if (!testDetail) {
-        throw new Error("Test detail not found");
+    const response = await apiRequest(
+      `${Labbaseurl}test-approval/${test.barcode}/approve/`,
+      "PATCH",
+      {
+        approve: true,
+        approve_by,
+        barcode: test.barcode,
+        created_date: testDetail.created_date,
+        test_id: testDetail.test_id,
       }
+    );
 
-      const response = await apiRequest(
-        `${Labbaseurl}test-rerun/${test.patient_id}/${testIndex}/rerun/`,
-        "PATCH",
-        {
-          rerun: true,
-          barcode: test.barcode,
-          created_date: test.created_date,
-        }
-      );
+    if (!response.success) {
+      throw new Error(response.error || "Failed to approve test");
+    }
 
-      if (!response.success) {
-        throw new Error(response.error || "Failed to initiate rerun");
-      }
-
+    if (
+      response.data.message &&
+      (response.data.message.includes("Test approved successfully") ||
+        response.data.message.includes("Test detail approved successfully"))
+    ) {
       setTestValues((prevValues) => {
         return prevValues.map((record, idx) => {
           if (idx === recordIndex) {
             return {
               ...record,
-              testdetails: record.testdetails.map((detail, detailIdx) =>
-                detailIdx === testIndex
+              testdetails: record.testdetails.map((detail) =>
+                detail.test_id === testDetail.test_id
                   ? {
                       ...detail,
-                      rerun: true,
-                      barcode: detail.barcode,
-                      created_date: detail.created_date,
+                      approve: true,
+                      approve_by,
                     }
                   : detail
               ),
@@ -565,12 +544,64 @@ function DoctorForm() {
           return record;
         });
       });
-      alert("Test rerun initiated successfully!");
-    } catch (error) {
-      console.error("Error updating data:", error);
-      alert("Error during rerun: " + error.message);
+      alert("Test approved successfully!");
+    } else {
+      alert("Approval failed: " + (response.data.message || "Unknown error"));
     }
-  };
+  } catch (error) {
+    console.error("Error updating data:", error);
+    alert("Error during approval: " + error.message);
+  }
+};
+
+const handleTestRerun = async (recordIndex, testIndex) => {
+  try {
+    const test = testValues[recordIndex];
+    const testDetail = test?.testdetails[testIndex];
+
+    if (!testDetail) {
+      throw new Error("Test detail not found");
+    }
+
+    const response = await apiRequest(
+      `${Labbaseurl}test-rerun/${test.barcode}/rerun/`,
+      "PATCH",
+      {
+        rerun: true,
+        barcode: test.barcode,
+        created_date: testDetail.created_date ,
+        test_id: testDetail.test_id,
+      }
+    );
+
+    if (!response.success) {
+      throw new Error(response.error || "Failed to initiate rerun");
+    }
+
+    setTestValues((prevValues) => {
+      return prevValues.map((record, idx) => {
+        if (idx === recordIndex) {
+          return {
+            ...record,
+            testdetails: record.testdetails.map((detail) =>
+              detail.test_id === testDetail.test_id
+                ? {
+                    ...detail,
+                    rerun: true,
+                  }
+                : detail
+            ),
+          };
+        }
+        return record;
+      });
+    });
+    alert("Test rerun initiated successfully!");
+  } catch (error) {
+    console.error("Error updating data:", error);
+    alert("Error during rerun: " + error.message);
+  }
+};
 
   const getStatusBadge = (value, referenceRange) => {
     if (!value || !referenceRange) return null;
@@ -612,26 +643,8 @@ function DoctorForm() {
 
   const getRomanNumeral = (num) => {
     const romanNumerals = [
-      "i",
-      "ii",
-      "iii",
-      "iv",
-      "v",
-      "vi",
-      "vii",
-      "viii",
-      "ix",
-      "x",
-      "xi",
-      "xii",
-      "xiii",
-      "xiv",
-      "xv",
-      "xvi",
-      "xvii",
-      "xviii",
-      "xix",
-      "xx",
+      "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x",
+      "xi", "xii", "xiii", "xiv", "xv", "xvi", "xvii", "xviii", "xix", "xx",
     ];
     return romanNumerals[num] || (num + 1).toString();
   };
@@ -646,9 +659,22 @@ function DoctorForm() {
           rows.push(
             <TestHeaderRow key={`test-${recordIndex}-${detailIndex}`}>
               <TestTitleCell colSpan="2">
-                <strong>
-                  {testNumber}. {detail.testname || "N/A"}
-                </strong>
+                <div>
+                  <strong>
+                    {testNumber}. {detail.testname || "N/A"}
+                    {detail.outsourced && (
+                      <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
+                        Outsourced
+                      </OutsourcedBadge>
+                    )}
+                  </strong>
+                  {detail.comment && (
+                    <CommentNote>
+                      <CommentLabel>Note:</CommentLabel>
+                      <CommentText>{detail.comment}</CommentText>
+                    </CommentNote>
+                  )}
+                </div>
               </TestTitleCell>
               <td></td>
               <td></td>
@@ -693,32 +719,35 @@ function DoctorForm() {
               rows.push(
                 <SubTitleRow key={`subtitle-${recordIndex}-${detailIndex}-${subtitle}`}>
                   <td></td>
-                  <SubTitleCell colSpan="7">
-                    {subtitle}
-                  </SubTitleCell>
+                  <SubTitleCell colSpan="7">{subtitle}</SubTitleCell>
                   <td></td>
                 </SubTitleRow>
               );
             }
 
-            params.forEach((parameter, paramIndex) => {
+            params.forEach((parameter) => {
               rows.push(
                 <ParameterRow
                   key={`param-${recordIndex}-${detailIndex}-${paramCounter}`}
                 >
                   <td></td>
                   <ParameterNameCell>
-                    {getRomanNumeral(paramCounter)}. {parameter.name || "N/A"}
+                    <div>
+                      {getRomanNumeral(paramCounter)}. {parameter.name || "N/A"}
+                      {parameter.comment && (
+                        <CommentNote>
+                          <CommentLabel>Note:</CommentLabel>
+                          <CommentText>{parameter.comment}</CommentText>
+                        </CommentNote>
+                      )}
+                    </div>
                   </ParameterNameCell>
                   <td>{parameter.specimen_type || "N/A"}</td>
                   <ValueCell>
                     <ValueContainer>
                       <ValueText>{parameter.value || "N/A"}</ValueText>
                       <BadgeContainer>
-                        {getStatusBadge(
-                          parameter.value,
-                          parameter.reference_range
-                        )}
+                        {getStatusBadge(parameter.value, parameter.reference_range)}
                         {parameter.remarks && (
                           <EditedBadge>
                             <FileText size={12} /> Edited
@@ -741,9 +770,22 @@ function DoctorForm() {
           rows.push(
             <TestHeaderRow key={`test-no-params-${recordIndex}-${detailIndex}`}>
               <TestTitleCellMerged colSpan="2">
-                <strong>
-                  {testNumber}. {detail.testname || "N/A"}
-                </strong>
+                <div>
+                  <strong>
+                    {testNumber}. {detail.testname || "N/A"}
+                    {detail.outsourced && (
+                      <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
+                        Outsourced
+                      </OutsourcedBadge>
+                    )}
+                  </strong>
+                  {detail.comment && (
+                    <CommentNote>
+                      <CommentLabel>Note:</CommentLabel>
+                      <CommentText>{detail.comment}</CommentText>
+                    </CommentNote>
+                  )}
+                </div>
               </TestTitleCellMerged>
               <td>{detail.specimen_type || "N/A"}</td>
               <ValueCell>
@@ -821,34 +863,31 @@ function DoctorForm() {
         </BackButton>
       </Header>
 
-      {patientId && (
-        <PatientInfo>
+      <PatientInfo>
+        <InfoItem>
+          <span>Patient ID:</span> {patientId}
+        </InfoItem>
+        {selectedDate && (
           <InfoItem>
-            <span>Patient ID:</span> {patientId}
+            <span>Date:</span> {selectedDate}
           </InfoItem>
-          {selectedDate && (
+        )}
+        {testValues.length > 0 && (
+          <>
             <InfoItem>
-              <span>Date:</span> {selectedDate}
+              <span>Patient Name:</span> {testValues[0].patientname || "N/A"}
             </InfoItem>
-          )}
-          {testValues.length > 0 && (
-            <>
-              <InfoItem>
-                <span>Patient Name:</span> {testValues[0].patientname || "N/A"}
-              </InfoItem>
-              <InfoItem>
-                <span>Age:</span> {testValues[0].age || "N/A"}
-              </InfoItem>
-            </>
-          )}
-        </PatientInfo>
-      )}
+            <InfoItem>
+              <span>Age:</span> {testValues[0].age || "N/A"}
+            </InfoItem>
+          </>
+        )}
+      </PatientInfo>
 
-      {/* Patient History Section - NEW */}
       {patientHistory && (
         <PatientHistoryCard>
           <HistoryTitle>
-            <FileTextIcon size={18} />
+            <FileText size={18} />
             Patient History
           </HistoryTitle>
           <HistoryContent>{patientHistory}</HistoryContent>
@@ -858,7 +897,7 @@ function DoctorForm() {
       {!patientHistory && testValues.length > 0 && (
         <PatientHistoryCard>
           <HistoryTitle>
-            <FileTextIcon size={18} />
+            <FileText size={18} />
             Patient History
           </HistoryTitle>
           <NoHistory>No patient history available</NoHistory>

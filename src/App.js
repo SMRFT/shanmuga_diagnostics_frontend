@@ -48,13 +48,11 @@ import Hmssamplestatus from "./Components/HMS/Hmssamplestatus";
 import HmsSampleStatusUpdate from "./Components/HMS/HmsSampleStatusUpdate";
 import HMSBarcodeGeneration from "./Components/HMS/HMSBarcodeGeneration";
 import HMSBarcodeTestDetails from "./Components/HMS/HMSBarcodeTestDetails";
-import HMSPatientDetails from "./Components/HMS/HMSPatientDetails";
 import HmsTestDetails from "./Components/HMS/HmsTestDetails";
 import PrintBill from "./Components/Patients/PrintBill";
 import Logisticsmap from "./Components/Logistics/Logisticsmap";
 import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
 import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
-import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
@@ -75,10 +73,9 @@ import Refund from "./Components/Refund/Refund";
 import Cancellation from "./Components/Refund/Cancellation";
 import RefundAndCancellationLog from "./Components/Refund/RefundAndCancellationLog";
 import PatientDataTable from "./Components/Mis/PatientTAT";
-import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
-import RejectedSamples from "./Components/Lab/RejectedSamples";
-import OutsourcedSamples from "./Components/Lab/OutsourcedSamples";
-import HomeCollectionReport from "./Components/Report/HomeCollectionReport";
+import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
+import OSTestDetails from "./Components/OSManangement/OSTestDetails";
+import OutSourceDetails from "./Components/OSManangement/OutSourceDetails";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -261,6 +258,8 @@ function App() {
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
             <Route path="/TestDetails" element={<TestDetails />} />
+            <Route path="/OutSourceDetails" element={<OutSourceDetails />} />
+            <Route path="/OSTestDetails" element={<OSTestDetails />} />
 
             {/* Finance */}
             <Route path="/CashTally" element={<CashTally />} />
@@ -315,29 +314,27 @@ function App() {
             <Route path="/CHCApproval" element={<CHCApproval />} />
             <Route path="/CorporateTestSorting" element={<CorporateTestSorting />} />
 
-            {/* MIS */}
-            <Route path="/MIS" element={<MIS />} />
-            <Route path="/PatientTAT" element={<PatientDataTable />} />
-            <Route path="/ShanmugaMIS" element={<ShanmugaMIS />} />
-            <Route path="/FranchiseMIS" element={<FranchiseMIS />} />
+          {/* MIS */}
+            <Route path="/MIS" element={<MIS/>} />
+            <Route path="/PatientTAT" element={<PatientDataTable/>} />
+            <Route path="/ShanmugaMIS" element={<ShanmugaMIS/>} />
+            <Route path="/FranchiseMIS" element={<FranchiseMIS/>} />
 
-            {/* Logistics */}
-            <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval />} />
-            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin />} />
-            <Route path="/LogisticMap" element={<Logisticsmap />} />
-            <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
-            <Route path="/LogisticsDashboard" element={<LogisticsDashboard />} />
+          {/* Logistics */}
+            <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval/>} />
+            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin/>} />  
+            <Route path="/LogisticMap" element={<Logisticsmap/>} />
+            <Route path="/LogisticsTAT" element={<LogisticsTAT/>} />  
 
-            {/*HMS */}
-            <Route path="/HmsBilling" element={<HmsBilling />} />
-            <Route path="/Hmssamplestatus" element={<Hmssamplestatus />} />
-            <Route path="/HmsSampleStatusUpdate" element={<HmsSampleStatusUpdate />} />
-            <Route path="/HMSBarcodeGeneration" element={<HMSBarcodeGeneration />} />
-            <Route path="/HMSBarcodeTestDetails" element={<HMSBarcodeTestDetails />} />
-            <Route path="/HMSPatientDetails" element={<HMSPatientDetails />} />
-            <Route path="/HmsTestDetails" element={<HmsTestDetails />} />
+          {/*HMS */}
+            <Route path="/HmsBilling" element={<HmsBilling/>} />
+            <Route path="/Hmssamplestatus" element={<Hmssamplestatus/>} />
+            <Route path="/HmsSampleStatusUpdate" element={<HmsSampleStatusUpdate/>} />
+            <Route path="/HMSBarcodeGeneration" element={<HMSBarcodeGeneration/>} />
+            <Route path="/HMSBarcodeTestDetails" element={<HMSBarcodeTestDetails/>} />
+            <Route path="/HmsTestDetails" element={<HmsTestDetails/>} />
 
-            {/* HMS Report */}
+          {/* HMS Report */}          
             <Route path="/HMSTestSorting" element={<HMSTestSorting />} />
             <Route path="/HMSPatientOverview" element={<HMSPatientOverview />} />
             <Route path="/PatientOverallReport" element={<PatientOverallReport />} />

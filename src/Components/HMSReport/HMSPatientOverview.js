@@ -31,6 +31,7 @@ import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
 import Brindha from "../Images/Brindha.png";
 import Vijayan from "../Images/Vijayan.png";
+import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 
@@ -845,9 +846,10 @@ const HMSPatientOverview = () => {
 
       // Adding Consultant names and qualifications
       const consultants = [
-        ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
-      ];
+      ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
+      ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
+
+    ];
 
       const patientRefNo =
         patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
@@ -1113,42 +1115,52 @@ const HMSPatientOverview = () => {
 
       // Function to add signatures with consistent positioning
       const addSignatures = () => {
-        const pageHeight = doc.internal.pageSize.height;
-        // Calculate signature position with more space from footer
-        const signaturesY = pageHeight - footerHeight - signatureHeight - 10; // Added extra 10 units for more space
+      const pageHeight = doc.internal.pageSize.height;
+      const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
+      const signatureWidth = 35;
+      const availableWidth = contentWidth - (signatureWidth / 2) * 2;
+      const signatureSpacing = availableWidth / (consultants.length - 1);
 
-        // REDUCED signature width from 40 to 30
-        const signatureWidth = 35;
-        const availableWidth = contentWidth - (signatureWidth / 2) * 2; // Space between left and right most signatures
-        const signatureSpacing = availableWidth / (consultants.length - 1); // Space between each signature
+      // Collect all unique approve_by values from testdetails
+      const approvers = new Set();
+      patientDetails.testdetails.forEach((test) => {
+        if (test.approve_by && test.approve_by.trim() !== "") {
+          approvers.add(test.approve_by.toLowerCase());
+        }
+      });
 
-        consultants.forEach((consultant, index) => {
-          // Calculate position based on leftMargin to ensure consistency
-          const xPosition = leftMargin + index * signatureSpacing;
+  consultants.forEach((consultant, index) => {
+    const xPosition = leftMargin + index * signatureSpacing;
 
-          // Add Signature (if available) with reduced width
-          if (consultant[2]) {
-            doc.addImage(
-              consultant[2],
-              "PNG",
-              xPosition,
-              signaturesY,
-              signatureWidth,
-              15
-            );
-          }
+    // Check if this consultant's signature should be displayed
+    const consultantName = consultant[0].toLowerCase();
+    const shouldShowSignature = 
+      consultantName.includes("brindha") && approvers.has("brindha") ||
+      consultantName.includes("vijayan") && approvers.has("vijayan");
 
-          // Print name below the signature with REDUCED spacing
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(10);
-          doc.text(consultant[0], xPosition, signaturesY + 15);
+    // Add Signature (if available) - only if approved by this consultant
+    if (consultant[2] && shouldShowSignature) {
+      doc.addImage(
+        consultant[2],
+        "PNG",
+        xPosition,
+        signaturesY,
+        signatureWidth,
+        15
+      );
+    }
 
-          // Print qualification below the name with REDUCED spacing
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-          doc.text(consultant[1], xPosition, signaturesY + 20);
-        });
-      };
+    // Always print name below the signature area
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(consultant[0], xPosition, signaturesY + 15);
+
+    // Always print qualification below the name
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(consultant[1], xPosition, signaturesY + 20);
+  });
+};
 
       // Function to check if we need to add a new page with consistent calculations
       const checkForNewPage = (yPos, estimatedHeight) => {
@@ -1419,18 +1431,41 @@ const HMSPatientOverview = () => {
 
               // Reset styling
               doc.setFont("helvetica", "normal");
-              doc.setTextColor(0, 0, 0);
-            });
+doc.setTextColor(0, 0, 0);
+});
 
-            // Add "Verified by" under each test
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.text(
-              `Verified by: ${test.verified_by || "N/A"}`,
-              leftMargin,
-              yPos
-            );
-            yPos += 8;
+// Add outsourced label if applicable (for main test only)
+if (test.outsourced === true) {
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.text("(Outsourced)", leftMargin, yPos);
+  yPos += 4;
+}
+
+// Add comment if it exists for the main test
+if (test.comment && test.comment.trim() !== "") {
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  const commentText = `Note: ${test.comment}`;
+  const commentHeight = wrapText(
+    doc,
+    commentText,
+    colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+    leftMargin,
+    yPos,
+    3.5
+  );
+  yPos += commentHeight + 2;
+}
+
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+doc.text(
+  `Verified by: ${test.verified_by || "N/A"}`,
+  leftMargin,
+  yPos
+);
+yPos += 8;
 
             // Reset font
             doc.setFont("helvetica", "normal");
@@ -1497,22 +1532,25 @@ const HMSPatientOverview = () => {
       }
 
       // Generate the PDF as a Blob and set file name with patientID
-      const patientID = patientDetails.patient_id || "Unknown";
-      const pdfFileName = `PatientReport_${patientID}.pdf`;
-      const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
+     // MODIFIED: Open PDF in new tab instead of downloading
+const patientID = patientDetails.patient_id || "Unknown";
+const patientName = (patientDetails.patientname || "Unknown");
+const pdfFileName = `${patientName}_${patientID}.pdf`;
 
-      // Create a temporary link to trigger download
-      const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = pdfFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(pdfUrl); // Clean up the URL
+// Generate blob and open in new tab
+const pdfBlob = doc.output("blob");
+const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      setLoading(false);
-      return pdfBlob;
+// Open in new tab
+const newTab = window.open(pdfUrl, "_blank");
+
+// Optional: Revoke URL after a delay to free up memory
+setTimeout(() => {
+  URL.revokeObjectURL(pdfUrl);
+}, 1000);
+
+setLoading(false);
+return pdfBlob;
     } catch (error) {
       console.error("Error while generating the PDF:", error);
       toast.error("An unexpected error occurred while generating the PDF");
@@ -1866,6 +1904,17 @@ const HMSPatientOverview = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <div
+          style={{
+            padding: "1rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.875rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+        </div>
       </Card>
 
       {/* Test Sorting Modal */}

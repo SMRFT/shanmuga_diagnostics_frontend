@@ -1,30 +1,13 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { format } from "date-fns";
-import styled, {
-  createGlobalStyle,
-  ThemeProvider,
-  css,
-} from "styled-components";
-import {
-  Calendar,
-  Search,
-  AlertCircle,
-  ChevronRight,
-  CheckCircle,
-  RefreshCcw,
-  Clock,
-  User,
-  Tag,
-  FileText,
-  CalendarDays,
-} from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { useNavigate, useLocation } from "react-router-dom";
-import apiRequest from "../Auth/apiRequest";
+import { useState, useEffect } from "react"
+import { format } from "date-fns"
+import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components"
+import { Calendar, Search, AlertCircle, ChevronRight, CheckCircle, RefreshCcw, Clock, User, Tag, FileText, CalendarDays } from 'lucide-react'
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import { useNavigate, useLocation } from "react-router-dom"
+import apiRequest from "../Auth/apiRequest"
 
 // Theme
 const theme = {
@@ -66,7 +49,7 @@ const theme = {
     default: "all 0.2s ease-in-out",
     slow: "all 0.3s ease-in-out",
   },
-};
+}
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -122,7 +105,7 @@ const GlobalStyle = createGlobalStyle`
     background-color: ${(props) => props.theme.colors.primary};
     color: white;
   }
-`;
+`
 
 // Styled Components
 const Container = styled.div`
@@ -137,12 +120,12 @@ const Container = styled.div`
     margin: 1rem;
     padding: 1rem;
   }
-`;
+`
 
 const Header = styled.div`
   margin-bottom: 2rem;
   text-align: center;
-`;
+`
 
 const Title = styled.h1`
   color: ${(props) => props.theme.colors.primary};
@@ -153,7 +136,7 @@ const Title = styled.h1`
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     font-size: 1.5rem;
   }
-`;
+`
 
 const Controls = styled.div`
   display: flex;
@@ -167,7 +150,7 @@ const Controls = styled.div`
     flex-direction: column;
     align-items: stretch;
   }
-`;
+`
 
 const DateRangeWrapper = styled.div`
   display: flex;
@@ -179,17 +162,17 @@ const DateRangeWrapper = styled.div`
     flex-direction: column;
     width: 100%;
   }
-`;
+`
 
 const DatePickerWrapper = styled.div`
-  display: flex;
+  gap: 0.1rem;
   align-items: center;
-  gap: 0.5rem;
   background: ${(props) => props.theme.colors.backgroundAlt};
-  padding: 0.75rem;
+  padding: 0.50rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
   border: 1px solid ${(props) => props.theme.colors.border};
   transition: ${(props) => props.theme.transitions.default};
+  min-width: 100px;
 
   &:hover {
     border-color: ${(props) => props.theme.colors.primary};
@@ -202,7 +185,7 @@ const DatePickerWrapper = styled.div`
   }
 
   .react-datepicker-wrapper {
-    width: auto;
+    width: 100px;
   }
 
   input {
@@ -212,23 +195,23 @@ const DatePickerWrapper = styled.div`
     font-size: 0.875rem;
     padding: 0.25rem;
     cursor: pointer;
-    min-width: 100px;
+    min-width: 80px;
 
     &:focus {
       outline: none;
     }
   }
-`;
+`
 
 const SearchWrapper = styled.div`
   position: relative;
   flex: 1;
-  max-width: 400px;
+  min-width: 100px;
 
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     max-width: 100%;
   }
-`;
+`
 
 const SearchInput = styled.input`
   width: 100%;
@@ -243,7 +226,7 @@ const SearchInput = styled.input`
     border-color: ${(props) => props.theme.colors.primary};
     box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
   }
-`;
+`
 
 const SearchIcon = styled.div`
   position: absolute;
@@ -252,7 +235,7 @@ const SearchIcon = styled.div`
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
   pointer-events: none;
-`;
+`
 
 const TableWrapper = styled.div`
   position: relative;
@@ -260,14 +243,14 @@ const TableWrapper = styled.div`
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   box-shadow: ${(props) => props.theme.shadows.sm};
-`;
+`
 
 const Table = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;
-`;
+`
 
 const Th = styled.th`
   padding: 1rem;
@@ -287,7 +270,7 @@ const Th = styled.th`
   &:last-child {
     padding-right: 1.5rem;
   }
-`;
+`
 
 const Td = styled.td`
   padding: 1rem;
@@ -301,7 +284,7 @@ const Td = styled.td`
   &:last-child {
     padding-right: 1.5rem;
   }
-`;
+`
 
 const Tr = styled.tr`
   &:hover {
@@ -311,7 +294,7 @@ const Tr = styled.tr`
   &:last-child td {
     border-bottom: none;
   }
-`;
+`
 
 const TestButton = styled.button`
   display: inline-flex;
@@ -341,7 +324,7 @@ const TestButton = styled.button`
     cursor: not-allowed;
     opacity: 0.6;
   }
-`;
+`
 
 const StatusBadge = styled.span`
   display: inline-flex;
@@ -359,20 +342,20 @@ const StatusBadge = styled.span`
         return css`
           background-color: ${props.theme.colors.success}20;
           color: ${props.theme.colors.success};
-        `;
+        `
       case "Rerun Initiated":
         return css`
           background-color: ${props.theme.colors.danger}20;
           color: ${props.theme.colors.danger};
-        `;
+        `
       default:
         return css`
           background-color: ${props.theme.colors.warning}20;
           color: ${props.theme.colors.warning};
-        `;
+        `
     }
   }}
-`;
+`
 
 const EmptyState = styled.div`
   display: flex;
@@ -384,13 +367,13 @@ const EmptyState = styled.div`
   background: ${(props) => props.theme.colors.backgroundAlt};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   border: 2px dashed ${(props) => props.theme.colors.border};
-`;
+`
 
 const EmptyStateText = styled.p`
   color: ${(props) => props.theme.colors.textLight};
   margin-top: 1rem;
   max-width: 24rem;
-`;
+`
 
 const LoadingSpinner = styled.div`
   display: inline-block;
@@ -406,14 +389,14 @@ const LoadingSpinner = styled.div`
       transform: rotate(360deg);
     }
   }
-`;
+`
 
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 3rem;
-`;
+`
 
 const PatientInfo = styled.div`
   display: flex;
@@ -425,72 +408,168 @@ const PatientInfo = styled.div`
   svg {
     color: ${(props) => props.theme.colors.textLight};
   }
-`;
+`
 
 const TestList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-`;
+`
 
 const DateRangeLabel = styled.span`
   color: ${(props) => props.theme.colors.textLight};
   font-size: 0.875rem;
   margin: 0 0.5rem;
+`
+
+const FilterSelect = styled.select`
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  font-size: 0.875rem;
+  color: ${(props) => props.theme.colors.text};
+  background-color: ${(props) => props.theme.colors.backgroundAlt};
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+  cursor: pointer;
+  transition: ${(props) => props.theme.transitions.default};
+  appearance: none;
+  min-width: 200px;
+
+  &:hover {
+    border-color: ${(props) => props.theme.colors.primary};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => props.theme.colors.primary};
+    box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
+  }
+
+  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
+    width: 100%;
+  }
+`
+
+// Add the blink animation after the theme definition
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+`;
+
+// Add the EmergencyBadge styled component after StatusBadge
+const EmergencyBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: ${(props) => props.theme.borderRadius.full};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+
+  ${(props) =>
+    props.emergency &&
+    css`
+      background-color: ${props.theme.colors.danger};
+      color: white;
+      animation: ${blink} 1.5s ease-in-out infinite;
+    `}
+
+  ${(props) =>
+    props.normal &&
+    css`
+      background-color: ${props.theme.colors.success}20;
+      color: ${props.theme.colors.success};
+    `}
 `;
 
 // Main Component
-const PatientDetails = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [patientDetails, setPatientDetails] = useState([]);
-  const [fromDate, setFromDate] = useState(new Date());
-  const [toDate, setToDate] = useState(new Date());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+const OutSourceDetails = () => {
+  const getDefaultFromDate = () => {
+    return new Date()
+  }
 
-  // Handle barcode from navigation state
+  const getDefaultToDate = () => {
+    return new Date()
+  }
+
+  const [searchQuery, setSearchQuery] = useState("")
+  const [patientDetails, setPatientDetails] = useState([])
+  const [fromDate, setFromDate] = useState(getDefaultFromDate())
+  const [toDate, setToDate] = useState(getDefaultToDate())
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [emergencyFilter, setEmergencyFilter] = useState("all")
+  const [fromFilter, setFromFilter] = useState("all")
+  const navigate = useNavigate()
+  const location = useLocation()
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+
   useEffect(() => {
-    if (location.state?.barcode) {
-      setSearchQuery(location.state.barcode);
+    if (location.state?.fromDate || location.state?.toDate || location.state?.barcode) {
+      console.log("[v0] Navigation state received:", location.state)
+
+      if (location.state.fromDate) {
+        const newFromDate = new Date(location.state.fromDate)
+        console.log("[v0] Setting fromDate from state:", newFromDate)
+        setFromDate(newFromDate)
+      }
+
+      if (location.state.toDate) {
+        const newToDate = new Date(location.state.toDate)
+        console.log("[v0] Setting toDate from state:", newToDate)
+        setToDate(newToDate)
+      }
+
+      if (location.state.barcode) {
+        console.log("[v0] Setting search query from state:", location.state.barcode)
+        setSearchQuery(location.state.barcode)
+      }
     }
-  }, [location.state]);
+  }, [location.state])
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
-      setLoading(true);
+      console.log("[v0] Fetching patient details with dates:", { fromDate, toDate })
+      setLoading(true)
+      setError(null)
+
       try {
-        const formattedFromDate = format(fromDate, "yyyy-MM-dd");
-        const formattedToDate = format(toDate, "yyyy-MM-dd");
+        const formattedFromDate = format(fromDate, "yyyy-MM-dd")
+        const formattedToDate = format(toDate, "yyyy-MM-dd")
+        console.log("[v0] Formatted dates:", { formattedFromDate, formattedToDate })
 
         const patientResponse = await apiRequest(
-          `${Labbaseurl}chc_samplestatus_testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
-          "GET"
-        );
+          `${Labbaseurl}os-samplestatus-testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
+          "GET",
+        )
 
-        // Check if the request was successful
+        console.log("[v0] API Response:", patientResponse)
+
         if (!patientResponse.success) {
-          throw new Error(
-            patientResponse.error || "Failed to fetch patient data"
-          );
+          throw new Error(patientResponse.error || "Failed to fetch patient data")
         }
 
-        setPatientDetails(patientResponse.data);
-        setError(null);
+        console.log("[v0] Patient data received:", patientResponse.data?.length || 0, "records")
+        setPatientDetails(patientResponse.data)
+        setError(null)
       } catch (err) {
-        console.error("Error fetching patient details:", err);
-        setError(
-          err.message || "Failed to fetch patient details. Please try again."
-        );
+        console.error("[v0] Error fetching patient details:", err)
+        setError(err.message || "Failed to fetch patient details. Please try again.")
+        setPatientDetails([])
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchPatientDetails();
-  }, [fromDate, toDate]);
+    fetchPatientDetails()
+  }, [fromDate, toDate, Labbaseurl])
 
   const handlePatientClick = (
     patientId,
@@ -499,61 +578,96 @@ const PatientDetails = () => {
     barcode,
     franchise_id,
     testName,
-    patientDate // Add patientDate as a parameter
+    patientDate,
+    createdDate,
+    created_date,
   ) => {
-    // Use the individual patient's date instead of fromDate
-    const formattedPatientDate = format(new Date(patientDate), "yyyy-MM-dd");
-    const encodedTestName = encodeURIComponent(testName);
-    const encodedBarcode = encodeURIComponent(barcode);
+    const formattedPatientDate = patientDate ? format(new Date(patientDate), "yyyy-MM-dd") : ""
+
+    const rawCreated = createdDate || created_date || ""
+    const formattedCreatedDate = rawCreated ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd") : ""
+
+    const encodedTestName = encodeURIComponent(testName || "")
+    const encodedBarcode = encodeURIComponent(barcode || "")
+
+    // Pass the current date range in state
     navigate(
-      `/HmsTestDetails?date=${formattedPatientDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
+      `/OSTestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
         franchise_id || "Shanmuga Referrence Lab"
-      }&test_name=${encodedTestName}`
-    );
-  };
+      }&test_name=${encodedTestName}`,
+      {
+        state: {
+          fromDate: fromDate,
+          toDate: toDate,
+          barcode: barcode,
+        },
+      },
+    )
+  }
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "Approved":
-        return <CheckCircle size={12} />;
+        return <CheckCircle size={12} />
       case "Rerun Initiated":
-        return <RefreshCcw size={12} />;
+        return <RefreshCcw size={12} />
       default:
-        return <Clock size={12} />;
+        return <Clock size={12} />
     }
-  };
+  }
 
   const getTestStatus = (test) => {
-    console.log("Test Status Input:", test); // Add logging
+    console.log("Test Status Input:", test)
     if (!test.test_value_exists) {
-      return "Waiting for Technician's Approval";
+      return "Waiting for Technician's Approval"
     }
-    return test.rerun
-      ? "Rerun Initiated"
-      : test.approve
-      ? "Approved"
-      : "Waiting for Doctor's Approval";
-  };
+    return test.rerun ? "Rerun Initiated" : test.approve ? "Approved" : "Waiting for Doctor's Approval"
+  }
 
-  const filteredPatients = patientDetails.filter(
-    (patient) =>
-      (patient.patientname || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      (patient.barcode || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      (patient.patient_id || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
-  );
+  const filteredPatients = patientDetails.filter((patient) => {
+    const matchesSearch =
+      (patient.patientname || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (patient.barcode || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (patient.patient_id || "").toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+     const patientLocation = patient.company_id || "Shanmuga Hospital"
+const matchesFrom = fromFilter === "all" || patientLocation === fromFilter
+
+  if (!matchesFrom) return false
+
+    // Emergency filter
+    const matchesEmergency =
+      emergencyFilter === "all" ||
+      (emergencyFilter === "emergency" && patient.is_emergency) ||
+      (emergencyFilter === "normal" && !patient.is_emergency)
+
+    if (!matchesEmergency) return false
+
+    // Status filter
+    if (statusFilter === "all") return true
+
+    return patient.testdetails?.some((test) => {
+      const testStatus = getTestStatus(test)
+      if (statusFilter === "technician") {
+        return testStatus === "Waiting for Technician's Approval"
+      } else if (statusFilter === "doctor") {
+        return testStatus === "Waiting for Doctor's Approval"
+      } else if (statusFilter === "approved") {
+        return testStatus === "Approved"
+      } else if (statusFilter === "rerun") {
+        return testStatus === "Rerun Initiated"
+      }
+      return false
+    })
+  })
 
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
       <Container>
         <Header>
-          <Title>Patient Test Details</Title>
+          <Title>Out Source Patient Test Details</Title>
         </Header>
 
         <Controls>
@@ -597,11 +711,34 @@ const PatientDetails = () => {
             </SearchIcon>
             <SearchInput
               type="text"
-              placeholder="Search by Barcode, Patient name or ID..."
+              placeholder="Enter Barcode, Name or ID"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </SearchWrapper>
+           <FilterSelect value={fromFilter} onChange={(e) => setFromFilter(e.target.value)}>
+  <option value="all">All Locations</option>
+  {!loading && patientDetails.length > 0 && 
+    [...new Set(patientDetails.map(p => p.company_id || "Shanmuga Hospital").filter(Boolean))]
+      .sort()
+      .map((location, idx) => (
+        <option key={idx} value={location}>{location}</option>
+      ))
+  }
+</FilterSelect>
+
+          <FilterSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All Status</option>
+            <option value="technician">Waiting for Technician's Approval</option>
+            <option value="doctor">Waiting for Doctor's Approval</option>
+            <option value="approved">Approved</option>
+            <option value="rerun">Rerun Initiated</option>
+          </FilterSelect>
+          <FilterSelect value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
+            <option value="all">All Priority</option>
+            <option value="emergency">Emergency</option>
+            <option value="normal">Normal</option>
+          </FilterSelect>
         </Controls>
 
         {loading ? (
@@ -616,9 +753,7 @@ const PatientDetails = () => {
         ) : filteredPatients.length === 0 ? (
           <EmptyState>
             <AlertCircle size={24} color={theme.colors.textLight} />
-            <EmptyStateText>
-              No received tests available for the selected date range.
-            </EmptyStateText>
+            <EmptyStateText>No received tests available for the selected date range.</EmptyStateText>
           </EmptyState>
         ) : (
           <TableWrapper>
@@ -628,6 +763,7 @@ const PatientDetails = () => {
                   <Th>Date</Th>
                   <Th>Patient Info</Th>
                   <Th>From</Th>
+                  <Th>Priority Status</Th>
                   <Th>Tests</Th>
                   <Th>Status</Th>
                 </tr>
@@ -641,6 +777,8 @@ const PatientDetails = () => {
                           <Calendar size={14} />
                           {patient.date
                             ? format(new Date(patient.date), "MMM dd, yyyy")
+                            : patient.created_date
+                            ? format(new Date(patient.created_date), "MMM dd, yyyy")
                             : "N/A"}
                         </PatientInfo>
                       </Td>
@@ -654,9 +792,7 @@ const PatientDetails = () => {
                         >
                           <PatientInfo>
                             <User size={14} />
-                            <strong>
-                              {patient.patientname || "Unknown Patient"}
-                            </strong>
+                            <strong>{patient.patientname || "Unknown Patient"}</strong>
                           </PatientInfo>
                           <PatientInfo>
                             <Tag size={14} />
@@ -673,14 +809,25 @@ const PatientDetails = () => {
                         </div>
                       </Td>
                       <Td>
-                        <PatientInfo>
-                          {patient.franchise_id || "Shanmuga Hospital"}
-                        </PatientInfo>
+                        <PatientInfo>{patient.company_id || "Shanmuga Hospital"}</PatientInfo>
+                      </Td>
+                      <Td>
+                        {patient.is_emergency ? (
+                          <EmergencyBadge emergency>
+                            <AlertCircle size={12} />
+                            Emergency
+                          </EmergencyBadge>
+                        ) : (
+                          <EmergencyBadge normal>
+                            <CheckCircle size={12} />
+                            Normal
+                          </EmergencyBadge>
+                        )}
                       </Td>
                       <Td>
                         <TestList>
                           {patient.testdetails?.map((test, idx) => {
-                            const testStatus = getTestStatus(test);
+                            const testStatus = getTestStatus(test)
                             return (
                               <TestButton
                                 key={idx}
@@ -690,14 +837,13 @@ const PatientDetails = () => {
                                     patient.patientname,
                                     patient.age,
                                     patient.barcode,
-                                    patient.franchise_id,
+                                    patient.company_id,
                                     test.testname,
-                                    patient.date // Pass the individual patient's date here
+                                    patient.date,
                                   )
                                 }
                                 title={
-                                  testStatus ===
-                                  "Waiting for Technician's Approval"
+                                  testStatus === "Waiting for Technician's Approval"
                                     ? "Enter Test Values"
                                     : testStatus === "Rerun Initiated"
                                     ? "Rerun Test"
@@ -705,8 +851,7 @@ const PatientDetails = () => {
                                 }
                                 disabled={
                                   !(
-                                    testStatus ===
-                                      "Waiting for Technician's Approval" ||
+                                    testStatus === "Waiting for Technician's Approval" ||
                                     testStatus === "Rerun Initiated"
                                   )
                                 }
@@ -714,25 +859,25 @@ const PatientDetails = () => {
                                 {test.testname}
                                 <ChevronRight size={16} />
                               </TestButton>
-                            );
+                            )
                           })}
                         </TestList>
                       </Td>
                       <Td>
                         <TestList>
                           {patient.testdetails?.map((test, idx) => {
-                            const testStatus = getTestStatus(test);
+                            const testStatus = getTestStatus(test)
                             return (
                               <StatusBadge key={idx} status={testStatus}>
                                 {getStatusIcon(testStatus)}
                                 {testStatus}
                               </StatusBadge>
-                            );
+                            )
                           })}
                         </TestList>
                       </Td>
                     </Tr>
-                  );
+                  )
                 })}
               </tbody>
             </Table>
@@ -740,7 +885,7 @@ const PatientDetails = () => {
         )}
       </Container>
     </ThemeProvider>
-  );
-};
+  )
+}
 
-export default PatientDetails;
+export default OutSourceDetails

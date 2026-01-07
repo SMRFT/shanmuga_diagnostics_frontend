@@ -30,6 +30,8 @@ import "react-toastify/dist/ReactToastify.css";
 // Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
+// import Savitha from "../Images/Savitha.png";
+import Vijayan from "../Images/Vijayan.png";
 import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
@@ -876,10 +878,9 @@ const PatientOverview = () => {
       };
 
       // Adding Consultant names and qualifications
-      const consultants = [
+      const consultants = [        
         ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
-
+        ["Dr. S. Brindha M.D.", "Consultant Pathologist",  Brindha],
       ];
 
       const patientRefNo =
@@ -1155,12 +1156,26 @@ const PatientOverview = () => {
         const availableWidth = contentWidth - (signatureWidth / 2) * 2; // Space between left and right most signatures
         const signatureSpacing = availableWidth / (consultants.length - 1); // Space between each signature
 
+        // Collect all unique approve_by values from testdetails
+        const approvers = new Set();
+        patientDetails.testdetails.forEach((test) => {
+          if (test.approve_by && test.approve_by.trim() !== "") {
+            approvers.add(test.approve_by.toLowerCase());
+          }
+        });
+
         consultants.forEach((consultant, index) => {
           // Calculate position based on leftMargin to ensure consistency
           const xPosition = leftMargin + index * signatureSpacing;
 
-          // Add Signature (if available) with reduced width
-          if (consultant[2]) {
+          // Check if this consultant's signature should be displayed
+          const consultantName = consultant[0].toLowerCase();
+          const shouldShowSignature = 
+            consultantName.includes("brindha") && approvers.has("brindha") ||
+            consultantName.includes("vijayan") && approvers.has("vijayan");
+
+          // Add Signature (if available) with reduced width - only if approved by this consultant
+          if (consultant[2] && shouldShowSignature) {
             doc.addImage(
               consultant[2],
               "PNG",
@@ -1171,12 +1186,12 @@ const PatientOverview = () => {
             );
           }
 
-          // Print name below the signature with REDUCED spacing
+          // Always print name below the signature area with REDUCED spacing
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
           doc.text(consultant[0], xPosition, signaturesY + 15);
 
-          // Print qualification below the name with REDUCED spacing
+          // Always print qualification below the name with REDUCED spacing
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           doc.text(consultant[1], xPosition, signaturesY + 20);
@@ -1314,7 +1329,7 @@ const PatientOverview = () => {
           testsByDepartment[department].forEach((test) => {
             // Group parameters by sub_title
             const parametersBySubtitle = {};
-
+           
             if (test.parameters && test.parameters.length > 0) {
               test.parameters.forEach((param) => {
                 const subtitle = param.sub_title || ""; // Use empty string if no subtitle
@@ -1346,6 +1361,7 @@ const PatientOverview = () => {
               yPos,
               4
             );
+            
             xPos += colWidths[0];
 
             // Reset font to normal for other columns
@@ -1369,8 +1385,8 @@ const PatientOverview = () => {
             const statusIndicator = test.isHigh
               ? "H"
               : test.isLow
-                ? "L"
-                : getHighLowStatus(test.value, test.reference_range);
+              ? "L"
+              : getHighLowStatus(test.value, test.reference_range);
 
             const valueText = test.value || "";
 
@@ -1447,6 +1463,7 @@ const PatientOverview = () => {
               yPos,
               4
             );
+            xPos += colWidths[0];
 
             // Calculate row height
             const maxContentHeight = Math.max(
@@ -1458,8 +1475,35 @@ const PatientOverview = () => {
             );
             yPos += Math.max(maxContentHeight, 6) + 2;
 
+            // Add outsourced label if applicable
+            if (test.outsourced === true) {
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
+              doc.text("(Outsourced)", leftMargin, yPos);
+              yPos += 4;
+            }
+
+            // Add comment if it exists for the main test (when test has no parameters)
+            if (!test.parameters || test.parameters.length === 0) {
+              if (test.comment && test.comment.trim() !== "") {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                const commentText = `Note: ${test.comment}`;
+                const commentHeight = wrapText(
+                  doc,
+                  commentText,
+                  colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                  leftMargin,
+                  yPos,
+                  3.5
+                );
+                yPos += commentHeight + 2;
+              }
+            }
+
             // Reset styling
             doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
 
             // Now render parameters grouped by sub_title
@@ -1468,7 +1512,7 @@ const PatientOverview = () => {
               if (subtitle && subtitle.trim() !== "") {
                 const subtitleWithParamHeight = 25; // Height for subtitle + one parameter row
                 yPos = checkForNewPage(yPos, subtitleWithParamHeight);
-
+               
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(10);
                 doc.text(subtitle, leftMargin, yPos);
@@ -1514,8 +1558,8 @@ const PatientOverview = () => {
                 const statusIndicator = currentTest.isHigh
                   ? "H"
                   : currentTest.isLow
-                    ? "L"
-                    : getHighLowStatus(
+                  ? "L"
+                  : getHighLowStatus(
                       currentTest.value,
                       currentTest.reference_range
                     );
@@ -1605,8 +1649,25 @@ const PatientOverview = () => {
                 );
                 yPos += Math.max(maxContentHeight, 6) + 2;
 
+                // Add comment if it exists for the parameter
+                if (currentTest.comment && currentTest.comment.trim() !== "") {
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
+                  const commentText = `Note: ${currentTest.comment}`;
+                  const commentHeight = wrapText(
+                    doc,
+                    commentText,
+                    colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                    leftMargin,
+                    yPos,
+                    3.5
+                  );
+                  yPos += commentHeight + 2;
+                }
+
                 // Reset styling
                 doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
               });
             });
@@ -1685,23 +1746,24 @@ const PatientOverview = () => {
         });
       }
 
-      // Generate the PDF as a Blob and set file name with patientID
+      // MODIFIED: Open PDF in new tab with filename as PatientName_PatientID
       const patientID = patientDetails.patient_id || "Unknown";
-      const pdfFileName = `PatientReport_${patientID}.pdf`;
+      const patientName = (patientDetails.patientname || "Unknown")
+      const pdfFileName = `${patientName}_${patientID}.pdf`;
+
+      // Save with proper filename using jsPDF save method
+      doc.save(pdfFileName);
+
+      // Generate blob for return value
       const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      // Create a temporary link to trigger download
-      if (shouldDownload) {
-        const link = document.createElement("a");
-        link.href = pdfUrl;
-        link.download = pdfFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-      URL.revokeObjectURL(pdfUrl); // Clean up the URL
+      setLoading(false);
+      return pdfBlob;
 
+
+      // Note: Don't revoke URL immediately as it's being used in the new tab
+      // The browser will handle cleanup when the tab is closed
+      
       setLoading(false);
       return pdfBlob;
     } catch (error) {
@@ -2153,6 +2215,17 @@ const PatientOverview = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <div
+          style={{
+            padding: "1rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.875rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+        </div>
       </Card>
 
       {/* Test Sorting Modal */}

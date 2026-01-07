@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, useLocation, useNavigationType } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
@@ -42,7 +42,17 @@ const GlobalStyle = createGlobalStyle`
     color: var(--dark);
     line-height: 1.5;
   }
-  .react-datepicker-wrapper { width: auto; }
+  
+  /* DatePicker Styles */
+  .react-datepicker-wrapper { 
+    width: auto;
+    display: inline-block;
+  }
+  
+  .react-datepicker__input-container {
+    display: inline-block;
+  }
+  
   .react-datepicker__input-container input {
     padding: 0.5rem 1rem;
     border: 1px solid var(--gray-light);
@@ -51,15 +61,59 @@ const GlobalStyle = createGlobalStyle`
     background-color: white;
     cursor: pointer;
     transition: var(--transition);
-    &:hover, &:focus { border-color: var(--primary); outline: none; }
+    min-width: 140px;
+    
+    &:hover, &:focus { 
+      border-color: var(--primary); 
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+    }
   }
-  .react-datepicker { border: none; box-shadow: var(--box-shadow); font-family: inherit; z-index: 1000 !important; }
-  .react-datepicker-popper { z-index: 1000 !important; }
-  .react-datepicker__header { background-color: var(--primary); border-bottom: none; padding-top: 0.8rem; }
-  .react-datepicker__current-month, .react-datepicker__day-name { color: white; }
-  .react-datepicker__day--selected {
+  
+  .react-datepicker { 
+    border: none; 
+    box-shadow: var(--box-shadow); 
+    font-family: inherit; 
+    z-index: 1000 !important;
+    border: 1px solid var(--gray-light);
+  }
+  
+  .react-datepicker-popper { 
+    z-index: 1000 !important; 
+  }
+  
+  .react-datepicker__header { 
+    background-color: var(--primary); 
+    border-bottom: none; 
+    padding-top: 0.8rem;
+    border-radius: 0;
+  }
+  
+  .react-datepicker__current-month, 
+  .react-datepicker__day-name { 
+    color: white; 
+  }
+  
+  .react-datepicker__day--selected,
+  .react-datepicker__day--keyboard-selected {
     background-color: var(--primary);
-    &:hover { background-color: var(--primary-dark); }
+    &:hover { 
+      background-color: var(--primary-dark); 
+    }
+  }
+  
+  .react-datepicker__day:hover {
+    background-color: var(--gray-light);
+  }
+  
+  .react-datepicker__day--disabled {
+    color: var(--gray-light);
+    cursor: not-allowed;
+  }
+  
+  .react-datepicker__close-icon::after {
+    background-color: var(--gray);
+    font-size: 16px;
   }
 `;
 
@@ -70,41 +124,60 @@ const blink = keyframes`
 
 // ===== Layout components =====
 const Container = styled.div`
-  max-width: 1400px; margin: 0 auto; padding: 2rem;
+  max-width: 1400px; 
+  margin: 0 auto; 
+  padding: 2rem;
   @media (max-width: 768px) { padding: 1rem; }
 `;
+
 const Card = styled.div` 
   background-color: white; 
   border-radius: var(--border-radius); 
   box-shadow: var(--box-shadow); 
   overflow: hidden; 
 `;
+
 const Header = styled.div`
-  padding: 1.5rem; border-bottom: 1px solid var(--gray-light);
-  display: flex; align-items: center; justify-content: space-between;
-  @media (max-width: 768px) { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  padding: 1.5rem; 
+  border-bottom: 1px solid var(--gray-light);
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  @media (max-width: 768px) { 
+    flex-direction: column; 
+    align-items: flex-start; 
+    gap: 1rem; 
+  }
 `;
+
 const Title = styled.h1` 
   font-size: 1.5rem; 
   color: var(--primary-dark); 
   font-weight: 600; 
   margin: 0; 
 `;
+
 const FiltersContainer = styled.div`
-  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  display: flex; 
+  align-items: center; 
+  gap: 1rem; 
+  flex-wrap: wrap;
   @media (max-width: 768px) { width: 100%; }
 `;
+
 const DateRangeContainer = styled.div` 
   display: flex; 
   align-items: center; 
   gap: 0.5rem; 
   flex-wrap: wrap; 
 `;
+
 const DatePickerWrapper = styled.div` 
   display: flex; 
   align-items: center; 
   gap: 0.5rem; 
 `;
+
 const DatePickerLabel = styled.label` 
   font-size: 0.875rem; 
   color: var(--gray); 
@@ -113,11 +186,13 @@ const DatePickerLabel = styled.label`
   gap: 0.25rem; 
   white-space: nowrap; 
 `;
+
 const SearchContainer = styled.div` 
   position: relative; 
   width: 300px; 
   @media (max-width: 768px) { width: 100%; } 
 `;
+
 const SearchInput = styled.input`
   width: 100%; 
   padding: 0.5rem 1rem 0.5rem 2.5rem; 
@@ -131,6 +206,7 @@ const SearchInput = styled.input`
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); 
   }
 `;
+
 const SearchIconWrapper = styled.div` 
   position: absolute; 
   left: 0.75rem; 
@@ -139,6 +215,7 @@ const SearchIconWrapper = styled.div`
   color: var(--gray); 
   pointer-events: none; 
 `;
+
 const FilterButton = styled.button`
   display: inline-flex; 
   align-items: center; 
@@ -155,6 +232,7 @@ const FilterButton = styled.button`
   &:hover { background-color: var(--primary-dark); } 
   &:focus { outline: none; box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3); }
 `;
+
 const ClearButton = styled.button`
   display: inline-flex; 
   align-items: center; 
@@ -196,11 +274,13 @@ const TableContainer = styled.div`
   &::-webkit-scrollbar-track { background: var(--gray-light); }
   &::-webkit-scrollbar-thumb { background-color: var(--gray); border-radius: 20px; }
 `;
+
 const Table = styled.table` 
   width: 100%; 
   border-collapse: collapse; 
   min-width: 1000px; 
 `;
+
 const TableHead = styled.thead`
   background-color: var(--gray-light); 
   position: sticky; 
@@ -217,6 +297,7 @@ const TableHead = styled.thead`
     white-space: nowrap; 
   }
 `;
+
 const TableBody = styled.tbody`
   tr { 
     border-bottom: 1px solid var(--gray-light); 
@@ -229,12 +310,14 @@ const TableBody = styled.tbody`
     font-size: 0.875rem; 
   }
 `;
+
 const NoData = styled.td` 
   text-align: center; 
   padding: 2rem !important; 
   color: var(--gray); 
   font-style: italic; 
 `;
+
 const StatusBadge = styled.span` 
   display: inline-flex; 
   align-items: center; 
@@ -245,10 +328,12 @@ const StatusBadge = styled.span`
   font-weight: 500; 
   white-space: nowrap; 
 `;
+
 const WaitingBadge = styled(StatusBadge)` 
   background-color: rgba(248, 150, 30, 0.15); 
   color: var(--warning); 
 `;
+
 const EmergencyBadge = styled(StatusBadge)`
   background-color: rgba(247, 37, 133, 0.2);
   color: var(--danger);
@@ -258,11 +343,21 @@ const EmergencyBadge = styled(StatusBadge)`
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
+
 const NormalBadge = styled(StatusBadge)`
   background-color: rgba(76, 201, 240, 0.15);
   color: var(--success);
   font-weight: 600;
 `;
+
+const OutsourcedBadge = styled(StatusBadge)`
+  background-color: rgba(246, 160, 233, 0.15);
+  color: #d75de0ff;
+  animation: ${blink} 1.5s ease-in-out infinite;
+  font-weight: 600;
+  border: 1px solid #d75de0ff;
+`;
+
 const Button = styled.button`
   display: inline-flex; 
   align-items: center; 
@@ -280,11 +375,13 @@ const Button = styled.button`
   &:hover { background-color: var(--primary-dark); } 
   &:focus { outline: none; box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3); }
 `;
+
 const ViewButton = styled(Button)` 
   padding: 0.35rem 0.75rem; 
   background-color: var(--primary-light); 
   &:hover { background-color: var(--primary); } 
 `;
+
 const TestList = styled.ul` 
   list-style: none; 
   padding: 0; 
@@ -293,10 +390,15 @@ const TestList = styled.ul`
   flex-direction: column; 
   gap: 0.25rem; 
 `;
+
 const TestItem = styled.li` 
   white-space: nowrap; 
-  font-size: 0.875rem; 
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
+
 const StatusList = styled.ul` 
   list-style: none; 
   padding: 0; 
@@ -305,6 +407,7 @@ const StatusList = styled.ul`
   flex-direction: column; 
   gap: 0.5rem; 
 `;
+
 const PaginationContainer = styled.div` 
   display: flex; 
   justify-content: flex-end; 
@@ -312,6 +415,7 @@ const PaginationContainer = styled.div`
   padding: 1rem; 
   border-top: 1px solid var(--gray-light); 
 `;
+
 const PaginationButton = styled.button`
   display: flex; 
   align-items: center; 
@@ -326,6 +430,7 @@ const PaginationButton = styled.button`
   &:hover { background-color: var(--gray-light); } 
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
+
 const PaginationInfo = styled.div` 
   margin: 0 1rem; 
   font-size: 0.875rem; 
@@ -340,6 +445,7 @@ const formatYmd = (d) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
+
 const parseYmd = (s) => {
   if (!s) return null;
   const [y, m, d] = s.split("-").map(Number);
@@ -352,7 +458,6 @@ const parseYmd = (s) => {
 function PatientList() {
   const navigate = useNavigate();
   const location = useLocation();
-  const navigationType = useNavigationType();
 
   const today = useMemo(() => {
     const d = new Date(); 
@@ -362,7 +467,7 @@ function PatientList() {
 
   const initialFrom = useMemo(() => {
     try { 
-      return parseYmd(window.sessionStorage.getItem("patient_from")) || today; 
+      return parseYmd(sessionStorage.getItem("patient_from")) || today; 
     } catch { 
       return today; 
     }
@@ -370,7 +475,7 @@ function PatientList() {
   
   const initialTo = useMemo(() => {
     try { 
-      return parseYmd(window.sessionStorage.getItem("patient_to")) || today; 
+      return parseYmd(sessionStorage.getItem("patient_to")) || today; 
     } catch { 
       return today; 
     }
@@ -379,7 +484,6 @@ function PatientList() {
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
   const [emergencyFilter, setEmergencyFilter] = useState("all");
-
   const [patientList, setPatientList] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -390,9 +494,11 @@ function PatientList() {
   // Save filter state to sessionStorage
   useEffect(() => {
     try {
-      window.sessionStorage.setItem("patient_from", fromDate ? formatYmd(fromDate) : "");
-      window.sessionStorage.setItem("patient_to", toDate ? formatYmd(toDate) : "");
-    } catch {}
+      sessionStorage.setItem("patient_from", fromDate ? formatYmd(fromDate) : "");
+      sessionStorage.setItem("patient_to", toDate ? formatYmd(toDate) : "");
+    } catch (e) {
+      console.error("Failed to save to sessionStorage:", e);
+    }
   }, [fromDate, toDate]);
 
   // Handle barcode search from location state
@@ -409,12 +515,12 @@ function PatientList() {
     const queryParams = new URLSearchParams();
     if (fromDateParam) queryParams.append("from_date", fromDateParam.toLocaleDateString("en-CA"));
     if (toDateParam) queryParams.append("to_date", toDateParam.toLocaleDateString("en-CA"));
-    // Only add emergency param if it's not "all"
     if (emergency && emergency !== "all") {
       queryParams.append("emergency", emergency);
     }
     const queryString = queryParams.toString();
     const url = `${Labbaseurl}test-values/${queryString ? `?${queryString}` : ""}`;
+    
     try {
       const patientResponse = await apiRequest(url, "GET");
       if (!patientResponse.success) throw new Error(patientResponse.error || "Failed to fetch patient data");
@@ -428,10 +534,9 @@ function PatientList() {
     }
   };
 
-  // ONLY fetch on initial mount
   useEffect(() => {
     fetchPatientData(fromDate, toDate, emergencyFilter);
-  }, []); // Empty dependency array - runs only once on mount
+  }, []);
 
   const handleFilter = () => {
     fetchPatientData(fromDate, toDate, emergencyFilter);
@@ -458,7 +563,6 @@ function PatientList() {
     const day = String(date.getDate()).padStart(2, "0");
     const formattedDate = `${year}-${month}-${day}`;
     
-    // Pass the entire patient data to avoid refetching
     navigate(`/DoctorForm?patient_id=${patient.patient_id}&date=${formattedDate}`, {
       state: { 
         patientHistory: patient.patient_history || "",
@@ -502,22 +606,32 @@ function PatientList() {
   const safePatientList = Array.isArray(patientList) ? patientList : [];
 
   const groupedByBarcode = safePatientList.reduce((acc, patient) => {
-    const barcode = patient.barcode;
-    if (!acc[barcode]) {
-      acc[barcode] = { 
-        ...patient, 
-        testdetails: [...(patient.testdetails || [])],
-        is_emergency: patient.is_emergency || false,
-        patient_history: patient.patient_history || ""
-      };
-    } else {
-      acc[barcode].testdetails = [
-        ...acc[barcode].testdetails,
-        ...(patient.testdetails || []),
-      ];
-    }
-    return acc;
-  }, {});
+  const barcode = patient.barcode;
+  if (!acc[barcode]) {
+    acc[barcode] = { 
+      ...patient, 
+      testdetails: patient.testdetails ? patient.testdetails.map(test => ({
+        ...test,
+        created_date: patient.created_date // Add created_date to each test
+      })) : [],
+      is_emergency: patient.is_emergency || false,
+      patient_history: patient.patient_history || ""
+    };
+  } else {
+    // When merging tests from multiple records, preserve their individual created_dates
+    const testsWithCreatedDate = patient.testdetails ? patient.testdetails.map(test => ({
+      ...test,
+      created_date: patient.created_date
+    })) : [];
+    
+    acc[barcode].testdetails = [
+      ...acc[barcode].testdetails,
+      ...testsWithCreatedDate,
+    ];
+  }
+  return acc;
+}, {});
+  
   const uniquePatients = Object.values(groupedByBarcode);
 
   const filteredPatients = uniquePatients.filter(
@@ -528,14 +642,15 @@ function PatientList() {
   );
 
   const patientsPerPage = 10;
-  const _indexOfLastPatient = currentPage * patientsPerPage;
-  const indexOfFirstPatient = _indexOfLastPatient - patientsPerPage;
-  const currentPatients = filteredPatients.slice(indexOfFirstPatient, _indexOfLastPatient);
+  const indexOfLastPatient = currentPage * patientsPerPage;
+  const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
+  const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
   const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
 
   const nextPage = () => { 
     if (currentPage < totalPages) setCurrentPage(currentPage + 1); 
   };
+  
   const prevPage = () => { 
     if (currentPage > 1) setCurrentPage(currentPage - 1); 
   };
@@ -571,7 +686,9 @@ function PatientList() {
           <FiltersContainer>
             <DateRangeContainer>
               <DatePickerWrapper>
-                <DatePickerLabel><Calendar size={16} /> From:</DatePickerLabel>
+                <DatePickerLabel>
+                  <Calendar size={16} /> From:
+                </DatePickerLabel>
                 <DatePicker
                   selected={fromDate}
                   onChange={(date) => {
@@ -582,6 +699,9 @@ function PatientList() {
                   placeholderText="Select from date"
                   isClearable
                   maxDate={today}
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
                 />
               </DatePickerWrapper>
               <DatePickerWrapper>
@@ -594,6 +714,9 @@ function PatientList() {
                   isClearable
                   minDate={fromDate || undefined}
                   maxDate={today}
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
                 />
               </DatePickerWrapper>
               <Select 
@@ -656,7 +779,7 @@ function PatientList() {
                 </tr>
               ) : currentPatients.length > 0 ? (
                 currentPatients.map((patient, index) => (
-                  <tr key={index}>
+                  <tr key={`${patient.barcode}-${index}`}>
                     <td>{patient.date ? new Date(patient.date).toLocaleDateString() : "Invalid Date"}</td>
                     <td>{patient.patient_id}</td>
                     <td>{patient.patientname}</td>
@@ -667,7 +790,14 @@ function PatientList() {
                       <TestList>
                         {patient.testdetails && patient.testdetails.length > 0
                           ? patient.testdetails.map((test, idx) => (
-                              <TestItem key={idx}>{test.testname}</TestItem>
+                              <TestItem key={idx}>
+                                <span>{test.testname}</span>
+                                {test.outsourced && (
+                                  <OutsourcedBadge>
+                                    Outsourced
+                                  </OutsourcedBadge>
+                                )}
+                              </TestItem>
                             ))
                           : (<TestItem>No tests available</TestItem>)
                         }
@@ -707,13 +837,24 @@ function PatientList() {
               <ChevronLeft size={16} />
             </PaginationButton>
             <PaginationInfo>
-              Page {currentPage} of {Math.ceil(filteredPatients.length / 10)}
+              Page {currentPage} of {totalPages}
             </PaginationInfo>
-            <PaginationButton onClick={nextPage} disabled={currentPage === Math.ceil(filteredPatients.length / 10)}>
+            <PaginationButton onClick={nextPage} disabled={currentPage === totalPages}>
               <ChevronRight size={16} />
             </PaginationButton>
           </PaginationContainer>
         )}
+        <div
+          style={{
+            padding: "1rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.875rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+        </div>
       </Card>
     </Container>
   );

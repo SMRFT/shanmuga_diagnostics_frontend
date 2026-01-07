@@ -389,7 +389,7 @@ const SelectIcon = styled(ChevronDown)`
   color: var(--gray);
 `;
 
-function TestDetails() {
+function OSTestDetails() {
   const [testDetails, setTestDetails] = useState([]);
   const [values, setValues] = useState({});
   const [remarks, setRemarks] = useState({});
@@ -402,7 +402,6 @@ function TestDetails() {
   const [error, setError] = useState(null);
   const [patientName, setPatientName] = useState("");
   const [initialValues, setInitialValues] = useState({});
-  const [processedRecords, setProcessedRecords] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const location = useLocation();
@@ -434,7 +433,7 @@ function TestDetails() {
       console.log(`DEBUG: Fetching test details with query: ${queryParams}`);
 
       const response = await apiRequest(
-        `${Labbaseurl}compare_test_details/?${queryParams}`,
+        `${Labbaseurl}os-compare_test_details/?${queryParams}`,
         "GET"
       );
 
@@ -453,17 +452,8 @@ function TestDetails() {
         console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
       }
 
-      if (
-        actualResponse.processed_records &&
-        Array.isArray(actualResponse.processed_records)
-      ) {
-        setProcessedRecords(actualResponse.processed_records);
-        console.log(
-          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`
-        );
-      } else {
+       else {
         console.log("DEBUG: No processed records found in response");
-        setProcessedRecords([]);
       }
 
       const patientInfo = actualResponse.patient_info || {};
@@ -702,6 +692,7 @@ function TestDetails() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    // Prevent duplicate submission
     if (isSubmitting) {
       return;
     }
@@ -778,7 +769,7 @@ function TestDetails() {
           });
 
           return {
-            test_id: test.test_id,
+            test_id:test.test_id,
             testname: test.testname,
             rerun: parameterEditMode ? false : test.rerun,
             approve: false,
@@ -790,10 +781,11 @@ function TestDetails() {
             remarks: parameterRemarks || "",
             verified_by: verified_by,
             parameters: parameters,
+            outsourced: true,
           };
         } else {
           return {
-            test_id: test.test_id,
+            test_id:test.test_id,
             testname: test.testname,
             specimen_type: test.specimen_type || "",
             value: values[test.testname] || "",
@@ -810,6 +802,8 @@ function TestDetails() {
             dispatch: false,
             dispatch_time: "null",
             verified_by: verified_by,
+            outsourced: true,
+
           };
         }
       });
@@ -819,7 +813,6 @@ function TestDetails() {
         barcode: barcode,
         locationId: locationId,
         testdetails: testDetailsData,
-        processed_records: processedRecords,
       };
 
       console.log("DEBUG: Sending POST request with payload:", payload);
@@ -855,7 +848,7 @@ function TestDetails() {
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
     
-    navigate("/PatientDetails", { 
+    navigate("/OutsourceDetails", { 
       state: { 
         barcode: barcode,
         fromDate: stateFromDate || new Date(),
@@ -902,10 +895,10 @@ function TestDetails() {
     <Container>
       <GlobalStyle />
       <Header>
-        <Title>Test Details</Title>
+        <Title> Out Source Test Details</Title>
         <BackButton onClick={handleBack}>
           <ArrowLeft size={18} />
-          Back to Patient Details
+          Back to O/S Patient Details
         </BackButton>
       </Header>
 
@@ -1237,4 +1230,4 @@ function TestDetails() {
   );
 }
 
-export default TestDetails;
+export default OSTestDetails;

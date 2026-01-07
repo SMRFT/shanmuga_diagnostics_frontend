@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components";
@@ -11,7 +9,6 @@ const blink = keyframes`
   50% { opacity: 0.3; }
 `;
 
-// Theme
 const theme = {
   colors: {
     primary: "#4f46e5",
@@ -29,12 +26,12 @@ const theme = {
     borderDark: "#d1d5db",
   },
   borderRadius: {
-  sm: "0.25rem",
-  md: "0.375rem",
-  lg: "0.5rem",
-  xl: "0.75rem",
-  full: "9999px",  // Add this line
-},
+    sm: "0.25rem",
+    md: "0.375rem",
+    lg: "0.5rem",
+    xl: "0.75rem",
+    full: "9999px",
+  },
   shadows: {
     sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
     md: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
@@ -48,7 +45,6 @@ const theme = {
   },
 };
 
-// Global styles
 const GlobalStyle = createGlobalStyle`
   * {
     box-sizing: border-box;
@@ -64,7 +60,6 @@ const GlobalStyle = createGlobalStyle`
   }
 `;
 
-// Styled components
 const Container = styled.div`
   max-width: 1200px;
   margin: 2rem auto;
@@ -214,7 +209,7 @@ const SearchInput = styled.input`
 
 const SearchIcon = styled.div`
   position: absolute;
-  left: 0.75rem;  // Changed from right to left
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
@@ -257,7 +252,7 @@ const EmergencyBadge = styled.span`
   padding: 0.375rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 600;
-  border-radius: ${(props) => props.theme.borderRadius.full || "9999px"};
+  border-radius: ${(props) => props.theme.borderRadius.full};
   text-transform: uppercase;
   letter-spacing: 0.05em;
 
@@ -469,7 +464,7 @@ const EmptyStateText = styled.p`
   max-width: 24rem;
 `;
 
-// Calendar component
+
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
   const daysInMonth = new Date(
@@ -549,10 +544,8 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
   );
 };
 
-// Main component
 const SampleStatus = () => {
   const storedName = typeof window !== 'undefined' ? localStorage.getItem("name") : null;
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [showFromDatePicker, setShowFromDatePicker] = useState(false);
@@ -571,7 +564,17 @@ const SampleStatus = () => {
   const [loadingTestDetails, setLoadingTestDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [currentDateTime, setCurrentDateTime] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentDateTime(format(now, "yyyy-MM-dd HH:mm:ss"));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchPatientsByDate = async () => {
@@ -833,8 +836,6 @@ const SampleStatus = () => {
           }),
         };
 
-        console.log("PATCH Data:", patchData);
-
         const result = await apiRequest(
           `${Labbaseurl}sample_statusupdate/${patient.barcode}/`,
           "PATCH",
@@ -879,17 +880,13 @@ const SampleStatus = () => {
                 status === "Sample Collected" ? currentTime : null,
               received_time: null,
               rejected_time: null,
-              oursourced_time: null,
               collectd_by: status === "Sample Collected" ? storedName : null,
               received_by: null,
               rejected_by: null,
-              oursourced_by: null,
               remarks: null,
             };
           }),
         };
-
-        console.log("POST Data:", formattedData);
 
         const result = await apiRequest(
           `${Labbaseurl}sample_status/`,
@@ -995,6 +992,7 @@ const SampleStatus = () => {
         patient.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.segment.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.B2B.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.barcode.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus =
@@ -1004,6 +1002,28 @@ const SampleStatus = () => {
 
       return matchesSearch && matchesStatus;
     });
+
+  const getCurrentPatient = () => {
+    return patients.find(
+      (p) => p.patient_id === selectedPatientId && p.barcode === selectedBarcode
+    );
+  };
+
+  const getPaymentMode = () => {
+    const patient = getCurrentPatient();
+    if (!patient || !patient.payment_method) return "N/A";
+    
+    if (typeof patient.payment_method === 'string') {
+      try {
+        const parsed = JSON.parse(patient.payment_method);
+        return parsed.paymentmethod || "N/A";
+      } catch {
+        return "N/A";
+      }
+    }
+    
+    return patient.payment_method.paymentmethod || "N/A";
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -1067,29 +1087,29 @@ const SampleStatus = () => {
           </Header>
 
           <FilterContainer>
-  <SearchContainer>
-    <SearchIcon>
-      <Search size={16} />
-    </SearchIcon>
-    <SearchInput
-      type="text"
-      placeholder="Search by Barcode, Patient name, ID, or Segment..."
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-    />
-  </SearchContainer>
+            <SearchContainer>
+              <SearchIcon>
+                <Search size={16} />
+              </SearchIcon>
+              <SearchInput
+                type="text"
+                placeholder="B2B Name, Barcode, Patient name, ID, or Segment..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </SearchContainer>
 
-  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-    <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-      Status Filter:
-    </label>
-    <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-      <option value="All">All</option>
-      <option value="Emergency">Emergency</option>
-      <option value="Normal">Normal</option>
-    </Select>
-  </div>
-</FilterContainer>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                Status Filter:
+              </label>
+              <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="All">All</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Normal">Normal</option>
+              </Select>
+            </div>
+          </FilterContainer>
 
           {loading ? (
             <EmptyState>
@@ -1112,6 +1132,7 @@ const SampleStatus = () => {
                         <Th>Barcode ID</Th>
                         <Th>Age</Th>
                         <Th>Segment</Th>
+                        <Th>B2B Name</Th>
                         <Th>Status</Th>
                         <Th>Tests</Th>
                         <Th>Actions</Th>
@@ -1125,19 +1146,20 @@ const SampleStatus = () => {
                           <Td>{patient.barcode}</Td>
                           <Td>{patient.age}</Td>
                           <Td>{patient.segment || "N/A"}</Td>
+                          <Td>{patient.B2B || "N/A"}</Td>
                           <Td>
-  {patient.is_emergency ? (
-    <EmergencyBadge emergency>
-      <AlertCircle size={12} />
-      Emergency
-    </EmergencyBadge>
-  ) : (
-    <EmergencyBadge normal>
-      <CheckCircle size={12} />
-      Normal
-    </EmergencyBadge>
-  )}
-</Td>
+                            {patient.is_emergency ? (
+                              <EmergencyBadge emergency>
+                                <AlertCircle size={12} />
+                                Emergency
+                              </EmergencyBadge>
+                            ) : (
+                              <EmergencyBadge normal>
+                                <CheckCircle size={12} />
+                                Normal
+                              </EmergencyBadge>
+                            )}
+                          </Td>
                           <Td>
                             {patient.testdetails &&
                             patient.testdetails.length > 0
@@ -1169,7 +1191,19 @@ const SampleStatus = () => {
                 </EmptyState>
               )}
             </>
+            
           )}
+          <div
+          style={{
+            padding: "1rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.875rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+        </div>
         </Card>
 
         {showModal && selectedPatientId && selectedBarcode && (
@@ -1177,14 +1211,7 @@ const SampleStatus = () => {
             <ModalContent>
               <ModalHeader>
                 <ModalTitle>
-                  {
-                    (patients || []).find(
-                      (p) =>
-                        p.patient_id === selectedPatientId &&
-                        p.barcode === selectedBarcode
-                    )?.patientname
-                  }{" "}
-                  - Test Details
+                  {getCurrentPatient()?.patientname || "Patient"} - Test Details
                 </ModalTitle>
                 <CloseButton onClick={closeModal}>
                   <X size={20} />
@@ -1205,103 +1232,102 @@ const SampleStatus = () => {
                 </Alert>
               )}
 
-              {(patients || [])
-                .filter(
-                  (patient) =>
-                    patient.patient_id === selectedPatientId &&
-                    patient.barcode === selectedBarcode
-                )
-                .map((patient) => (
-                  <div key={`${patient.patient_id}-${patient.barcode}`}>
-                    <div style={{ marginBottom: "1rem" }}>
-                      <strong>Patient ID:</strong> {patient.patient_id} |{" "}
-                      <strong>Barcode:</strong> {patient.barcode} |{" "}
-                      <strong>Age:</strong> {patient.age} |{" "}
-                      <strong>Gender:</strong> {patient.gender || "N/A"}
-                    </div>
+             
+              {getCurrentPatient() && (
+                <div>
+                  <div style={{ marginBottom: "1rem" }}>
+                    <strong>Patient ID:</strong> {getCurrentPatient().patient_id} |{" "}
+                    <strong>Barcode:</strong> {getCurrentPatient().barcode} |{" "}
+                    <strong>Age:</strong> {getCurrentPatient().age} |{" "}
+                    <strong>Gender:</strong> {getCurrentPatient().gender || "N/A"} |{" "}
+                    <strong>Current Date & Time:</strong> {currentDateTime} |{" "}
+                    <strong>Processing Location:</strong> {getCurrentPatient()?.branch|| "N/A"} |{" "}
+                    <strong>Technician Name:</strong> {storedName || "N/A"} |{" "}
+                    <strong>Payment Mode:</strong> {getPaymentMode()}
+                  </div>
 
-                    {loadingTestDetails ? (
-                      <EmptyState>
-                        <div>Loading test details...</div>
-                      </EmptyState>
-                    ) : (
-                      <div style={{ overflowX: "auto" }}>
-                        <Table>
-                          <thead>
-                            <tr>
-                              <Th>Test Name</Th>
-                              <Th>Container Type</Th>
-                              <Th>Department</Th>
-                              <Th>Status</Th>
-                              <Th>
-                                <Checkbox
-                                  checked={
-                                    currentPatientTests.length > 0 &&
-                                    currentPatientTests.every((test) =>
-                                      selectedTests.includes(test.test_id)
+                  {loadingTestDetails ? (
+                    <EmptyState>
+                      <div>Loading test details...</div>
+                    </EmptyState>
+                  ) : (
+                    <div style={{ overflowX: "auto" }}>
+                      <Table>
+                        <thead>
+                          <tr>
+                            <Th>Test Name</Th>
+                            <Th>Container Type</Th>
+                            <Th>Department</Th>
+                            <Th>Status</Th>
+                            <Th>
+                              <Checkbox
+                                checked={
+                                  currentPatientTests.length > 0 &&
+                                  currentPatientTests.every((test) =>
+                                    selectedTests.includes(test.test_id)
+                                  )
+                                }
+                                onChange={selectAllTests}
+                                disabled={isSaving || isSaved}
+                              />
+                            </Th>
+                            <Th>Sample Collector</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentPatientTests.map((test) => (
+                            <Tr key={test.test_id}>
+                              <Td>{test.testname}</Td>
+                              <Td>{test.container || test.collection_container || "N/A"}</Td>
+                              <Td>{test.department || "N/A"}</Td>
+                              <Td>
+                                <Select
+                                  value={test.status || "Pending"}
+                                  onChange={(e) =>
+                                    handleStatusChange(
+                                      test.test_id,
+                                      e.target.value
                                     )
                                   }
-                                  onChange={selectAllTests}
+                                  disabled={isSaving || isSaved}
+                                >
+                                  <option value="Pending">Pending</option>
+                                  <option value="Sample Collected">
+                                    Collected
+                                  </option>
+                                </Select>
+                              </Td>
+                              <Td>
+                                <Checkbox
+                                  checked={selectedTests.includes(
+                                    test.test_id
+                                  )}
+                                  onChange={() =>
+                                    toggleSelectTest(test.test_id)
+                                  }
                                   disabled={isSaving || isSaved}
                                 />
-                              </Th>
-                              <Th>Sample Collector</Th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {currentPatientTests.map((test) => (
-                              <Tr key={test.test_id}>
-                                <Td>{test.testname}</Td>
-                                <Td>{test.container || test.collection_container || "N/A"}</Td>
-                                <Td>{test.department || "N/A"}</Td>
-                                <Td>
-                                  <Select
-                                    value={test.status || "Pending"}
-                                    onChange={(e) =>
-                                      handleStatusChange(
-                                        test.test_id,
-                                        e.target.value
-                                      )
-                                    }
-                                    disabled={isSaving || isSaved}
-                                  >
-                                    <option value="Pending">Pending</option>
-                                    <option value="Sample Collected">
-                                      Collected
-                                    </option>
-                                  </Select>
-                                </Td>
-                                <Td>
-                                  <Checkbox
-                                    checked={selectedTests.includes(
-                                      test.test_id
-                                    )}
-                                    onChange={() =>
-                                      toggleSelectTest(test.test_id)
-                                    }
-                                    disabled={isSaving || isSaved}
-                                  />
-                                </Td>
-                                <Td>{test.samplecollector || "N/A"}</Td>
-                              </Tr>
-                            ))}
-                          </tbody>
-                        </Table>
-                      </div>
-                    )}
+                              </Td>
+                              <Td>{test.samplecollector || "N/A"}</Td>
+                            </Tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
 
-                    <ButtonGroup>
-                      <Button
-                        success
-                        onClick={saveAllTestsForPatient}
-                        disabled={loadingTestDetails || isSaving || isSaved}
-                      >
-                        <Check size={16} />
-                        {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}
-                      </Button>
-                    </ButtonGroup>
-                  </div>
-                ))}
+                  <ButtonGroup>
+                    <Button
+                      success
+                      onClick={saveAllTestsForPatient}
+                      disabled={loadingTestDetails || isSaving || isSaved}
+                    >
+                      <Check size={16} />
+                      {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}
+                    </Button>
+                  </ButtonGroup>
+                </div>
+              )}
             </ModalContent>
           </Modal>
         )}

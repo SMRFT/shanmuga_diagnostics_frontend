@@ -603,7 +603,67 @@ const HmsSampleStatusUpdate = () => {
   const [statusChanges, setStatusChanges] = useState({})
   const storedName = localStorage.getItem("name")
   const [remarks, setRemarks] = useState({})
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [outsourceLabs, setOutsourceLabs] = useState([]);
+  const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
+
+  
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+
+   useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fetch outsource labs on component mount
+    useEffect(() => {
+      const fetchOutsourceLabs = async () => {
+        try {
+          console.log("Fetching outsource labs from:", `${Labbaseurl}get_outsource_labs/`);
+          const response = await apiRequest(
+            `${Labbaseurl}get_outsource_labs/`,
+            "GET"
+          );
+  
+          console.log("Full API response:", response);
+          console.log("response.data:", response.data);
+          console.log("response.success:", response.success);
+  
+          // Handle different response structures
+          let labs = [];
+          
+          if (response && response.data) {
+            // Check if data is directly an array
+            if (Array.isArray(response.data)) {
+              labs = response.data;
+            }
+            // Check if data has a nested data property
+            else if (response.data.data && Array.isArray(response.data.data)) {
+              labs = response.data.data;
+            }
+            // Check if it's wrapped in success property
+            else if (response.success && Array.isArray(response.data)) {
+              labs = response.data;
+            }
+          }
+  
+          console.log("Extracted labs array:", labs);
+          console.log("Labs array length:", labs.length);
+          setOutsourceLabs(labs);
+          
+        } catch (err) {
+          console.error("Error fetching outsource labs:", err);
+          setOutsourceLabs([]);
+        }
+      };
+  
+      if (Labbaseurl) {
+        fetchOutsourceLabs();
+      }
+    }, [Labbaseurl]);
 
   useEffect(() => {
     const fetchSampleCollected = async () => {
@@ -645,25 +705,43 @@ const HmsSampleStatusUpdate = () => {
   }, [fromDate, toDate])
 
   const handleStatusChange = (barcode, testIndex, newStatus) => {
-    setStatusChanges((prev) => ({
-      ...prev,
-      [barcode]: {
-        ...prev[barcode],
-        [testIndex]: newStatus,
-      },
-    }))
+  setStatusChanges((prev) => ({
+    ...prev,
+    [barcode]: {
+      ...prev[barcode],
+      [testIndex]: newStatus,
+    },
+  }));
 
-    if (newStatus !== "Rejected") {
-      setRemarks((prev) => {
-        const updatedRemarks = { ...prev }
-        if (updatedRemarks[`${barcode}-${testIndex}`]) {
-          delete updatedRemarks[`${barcode}-${testIndex}`]
-        }
-        return updatedRemarks
-      })
-    }
+  // Clear remarks if not rejected
+  if (newStatus !== "Rejected") {
+    setRemarks((prev) => {
+      const updatedRemarks = { ...prev };
+      if (updatedRemarks[`${barcode}-${testIndex}`]) {
+        delete updatedRemarks[`${barcode}-${testIndex}`];
+      }
+      return updatedRemarks;
+    });
   }
 
+  // ADDED: Clear outsource lab if not outsource
+  if (newStatus !== "Outsource") {
+    setSelectedOutsourceLab((prev) => {
+      const updated = { ...prev };
+      if (updated[`${barcode}-${testIndex}`]) {
+        delete updated[`${barcode}-${testIndex}`];
+      }
+      return updated;
+    });
+  }
+};
+
+const handleOutsourceLabChange = (barcode, testIndex, labName) => {
+  setSelectedOutsourceLab((prev) => ({
+    ...prev,
+    [`${barcode}-${testIndex}`]: labName,
+  }));
+};
   const handleRemarksChange = (barcode, testIndex, value) => {
     setRemarks((prev) => ({
       ...prev,
@@ -672,31 +750,40 @@ const HmsSampleStatusUpdate = () => {
   }
 
   const updateTestStatus = async (barcode, testIndex) => {
-    const updatedStatus = statusChanges[selectedPatient.barcode]?.[testIndex]
-    const testDetails = selectedPatient.testdetails[testIndex]
-    const updatedRemarks = remarks[`${barcode}-${testIndex}`]
+  const updatedStatus = statusChanges[selectedPatient.barcode]?.[testIndex]
+  const testDetails = selectedPatient.testdetails[testIndex]
+  const updatedRemarks = remarks[`${barcode}-${testIndex}`]
+  const outsourceLabName = selectedOutsourceLab[`${barcode}-${testIndex}`]; // ADDED
 
-    if (!updatedStatus) {
-      setError("Please select a status for the test before updating.")
-      setTimeout(() => setError(null), 3000)
-      return
-    }
+  if (!updatedStatus) {
+    setError("Please select a status for the test before updating.")
+    setTimeout(() => setError(null), 3000)
+    return
+  }
 
-    try {
-      const response = await apiRequest(`${Labbaseurl}hms_update_sample_collected/${barcode}/`, "PUT", {
-        barcode: selectedPatient.barcode, // <-- send barcode
-        samplecollected_time: testDetails.samplecollected_time, // <-- send exact collected time
-        updates: [
-          {
-            test_id: testDetails.test_id, // <-- use test_id instead of testIndex
-            samplestatus: updatedStatus,
-            remarks: updatedRemarks || null,
-            received_by: updatedStatus === "Received" ? storedName : null,
-            rejected_by: updatedStatus === "Rejected" ? storedName : null,
-            outsourced_by: updatedStatus === "Outsource" ? storedName : null,
-          },
-        ],
-      })
+  // ADDED: Validate outsource lab selection
+  if (updatedStatus === "Outsource" && !outsourceLabName) {
+    setError("Please select an outsource lab.")
+    setTimeout(() => setError(null), 3000)
+    return
+  }
+
+  try {
+    const response = await apiRequest(`${Labbaseurl}hms_update_sample_collected/${barcode}/`, "PUT", {
+      barcode: selectedPatient.barcode,
+      samplecollected_time: testDetails.samplecollected_time,
+      updates: [
+        {
+          test_id: testDetails.test_id,
+          samplestatus: updatedStatus,
+          remarks: updatedRemarks || null,
+          received_by: updatedStatus === "Received" ? storedName : null,
+          rejected_by: updatedStatus === "Rejected" ? storedName : null,
+          outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+          outsource_lab: updatedStatus === "Outsource" ? outsourceLabName : null, // ADDED
+        },
+      ],
+    })
 
       if (response.success) {
         setSuccessMessage("Sample status updated successfully!")
@@ -918,6 +1005,17 @@ const HmsSampleStatusUpdate = () => {
               )}
             </>
           )}
+          <div
+          style={{
+            padding: "1rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.875rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+        </div>
         </Card>
 
         {selectedPatient && Array.isArray(selectedPatient.testdetails) && (
@@ -978,6 +1076,21 @@ const HmsSampleStatusUpdate = () => {
                   <PatientInfoLabel>Gender:</PatientInfoLabel>
                   <PatientInfoValue>{selectedPatient.gender || "N/A"}</PatientInfoValue>
                 </PatientInfoItem>
+              
+              <PatientInfoItem><Clock size={16} color={theme.colors.primary} />
+                                <PatientInfoLabel>Current Time::</PatientInfoLabel>
+                                <PatientInfoValue>{format(currentTime, "dd/MM/yyyy hh:mm:ss a")}</PatientInfoValue>
+                              </PatientInfoItem>
+                                <PatientInfoItem>
+                                <Activity size={16} color={theme.colors.success} />
+                                <PatientInfoLabel>Branch:</PatientInfoLabel>
+                                <PatientInfoValue>{samples.length > 0 ? samples[0].branch : "Shanmuga Reference Lab"}</PatientInfoValue>
+                              </PatientInfoItem>
+                              <PatientInfoItem>
+                                <User size={16} color={theme.colors.info} />
+                                <PatientInfoLabel>Technician:</PatientInfoLabel>
+                                <PatientInfoValue>{storedName || "N/A"}</PatientInfoValue>
+                              </PatientInfoItem>
               </PatientInfoCard>
 
               <div style={{ padding: "0 1.5rem 1.5rem" }}>
@@ -989,6 +1102,7 @@ const HmsSampleStatusUpdate = () => {
                         <Th>Container Type</Th>
                         <Th>Department</Th>
                         <Th>Status</Th>
+                        <Th>Outsource Lab</Th>
                         <Th>Reason for Rejection</Th>
                         <Th>Actions</Th>
                       </tr>
@@ -1010,6 +1124,47 @@ const HmsSampleStatusUpdate = () => {
                               <option value="Outsource">Outsource</option>
                             </Select>
                           </Td>
+                           <Td>
+  {statusChanges[selectedPatient.barcode]?.[testIndex] === "Outsource" && (
+    <div>
+      <Select
+        value={
+          selectedOutsourceLab[
+            `${selectedPatient.barcode}-${testIndex}`
+          ] || ""
+        }
+        onChange={(e) =>
+          handleOutsourceLabChange(
+            selectedPatient.barcode,
+            testIndex,
+            e.target.value
+          )
+        }
+      >
+        <option value="">Select Outsource Lab</option>
+        {Array.isArray(outsourceLabs) && outsourceLabs.length > 0 ? (
+          outsourceLabs.map((lab, index) => (
+            <option key={lab.labID || index} value={lab.labName}>
+              {lab.labName}
+            </option>
+          ))
+        ) : (
+          <option value="" disabled>No labs available</option>
+        )}
+      </Select>
+      {outsourceLabs.length === 0 && (
+        <div style={{ fontSize: "0.75rem", color: theme.colors.warning, marginTop: "0.25rem" }}>
+          Loading labs... (Found: {outsourceLabs.length} labs)
+        </div>
+      )}
+      {outsourceLabs.length > 0 && (
+        <div style={{ fontSize: "0.75rem", color: theme.colors.success, marginTop: "0.25rem" }}>
+          {outsourceLabs.length} labs available
+        </div>
+      )}
+    </div>
+  )}
+</Td>
                           <Td>
                             {statusChanges[selectedPatient.barcode]?.[testIndex] === "Rejected" && (
                               <Textarea
