@@ -21,8 +21,6 @@ import Muhsina from "../Images/Muhsina.png"
 import DRPS from "../Images/DRPS.png"
 import { useNavigate, useLocation } from "react-router-dom"
 import apiRequest from "../Auth/apiRequest"
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
 
 
 // Global styles
@@ -348,6 +346,40 @@ const DropdownItem = styled.button`
   }
 `
 
+const NavigationContainer = styled.div`
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+`
+
+const NavigationTab = styled.button`
+  padding: 12px 24px;
+  border: none;
+  background: ${(props) => (props.active ? "var(--primary-dark)" : "transparent")};
+  color: ${(props) => (props.active ? "white" : "#666")};
+  font-weight: ${(props) => (props.active ? "600" : "400")};
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  margin-right: 4px;
+  transition: all 0.3s ease;
+  position: relative;
+
+  &:hover {
+    background: ${(props) => (props.active ? "#0056b3" : "#f8f9fa")};
+    color: ${(props) => (props.active ? "white" : "#333")};
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: ${(props) => (props.active ? "#ccc" : "transparent")};
+  }
+`
 
 const ExportButton = styled(Button)`
   background-color: #10b981;
@@ -357,7 +389,15 @@ const ExportButton = styled(Button)`
   }
 `
 
-const OverallPrintButton = styled(Button)`
+const PrintButton = styled(Button)`
+  background-color: #3b82f6;
+ 
+  &:hover:not(:disabled) {
+    background-color: #2563eb;
+  }
+`
+
+const PrintButtonBulk = styled(Button)`
   background-color: #8b5cf6;
  
   &:hover:not(:disabled) {
@@ -1288,12 +1328,12 @@ const CHCReport = () => {
 
       // NEW: Add X-ray report content display function
       const addXrayReportContent = () => {
-  const xrayReport = patientDetails.investigation_notes?.xray_report;
+        const xrayReport = patientDetails.investigation_notes?.xray_report
 
-  if (!xrayReport || !xrayReport.trim()) {
-    console.log("No X-ray report content found");
-    return;
-  }
+        if (!xrayReport || !xrayReport.trim()) {
+          console.log("No X-ray report content found")
+          return
+        }
 
   console.log("Adding X-ray report content page");
 
@@ -1786,7 +1826,7 @@ const CHCReport = () => {
 
         const testsByDepartment = labTests.reduce((acc, test) => {
           const dept = test.department || "LABORATORY"
-          ;(acc[dept] = acc[dept] || []).push(test)
+            ; (acc[dept] = acc[dept] || []).push(test)
           return acc
         }, {})
 
@@ -2073,14 +2113,16 @@ const CHCReport = () => {
     }
   }
 
- const handleOverallPrint = async () => {
-  if (filteredPatients.length === 0) {
-    toast.error("No patients to print");
-    return;
+  // Open modal for editing credit amount
+  const openModal = (patient) => {
+    setSelectedPatient(patient)
+    setModalIsOpen(true)
   }
 
-  if (filteredPatients.length > 20) {
-    toast.warning("Large number of records. This may take a while...");
+  // Close modal
+  const closeModal = () => {
+    setModalIsOpen(false)
+    setSelectedPatient(null)
   }
 
   setLoading(true);
@@ -2096,12 +2138,9 @@ const CHCReport = () => {
       return;
     }
 
-    // CHUNKING: Split barcodes into batches of 100
-    const BATCH_SIZE = 100;
-    const barcodeBatches = [];
-    for (let i = 0; i < allBarcodes.length; i += BATCH_SIZE) {
-      barcodeBatches.push(allBarcodes.slice(i, i + BATCH_SIZE));
-    }
+  const showDropdown = (patientId) => {
+    setActiveDropdownPatientId(patientId)
+  }
 
     console.log(`Split into ${barcodeBatches.length} batches of up to ${BATCH_SIZE} barcodes`);
 
@@ -2138,6 +2177,7 @@ const CHCReport = () => {
         // Continue with other batches
       }
     }
+  }
 
     const successfulFetches = Object.keys(allPatientData).length;
    
@@ -2190,7 +2230,6 @@ const CHCReport = () => {
         failCount++;
         console.error(`Error processing patient ${patient.patient_name}:`, error);
       }
-    }
 
     if (successCount > 0) {
       try {
@@ -2218,10 +2257,13 @@ const CHCReport = () => {
       toast.error("Failed to generate any PDF reports");
     }
 
-  } catch (error) {
-    console.error("Error in batch processing:", error);
-    toast.error("Failed to process batch: " + (error.message || "Unknown error"));
-  }
+      // FIXED: Pass data as the third parameter for POST request
+      const result = await apiRequest(
+        `${Labbaseurl}get_batch_investigation_status/`,
+        "POST",
+        { barcodes: barcodes }, // Make sure to wrap in object with 'barcodes' key
+        { "Content-Type": "application/json" },
+      )
 
   setLoading(false);
 };
@@ -3417,10 +3459,18 @@ const addLaboratoryReports = () => {
       const endDateStr = format(endDate, "yyyy-MM-dd")
       const filename = `CHC_Report_${startDateStr}_to_${endDateStr}.xlsx`
 
-      XLSX.writeFile(wb, filename)
+      // Create download link and trigger download
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `BarcodeReports_${new Date().toISOString().split("T")[0]}.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
 
       setLoading(false)
-      toast.success(`Excel report exported successfully! (${enrichedData.length} records)`)
+      toast.success(`Successfully generated PDF reports for ${barcodes.length} barcodes!`)
     } catch (error) {
       console.error("Error exporting to Excel:", error)
       toast.error("Failed to export Excel report: " + (error.message || "Unknown error"))
@@ -3446,60 +3496,8 @@ const addLaboratoryReports = () => {
     if (barcodes.length === 0) {
       toast.error("No patients with barcodes found")
       setLoading(false)
-      return
     }
-
-    console.log("Sending barcodes for bulk PDF generation:", barcodes)
-
-    // Get token and branch from localStorage for fetch
-    const token = localStorage.getItem("access_token")
-    const branch = localStorage.getItem("selected_branch")
-
-    // Use fetch for blob response since apiRequest doesn't support responseType
-    const response = await fetch(`${Labbaseurl}generate_barcodes_pdf_bulk/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-        "Branch-Code": branch,
-      },
-      body: JSON.stringify({ barcodes: barcodes }),
-    })
-
-    if (!response.ok) {
-      // Try to parse error message from response
-      let errorMessage = "Failed to generate PDF reports"
-      try {
-        const errorData = await response.json()
-        errorMessage = errorData.error || errorData.message || errorMessage
-      } catch (e) {
-        // If response is not JSON, use default message
-        errorMessage = `Server error (${response.status})`
-      }
-      throw new Error(errorMessage)
-    }
-
-    // Get the ZIP file blob
-    const blob = await response.blob()
-
-    // Create download link and trigger download
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `BarcodeReports_${new Date().toISOString().split("T")[0]}.zip`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    setLoading(false)
-    toast.success(`Successfully generated PDF reports for ${barcodes.length} barcodes!`)
-  } catch (error) {
-    console.error("Error generating PDF reports:", error)
-    toast.error(error.message || "Failed to generate PDF reports")
-    setLoading(false)
   }
-}
 
   return (
     <Container>

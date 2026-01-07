@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import apiRequest from "../Auth/apiRequest";
+import { FiRefreshCw } from "react-icons/fi";
 /* -------------------- Styles -------------------- */
 const Container = styled.div`
   max-width: 1400px;
   margin: auto;
   padding: 2rem;
-  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+  /* background removed */
   min-height: 100vh;
 `;
 const Header = styled.div`
@@ -15,12 +16,13 @@ const Header = styled.div`
   h1 {
     font-size: 2.5rem;
     font-weight: 700;
-    color: white;
     margin: 0 0 0.5rem 0;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   p {
-    color: rgba(255,255,255,0.9);
+    color: #64748B;
     font-size: 1rem;
   }
 `;
@@ -39,20 +41,20 @@ const DateFilters = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(10px);
+  background: white;
   padding: 0.75rem 1.25rem;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   label {
-    color: white;
+    color: #334155;
     font-weight: 500;
     font-size: 0.875rem;
   }
 `;
 const DateInput = styled.input`
   padding: 0.5rem 0.75rem;
-  border: none;
+  border: 1px solid #E2E8F0;
   border-radius: 8px;
   background: white;
   font-size: 0.875rem;
@@ -60,23 +62,27 @@ const DateInput = styled.input`
   outline: none;
   transition: all 0.2s;
   &:focus {
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+    border-color: #6e8efb;
+    box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.1);
   }
 `;
 const RefreshButton = styled.button`
   padding: 0.75rem 1.5rem;
-  background: white;
-  color: #667EEA;
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  color: white;
   border: none;
   border-radius: 12px;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(110, 142, 251, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 12px rgba(110, 142, 251, 0.3);
   }
   &:active {
     transform: translateY(0);
@@ -85,7 +91,8 @@ const RefreshButton = styled.button`
 const Card = styled.div`
   background: white;
   border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid #E2E8F0;
   overflow: hidden;
 `;
 const TableWrapper = styled.div`
@@ -96,7 +103,7 @@ const Table = styled.table`
   border-collapse: collapse;
 `;
 const Thead = styled.thead`
-  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+  background: linear-gradient(135deg, #6e8efb 0%, #a777e3 50%, #e56f8f 100%);
 `;
 const Th = styled.th`
   padding: 1rem;
@@ -133,12 +140,12 @@ const Badge = styled.span`
   display: inline-block;
   background: ${(p) =>
     !p.val ? "#E5E7EB" :
-    parseInt(p.val.split(":")[0]) < 1 ? "#DCFCE7" :
-    parseInt(p.val.split(":")[0]) < 2 ? "#FEF9C3" : "#FEE2E2"};
+      parseInt(p.val.split(":")[0]) < 1 ? "#DCFCE7" :
+        parseInt(p.val.split(":")[0]) < 2 ? "#FEF9C3" : "#FEE2E2"};
   color: ${(p) =>
     !p.val ? "#6B7280" :
-    parseInt(p.val.split(":")[0]) < 1 ? "#166534" :
-    parseInt(p.val.split(":")[0]) < 2 ? "#854D0E" : "#991B1B"};
+      parseInt(p.val.split(":")[0]) < 1 ? "#166534" :
+        parseInt(p.val.split(":")[0]) < 2 ? "#854D0E" : "#991B1B"};
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 `;
 const LoadingState = styled.div`
@@ -189,7 +196,7 @@ const diffTime = (a, b) => {
   const h = Math.floor(diff / 3600);
   const m = Math.floor((diff % 3600) / 60);
   const s = Math.floor(diff % 60);
-  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 /* -------------------- Component -------------------- */
 const LogisticsTAT = () => {
@@ -217,8 +224,8 @@ const LogisticsTAT = () => {
       const list = Array.isArray(response?.data)
         ? response.data
         : Array.isArray(response)
-        ? response
-        : [];
+          ? response
+          : [];
       setEmployeeData(list);
     } catch (error) {
       console.error("Error fetching logistic data:", error);
@@ -238,7 +245,7 @@ const LogisticsTAT = () => {
       </Header>
       <Controls>
         <RefreshButton onClick={fetchLogisticData}>
-          :arrows_counterclockwise: Refresh Data
+          <FiRefreshCw /> Refresh Data
         </RefreshButton>
         <DateFilters>
           <label>From</label>
@@ -295,9 +302,9 @@ const LogisticsTAT = () => {
                       <Td>{item.sampleordertime || "—"}</Td>
                       <Td>{item.sampleacceptedtime || "—"}</Td>
                       <Td>{item.samplepickeduptime || "—"}</Td>
-                      <Td><Badge val={diffTime(o,a)}>{diffTime(o,a) || "N/A"}</Badge></Td>
-                      <Td><Badge val={diffTime(a,p)}>{diffTime(a,p) || "N/A"}</Badge></Td>
-                      <Td><Badge val={diffTime(o,p)}>{diffTime(o,p) || "N/A"}</Badge></Td>
+                      <Td><Badge val={diffTime(o, a)}>{diffTime(o, a) || "N/A"}</Badge></Td>
+                      <Td><Badge val={diffTime(a, p)}>{diffTime(a, p) || "N/A"}</Badge></Td>
+                      <Td><Badge val={diffTime(o, p)}>{diffTime(o, p) || "N/A"}</Badge></Td>
                     </tr>
                   );
                 })}

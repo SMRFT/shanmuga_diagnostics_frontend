@@ -29,7 +29,7 @@ import "react-toastify/dist/ReactToastify.css";
 // Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-// import Savitha from "../Images/Savitha.png";
+import Brindha from "../Images/Brindha.png";
 import Vijayan from "../Images/Vijayan.png";
 import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -310,9 +310,9 @@ const ActionButton = styled.button`
   &:hover {
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
     box-shadow: ${(props) =>
-      props.disabled
-        ? "0 2px 4px rgba(0, 0, 0, 0.1)"
-        : "0 4px 8px rgba(0, 0, 0, 0.1)"};
+    props.disabled
+      ? "0 2px 4px rgba(0, 0, 0, 0.1)"
+      : "0 4px 8px rgba(0, 0, 0, 0.1)"};
   }
 `;
 
@@ -436,33 +436,33 @@ const HMSPatientOverview = () => {
   const [activeTab, setActiveTab] = useState("hms");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-   // Set active tab based on current route
-    useEffect(() => {
-      if (location.pathname === "/HMSPatientOverview") {
-        setActiveTab("hms");
-      } else if (location.pathname === "/PatientOverview") {
-        setActiveTab("reference");
-        } else if (location.pathname === "/FranchiseOverview") {
-        setActiveTab("franchise");
-      }else if (location.pathname === "/CorporateOverview") {
-        setActiveTab("corporate");
-      }
-    }, [location.pathname]);
-  
-    // Handle tab navigation
-    const handleTabChange = (tab) => {
-      setActiveTab(tab);
-      if (tab === "hms") {
-        navigate("/HMSPatientOverview");
-      } else if (tab === "reference") {
-        navigate("/PatientOverview");
-         } else if (tab === "franchise") {
-        navigate("/FranchiseOverview");
-      }
-      else if (tab === "corporate") {
-        navigate("/CorporateOverview");
-      }
-    };
+  // Set active tab based on current route
+  useEffect(() => {
+    if (location.pathname === "/HMSPatientOverview") {
+      setActiveTab("hms");
+    } else if (location.pathname === "/PatientOverview") {
+      setActiveTab("reference");
+    } else if (location.pathname === "/FranchiseOverview") {
+      setActiveTab("franchise");
+    } else if (location.pathname === "/CorporateOverview") {
+      setActiveTab("corporate");
+    }
+  }, [location.pathname]);
+
+  // Handle tab navigation
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === "hms") {
+      navigate("/HMSPatientOverview");
+    } else if (tab === "reference") {
+      navigate("/PatientOverview");
+    } else if (tab === "franchise") {
+      navigate("/FranchiseOverview");
+    }
+    else if (tab === "corporate") {
+      navigate("/CorporateOverview");
+    }
+  };
 
   // Fetch Refby
   useEffect(() => {
@@ -487,7 +487,7 @@ const HMSPatientOverview = () => {
     fetchRefby();
   }, []);
 
-  
+
 
   // Fetch patients when component mounts
   useEffect(() => {
@@ -540,28 +540,28 @@ const HMSPatientOverview = () => {
   const isDispatchEnabled = (status) => status === "Approved";
 
   useEffect(() => {
-     const startOfDay = new Date(startDate);
-     startOfDay.setHours(0, 0, 0, 0);
-     const endOfDay = new Date(endDate);
-     endOfDay.setHours(23, 59, 59, 999);
-     const filtered = patients.filter((patient) => {
-       const patientDate = new Date(patient.date);
-       const patientStatus = statuses[patient.patient_id]?.status || '';
-       return (
-         patientDate >= startOfDay &&
-         patientDate <= endOfDay &&        
-         (!refBy || patient.refby === refBy) &&
-         (!patientId || patient.patient_id.includes(patientId)) &&
-         (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
-         (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
-         (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
-         (!statusFilter || patientStatus === statusFilter)
-       );
-     });
-     setFilteredPatients(filtered);
-   }, [startDate,
+    const startOfDay = new Date(startDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    const filtered = patients.filter((patient) => {
+      const patientDate = new Date(patient.date);
+      const patientStatus = statuses[patient.patient_id]?.status || '';
+      return (
+        patientDate >= startOfDay &&
+        patientDate <= endOfDay &&
+        (!refBy || patient.refby === refBy) &&
+        (!patientId || patient.patient_id.includes(patientId)) &&
+        (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
+        (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
+        (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
+        (!statusFilter || patientStatus === statusFilter)
+      );
+    });
+    setFilteredPatients(filtered);
+  }, [startDate,
     endDate,
-    patients,    
+    patients,
     refBy,
     patientId,
     barcode,
@@ -572,7 +572,7 @@ const HMSPatientOverview = () => {
   // Update the clearFilters function to reset the status filter
   const clearFilters = () => {
     setStartDate(new Date());
-    setEndDate(new Date());    
+    setEndDate(new Date());
     setBarcode("");
     setRefBy("");
     setPatientId("");
@@ -641,64 +641,64 @@ const HMSPatientOverview = () => {
     }
   };
 
-const handleWhatsAppShare = async (patient) => {
-  if (!patient || !patient.phone) {
-    toast.error("Patient phone number is missing");
-    return;
-  }
-
-  const phoneNumber = patient.phone.startsWith("+91")
-    ? patient.phone.replace("+", "")
-    : `91${patient.phone}`;
-
-  try {
-    const pdfBlob = await handlePrint(patient, true);
-    if (!pdfBlob) {
-      toast.error("Failed to generate the PDF");
+  const handleWhatsAppShare = async (patient) => {
+    if (!patient || !patient.phone) {
+      toast.error("Patient phone number is missing");
       return;
     }
 
-    const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
-    const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+    const phoneNumber = patient.phone.startsWith("+91")
+      ? patient.phone.replace("+", "")
+      : `91${patient.phone}`;
 
-    // Upload PDF to server
-    const formData = new FormData();
-    formData.append("file", pdfFile);
+    try {
+      const pdfBlob = await handlePrint(patient, true);
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF");
+        return;
+      }
 
-    const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+      const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+      const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
 
-    const fileUrl = uploadResponse.data.file_url;
-    if (!fileUrl) {
-      toast.error("File upload failed");
-      return;
+      // Upload PDF to server
+      const formData = new FormData();
+      formData.append("file", pdfFile);
+
+      const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const fileUrl = uploadResponse.data.file_url;
+      if (!fileUrl) {
+        toast.error("File upload failed");
+        return;
+      }
+
+      // Call Django proxy instead of Botify directly
+      const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+        patient_name: patient.patient_name || "Valued Patient",
+        phone: phoneNumber,
+        collection_time: patient.collection_time || "N/A",
+        collected_date: patient.collected_date || "N/A",
+        file_url: fileUrl,
+        pdf_name: pdfName,
+      });
+
+      if (res.data.success) {
+        toast.success("WhatsApp PDF message sent successfully!");
+      } else {
+        toast.error("Failed to send WhatsApp template message.");
+        console.error("Backend error:", res.data.error);
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp message:", error);
+      toast.error("Error sending WhatsApp message.");
     }
-
-    // Call Django proxy instead of Botify directly
-    const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
-      patient_name: patient.patient_name || "Valued Patient",
-      phone: phoneNumber,
-      collection_time: patient.collection_time || "N/A",
-      collected_date: patient.collected_date || "N/A",
-      file_url: fileUrl,
-      pdf_name: pdfName,
-    });
-
-    if (res.data.success) {
-      toast.success("WhatsApp PDF message sent successfully!");
-    } else {
-      toast.error("Failed to send WhatsApp template message.");
-      console.error("Backend error:", res.data.error);
-    }
-  } catch (error) {
-    console.error("Error sending WhatsApp message:", error);
-    toast.error("Error sending WhatsApp message.");
-  }
-};
+  };
 
 
-   const handleSendEmail = async (patient) => {
+  const handleSendEmail = async (patient) => {
     try {
       const pdfBlob = await handlePrint(patient, true); // Generate PDF with letterpad
       if (!pdfBlob) {
@@ -715,10 +715,8 @@ const handleWhatsAppShare = async (patient) => {
       formData.append("subject", `Test Details for ${patient.patient_name}`);
       formData.append(
         "message",
-        `Dear ${
-          patient.patient_name || "Recipient"
-        },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
-          patient.patient_name || "the patient"
+        `Dear ${patient.patient_name || "Recipient"
+        },\n\nWe hope this message finds you well. Please find attached the lab test results for ${patient.patient_name || "the patient"
         }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
       );
       formData.append("recipients", patient.email);
@@ -905,9 +903,8 @@ const handleWhatsAppShare = async (patient) => {
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${
-            patientDetails.gender || "N/A"
-          }`,
+          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${patientDetails.gender || "N/A"
+            }`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
       ];
@@ -1002,7 +999,7 @@ const handleWhatsAppShare = async (patient) => {
 
         return patientInfoY;
       };
-      
+
 
       // Function to add header and footer with consistent positioning
       const addHeaderFooter = () => {
@@ -1167,35 +1164,35 @@ const handleWhatsAppShare = async (patient) => {
 
       // Function to check if we need to add a new page with consistent calculations
       const checkForNewPage = (yPos, estimatedHeight) => {
-  const pageHeight = doc.internal.pageSize.height;
-  // Use consistent footer space calculation for both versions
-  const footerStart =
-    pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12); // Added extra space
+        const pageHeight = doc.internal.pageSize.height;
+        // Use consistent footer space calculation for both versions
+        const footerStart =
+          pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12); // Added extra space
 
-  // If content is approaching footer, move to a new page
-  if (yPos + estimatedHeight >= footerStart) {
-    // Add signatures to current page before creating new page
-    addSignatures();
+        // If content is approaching footer, move to a new page
+        if (yPos + estimatedHeight >= footerStart) {
+          // Add signatures to current page before creating new page
+          addSignatures();
 
-    doc.addPage();
-    pageCount++;
-    addHeaderFooter(); // Add header/footer
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter(); // Add header/footer
 
-    let newYPos = contentYStart;
-    newYPos = addPatientInfo(newYPos); // Add patient info on new page
-    
-    // ADD THIS LINE: Add extra space after patient info on new pages too
-    newYPos += 10; // Same spacing as first page
+          let newYPos = contentYStart;
+          newYPos = addPatientInfo(newYPos); // Add patient info on new page
 
-    // If we're in the table section, add table header on new page
-    if (isTableStarted) {
-      newYPos = drawTableHeader(newYPos);
-    }
+          // ADD THIS LINE: Add extra space after patient info on new pages too
+          newYPos += 10; // Same spacing as first page
 
-    return newYPos; // Reset Y position for new page
-  }
-  return yPos;
-};
+          // If we're in the table section, add table header on new page
+          if (isTableStarted) {
+            newYPos = drawTableHeader(newYPos);
+          }
+
+          return newYPos; // Reset Y position for new page
+        }
+        return yPos;
+      };
 
 
       // Function to determine whether a value is high or low compared to reference range
@@ -1249,7 +1246,7 @@ const handleWhatsAppShare = async (patient) => {
 
       // Use addPatientInfo function
       let currentYPosition = addPatientInfo(contentYStart);
-      currentYPosition += 10; 
+      currentYPosition += 10;
 
       // Test rendering logic with better page break handling and consistent alignment
       if (patientDetails.testdetails.length) {
@@ -1354,8 +1351,8 @@ const handleWhatsAppShare = async (patient) => {
               const statusIndicator = currentTest.isHigh
                 ? "H"
                 : currentTest.isLow
-                ? "L"
-                : getHighLowStatus(
+                  ? "L"
+                  : getHighLowStatus(
                     currentTest.value,
                     currentTest.reference_range
                   );
@@ -1638,7 +1635,7 @@ return pdfBlob;
             >
               Franchise
             </NavigationTab>
-             <NavigationTab
+            <NavigationTab
               active={activeTab === "corporate"}
               onClick={() => handleTabChange("corporate")}
             >
@@ -1666,7 +1663,7 @@ return pdfBlob;
                 value={endDate.toISOString().split("T")[0]}
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
-            </FilterGroup>           
+            </FilterGroup>
             <FilterGroup>
               <FilterLabel>Select Referral</FilterLabel>
               <FilterSelect
@@ -1680,7 +1677,7 @@ return pdfBlob;
                   </option>
                 ))}
               </FilterSelect>
-            </FilterGroup>            
+            </FilterGroup>
             <FilterGroup>
               <FilterLabel>OP Number</FilterLabel>
               <FilterInput
@@ -1690,7 +1687,7 @@ return pdfBlob;
                 onChange={(e) => setPatientId(e.target.value)}
               />
             </FilterGroup>
-             <FilterGroup>
+            <FilterGroup>
               <FilterLabel>IP Number</FilterLabel>
               <FilterInput
                 type="text"
@@ -1755,7 +1752,7 @@ return pdfBlob;
                 <th>OP Number</th>
                 <th>IP Number</th>
                 <th>Barcode</th>
-                <th>Patient Name</th>                
+                <th>Patient Name</th>
                 <th>Referral</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -1819,7 +1816,7 @@ return pdfBlob;
                       <td>{patient.refby || "N/A"}</td>
                       <td>
                         <Badge color={badgeColor}>{status}</Badge>
-                      </td>                      
+                      </td>
                       <td>
                         <ActionContainer>
                           <ActionButton
@@ -1981,7 +1978,7 @@ return pdfBlob;
               alignItems: "center",
             }}
           >
-                     </div>
+          </div>
         )}
       </Modal>
     </Container>

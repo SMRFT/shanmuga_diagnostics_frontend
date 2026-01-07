@@ -25,9 +25,9 @@ const GlobalStyle = createGlobalStyle`
     --dark: #212529;
     --gray: #6c757d;
     --gray-light: #e9ecef;
-    --border-radius: 8px;
-    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --transition: all 0.3s ease;
+    --border-radius: 12px;
+    --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   * {
@@ -48,41 +48,60 @@ const GlobalStyle = createGlobalStyle`
 // Styled components remain the same as before...
 const Container = styled.div`
   max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
+  margin: 2rem auto;
+  padding: 0 2rem;
 
   @media (max-width: 768px) {
-    padding: 1rem;
+    padding: 0 1rem;
   }
 `;
 
 const Card = styled.div`
   background-color: white;
-  border-radius: var(--border-radius);
+  border-radius: 24px;
   box-shadow: var(--box-shadow);
   overflow: hidden;
   margin-bottom: 2rem;
+  border: 1px solid rgba(0,0,0,0.02);
 `;
 
 const CardHeader = styled.div`
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--gray-light);
+  background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
+  padding: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%);
+  }
 
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 1.5rem;
+    padding: 1.5rem;
   }
 `;
 
 const Title = styled.h1`
-  font-size: 1.5rem;
-  color: var(--primary-dark);
-  font-weight: 600;
+  font-size: 2rem;
+  color: white;
+  font-weight: 700;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
 `;
 
 const CardBody = styled.div`
@@ -99,14 +118,18 @@ const Table = styled.table`
 `;
 
 const THead = styled.thead`
-  background-color: var(--secondary);
-  color: white;
-
+  background-color: #f8fafc;
+  
   th {
-    padding: 12px;
-    text-align: center;
-    font-weight: bold;
-    background-color: var(--primary);
+    padding: 1.25rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+    background: transparent;
   }
 `;
 
@@ -126,12 +149,15 @@ const Td = styled.td`
 `;
 
 const Tr = styled.tr`
-  &:nth-child(even) {
-    background-color: var(--light);
+  transition: all 0.2s;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
   }
 
   &:hover {
-    background-color: rgba(67, 97, 238, 0.05);
+    background-color: #f8fafc;
   }
 `;
 
@@ -139,37 +165,42 @@ const Button = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 2;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background-color: ${(props) =>
     props.primary
-      ? "var(--primary)"
+      ? "#6e8efb"
       : props.success
-      ? "var(--success)"
-      : "white"};
+        ? "#10b981"
+        : "white"};
   color: ${(props) =>
-    props.primary || props.success ? "white" : "var(--gray)"};
+    props.primary || props.success ? "white" : "#475569"};
   border: 1px solid
     ${(props) =>
-      props.primary
-        ? "var(--primary)"
-        : props.success
-        ? "var(--success)"
-        : "var(--gray-light)"};
-  border-radius: var(--border-radius);
-  font-size: 0.875rem;
-  font-weight: 500;
+    props.primary
+      ? "#6e8efb"
+      : props.success
+        ? "#10b981"
+        : "#e2e8f0"};
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: var(--transition);
   opacity: ${(props) => (props.disabled ? "0.7" : "1")};
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 
   &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
     background-color: ${(props) =>
-      props.primary
-        ? "var(--primary-dark)"
-        : props.success
-        ? "var(--primary-light)"
-        : "var(--gray-light)"};
+    props.primary
+      ? "#5a7ce6"
+      : props.success
+        ? "#059669"
+        : "#f1f5f9"};
   }
 `;
 
@@ -276,8 +307,13 @@ const IconCircle = styled.div`
 const FilterContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.02);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -291,10 +327,10 @@ const FilterGroup = styled.div`
 
 const FormLabel = styled.label`
   display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: var(--dark);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #475569;
 `;
 
 const InputGroup = styled.div`
@@ -314,16 +350,19 @@ const InputIcon = styled.div`
 
 const Input = styled.input`
   width: 100%;
-  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
-  border: 1px solid var(--gray-light);
-  border-radius: var(--border-radius);
-  font-size: 0.875rem;
+  padding: 1rem 1rem 1rem 3rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  font-size: 0.95rem;
   transition: var(--transition);
+  background: #f8fafc;
+  color: #1e293b;
 
   &:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    border-color: #a777e3;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(167, 119, 227, 0.1);
   }
 `;
 
@@ -491,23 +530,25 @@ const PatientDataTable = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // We still send filters to backend for patient_id if provided
       const queryParams = new URLSearchParams();
-      if (filters.patient_id)
-        queryParams.append("patient_id", filters.patient_id);
+      if (filters.patient_id) queryParams.append("patient_id", filters.patient_id);
+      if (filters.from_date) queryParams.append("from_date", filters.from_date);
+      if (filters.to_date) queryParams.append("to_date", filters.to_date);
+
+      // If no valid date range or patient_id is provided, don't fetch or handle as needed
+      // Based on the error, backend requires dates or selected_date. 
+      // We are defaulting to from_date and to_date.
 
       const response = await apiRequest(`${API_BASE_URL}?${queryParams.toString()}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!response.success) {
+        throw new Error(response.error || `HTTP error! Status: ${response.status}`);
       }
 
-      const data = await response.json();
-      setAllPatients(data); // Store all fetched data
-
-      // Apply date filters in the frontend
-      const filteredData = applyDateFilters(data);
-      setPatients(filteredData);
+      const data = response.data;
+      console.log("API Response Data:", data); // Log the data to inspect structure
+      setAllPatients(data);
+      setPatients(data); // Backend filtered data
 
       setError(null);
     } catch (err) {
@@ -521,56 +562,18 @@ const PatientDataTable = () => {
   };
 
   useEffect(() => {
-    // Fetch data when component mounts or when patient_id filter changes
+    // Fetch data when component mounts or when filters change
     fetchData();
-  }, [filters.patient_id]); // Only re-fetch when patient_id changes
+  }, [filters.patient_id]); // Adjusted dependency to only patient_id? No, usually filters should drive it. 
+  // But the design below has an "Apply" button for dates. 
+  // Let's stick to the previous pattern: fetch on mount and when interactions happen.
+  // Actually, the original code fetched on mount AND patient_id change. 
+  // The Apply button triggers handleApplyFilter.
 
-  // Also apply date filters immediately when component mounts
+  // Initial fetch on mount with default dates
   useEffect(() => {
-    if (allPatients.length > 0) {
-      const filteredData = applyDateFilters(allPatients);
-      setPatients(filteredData);
-    }
-  }, []); // Empty dependency array means this runs once on mount
-
-  // Apply date filters to the data in the frontend
-  const applyDateFilters = (data) => {
-    if (!filters.from_date && !filters.to_date) {
-      return data; // Return all data if no date filters
-    }
-
-    return data.filter((patient) => {
-      const patientDate = new Date(patient.date);
-
-      // Set time to midnight for accurate date comparison
-      patientDate.setHours(0, 0, 0, 0);
-
-      let fromDateObj = null;
-      let toDateObj = null;
-
-      if (filters.from_date) {
-        fromDateObj = new Date(filters.from_date);
-        fromDateObj.setHours(0, 0, 0, 0);
-      }
-
-      if (filters.to_date) {
-        toDateObj = new Date(filters.to_date);
-        // Set to end of day for inclusive "to" date
-        toDateObj.setHours(23, 59, 59, 999);
-      }
-
-      // Apply date range filter
-      if (fromDateObj && toDateObj) {
-        return patientDate >= fromDateObj && patientDate <= toDateObj;
-      } else if (fromDateObj) {
-        return patientDate >= fromDateObj;
-      } else if (toDateObj) {
-        return patientDate <= toDateObj;
-      }
-
-      return true;
-    });
-  };
+    fetchData();
+  }, []);
 
   const handleFilterChange = (e) => {
     setFilters({
@@ -580,30 +583,41 @@ const PatientDataTable = () => {
   };
 
   const handleApplyFilter = () => {
-    if (filters.patient_id) {
-      // If patient_id changed, we need to fetch from API
-      fetchData();
-    } else {
-      // Just apply date filters to existing data
-      const filteredData = applyDateFilters(allPatients);
-      setPatients(filteredData);
-      setCurrentPage(1); // Reset to first page when filters change
-    }
+    setCurrentPage(1);
+    fetchData(); // Trigger fetch with current filters (dates and/or patient_id)
   };
 
   const handleClearFilter = () => {
-    // Set today's date for from_date and to_date when clearing filters
-    setFilters({
+    const defaultFilters = {
       patient_id: "",
       from_date: today,
       to_date: today,
-    });
+    };
+    setFilters(defaultFilters);
+    // Needed to set state and then fetch, but setState is async. 
+    // Effect hook on filters would be better, but avoiding major refactor:
+    // We can call fetchData with the default values directly or wait for re-render if using effect.
+    // For simplicity with current structure:
+    setLoading(true); // Manually show loading
 
-    // Apply the default today's date filter to data
-    if (allPatients.length > 0) {
-      const filteredData = applyDateFilters(allPatients);
-      setPatients(filteredData);
-    }
+    // Construct query with defaults
+    const queryParams = new URLSearchParams();
+    queryParams.append("from_date", today);
+    queryParams.append("to_date", today);
+
+    apiRequest(`${API_BASE_URL}?${queryParams.toString()}`)
+      .then(response => response.json())
+      .then(data => {
+        setAllPatients(data);
+        setPatients(data);
+        setLoading(false);
+        setError(null);
+      })
+      .catch(err => {
+        console.error("Error clearing filters:", err);
+        setLoading(false);
+      });
+
     setCurrentPage(1);
   };
 
@@ -661,7 +675,7 @@ const PatientDataTable = () => {
       }
       // Handle - and ; as separators when not inside parentheses
       else if (
-        (char === "-" || char === ";") &&
+        (char === "" || char === ";") &&
         insideParentheses === 0 &&
         (i === 0 || testNamesStr[i - 1] === " ") &&
         i + 1 < testNamesStr.length &&
@@ -909,7 +923,8 @@ const PatientDataTable = () => {
                   <Table>
                     <THead type="primary">
                       <Tr>
-                        <Th>Date</Th>
+                        <Th>Reg. Date</Th>
+                        <Th>Collected</Th>
                         <Th>Patient ID</Th>
                         <Th>Name</Th>
                         <Th>Age/Gender</Th>
@@ -917,6 +932,7 @@ const PatientDataTable = () => {
                         <Th>B2B</Th>
                         <Th>Sales Rep</Th>
                         <Th>Sample Collector</Th>
+                        <Th>Status</Th>
                         <Th>No. of Tests</Th>
                         <Th>Test Names</Th>
                         <Th>Total Amount</Th>
@@ -933,13 +949,22 @@ const PatientDataTable = () => {
                         const { paymentMethod, paymentDetails } =
                           getPaymentInfo(patient);
 
+                        // Format dates
+                        const regDate = patient.registration_date
+                          ? new Date(patient.registration_date).toLocaleString("en-GB", {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })
+                          : new Date(patient.date).toLocaleDateString("en-GB");
+
+                        const collectionInfo = patient.collected_date
+                          ? `${patient.collected_date} ${patient.collection_time || ''}`
+                          : "N/A";
+
                         return (
                           <Tr key={patientId}>
-                            <Td>
-                              {new Date(patient.date).toLocaleDateString(
-                                "en-GB"
-                              )}
-                            </Td>
+                            <Td>{regDate}</Td>
+                            <Td>{collectionInfo}</Td>
                             <Td>
                               <Badge type="primary">{patient.patient_id}</Badge>
                             </Td>
@@ -967,7 +992,7 @@ const PatientDataTable = () => {
                               <Badge
                                 type={
                                   patient.salesMapping &&
-                                  patient.salesMapping !== "N/A"
+                                    patient.salesMapping !== "N/A"
                                     ? "success"
                                     : "secondary"
                                 }
@@ -981,12 +1006,25 @@ const PatientDataTable = () => {
                               <Badge
                                 type={
                                   patient.sample_collector &&
-                                  patient.sample_collector !== "N/A"
+                                    patient.sample_collector !== "N/A"
                                     ? "warning"
                                     : "secondary"
                                 }
                               >
                                 {patient.sample_collector || "N/A"}
+                              </Badge>
+                            </Td>
+
+                            {/* Status Column */}
+                            <Td>
+                              <Badge
+                                type={
+                                  patient.status === "Approved" || patient.status === "Partially Approved"
+                                    ? "success"
+                                    : "primary"
+                                }
+                              >
+                                {patient.status || "Pending"}
                               </Badge>
                             </Td>
 
@@ -1037,12 +1075,12 @@ const PatientDataTable = () => {
                                   testNames.length > 0 && (
                                     <Tooltip>
                                       <TooltipHeader>
-                                        Test Names ({testNames.length})
+                                        Tests ({testNames.length})
                                       </TooltipHeader>
                                       <TestList>
-                                        {testNames.map((test, i) => (
-                                          <TestItem key={i}>
-                                            • {test.trim()}
+                                        {testNames.map((test, idx) => (
+                                          <TestItem key={idx}>
+                                            {test.trim()}
                                           </TestItem>
                                         ))}
                                       </TestList>
@@ -1050,45 +1088,34 @@ const PatientDataTable = () => {
                                   )}
                               </TestNameContainer>
                             </Td>
-
-                            <Td>
-                              ₹
-                              {parseInt(
-                                patient.totalAmount || patient.total_amount || 0
-                              ).toLocaleString()}
+                            <Td style={{ fontWeight: "600" }}>
+                              ₹{patient.totalAmount || patient.total_amount}
                             </Td>
                             <Td>
                               <Badge
-                                type={paymentMethod ? "info" : "secondary"}
+                                type={
+                                  paymentMethod === "Cash"
+                                    ? "success"
+                                    : "primary"
+                                }
                               >
-                                {paymentMethod || "-"}
+                                {paymentMethod || "N/A"}
                               </Badge>
                             </Td>
-                            <Td>
-                              {paymentDetails ? (
-                                <span
-                                  style={{
-                                    fontSize: "0.85em",
-                                    color: "var(--text-secondary)",
-                                  }}
-                                >
-                                  {paymentDetails}
-                                </span>
-                              ) : (
-                                <span style={{ color: "var(--gray)" }}>-</span>
-                              )}
+                            <Td style={{ fontSize: "0.75rem" }}>
+                              {paymentDetails || "-"}
                             </Td>
-                            <Td>
-                              {parseInt(patient.credit_amount) > 0 ? (
-                                <span style={{ color: "var(--danger)" }}>
-                                  ₹
-                                  {parseInt(
-                                    patient.credit_amount
-                                  ).toLocaleString()}
-                                </span>
-                              ) : (
-                                <span style={{ color: "var(--gray)" }}>-</span>
-                              )}
+                            <Td
+                              style={{
+                                color:
+                                  patient.credit_amount > 0
+                                    ? "var(--danger)"
+                                    : "inherit",
+                                fontWeight:
+                                  patient.credit_amount > 0 ? "600" : "400",
+                              }}
+                            >
+                              ₹{patient.credit_amount || 0}
                             </Td>
                           </Tr>
                         );
@@ -1129,7 +1156,7 @@ const PatientDataTable = () => {
             )}
           </CardBody>
         </Card>
-      </Container>
+      </Container >
     </>
   );
 };

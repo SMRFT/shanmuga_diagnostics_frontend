@@ -12,6 +12,7 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
+import Brindha from "../Images/Brindha.png";
 import Vijayan from "../Images/Vijayan.png";
 import Brindha from "../Images/Brindha.png";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -293,52 +294,52 @@ const HMSTestSorting = ({ patient, onClose }) => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const [searchTerm, setSearchTerm] = useState("");
   useEffect(() => {
-  const fetchTests = async () => {
-    try {
-      const response = await apiRequest(
-        `${Labbaseurl}patient_test_sorting/?barcode=${patient.barcode}&date=${patient.date}`,
-        "GET",
-        null,
-        {}, // Additional headers, if any
-        {} // No additional config needed since params are in the URL
-      );
-
-      if (response.success) {
-        // Use barcode as key since backend returns data with barcode as key
-        if (response.data[patient.barcode]) {
-          const testDetails =
-            response.data[patient.barcode].testdetails || [];
-
-          // Order by number (assumes test name contains a number)
-          const sortedTests = testDetails.sort((a, b) => {
-            const numA = parseInt(a.testname.match(/\d+/)?.[0]) || 0;
-            const numB = parseInt(b.testname.match(/\d+/)?.[0]) || 0;
-            return numA - numB;
-          });
-
-          // Updated: Preserve NABL data along with testname
-          setTests(sortedTests.map((test) => ({ 
-            testname: test.testname,
-            NABL: test.NABL || false // Include NABL status
-          })));
-        } else {
-          console.log("No test data found for this barcode");
-          setTests([]);
-        }
-      } else {
-        console.error(
-          "Error fetching tests:",
-          response.error,
-          response.status
+    const fetchTests = async () => {
+      try {
+        const response = await apiRequest(
+          `${Labbaseurl}patient_test_sorting/?barcode=${patient.barcode}&date=${patient.date}`,
+          "GET",
+          null,
+          {}, // Additional headers, if any
+          {} // No additional config needed since params are in the URL
         );
-      }
-    } catch (error) {
-      console.error("Unexpected error fetching tests:", error);
-    }
-  };
 
-  fetchTests();
-}, [patient.patient_id]);
+        if (response.success) {
+          // Use barcode as key since backend returns data with barcode as key
+          if (response.data[patient.barcode]) {
+            const testDetails =
+              response.data[patient.barcode].testdetails || [];
+
+            // Order by number (assumes test name contains a number)
+            const sortedTests = testDetails.sort((a, b) => {
+              const numA = parseInt(a.testname.match(/\d+/)?.[0]) || 0;
+              const numB = parseInt(b.testname.match(/\d+/)?.[0]) || 0;
+              return numA - numB;
+            });
+
+            // Updated: Preserve NABL data along with testname
+            setTests(sortedTests.map((test) => ({
+              testname: test.testname,
+              NABL: test.NABL || false // Include NABL status
+            })));
+          } else {
+            console.log("No test data found for this barcode");
+            setTests([]);
+          }
+        } else {
+          console.error(
+            "Error fetching tests:",
+            response.error,
+            response.status
+          );
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching tests:", error);
+      }
+    };
+
+    fetchTests();
+  }, [patient.patient_id]);
   const handleSelectTest = (test) => {
     setSelectedTests((prev) => {
       const isSelected = prev.some((t) => t.testname === test.testname);
@@ -1102,9 +1103,9 @@ return pdfBlob;
                       {isSelected && <Check size={14} color="white" />}
                     </CheckboxContainer>
                     <TestName selected={isSelected}>
-  {test.testname}
-  {test.NABL && <span className="nabl-asterisk">*</span>} 
-</TestName>
+                      {test.testname}
+                      {test.NABL && <span className="nabl-asterisk">*</span>}
+                    </TestName>
                   </TestInfo>
                 </TestItem>
               );
