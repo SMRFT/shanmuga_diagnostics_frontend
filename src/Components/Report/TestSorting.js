@@ -426,6 +426,7 @@ const TestSorting = ({ patient, onClose }) => {
         "\\u00b3": "³",
       };
 
+
       const processUnicodeText = (text) => {
         if (!text) return "";
         let processedText = text;
@@ -442,6 +443,31 @@ const TestSorting = ({ patient, onClose }) => {
         });
         return processedText;
       };
+
+    const consultants = [
+      ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
+      ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
+
+    ];
+
+    const patientRefNo =
+      patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
+    const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
+
+    let barcodeImage = null;
+    if (patientRefNoNumber !== "N/A") {
+      const barcodeCanvas = document.createElement("canvas");
+      JsBarcode(barcodeCanvas, patientRefNoNumber, {
+        format: "CODE128",
+        lineColor: "#000",
+        width: 1.5,
+        height: 10,
+        displayValue: false,
+        margin: 0,
+      });
+      barcodeImage = barcodeCanvas.toDataURL("image/png");
+    }
+
 
       const extractPatientRefNoNumber = (refNo) => {
         if (!refNo) return "N/A";
