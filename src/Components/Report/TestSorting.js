@@ -447,11 +447,9 @@ const handlePrint = async (withLetterpad) => {
       return numberPart;
     };
 
-    // UPDATED: Added signature images as third parameter
     const consultants = [
       ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
       ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
-
     ];
 
     const patientRefNo =
@@ -479,7 +477,6 @@ const handlePrint = async (withLetterpad) => {
     const footerHeight = 20;
     const contentYStart = headerHeight + 20;
     const signatureHeight = 25;
-    const disclaimerHeight = 0;
     const tableHeaderHeight = 10;
 
     const colWidths = [
@@ -673,16 +670,21 @@ const handlePrint = async (withLetterpad) => {
       return yPos;
     };
 
-    const wrapText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
-      if (!text) return 0;
-      const splitText = doc.splitTextToSize(text, maxWidth);
-      splitText.forEach((line, index) => {
-        doc.text(line, startX, yPos + index * lineHeight);
-      });
-      return splitText.length * lineHeight;
+    // FIXED: Improved helper functions for text wrapping
+    const wrapTextAndGetLines = (doc, text, maxWidth) => {
+      if (!text) return [];
+      return doc.splitTextToSize(text, maxWidth);
     };
 
-    // UPDATED: Conditional signature rendering based on approve_by
+    const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
+      if (!text) return 0;
+      const lines = wrapTextAndGetLines(doc, text, maxWidth);
+      lines.forEach((line, index) => {
+        doc.text(line, startX, yPos + index * lineHeight);
+      });
+      return lines.length * lineHeight;
+    };
+
     const addSignatures = () => {
       const pageHeight = doc.internal.pageSize.height;
       const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
@@ -690,7 +692,6 @@ const handlePrint = async (withLetterpad) => {
       const availableWidth = contentWidth - (signatureWidth / 2) * 2;
       const signatureSpacing = availableWidth / (consultants.length - 1);
 
-      // Collect all unique approve_by values from testdetails
       const approvers = new Set();
       patientDetails.testdetails.forEach((test) => {
         if (test.approve_by && test.approve_by.trim() !== "") {
@@ -700,14 +701,11 @@ const handlePrint = async (withLetterpad) => {
 
       consultants.forEach((consultant, index) => {
         const xPosition = leftMargin + index * signatureSpacing;
-
-        // Check if this consultant's signature should be displayed
         const consultantName = consultant[0].toLowerCase();
         const shouldShowSignature = 
-          consultantName.includes("brindha") && approvers.has("brindha") ||
-          consultantName.includes("vijayan") && approvers.has("vijayan");
+          (consultantName.includes("brindha") && (approvers.has("brindha") || approvers.has("dr.brindha"))) ||
+          (consultantName.includes("vijayan") && (approvers.has("vijayan") || approvers.has("dr.vijayan")));
 
-        // Add Signature (if available) - only if approved by this consultant
         if (consultant[2] && shouldShowSignature) {
           doc.addImage(
             consultant[2],
@@ -719,22 +717,21 @@ const handlePrint = async (withLetterpad) => {
           );
         }
 
-        // Always print name below the signature area
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text(consultant[0], xPosition, signaturesY + 15);
 
-        // Always print qualification below the name
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.text(consultant[1], xPosition, signaturesY + 20);
       });
     };
 
+    // FIXED: Improved checkForNewPage
     const checkForNewPage = (yPos, estimatedHeight) => {
       const pageHeight = doc.internal.pageSize.height;
-      const footerStart =
-        pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
+      const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
+
       if (yPos + estimatedHeight >= footerStart) {
         addSignatures();
         doc.addPage();
@@ -844,35 +841,45 @@ const handlePrint = async (withLetterpad) => {
             });
           }
 
-          const testHeaderHeight = 20;
-          yPos = checkForNewPage(yPos, testHeaderHeight);
-
+          // FIXED: Calculate proper height for main test row
           doc.setFontSize(10);
+          
+          const testNameText = test.testname;
+          const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
+          
+          const specimenLines = wrapTextAndGetLines(doc, test.specimen_type || "", colWidths[1] - 2);
+          
+          const valueText = test.value || "";
+          const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
+          
+          const unitLines = wrapTextAndGetLines(doc, processUnicodeText(test.unit || ""), colWidths[4] - 2);
+          
+          const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
+          
+          const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
+          const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
+          
+          const maxLines = Math.max(
+            testNameLines.length,
+            specimenLines.length,
+            valueLines.length,
+            unitLines.length,
+            referenceLines.length,
+            methodLines.length
+          );
+          const lineHeight = 4;
+          const actualRowHeight = maxLines * lineHeight + 2;
+          
+          yPos = checkForNewPage(yPos, actualRowHeight);
 
           let xPos = leftMargin;
 
           doc.setFont("helvetica", "bold");
-          const testNameText = test.testname;
-          const testNameHeight = wrapText(
-            doc,
-            testNameText,
-            colWidths[0] - 2,
-            xPos,
-            yPos,
-            4
-          );
+          renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
           xPos += colWidths[0];
 
           doc.setFont("helvetica", "normal");
-
-          const specimenHeight = wrapText(
-            doc,
-            test.specimen_type || "",
-            colWidths[1] - 2,
-            xPos,
-            yPos,
-            4
-          );
+          renderWrappedText(doc, test.specimen_type || "", colWidths[1] - 2, xPos, yPos, lineHeight);
           xPos += colWidths[1];
 
           xPos += colWidths[2];
@@ -883,8 +890,6 @@ const handlePrint = async (withLetterpad) => {
             ? "L"
             : getHighLowStatus(test.value, test.reference_range);
 
-          const valueText = test.value || "";
-
           if (statusIndicator) {
             doc.setFont("helvetica", "bold");
             if (statusIndicator === "H") {
@@ -892,78 +897,33 @@ const handlePrint = async (withLetterpad) => {
             } else if (statusIndicator === "L") {
               doc.setTextColor(0, 0, 255);
             }
-            const valueHeight = wrapText(
-              doc,
-              valueText,
-              colWidths[3] - 2,
-              xPos,
-              yPos,
-              4
-            );
-
+            renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
             const valueWidth = doc.getTextWidth(valueText);
-            if (statusIndicator === "H") {
-              drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-            } else if (statusIndicator === "L") {
-              drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+            if (valueWidth < colWidths[3] - 5) {
+              if (statusIndicator === "H") {
+                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+              } else if (statusIndicator === "L") {
+                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+              }
             }
             doc.setTextColor(0, 0, 0);
             doc.setFont("helvetica", "normal");
           } else {
-            const valueHeight = wrapText(
-              doc,
-              valueText,
-              colWidths[3] - 2,
-              xPos,
-              yPos,
-              4
-            );
+            renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
           }
           xPos += colWidths[3];
 
-          const unitHeight = wrapText(
-            doc,
-            processUnicodeText(test.unit || ""),
-            colWidths[4] - 2,
-            xPos,
-            yPos,
-            4
-          );
+          renderWrappedText(doc, processUnicodeText(test.unit || ""), colWidths[4] - 2, xPos, yPos, lineHeight);
           xPos += colWidths[4];
 
-          const referenceRangeHeight = wrapText(
-            doc,
-            test.reference_range || "",
-            colWidths[5] - 2,
-            xPos,
-            yPos,
-            4
-          );
+          renderWrappedText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
           xPos += colWidths[5];
 
           doc.setTextColor(0, 0, 0);
-          const methodText = (test.method || "")
-            .replace(/\bMethod\b/i, "")
-            .trim();
-          const methodHeight = wrapText(
-            doc,
-            methodText,
-            colWidths[6] - 2,
-            xPos,
-            yPos,
-            4
-          );
+          renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
 
-          const maxContentHeight = Math.max(
-            testNameHeight,
-            specimenHeight,
-            referenceRangeHeight,
-            methodHeight,
-            unitHeight
-          );
-          yPos += Math.max(maxContentHeight, 6) + 2;
+          yPos += actualRowHeight;
 
-          // ADDED: Outsourced label for main test
           if (test.outsourced === true) {
             doc.setFont("helvetica", "italic");
             doc.setFontSize(8);
@@ -971,13 +931,12 @@ const handlePrint = async (withLetterpad) => {
             yPos += 4;
           }
 
-          // ADDED: Comment for main test (when test has no parameters)
           if (!test.parameters || test.parameters.length === 0) {
             if (test.comment && test.comment.trim() !== "") {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
               const commentText = `Note: ${test.comment}`;
-              const commentHeight = wrapText(
+              const commentHeight = renderWrappedText(
                 doc,
                 commentText,
                 colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
@@ -1005,32 +964,43 @@ const handlePrint = async (withLetterpad) => {
             }
 
             parametersBySubtitle[subtitle].forEach((currentTest) => {
-              const estimatedHeight = 18;
-              yPos = checkForNewPage(yPos, estimatedHeight);
-
+              // FIXED: Calculate proper height for parameter rows
               doc.setFontSize(10);
+              
+              const paramNameText = currentTest.name;
+              const paramNameLines = wrapTextAndGetLines(doc, paramNameText, colWidths[0] - 2);
+              
+              const paramSpecimenLines = wrapTextAndGetLines(doc, currentTest.specimen_type || "", colWidths[1] - 2);
+              
+              const paramValueText = currentTest.value || "";
+              const paramValueLines = wrapTextAndGetLines(doc, paramValueText, colWidths[3] - 2);
+              
+              const paramUnitLines = wrapTextAndGetLines(doc, processUnicodeText(currentTest.unit || ""), colWidths[4] - 2);
+              
+              const paramReferenceLines = wrapTextAndGetLines(doc, currentTest.reference_range || "", colWidths[5] - 2);
+              
+              const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
+              const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
+              
+              const paramMaxLines = Math.max(
+                paramNameLines.length,
+                paramSpecimenLines.length,
+                paramValueLines.length,
+                paramUnitLines.length,
+                paramReferenceLines.length,
+                paramMethodLines.length
+              );
+              const paramActualRowHeight = paramMaxLines * lineHeight + 2;
+              
+              yPos = checkForNewPage(yPos, paramActualRowHeight);
+
               let xPos = leftMargin;
 
               doc.setFont("helvetica", "normal");
-              const testNameText = currentTest.name;
-              const testNameHeight = wrapText(
-                doc,
-                testNameText,
-                colWidths[0] - 2,
-                xPos,
-                yPos,
-                4
-              );
+              renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
               xPos += colWidths[0];
 
-              const specimenHeight = wrapText(
-                doc,
-                currentTest.specimen_type || "",
-                colWidths[1] - 2,
-                xPos,
-                yPos,
-                4
-              );
+              renderWrappedText(doc, currentTest.specimen_type || "", colWidths[1] - 2, xPos, yPos, lineHeight);
               xPos += colWidths[1];
 
               xPos += colWidths[2];
@@ -1044,9 +1014,6 @@ const handlePrint = async (withLetterpad) => {
                     currentTest.reference_range
                   );
 
-              const valueText = currentTest.value || "";
-              let valueHeight = 0;
-
               if (statusIndicator) {
                 doc.setFont("helvetica", "bold");
                 if (statusIndicator === "H") {
@@ -1054,83 +1021,37 @@ const handlePrint = async (withLetterpad) => {
                 } else if (statusIndicator === "L") {
                   doc.setTextColor(0, 0, 255);
                 }
-                valueHeight = wrapText(
-                  doc,
-                  valueText,
-                  colWidths[3] - 2,
-                  xPos,
-                  yPos,
-                  4
-                );
-
-                const valueWidth = doc.getTextWidth(valueText);
-                if (statusIndicator === "H") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-                } else if (statusIndicator === "L") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+                renderWrappedText(doc, paramValueText, colWidths[3] - 5, xPos, yPos, lineHeight);
+                const valueWidth = doc.getTextWidth(paramValueText);
+                if (valueWidth < colWidths[3] - 5) {
+                  if (statusIndicator === "H") {
+                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+                  } else if (statusIndicator === "L") {
+                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+                  }
                 }
                 doc.setTextColor(0, 0, 0);
                 doc.setFont("helvetica", "normal");
               } else {
-                valueHeight = wrapText(
-                  doc,
-                  valueText,
-                  colWidths[3] - 2,
-                  xPos,
-                  yPos,
-                  4
-                );
+                renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, lineHeight);
               }
               xPos += colWidths[3];
 
-              const unitHeight = wrapText(
-                doc,
-                processUnicodeText(currentTest.unit || ""),
-                colWidths[4] - 2,
-                xPos,
-                yPos,
-                4
-              );
+              renderWrappedText(doc, processUnicodeText(currentTest.unit || ""), colWidths[4] - 2, xPos, yPos, lineHeight);
               xPos += colWidths[4];
 
-              const referenceRangeHeight = wrapText(
-                doc,
-                currentTest.reference_range || "",
-                colWidths[5] - 2,
-                xPos,
-                yPos,
-                4
-              );
+              renderWrappedText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
               xPos += colWidths[5];
 
-              const methodText = (currentTest.method || "")
-                .replace(/\bMethod\b/i, "")
-                .trim();
-              const methodHeight = wrapText(
-                doc,
-                methodText,
-                colWidths[6] - 2,
-                xPos,
-                yPos,
-                4
-              );
+              renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, lineHeight);
 
-              const maxContentHeight = Math.max(
-                testNameHeight,
-                specimenHeight,
-                valueHeight,
-                unitHeight,
-                referenceRangeHeight,
-                methodHeight
-              );
-              yPos += Math.max(maxContentHeight, 6) + 2;
+              yPos += paramActualRowHeight;
 
-              // ADDED: Comment for parameters
               if (currentTest.comment && currentTest.comment.trim() !== "") {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
                 const commentText = `Note: ${currentTest.comment}`;
-                const commentHeight = wrapText(
+                const commentHeight = renderWrappedText(
                   doc,
                   commentText,
                   colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
@@ -1168,8 +1089,7 @@ const handlePrint = async (withLetterpad) => {
     isTableStarted = false;
     const ensureSpaceForFooter = (currentYPosition) => {
       const pageHeight = doc.internal.pageSize.height;
-      const footerStart =
-        pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
+      const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
       if (currentYPosition + 10 >= footerStart) {
         addSignatures();
         doc.addPage();
@@ -1204,7 +1124,6 @@ const handlePrint = async (withLetterpad) => {
       });
     }
 
-    // UPDATED: Use patientName in filename
     const patientID = patientDetails.patient_id || "Unknown";
     const patientName = (patientDetails.patientname || "Unknown");
     const pdfFileName = `${patientName}_${patientID}.pdf`;

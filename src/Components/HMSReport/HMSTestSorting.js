@@ -12,7 +12,6 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-// import Brindha from "../Images/Brindha.png";
 import Vijayan from "../Images/Vijayan.png";
 import Brindha from "../Images/Brindha.png";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -294,52 +293,52 @@ const HMSTestSorting = ({ patient, onClose }) => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const [searchTerm, setSearchTerm] = useState("");
   useEffect(() => {
-    const fetchTests = async () => {
-      try {
-        const response = await apiRequest(
-          `${Labbaseurl}patient_test_sorting/?barcode=${patient.barcode}&date=${patient.date}`,
-          "GET",
-          null,
-          {}, // Additional headers, if any
-          {} // No additional config needed since params are in the URL
-        );
+  const fetchTests = async () => {
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}patient_test_sorting/?barcode=${patient.barcode}&date=${patient.date}`,
+        "GET",
+        null,
+        {}, // Additional headers, if any
+        {} // No additional config needed since params are in the URL
+      );
 
-        if (response.success) {
-          // Use barcode as key since backend returns data with barcode as key
-          if (response.data[patient.barcode]) {
-            const testDetails =
-              response.data[patient.barcode].testdetails || [];
+      if (response.success) {
+        // Use barcode as key since backend returns data with barcode as key
+        if (response.data[patient.barcode]) {
+          const testDetails =
+            response.data[patient.barcode].testdetails || [];
 
-            // Order by number (assumes test name contains a number)
-            const sortedTests = testDetails.sort((a, b) => {
-              const numA = parseInt(a.testname.match(/\d+/)?.[0]) || 0;
-              const numB = parseInt(b.testname.match(/\d+/)?.[0]) || 0;
-              return numA - numB;
-            });
+          // Order by number (assumes test name contains a number)
+          const sortedTests = testDetails.sort((a, b) => {
+            const numA = parseInt(a.testname.match(/\d+/)?.[0]) || 0;
+            const numB = parseInt(b.testname.match(/\d+/)?.[0]) || 0;
+            return numA - numB;
+          });
 
-            // Updated: Preserve NABL data along with testname
-            setTests(sortedTests.map((test) => ({
-              testname: test.testname,
-              NABL: test.NABL || false // Include NABL status
-            })));
-          } else {
-            console.log("No test data found for this barcode");
-            setTests([]);
-          }
+          // Updated: Preserve NABL data along with testname
+          setTests(sortedTests.map((test) => ({ 
+            testname: test.testname,
+            NABL: test.NABL || false // Include NABL status
+          })));
         } else {
-          console.error(
-            "Error fetching tests:",
-            response.error,
-            response.status
-          );
+          console.log("No test data found for this barcode");
+          setTests([]);
         }
-      } catch (error) {
-        console.error("Unexpected error fetching tests:", error);
+      } else {
+        console.error(
+          "Error fetching tests:",
+          response.error,
+          response.status
+        );
       }
-    };
+    } catch (error) {
+      console.error("Unexpected error fetching tests:", error);
+    }
+  };
 
-    fetchTests();
-  }, [patient.patient_id]);
+  fetchTests();
+}, [patient.patient_id]);
   const handleSelectTest = (test) => {
     setSelectedTests((prev) => {
       const isSelected = prev.some((t) => t.testname === test.testname);
@@ -447,11 +446,9 @@ const handlePrint = async (withLetterpad) => {
       return numberPart;
     };
 
-    // UPDATED: Added signature images
     const consultants = [
       ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
       ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
-
     ];
 
     const patientRefNo =
@@ -479,7 +476,6 @@ const handlePrint = async (withLetterpad) => {
     const footerHeight = 20;
     const contentYStart = headerHeight + 25;
     const signatureHeight = 25;
-    const disclaimerHeight = 0;
     const tableHeaderHeight = 10;
 
     const colWidths = [
@@ -671,16 +667,22 @@ const handlePrint = async (withLetterpad) => {
       return yPos;
     };
 
-    const wrapText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
-      if (!text) return 0;
-      const splitText = doc.splitTextToSize(text, maxWidth);
-      splitText.forEach((line, index) => {
-        doc.text(line, startX, yPos + index * lineHeight);
-      });
-      return splitText.length * lineHeight;
+    // FIXED: Improved wrapText function that returns actual lines array
+    const wrapTextAndGetLines = (doc, text, maxWidth) => {
+      if (!text) return [];
+      return doc.splitTextToSize(text, maxWidth);
     };
 
-    // UPDATED: Conditional signature rendering
+    // FIXED: New function to render wrapped text and return height
+    const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
+      if (!text) return 0;
+      const lines = wrapTextAndGetLines(doc, text, maxWidth);
+      lines.forEach((line, index) => {
+        doc.text(line, startX, yPos + index * lineHeight);
+      });
+      return lines.length * lineHeight;
+    };
+
     const addSignatures = () => {
       const pageHeight = doc.internal.pageSize.height;
       const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
@@ -688,7 +690,6 @@ const handlePrint = async (withLetterpad) => {
       const availableWidth = contentWidth - (signatureWidth / 2) * 2;
       const signatureSpacing = availableWidth / (consultants.length - 1);
 
-      // Collect all unique approve_by values from testdetails
       const approvers = new Set();
       patientDetails.testdetails.forEach((test) => {
         if (test.approve_by && test.approve_by.trim() !== "") {
@@ -698,14 +699,11 @@ const handlePrint = async (withLetterpad) => {
 
       consultants.forEach((consultant, index) => {
         const xPosition = leftMargin + index * signatureSpacing;
-
-        // Check if this consultant's signature should be displayed
         const consultantName = consultant[0].toLowerCase();
         const shouldShowSignature = 
-          consultantName.includes("brindha") && approvers.has("brindha") ||
-          consultantName.includes("vijayan") && approvers.has("vijayan");
+          (consultantName.includes("brindha") && approvers.has("dr.brindha")) ||
+          (consultantName.includes("vijayan") && approvers.has("vijayan"));
 
-        // Add Signature (if available) - only if approved by this consultant
         if (consultant[2] && shouldShowSignature) {
           doc.addImage(
             consultant[2],
@@ -717,22 +715,21 @@ const handlePrint = async (withLetterpad) => {
           );
         }
 
-        // Always print name below the signature area
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.text(consultant[0], xPosition, signaturesY + 15);
 
-        // Always print qualification below the name
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.text(consultant[1], xPosition, signaturesY + 20);
       });
     };
 
+    // FIXED: Improved checkForNewPage with better height estimation
     const checkForNewPage = (yPos, estimatedHeight) => {
       const pageHeight = doc.internal.pageSize.height;
-      const footerStart =
-        pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
+      const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
+
       if (yPos + estimatedHeight >= footerStart) {
         addSignatures();
         doc.addPage();
@@ -835,46 +832,66 @@ const handlePrint = async (withLetterpad) => {
               : [test];
           
           testsToRender.forEach((currentTest, index) => {
-            const estimatedHeight = 18;
-            yPos = checkForNewPage(yPos, estimatedHeight);
+            // FIXED: Calculate all text wrapping FIRST to get accurate height
             doc.setFontSize(10);
-            let xPos = leftMargin;
             
+            const testNameText = index === 0 ? currentTest.testname : `${currentTest.name}`;
+            const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
+            
+            const valueText = currentTest.value || "";
+            const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
+            
+            const referenceLines = wrapTextAndGetLines(
+              doc,
+              currentTest.reference_range || "",
+              colWidths[5] - 2
+            );
+            
+            const methodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
+            const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
+            
+            // Calculate actual row height based on maximum lines (including Value column now)
+            const maxLines = Math.max(
+              testNameLines.length,
+              valueLines.length,
+              referenceLines.length,
+              methodLines.length
+            );
+            const lineHeight = 4;
+            const actualRowHeight = maxLines * lineHeight + 2; // +2 for padding
+            
+            // Check for new page with accurate height
+            yPos = checkForNewPage(yPos, actualRowHeight);
+
+            // Now render the row
+            let xPos = leftMargin;
+            const rowStartY = yPos;
+
+            // Test Name
             if (index === 0) {
               doc.setFont("helvetica", "bold");
             } else {
               doc.setFont("helvetica", "normal");
             }
-            
-            const testNameText =
-              index === 0
-                ? currentTest.testname
-                : `${currentTest.name}`;
-            const testNameHeight = wrapText(
-              doc,
-              testNameText,
-              colWidths[0] - 2,
-              xPos,
-              yPos,
-              4
-            );
+            renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
             xPos += colWidths[0];
-            
+
             doc.setFont("helvetica", "normal");
+
+            // Specimen Type
             doc.text(currentTest.specimen_type || "", xPos, yPos);
             xPos += colWidths[1];
+
+            // Extra Gap
             xPos += colWidths[2];
-            
+
+            // Value(s) - Now with text wrapping
             const statusIndicator = currentTest.isHigh
               ? "H"
               : currentTest.isLow
               ? "L"
-              : getHighLowStatus(
-                  currentTest.value,
-                  currentTest.reference_range
-                );
-            
-            const valueText = currentTest.value || "";
+              : getHighLowStatus(valueText, currentTest.reference_range);
+
             if (statusIndicator) {
               doc.setFont("helvetica", "bold");
               if (statusIndicator === "H") {
@@ -882,81 +899,73 @@ const handlePrint = async (withLetterpad) => {
               } else if (statusIndicator === "L") {
                 doc.setTextColor(0, 0, 255);
               }
-              doc.text(valueText, xPos, yPos);
+              // Wrap the value text if it's too long
+              renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
               const valueWidth = doc.getTextWidth(valueText);
-              if (statusIndicator === "H") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-              } else if (statusIndicator === "L") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+              // Only add arrow if text fits on one line
+              if (valueWidth < colWidths[3] - 5) {
+                if (statusIndicator === "H") {
+                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+                } else if (statusIndicator === "L") {
+                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+                }
               }
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
-              doc.text(valueText, xPos, yPos);
+              // Wrap the value text for normal values too
+              renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
             }
             xPos += colWidths[3];
-            
-            doc.setFont("helvetica", "normal");
+
+            // Unit
             renderUnicodeText(currentTest.unit || "", xPos, yPos);
             xPos += colWidths[4];
-            
-            const referenceRangeHeight = wrapText(
+
+            // Reference Range
+            renderWrappedText(
               doc,
               currentTest.reference_range || "",
               colWidths[5] - 2,
               xPos,
               yPos,
-              4
+              lineHeight
             );
             xPos += colWidths[5];
-            
-            doc.setTextColor(0, 0, 0);
-            const methodText = (currentTest.method || "")
-              .replace(/\bMethod\b/i, "")
-              .trim();
-            const methodHeight = wrapText(
-              doc,
-              methodText,
-              colWidths[6] - 2,
-              xPos,
-              yPos,
-              4
-            );
-            
-            doc.setTextColor(0, 0, 0);
-            const maxContentHeight = Math.max(
-              testNameHeight,
-              referenceRangeHeight,
-              methodHeight
-            );
-            yPos += Math.max(maxContentHeight, 6) + 2;
 
-            // ADDED: Comment for each test/parameter
-            if (currentTest.comment && currentTest.comment.trim() !== "") {
-              doc.setFont("helvetica", "italic");
-              doc.setFontSize(8);
-              const commentText = `Note: ${currentTest.comment}`;
-              const commentHeight = wrapText(
-                doc,
-                commentText,
-                colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
-                leftMargin,
-                yPos,
-                3.5
-              );
-              yPos += commentHeight + 2;
-            }
-            
+            // Method
+            doc.setTextColor(0, 0, 0);
+            renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
+
+            // Move Y position by actual row height
+            yPos += actualRowHeight;
+
             doc.setFont("helvetica", "normal");
             doc.setTextColor(0, 0, 0);
           });
 
-          // ADDED: Outsourced label after all tests/parameters
+          // Add outsourced label
           if (test.outsourced === true) {
             doc.setFont("helvetica", "italic");
             doc.setFontSize(8);
             doc.text("(Outsourced)", leftMargin, yPos);
             yPos += 4;
+          }
+
+          // Add comment
+          if (test.comment && test.comment.trim() !== "") {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            const commentText = `Note: ${test.comment}`;
+            const commentHeight = renderWrappedText(
+              doc,
+              commentText,
+              colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+              leftMargin,
+              yPos,
+              3.5
+            );
+            yPos += commentHeight + 2;
           }
 
           doc.setFont("helvetica", "normal");
@@ -967,9 +976,6 @@ const handlePrint = async (withLetterpad) => {
             yPos
           );
           yPos += 8;
-          
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
         });
         yPos += 4;
       });
@@ -979,8 +985,7 @@ const handlePrint = async (withLetterpad) => {
     isTableStarted = false;
     const ensureSpaceForFooter = (currentYPosition) => {
       const pageHeight = doc.internal.pageSize.height;
-      const footerStart =
-        pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
+      const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
       if (currentYPosition + 10 >= footerStart) {
         addSignatures();
         doc.addPage();
@@ -1015,24 +1020,14 @@ const handlePrint = async (withLetterpad) => {
       });
     }
 
-    // UPDATED: Use patientName in filename
-    // MODIFIED: Open PDF in new tab instead of downloading
-const patientID = patientDetails.patient_id || "Unknown";
-const patientName = (patientDetails.patientname || "Unknown");
-const pdfFileName = `${patientName}_${patientID}.pdf`;
+    // Generate the PDF as a Blob
+      const pdfBlob = doc.output("blob");
+      const pdfUrl = URL.createObjectURL(pdfBlob);
 
-// Generate blob and open in new tab
-const pdfBlob = doc.output("blob");
-const pdfUrl = URL.createObjectURL(pdfBlob);
+      // Open the PDF in a new tab for preview
+      window.open(pdfUrl, "_blank");
 
-// Open in new tab
-const newTab = window.open(pdfUrl, "_blank");
-
-// Optional: Revoke URL after a delay to free up memory
-setTimeout(() => {
-  URL.revokeObjectURL(pdfUrl);
-}, 1000);
-return pdfBlob;
+      return pdfBlob;
   } catch (error) {
     console.error("Error while generating the PDF:", error);
     toast.error("An unexpected error occurred while generating the PDF");
@@ -1103,9 +1098,9 @@ return pdfBlob;
                       {isSelected && <Check size={14} color="white" />}
                     </CheckboxContainer>
                     <TestName selected={isSelected}>
-                      {test.testname}
-                      {test.NABL && <span className="nabl-asterisk">*</span>}
-                    </TestName>
+  {test.testname}
+  {test.NABL && <span className="nabl-asterisk">*</span>} 
+</TestName>
                   </TestInfo>
                 </TestItem>
               );

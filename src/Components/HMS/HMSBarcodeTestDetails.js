@@ -447,7 +447,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
       // Group tests by container
       const containerGroups = {};
       testDetails.forEach((test) => {
-        const container = test.collection_container || "";
+        const container = test.container || "";
         if (!containerGroups[container]) {
           containerGroups[container] = [];
         }
@@ -533,7 +533,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
       // Group tests by container
       const containerGroups = {};
       testDetails.forEach((test) => {
-        const container = test.collection_container || "";
+        const container = test.container || "";
         if (!containerGroups[container]) {
           containerGroups[container] = [];
         }
@@ -746,7 +746,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
         // Create barcode data for display
         const containerGroups = {};
         updatedTestDetails.forEach((test) => {
-          const container = test.collection_container || "";
+          const container = test.container || "";
           if (!containerGroups[container]) {
             containerGroups[container] = [];
           }
@@ -858,7 +858,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
                   {testDetails.map((test, index) => (
                     <tr key={index}>
                       <td>{test.testname}</td>
-                      <td>{test.collection_container}</td>
+                      <td>{test.container}</td>
                       <td>
                         {test.barcode ? (
                           <BarcodeContainer>
