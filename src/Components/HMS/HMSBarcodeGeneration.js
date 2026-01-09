@@ -323,11 +323,13 @@ const HMSBarcodeGeneration = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
 
+  
   const fetchPatients = async () => {
     setIsLoading(true);
     try {
       const response = await apiRequest(
-        `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDate.toISOString().split("T")[0]
+        `${Labbaseurl}hms_patients_get_barcode/?from_date=${
+          fromDate.toISOString().split("T")[0]
         }&to_date=${toDate.toISOString().split("T")[0]}`,
         "GET"
       );
@@ -614,8 +616,8 @@ const HMSBarcodeGeneration = () => {
             {searchTerm
               ? "No matching patients found. Try a different search term."
               : isLoading
-                ? "Loading patients..."
-                : "No patients found for the selected date range."}
+              ? "Loading patients..."
+              : "No patients found for the selected date range."}
           </EmptyStateText>
         </EmptyState>
       )}

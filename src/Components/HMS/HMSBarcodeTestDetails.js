@@ -310,12 +310,23 @@ const BarcodeDate = styled.p`
   width: 100%;
 `;
 
+const ContainerRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 1px 0 0 0;
+`;
+
 const ContainerName = styled.div`
   font-size: 6px;
   font-weight: bold;
-  margin: 1px 0 0 0;
-  text-align: left;
-  width: 100%;
+  color: #333;
+`;
+
+const ShortcutName = styled.div`
+  font-size: 6px;
+  font-weight: bold;
   color: #333;
 `;
 
@@ -398,11 +409,12 @@ const HMSBarcodeTestDetails = () => {
   const [barcodeData, setBarcodeData] = useState([]);
 
   // Function to extract barcode from bill number
-  const extractBarcodeFromBillNo = (billNumber) => {
-    if (!billNumber) return null;
-    // Remove all slashes from the bill number to generate the barcode
-    return billNumber.replace(/\//g, "");
-  };
+const extractBarcodeFromBillNo = (billNumber) => {
+  if (!billNumber) return null;
+
+  return String(billNumber).replace(/\//g, '');
+};
+
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -426,7 +438,7 @@ const HMSBarcodeTestDetails = () => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-
+      
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return false;
@@ -457,11 +469,13 @@ const HMSBarcodeTestDetails = () => {
         ...Object.entries(containerGroups).map(([container, testdetails]) => ({
           barcode: patientBarcode,
           containerName: container,
+          shortcut: testdetails[0]?.shortcut || "",
           isExtra: false,
         })),
         {
           barcode: patientBarcode,
           containerName: "",
+          shortcut: "",
           isExtra: true,
         },
       ];
@@ -469,11 +483,11 @@ const HMSBarcodeTestDetails = () => {
       setBarcodeData(newBarcodeData);
 
       // Prepare payload for saving
-      const payload = {
+      const payload = {        
         date: formatDate(selectedPatient?.date),
         billnumber: bill_no,
         testdetails: updatedTestDetails,
-        barcode: patientBarcode,
+        barcode: patientBarcode,        
       };
 
       // Save the barcode using your apiRequest method
@@ -510,7 +524,7 @@ const HMSBarcodeTestDetails = () => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-
+      
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return;
@@ -537,12 +551,14 @@ const HMSBarcodeTestDetails = () => {
           ([container, testdetails]) => ({
             barcode: patientBarcode,
             containerName: container,
+            shortcut: testdetails[0]?.shortcut || "",
             isExtra: false,
           })
         ),
         {
           barcode: patientBarcode,
           containerName: "",
+          shortcut: "",
           isExtra: true,
         },
       ];
@@ -632,12 +648,21 @@ const HMSBarcodeTestDetails = () => {
  text-align: left;
  width: 100%;
  }
+ .container-row {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ width: 100%;
+ margin: 1px 0 0 0;
+ }
  .container-name {
  font-size: 8px;
  font-weight: bold;
- margin: 1px 0 0 0;
- text-align: left;
- width: 100%;
+ color: #333;
+ }
+ .shortcut-name {
+ font-size: 8px;
+ font-weight: bold;
  color: #333;
  }
  .barcode-container {
@@ -715,7 +740,7 @@ const HMSBarcodeTestDetails = () => {
           ...test,
           barcode: generatedBarcode,
         }));
-
+        
         setTestDetails(updatedTestDetails);
 
         // Create barcode data for display
@@ -732,11 +757,13 @@ const HMSBarcodeTestDetails = () => {
           ...Object.entries(containerGroups).map(([container, testdetails]) => ({
             barcode: generatedBarcode,
             containerName: container,
+            shortcut: testdetails[0]?.shortcut || "",
             isExtra: false,
           })),
           {
             barcode: generatedBarcode,
             containerName: "",
+            shortcut: "",
             isExtra: true,
           },
         ];
@@ -911,8 +938,8 @@ const HMSBarcodeTestDetails = () => {
               {selectedPatient?.gender === "Male"
                 ? "M"
                 : selectedPatient?.gender === "Female"
-                  ? "F"
-                  : ""}
+                ? "F"
+                : ""}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
               {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}
@@ -933,10 +960,15 @@ const HMSBarcodeTestDetails = () => {
                 }}
               />
             </BarcodeContainer>
-            {item.containerName && !item.isExtra && (
-              <ContainerName className="container-name">
-                {item.containerName}
-              </ContainerName>
+            {!item.isExtra && (
+              <ContainerRow className="container-row">
+                <ContainerName className="container-name">
+                  {item.containerName}
+                </ContainerName>
+                <ShortcutName className="shortcut-name">
+                  {item.shortcut}
+                </ShortcutName>
+              </ContainerRow>
             )}
           </BarcodeItem>
         ))}

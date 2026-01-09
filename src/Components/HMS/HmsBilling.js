@@ -628,62 +628,68 @@ const [formData, setFormData] = useState({
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    // CRITICAL VALIDATION: Check if any tests are selected
-    if (testDetails.length === 0) {
-      alert("❌ Cannot save billing without selecting at least one test!")
-      toast.error("Please add at least one test before submitting the billing!")
-      return
-    }
-    
-    // Additional validations
-    if (!formData.patient_id.trim()) {
-      alert("❌ Patient ID is required!")
-      toast.error("Patient ID is required!")
-      return
-    }
-    if (!formData.patientname.trim()) {
-      alert("❌ Patient name is required!")
-      toast.error("Patient name is required!")
-      return
-    }
-    
+  e.preventDefault()
+
+  const missingFields = []
+
+  if (!formData.patientname.trim()) missingFields.push("Patient Name")
+  if (!formData.billnumber.trim()) missingFields.push("Bill Number")
+  if (!formData.age || Number(formData.age) <= 0) missingFields.push("Age")
+
+  if (missingFields.length > 0) {
+    const message = `Please fill the following required fields:\n• ${missingFields.join("\n• ")}`
+    toast.error(message)
+    alert(message)
+    return
+  }
+
+  // Existing validations
+  if (testDetails.length === 0) {
+    toast.error("Please add at least one test before submitting the billing")
+    alert("❌ Cannot save billing without selecting at least one test!")
+    return
+  }
+
   const payload = {
     ...formData,
     patientname: `${formData.salutation} ${formData.patientname}`.trim(),
-    testdetails: testDetails, // if tests are still included
-  };
-    
-    const result = await apiRequest(`${Labbaseurl}hms_patient_billing/`, "POST", payload)
-    
-    if (result.success && result.data.success) {
-      alert("✅ Billing saved successfully!")
-      toast.success("Billing saved successfully!")
-      
-      // Reset form
-      setFormData({
-        patient_id: "",
-        ipnumber: "",
-        patientname: "",
-        age: "",
-        age_type: "years",
-        gender: "",
-        phone: "",
-        location_id: "hms",
-        billnumber: "",
-        ref_doctor: "",
-        date: getLocalDateTime(),
-      })
-      setTestDetails([])
-      setSearchDoctor("")
-      setSearchTest("")
-    } else {
-      console.error("Error submitting billing:", result.error)
-      alert("❌ Error: " + (result.error || "Failed to submit billing data"))
-      toast.error("Failed to submit billing data")
-    }
+    testdetails: testDetails,
   }
+
+  const result = await apiRequest(
+    `${Labbaseurl}hms_patient_billing/`,
+    "POST",
+    payload
+  )
+
+  if (result.success && result.data.success) {
+    toast.success("Billing saved successfully!")
+    alert("✅ Billing saved successfully!")
+
+    setFormData({
+      patient_id: "",
+      ipnumber: "",
+      salutation: "Mr",
+      patientname: "",
+      age: "",
+      age_type: "years",
+      gender: "",
+      phone: "",
+      location_id: "hms",
+      billnumber: "",
+      ref_doctor: "",
+      date: getLocalDateTime(),
+    })
+
+    setTestDetails([])
+    setSearchDoctor("")
+    setSearchTest("")
+  } else {
+    toast.error("Failed to submit billing data")
+    alert("❌ Failed to submit billing data")
+  }
+}
+
 
   const totalMRP = testDetails.reduce((sum, t) => sum + (t.SH_Rate || 0), 0)
 
