@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import axios from "axios";
+
 import apiRequest from "../Auth/apiRequest";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
 import {
@@ -675,14 +675,16 @@ const B2BReport = () => {
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
-    axios
-      .get(`${Labbaseurl}get_clinicalname/`)
-      .then((res) => {
-        setData(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching data:", err);
-      });
+    const fetchData = async () => {
+      const response = await apiRequest(`${Labbaseurl}get_clinicalname/`, "GET");
+      if (response && response.success) {
+        setData(response.data);
+      } else {
+        console.error("Error fetching data:", response.error);
+        // Toast optional here since initial load failure might just be empty list
+      }
+    };
+    fetchData();
   }, []);
 
   // Filter and pagination logic

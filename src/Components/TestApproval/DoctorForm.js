@@ -495,31 +495,41 @@ function DoctorForm() {
     }
   };
 
-  const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
+ // Update the handleTestApprove function to include approve_time
+const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
   try {
     const test = testValues[recordIndex];
     const testDetail = test?.testdetails[testIndex];
-
     if (!test || !testDetail) {
       throw new Error("Test or test detail not found");
     }
-
+    // Format current time similar to SampleStatus.js
+    const formatDateTime = (date) => {
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      const seconds = String(d.getSeconds()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    };
+    const approveTime = formatDateTime(new Date());
     const response = await apiRequest(
       `${Labbaseurl}test-approval/${test.barcode}/approve/`,
       "PATCH",
       {
         approve: true,
         approve_by,
+        approve_time: approveTime, // Add approve_time
         barcode: test.barcode,
         created_date: testDetail.created_date,
         test_id: testDetail.test_id,
       }
     );
-
     if (!response.success) {
       throw new Error(response.error || "Failed to approve test");
     }
-
     if (
       response.data.message &&
       (response.data.message.includes("Test approved successfully") ||
@@ -536,6 +546,7 @@ function DoctorForm() {
                       ...detail,
                       approve: true,
                       approve_by,
+                      approve_time: approveTime, // Update local state with approve_time
                     }
                   : detail
               ),
@@ -558,26 +569,35 @@ const handleTestRerun = async (recordIndex, testIndex) => {
   try {
     const test = testValues[recordIndex];
     const testDetail = test?.testdetails[testIndex];
-
     if (!testDetail) {
       throw new Error("Test detail not found");
     }
-
+    // Format current time similar to SampleStatus.js
+    const formatDateTime = (date) => {
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      const seconds = String(d.getSeconds()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    };
+    const rerunTime = formatDateTime(new Date());
     const response = await apiRequest(
       `${Labbaseurl}test-rerun/${test.barcode}/rerun/`,
       "PATCH",
       {
         rerun: true,
+        rerun_time: rerunTime, // Add rerun_time
         barcode: test.barcode,
-        created_date: testDetail.created_date ,
+        created_date: testDetail.created_date,
         test_id: testDetail.test_id,
       }
     );
-
     if (!response.success) {
       throw new Error(response.error || "Failed to initiate rerun");
     }
-
     setTestValues((prevValues) => {
       return prevValues.map((record, idx) => {
         if (idx === recordIndex) {
@@ -588,6 +608,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                 ? {
                     ...detail,
                     rerun: true,
+                    rerun_time: rerunTime, // Update local state with rerun_time
                   }
                 : detail
             ),

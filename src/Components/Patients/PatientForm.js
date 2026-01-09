@@ -1638,9 +1638,9 @@ const PatientForm = () => {
         age: formData.age,
         age_type: formData.age_type,
         gender: formData.gender,
-        phone: isB2BEnabled ? "" : formData.phone,
-        email: isB2BEnabled ? "" : formData.email,
-        address: isB2BEnabled ? {} : addressData,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address.area.trim() || formData.address.pincode.trim() ? addressData : {},
         registeredby: formData.registeredby,
         emergency: isEmergencyEnabled,
         patient_history: patientHistory,
@@ -2333,7 +2333,7 @@ const PatientForm = () => {
                   name="area"
                   value={formData.address.area}
                   onChange={handleChange}
-                  disabled={shouldDisableField() || isB2BEnabled}
+                  disabled={shouldDisableField()}
                   required={isHomeCollectionEnabled}
                 />
               </FormGroup>
@@ -2344,7 +2344,7 @@ const PatientForm = () => {
                   name="pincode"
                   value={formData.address.pincode}
                   onChange={handleChange}
-                  disabled={shouldDisableField() || isB2BEnabled}
+                  disabled={shouldDisableField()}
                   required={isHomeCollectionEnabled}
                   maxLength={6}
                 />

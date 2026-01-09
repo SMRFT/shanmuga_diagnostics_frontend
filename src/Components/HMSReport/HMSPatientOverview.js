@@ -29,7 +29,6 @@ import "react-toastify/dist/ReactToastify.css";
 // Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-import Brindha from "../Images/Brindha.png";
 import Vijayan from "../Images/Vijayan.png";
 import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";

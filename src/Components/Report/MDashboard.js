@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled, { keyframes, css } from "styled-components";
-import axios from "axios";
+import apiRequest from "../Auth/apiRequest";
 import { toast } from "react-toastify";
 import {
     BarChart,
@@ -317,12 +317,16 @@ const MDashboard = () => {
     const fetchData = async (start, end) => {
         setLoading(true);
         try {
-            const userId = localStorage.getItem("employeeId");
-            const response = await axios.get(`${Labbaseurl}m-dashboard-stats/?from_date=${start}&to_date=${end}`, {
+            const response = await apiRequest(`${Labbaseurl}m-dashboard-stats/`, "POST", {
+                from_date: start,
+                to_date: end
             });
 
-            if (response.data.success) {
+            if (response.success && response.data.success) {
                 setData(response.data.data);
+            } else {
+                console.error("Error fetching dashboard data", response.error);
+                toast.error("Failed to load dashboard data");
             }
         } catch (error) {
             console.error("Error fetching dashboard data", error);

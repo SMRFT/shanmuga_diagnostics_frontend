@@ -5,6 +5,7 @@ import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { FaUser, FaFlask, FaCreditCard, FaPlus, FaTrash, FaSave, FaArrowLeft, FaSearch } from "react-icons/fa"
+import { AlertCircle, CheckCircle } from "lucide-react"
 import apiRequest from "../Auth/apiRequest"
 import headerImage from "../Images/Header.png"
 
@@ -97,18 +98,21 @@ const PatientListContainer = styled.div`
 
 const SearchAndFiltersContainer = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 20px;
+  align-items: flex-end;
   margin-bottom: 30px;
   padding: 25px;
   background: #f8fafc;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  flex-wrap: wrap;
 `
 
 const SearchContainer = styled.div`
   position: relative;
-  flex: 1;
+  flex: 2;
+  min-width: 300px;
   
   input {
     width: 100%;
@@ -132,6 +136,35 @@ const SearchContainer = styled.div`
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
+  }
+`
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 150px;
+
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  select, input[type="date"] {
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.2s;
+    background: white;
+
+    &:focus {
+      border-color: #667eea;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
   }
 `
 
@@ -188,22 +221,68 @@ const StatusBadge = styled.span`
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  background: ${props => {
-    switch(props.status?.toLowerCase()) {
-      case 'billed': return '#dcfce7';
-      case 'registered': return '#fef3c7';
-      case 'collected': return '#dbeafe';
-      default: return '#f3f4f6';
+  background: ${(props) => {
+    switch (props.status?.toLowerCase()) {
+      case "billed":
+        return "#dcfce7"
+      case "registered":
+        return "#fef3c7"
+      case "collected":
+        return "#dbeafe"
+      default:
+        return "#f3f4f6"
     }
   }};
-  color: ${props => {
-    switch(props.status?.toLowerCase()) {
-      case 'billed': return '#166534';
-      case 'registered': return '#92400e';
-      case 'collected': return '#1e40af';
-      default: return '#374151';
+  color: ${(props) => {
+    switch (props.status?.toLowerCase()) {
+      case "billed":
+        return "#166534"
+      case "registered":
+        return "#92400e"
+      case "collected":
+        return "#1e40af"
+      default:
+        return "#374151"
     }
   }};
+`
+
+const EmergencyBadge = styled.span`
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  
+  ${(props) => {
+    if (props.emergency) {
+      return `
+        background: #fee2e2;
+        color: #991b1b;
+        box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
+        
+        svg {
+          animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+      `
+    } else {
+      return `
+        background: #dcfce7;
+        color: #166534;
+      `
+    }
+  }}
 `
 
 const PatientInfo = styled.div`
@@ -271,53 +350,6 @@ const FormRow = styled.div`
   margin-bottom: 20px;
 `
 
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  
-  label {
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #374151;
-    font-size: 14px;
-    
-    &.required::after {
-      content: " *";
-      color: #ef4444;
-    }
-  }
-  
-  input, select, textarea {
-    padding: 12px 16px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 16px;
-    min-height: 44px;
-    transition: border-color 0.2s;
-    
-    &:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-  }
-  
-  select {
-    cursor: pointer;
-    background-color: white;
-    
-    option {
-      padding: 8px 12px;
-      font-size: 16px;
-    }
-  }
-  
-  textarea {
-    resize: vertical;
-    min-height: 80px;
-  }
-`
-
 const TestSearchContainer = styled.div`
   position: relative;
   width: 600px;   /* 👈 parent container width */
@@ -373,8 +405,7 @@ const TestSearchContainer = styled.div`
       }
     }
   }
-`;
-
+`
 
 const TestTable = styled.table`
   width: 100%;
@@ -524,6 +555,7 @@ const PatientBilling = () => {
   const [currentPage, setCurrentPage] = useState("list")
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [searchValue, setSearchValue] = useState("")
+  const [emergencyFilter, setEmergencyFilter] = useState("all")
   const [loading, setLoading] = useState(false)
   const [testOptions, setTestOptions] = useState([])
   const [filteredTestOptions, setFilteredTestOptions] = useState([])
@@ -535,7 +567,7 @@ const PatientBilling = () => {
     upi: true,
     neft: true,
     cheque: true,
-    multiplePayment: true
+    multiplePayment: true,
   })
   const printRef = useRef()
 
@@ -590,7 +622,7 @@ const PatientBilling = () => {
   // New function to check if multiple payments match total amount
   const isMultiplePaymentComplete = () => {
     if (billingData.paymentMethod !== "Multiple Payment") return true
-    
+
     const totalMultiplePayments = billingData.multiplePayments.reduce((sum, p) => sum + p.amount, 0)
     return Math.abs(totalMultiplePayments - billingData.netAmount) < 0.01 // Allow for small floating point differences
   }
@@ -598,7 +630,7 @@ const PatientBilling = () => {
   // New function to get remaining amount for multiple payments
   const getRemainingAmount = () => {
     if (billingData.paymentMethod !== "Multiple Payment") return 0
-    
+
     const totalMultiplePayments = billingData.multiplePayments.reduce((sum, p) => sum + p.amount, 0)
     return Math.max(0, billingData.netAmount - totalMultiplePayments)
   }
@@ -634,17 +666,17 @@ const PatientBilling = () => {
 
   // New function to fetch patient details and check B2B restrictions
   const fetchPatientDetails = async (patient) => {
-    if (patient.segment === 'B2B' && patient.lab_id) {
+    if (patient.segment === "B2B" && patient.lab_id) {
       try {
-        const response = await apiRequest(`${Labbaseurl}get_patientsbyb2b/?date=${patient.date.split('T')[0]}`, "GET")
-        
+        const response = await apiRequest(`${Labbaseurl}get_patientsbyb2b/?date=${patient.date.split("T")[0]}`, "GET")
+
         if (response && response.success !== false) {
-          const patientData = Array.isArray(response) ? response : (response.data || [])
-          const currentPatient = patientData.find(p => p.patient_id === patient.patient_id)
-          
+          const patientData = Array.isArray(response) ? response : response.data || []
+          const currentPatient = patientData.find((p) => p.patient_id === patient.patient_id)
+
           if (currentPatient && currentPatient.payment_options) {
             setPaymentOptions(currentPatient.payment_options)
-            
+
             if (!currentPatient.payment_options.credit) {
               toast.info("Credit payment is disabled for this B2B patient (Cash type)")
             }
@@ -659,7 +691,7 @@ const PatientBilling = () => {
           upi: true,
           neft: true,
           cheque: true,
-          multiplePayment: true
+          multiplePayment: true,
         })
       }
     } else {
@@ -670,7 +702,7 @@ const PatientBilling = () => {
         upi: true,
         neft: true,
         cheque: true,
-        multiplePayment: true
+        multiplePayment: true,
       })
     }
   }
@@ -749,7 +781,10 @@ const PatientBilling = () => {
           lab_id: patient.lab_id || "N/A",
           B2B: patient.B2B || "N/A",
           refby: patient.refby || "SELF",
-          status: patient.status || "Registered"
+          status: patient.status || "Registered",
+          branch: patient.branch || "N/A", // Added branch field
+          // Ensure is_emergency field is present and boolean
+          is_emergency: !!patient.is_emergency,
         }))
 
       setPatientsList(validPatients)
@@ -768,27 +803,33 @@ const PatientBilling = () => {
     }
   }
 
-  const filteredPatients = patientsList.filter(patient => {
+  const filteredPatients = patientsList.filter((patient) => {
     const searchLower = searchValue.toLowerCase()
-    return (
+    const matchesSearch =
       patient.patient_id?.toLowerCase().includes(searchLower) ||
       patient.patientname?.toLowerCase().includes(searchLower) ||
       patient.lab_id?.toLowerCase().includes(searchLower)
-    )
+
+    const matchesEmergencyFilter =
+      emergencyFilter === "all" ||
+      (emergencyFilter === "emergency" && patient.is_emergency === true) ||
+      (emergencyFilter === "normal" && patient.is_emergency !== true)
+
+    return matchesSearch && matchesEmergencyFilter
   })
 
   const handlePatientSelect = async (patient) => {
-    if (patient.status?.toLowerCase() === 'billed') {
+    if (patient.status?.toLowerCase() === "billed") {
       toast.warning("Cannot update billing for already billed patients")
       return
     }
-    
+
     setSelectedPatient(patient)
     setCurrentPage("billing")
-    
+
     // Fetch payment options for the patient
     await fetchPatientDetails(patient)
-    
+
     loadExistingBillingData(patient)
   }
 
@@ -902,72 +943,66 @@ const PatientBilling = () => {
       upi: true,
       neft: true,
       cheque: true,
-      multiplePayment: true
+      multiplePayment: true,
     })
   }
 
-const handleTestSearch = (value) => {
-  setTestSearchValue(value)
+  const handleTestSearch = (value) => {
+    setTestSearchValue(value)
 
-  if (!value.trim()) {
-    setFilteredTestOptions([])
+    if (!value.trim()) {
+      setFilteredTestOptions([])
+      setShowTestDropdown(false)
+      return
+    }
+
+    const search = value.toLowerCase()
+
+    const filtered = testOptions.filter(
+      (test) => test.test_name?.toLowerCase().includes(search) || test.shortcut?.toLowerCase().includes(search),
+    )
+
+    setFilteredTestOptions(filtered)
+    setShowTestDropdown(true)
+  }
+
+  const handleTestSelect = (test) => {
+    if (!selectedPatient) {
+      toast.error("No patient selected.")
+      return
+    }
+
+    let amount = 0
+    if (selectedPatient.segment === "B2B") {
+      amount = Number(test.L2L_Rate_Card || 0)
+    } else {
+      amount = Number(test.MRP || 0)
+    }
+
+    const newTest = {
+      test_id: test.test_id,
+      testname: test.test_name, // ✅ Always full name
+      collection_container: test.collection_container,
+      amount,
+      refund: false,
+      cancellation: false,
+      id: Date.now() + Math.random(),
+    }
+
+    const alreadySelected = selectedTests.some((t) => t.testname === newTest.testname)
+
+    if (alreadySelected) {
+      toast.error("This test is already selected.")
+      return
+    }
+
+    setSelectedTests((prev) => [...prev, newTest])
+
+    setTestSearchValue("")
+
     setShowTestDropdown(false)
-    return
+    toast.success("Test added successfully")
   }
-
-  const search = value.toLowerCase()
-
-  const filtered = testOptions.filter(
-    (test) =>
-      test.test_name?.toLowerCase().includes(search) ||
-      test.shortcut?.toLowerCase().includes(search)
-  )
-
-  setFilteredTestOptions(filtered)
-  setShowTestDropdown(true)
-}
-
-
-const handleTestSelect = (test) => {
-  if (!selectedPatient) {
-    toast.error("No patient selected.")
-    return
-  }
-
-  let amount = 0
-  if (selectedPatient.segment === "B2B") {
-    amount = Number(test.L2L_Rate_Card || 0)
-  } else {
-    amount = Number(test.MRP || 0)
-  }
-
-  const newTest = {
-    test_id: test.test_id,
-    testname: test.test_name,   // ✅ Always full name
-    collection_container: test.collection_container,
-    amount,
-    refund: false,
-    cancellation: false,
-    id: Date.now() + Math.random(),
-  }
-
-  const alreadySelected = selectedTests.some(
-    (t) => t.testname === newTest.testname
-  )
-
-  if (alreadySelected) {
-    toast.error("This test is already selected.")
-    return
-  }
-
-  setSelectedTests((prev) => [...prev, newTest])
-
-  // 👇 show full test name in input
-  setTestSearchValue(test.test_name)
-
-  setShowTestDropdown(false)
-  toast.success("Test added successfully")
-}
 
   const handleTestRemove = (testId) => {
     const updatedTests = selectedTests.filter((test) => test.id !== testId)
@@ -983,7 +1018,7 @@ const handleTestSelect = (test) => {
 
     const paymentAmount = Number.parseFloat(currentMultiplePayment.amount)
     const remainingAmount = getRemainingAmount()
-    
+
     if (paymentAmount > remainingAmount) {
       toast.error(`Payment amount cannot exceed remaining amount of ₹${remainingAmount.toFixed(2)}`)
       return
@@ -1047,8 +1082,8 @@ const handleTestSelect = (test) => {
         second: "2-digit",
         timeZone: "Asia/Kolkata",
         hour12: true,
-      });
-      return formatted.replace(/am|pm/gi, (match) => match.toUpperCase());
+      })
+      return formatted.replace(/am|pm/gi, (match) => match.toUpperCase())
     }
 
     const numberToWords = (num) => {
@@ -1082,7 +1117,7 @@ const handleTestSelect = (test) => {
         if (n < 1000) return a[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " and " + toWords(n % 100) : "")
         return toWords(Math.floor(n / 1000)) + " Thousand" + (n % 1000 ? " " + toWords(n % 1000) : "")
       }
-      return toWords(parseInt(num))
+      return toWords(Number.parseInt(num))
     }
 
     const tableRows =
@@ -1092,7 +1127,7 @@ const handleTestSelect = (test) => {
             <tr>
               <td>${index + 1}</td>
               <td>${test.testname || ""}</td>
-              <td style="text-align: right;">₹${parseFloat(test.amount || 0).toFixed(2)}</td>
+              <td style="text-align: right;">₹${Number.parseFloat(test.amount || 0).toFixed(2)}</td>
             </tr>
           `,
         )
@@ -1209,30 +1244,26 @@ const handleTestSelect = (test) => {
             <div class="details">
               <table id="invoiceTable">
                 <tr>
-                  <td><strong>Bill Date:</strong> ${
-                    formatDateTimeUTC(selectedPatient.date) || "NIL"
-                  }</td>
-                  <td><strong>Bill No / Lab ID:</strong> ${
-                    selectedPatient.lab_id || "NIL"
-                  }</td>
+                  <td><strong>Bill Date:</strong> ${formatDateTimeUTC(selectedPatient.date) || "NIL"}</td>
+                  <td><strong>Bill No / Lab ID:</strong> ${selectedPatient.lab_id || "NIL"}</td>
                 </tr>
                 <tr>
-                  <td><strong>Patient ID:</strong> ${
-                    selectedPatient.patient_id || "NIL"
-                  }</td>
+                  <td><strong>Patient ID:</strong> ${selectedPatient.patient_id || "NIL"}</td>
                   <td><strong>Lab Name:</strong> ${selectedPatient.B2B || "NIL"}</td>
                 </tr>
                 <tr>
-                  <td><strong>Name:</strong> ${
-                    selectedPatient.patientname || "NIL"
-                  }</td>
+                  <td><strong>Name:</strong> ${selectedPatient.patientname || "NIL"}</td>
                   <td><strong>Gender/Age:</strong> ${selectedPatient.gender || "NIL"}/${
-      selectedPatient.age || "NIL"
-    } Yrs</td>
+                    selectedPatient.age || "NIL"
+                  } Yrs</td>
                 </tr>
                 <tr>
                   <td><strong>Mobile:</strong> ${selectedPatient.phone || "NIL"}</td>
                   <td><strong>Ref By:</strong> ${selectedPatient.refby || "SELF"}</td>
+                </tr>
+                <tr>
+                  <td><strong>Branch:</strong> ${selectedPatient.branch || "N/A"}</td>
+                  <td></td>
                 </tr>
               </table>
             </div>
@@ -1261,19 +1292,19 @@ const handleTestSelect = (test) => {
                 <tbody>
                   <tr>
                     <td>Total Amount</td>
-                    <td style="text-align:right">₹${parseFloat(billingData.totalAmount || 0).toFixed(2)}</td>
+                    <td style="text-align:right">₹${Number.parseFloat(billingData.totalAmount || 0).toFixed(2)}</td>
                   </tr>
                   ${
-                    billingData.discount && parseFloat(billingData.discount) > 0
+                    billingData.discount && Number.parseFloat(billingData.discount) > 0
                       ? `<tr>
                           <td>Discount</td>
-                          <td style="text-align:right">₹${parseFloat(billingData.discount).toFixed(2)}</td>
+                          <td style="text-align:right">₹${Number.parseFloat(billingData.discount).toFixed(2)}</td>
                         </tr>`
                       : ""
                   }
                   <tr class="total-row">
                     <td><strong>Net Amount</strong></td>
-                    <td style="text-align:right"><strong>₹${parseFloat(billingData.netAmount || 0).toFixed(2)}</strong></td>
+                    <td style="text-align:right"><strong>₹${Number.parseFloat(billingData.netAmount || 0).toFixed(2)}</strong></td>
                   </tr>
                   <tr>
                     <td>Payment Mode</td>
@@ -1398,73 +1429,95 @@ const handleTestSelect = (test) => {
               <FaSearch />
               <input
                 type="text"
-                placeholder="Search by Patient ID, Name, or Barcode (Lab ID)..."
+                placeholder="Search by Patient ID, Name"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
               />
             </SearchContainer>
-            
-            <DateFilters>
-              <FormGroup>
-                <label>From Date</label>
-                <input
-                  type="date"
-                  value={dateFilters.fromDate}
-                  onChange={(e) => setDateFilters((prev) => ({ ...prev, fromDate: e.target.value }))}
-                />
-              </FormGroup>
-              <FormGroup>
-                <label>To Date</label>
-                <input
-                  type="date"
-                  value={dateFilters.toDate}
-                  onChange={(e) => setDateFilters((prev) => ({ ...prev, toDate: e.target.value }))}
-                />
-              </FormGroup>
-            </DateFilters>
+
+            <FormGroup>
+              <label>Filter by Emergency Status</label>
+              <select value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
+                <option value="all">All Patients</option>
+                <option value="emergency">Emergency Only</option>
+                <option value="normal">Normal Only</option>
+              </select>
+            </FormGroup>
+
+            <FormGroup>
+              <label>From Date</label>
+              <input
+                type="date"
+                value={dateFilters.fromDate}
+                onChange={(e) => setDateFilters((prev) => ({ ...prev, fromDate: e.target.value }))}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <label>To Date</label>
+              <input
+                type="date"
+                value={dateFilters.toDate}
+                onChange={(e) => setDateFilters((prev) => ({ ...prev, toDate: e.target.value }))}
+              />
+            </FormGroup>
           </SearchAndFiltersContainer>
 
-          {loading && (
-            <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
-              Loading patients...
-            </div>
-          )}
+          <div style={{ padding: "15px 0", fontSize: "14px", color: "#6b7280", fontWeight: 500 }}>
+            Total Patients: <strong style={{ color: "#1e293b", fontSize: "16px" }}>{filteredPatients.length}</strong>
+          </div>
+
+          {loading && <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>Loading patients...</div>}
 
           {!loading && filteredPatients.length > 0 && (
             <PatientTable>
               <thead>
                 <tr>
+                  <th>Date</th>
                   <th>Patient ID</th>
                   <th>Name</th>
                   <th>Age/Gender</th>
-                  <th>Segment</th>
-                  <th>Date</th>
                   <th>Status</th>
+                  <th>Emergency</th>
+                  <th>Segment</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPatients.map((patient, index) => (
                   <tr key={index}>
-                    <td><strong>{patient.patient_id}</strong></td>
+                    <td>{new Date(patient.date).toLocaleDateString()}</td>
+                    <td>
+                      <strong>{patient.patient_id}</strong>
+                    </td>
                     <td>{patient.patientname}</td>
                     <td>
                       {patient.age}/{patient.gender}
                     </td>
-                    <td>{patient.segment}</td>
-                    <td>{new Date(patient.date).toLocaleDateString()}</td>
                     <td>
-                      <StatusBadge status={patient.status}>
-                        {patient.status}
-                      </StatusBadge>
+                      <StatusBadge status={patient.status}>{patient.status}</StatusBadge>
                     </td>
                     <td>
-                      <button 
-                        className="select-btn" 
+                      {patient.is_emergency ? (
+                        <EmergencyBadge emergency>
+                          <AlertCircle size={12} />
+                          Emergency
+                        </EmergencyBadge>
+                      ) : (
+                        <EmergencyBadge normal>
+                          <CheckCircle size={12} />
+                          Normal
+                        </EmergencyBadge>
+                      )}
+                    </td>
+                    <td>{patient.segment}</td>
+                    <td>
+                      <button
+                        className="select-btn"
                         onClick={() => handlePatientSelect(patient)}
-                        disabled={patient.status?.toLowerCase() === 'billed'}
+                        disabled={patient.status?.toLowerCase() === "billed"}
                       >
-                        {patient.status?.toLowerCase() === 'billed' ? 'Billed' : 'Update'}
+                        {patient.status?.toLowerCase() === "billed" ? "Billed" : "Update"}
                       </button>
                     </td>
                   </tr>
@@ -1489,10 +1542,16 @@ const handleTestSelect = (test) => {
     )
   }
 
+  // Billing Page
   return (
     <Container>
-      <BackButton onClick={handleBackToList}>
-        <FaArrowLeft /> Back to Patient List
+      <BackButton
+        onClick={() => {
+          setCurrentPage("list")
+          resetBillingData()
+        }}
+      >
+        <FaArrowLeft /> Back to Patients
       </BackButton>
 
       <Header>
@@ -1517,14 +1576,34 @@ const handleTestSelect = (test) => {
               <span className="value">{selectedPatient.patientname}</span>
             </div>
             <div className="detail-item">
-              <span className="label">Age/Gender</span>
-              <span className="value">
-                {selectedPatient.age} / {selectedPatient.gender}
-              </span>
+              <span className="label">Age</span>
+              <span className="value">{selectedPatient.age}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Gender</span>
+              <span className="value">{selectedPatient.gender}</span>
             </div>
             <div className="detail-item">
               <span className="label">Segment</span>
               <span className="value">{selectedPatient.segment}</span>
+            </div>
+            {selectedPatient.segment === "B2B" && (
+              <div className="detail-item">
+                <span className="label">Clinical Center</span>
+                <span className="value">{selectedPatient.B2B || "N/A"}</span>
+              </div>
+            )}
+            <div className="detail-item">
+              <span className="label">Lab ID</span>
+              <span className="value">{selectedPatient.lab_id}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Reference By</span>
+              <span className="value">{selectedPatient.refby}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Branch</span>
+              <span className="value">{selectedPatient.branch || "N/A"}</span>
             </div>
           </div>
         </PatientInfo>
@@ -1546,21 +1625,15 @@ const handleTestSelect = (test) => {
                 onChange={(e) => handleTestSearch(e.target.value)}
                 placeholder="Search for tests..."
               />
-                {showTestDropdown && filteredTestOptions.length > 0 && (
-                  <div className="dropdown">
-                    {filteredTestOptions.map((test, index) => (
-                      <div
-                        key={index}
-                        className="dropdown-item"
-                        onClick={() => handleTestSelect(test)}
-                      >
-                        <div className="test-name">
-                          {test.test_name}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              {showTestDropdown && filteredTestOptions.length > 0 && (
+                <div className="dropdown">
+                  {filteredTestOptions.map((test, index) => (
+                    <div key={index} className="dropdown-item" onClick={() => handleTestSelect(test)}>
+                      <div className="test-name">{test.test_name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </TestSearchContainer>
           </FormGroup>
         </FormRow>
@@ -1646,7 +1719,7 @@ const handleTestSelect = (test) => {
             </FormRow>
 
             {/* B2B Cash Type Warning */}
-            {selectedPatient?.segment === 'B2B' && !paymentOptions.credit && (
+            {selectedPatient?.segment === "B2B" && !paymentOptions.credit && (
               <PaymentValidationWarning>
                 <span className="warning-icon">⚠️</span>
                 Credit payment is disabled for this B2B patient (Cash type only)
@@ -1659,13 +1732,13 @@ const handleTestSelect = (test) => {
                 <h4>
                   <FaCreditCard /> Multiple Payment Details
                 </h4>
-                
+
                 {/* Payment validation warning for multiple payments */}
                 {getRemainingAmount() > 0 && (
                   <PaymentValidationWarning>
                     <span className="warning-icon">⚠️</span>
-                    Remaining amount to be paid: ₹{getRemainingAmount().toFixed(2)}. 
-                    Please complete all payments before saving.
+                    Remaining amount to be paid: ₹{getRemainingAmount().toFixed(2)}. Please complete all payments before
+                    saving.
                   </PaymentValidationWarning>
                 )}
 
@@ -1707,11 +1780,7 @@ const handleTestSelect = (test) => {
                     />
                   </FormGroup>
                   <div style={{ alignSelf: "end" }}>
-                    <Button 
-                      onClick={addMultiplePayment} 
-                      variant="success"
-                      disabled={getRemainingAmount() <= 0}
-                    >
+                    <Button onClick={addMultiplePayment} variant="success" disabled={getRemainingAmount() <= 0}>
                       <FaPlus /> Add Payment
                     </Button>
                   </div>
@@ -1776,9 +1845,14 @@ const handleTestSelect = (test) => {
                 <>
                   <div className="summary-row">
                     <span className="label">Total Paid:</span>
-                    <span className="value">₹{billingData.multiplePayments.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}</span>
+                    <span className="value">
+                      ₹{billingData.multiplePayments.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}
+                    </span>
                   </div>
-                  <div className="summary-row" style={{ color: getRemainingAmount() > 0 ? "#ef4444" : "#10b981", fontWeight: "600" }}>
+                  <div
+                    className="summary-row"
+                    style={{ color: getRemainingAmount() > 0 ? "#ef4444" : "#10b981", fontWeight: "600" }}
+                  >
                     <span className="label">Remaining:</span>
                     <span className="value">₹{getRemainingAmount().toFixed(2)}</span>
                   </div>

@@ -22,7 +22,7 @@ import PatientDetails from "./Components/Test/PatientDetails";
 import TestDetails from "./Components/Test/TestDetails";
 import PatientList from "./Components/TestApproval/PatientList";
 import DoctorForm from "./Components/TestApproval/DoctorForm";
-import Dashboard from "./Components/Report/Dashboard";
+// import Dashboard from "./Components/Report/Dashboard";
 import MDashboard from "./Components/Report/MDashboard";
 import TestSorting from "./Components/Report/TestSorting";
 import PatientOverview from "./Components/Report/PatientOverview";
@@ -76,6 +76,9 @@ import PatientDataTable from "./Components/Mis/PatientTAT";
 import CorporateBatchApproval from "./Components/Sample/CorparateBatchapproval";
 import OSTestDetails from "./Components/OSManangement/OSTestDetails";
 import OutSourceDetails from "./Components/OSManangement/OutSourceDetails";
+import RejectedSamples from "./Components/Lab/RejectedSamples";
+import OutsourcedSamples from "./Components/Lab/OutsourcedSamples";
+import HomeCollectionReport from "./Components/Report/HomeCollectionReport";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -107,7 +110,7 @@ function App() {
   const navigateRole = (userRole) => {
     switch (userRole) {
       case "Diagnostics General Manager":
-        navigate("/Dashboard");
+        navigate("/MDashboard");
         break;
       case "Lab Receptionist":
         navigate("/PatientBilling");
@@ -295,7 +298,7 @@ function App() {
 
 
             {/* Diagnostics Report */}
-            <Route path="/Dashboard" element={<Dashboard />} />
+            {/* <Route path="/Dashboard" element={<Dashboard />} /> */}
             <Route path="/MDashboard" element={<MDashboard />} />
             <Route path="/Testcount" element={<Testcount />} />
             <Route path="/TestSorting" element={<TestSorting />} />
