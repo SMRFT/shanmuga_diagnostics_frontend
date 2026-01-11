@@ -2,9 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import styled, { createGlobalStyle, ThemeProvider } from "styled-components"
+import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components"
 import { Search, X, CheckCircle, AlertCircle, FileText, Clock, User, Calendar, Tag, Activity } from "lucide-react"
 import apiRequest from "../Auth/apiRequest"
+
+const blink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+`;
 
 // Theme definition
 const theme = {
@@ -131,7 +136,8 @@ const DateDisplay = styled.span`
 
 const SearchContainer = styled.div`
   position: relative;
-  margin-bottom: 1.5rem;
+  flex: 1;
+  min-width: 250px;
 `
 
 const SearchIcon = styled.div`
@@ -161,6 +167,13 @@ const SearchInput = styled.input`
   &::placeholder {
     color: ${(props) => props.theme.colors.textLight};
   }
+`
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 `
 
 const TableContainer = styled.div`
@@ -200,6 +213,32 @@ const Tr = styled.tr`
   &:hover {
     background: ${(props) => props.theme.colors.backgroundAlt};
   }
+`
+const EmergencyBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: ${(props) => props.theme.borderRadius.full};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  ${(props) =>
+    props.emergency &&
+    css`
+      background-color: ${props.theme.colors.danger};
+      color: white;
+      animation: ${blink} 1.5s ease-in-out infinite;
+    `}
+
+  ${(props) =>
+    props.normal &&
+    css`
+      background-color: ${props.theme.colors.success}20;
+      color: ${props.theme.colors.success};
+    `}
 `
 
 const Button = styled.button`
@@ -413,43 +452,6 @@ const LoadingSpinner = styled.div`
   }
 `
 
-const Badge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  font-size: 0.75rem;
-  font-weight: 500;
-  
-  ${(props) =>
-    props.collected &&
-    `
-    background: #fef3c7;
-    color: #d97706;
-  `}
-  
-  ${(props) =>
-    props.received &&
-    `
-    background: #dcfce7;
-    color: #16a34a;
-  `}
-  
-  ${(props) =>
-    props.rejected &&
-    `
-    background: #fee2e2;
-    color: #dc2626;
-  `}
-  
-  ${(props) =>
-    props.outsource &&
-    `
-    background: #dbeafe;
-    color: #2563eb;
-  `}
-`
 
 const PatientInfoCard = styled.div`
   background: ${(props) => props.theme.colors.backgroundAlt};
@@ -523,6 +525,11 @@ const ButtonGroup = styled.div`
   gap: 1rem;
   justify-content: flex-end;
 `
+const Checkbox = styled.input.attrs({ type: "checkbox" })`
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+`;
 
 // Calendar component (same as HmsSampleStatus)
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
@@ -598,7 +605,6 @@ const HmsSampleStatusUpdate = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
-  const [savedTests, setSavedTests] = useState({})
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [statusChanges, setStatusChanges] = useState({})
   const storedName = localStorage.getItem("name")
@@ -606,6 +612,9 @@ const HmsSampleStatusUpdate = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [outsourceLabs, setOutsourceLabs] = useState([]);
   const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [opIpFilter, setopIPFilter] = useState("All");
 
   
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
@@ -748,78 +757,146 @@ const handleOutsourceLabChange = (barcode, testIndex, labName) => {
       [`${barcode}-${testIndex}`]: value,
     }))
   }
+  const toggleSelectTest = (barcode, testIndex) => {
+  const isCurrentlySelected = selectedTests.includes(`${barcode}-${testIndex}`);
+  
+  if (isCurrentlySelected) {
+    // Uncheck - remove from selected and clear status
+    setSelectedTests((prevSelected) =>
+      prevSelected.filter((id) => id !== `${barcode}-${testIndex}`)
+    );
+    handleStatusChange(barcode, testIndex, "");
+  } else {
+    // Check - add to selected and set status to Received
+    setSelectedTests((prevSelected) => [...prevSelected, `${barcode}-${testIndex}`]);
+    handleStatusChange(barcode, testIndex, "Received");
+  }
+};
+const selectAllTests = (barcode) => {
+  const allTestIds = selectedPatient.testdetails.map((_, idx) => `${barcode}-${idx}`);
+  const allSelected = allTestIds.every(id => selectedTests.includes(id));
+  
+  if (allSelected) {
+    // Uncheck all
+    setSelectedTests([]);
+    selectedPatient.testdetails.forEach((_, testIndex) => {
+      handleStatusChange(barcode, testIndex, "");
+    });
+  } else {
+    // Check all
+    setSelectedTests(allTestIds);
+    selectedPatient.testdetails.forEach((_, testIndex) => {
+      handleStatusChange(barcode, testIndex, "Received");
+    });
+  }
+};
 
-  const updateTestStatus = async (barcode, testIndex) => {
-  const updatedStatus = statusChanges[selectedPatient.barcode]?.[testIndex]
-  const testDetails = selectedPatient.testdetails[testIndex]
-  const updatedRemarks = remarks[`${barcode}-${testIndex}`]
-  const outsourceLabName = selectedOutsourceLab[`${barcode}-${testIndex}`]; // ADDED
+  const updateAllTests = async () => {
+  const barcode = selectedPatient.barcode;
+  const testsToUpdate = [];
+  let hasErrors = false;
+  let errorMessage = "";
 
-  if (!updatedStatus) {
-    setError("Please select a status for the test before updating.")
-    setTimeout(() => setError(null), 3000)
-    return
+  // Validate all tests before sending
+  selectedPatient.testdetails.forEach((detail, testIndex) => {
+    const updatedStatus = statusChanges[barcode]?.[testIndex];
+    
+    // Skip if no status change
+    if (!updatedStatus) {
+      return;
+    }
+
+    // Validate outsource lab selection
+    if (updatedStatus === "Outsource") {
+      const outsourceLabName = selectedOutsourceLab[`${barcode}-${testIndex}`];
+      if (!outsourceLabName) {
+        hasErrors = true;
+        errorMessage = `Please select an outsource lab for test: ${detail.test_name}`;
+        return;
+      }
+    }
+
+    // Validate rejection reason
+    if (updatedStatus === "Rejected") {
+      const updatedRemarks = remarks[`${barcode}-${testIndex}`];
+      if (!updatedRemarks || updatedRemarks.trim() === "") {
+        hasErrors = true;
+        errorMessage = `Please provide a rejection reason for test: ${detail.test_name}`;
+        return;
+      }
+    }
+
+    // Add to update list
+    testsToUpdate.push({
+      test_id: detail.test_id,
+      samplestatus: updatedStatus,
+      remarks: remarks[`${barcode}-${testIndex}`] || null,
+      received_by: updatedStatus === "Received" ? storedName : null,
+      rejected_by: updatedStatus === "Rejected" ? storedName : null,
+      outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+      outsource_lab: updatedStatus === "Outsource" ? selectedOutsourceLab[`${barcode}-${testIndex}`] : null,
+    });
+  });
+
+  // Show error if validation failed
+  if (hasErrors) {
+    setError(errorMessage);
+    setTimeout(() => setError(null), 3000);
+    return;
   }
 
-  // ADDED: Validate outsource lab selection
-  if (updatedStatus === "Outsource" && !outsourceLabName) {
-    setError("Please select an outsource lab.")
-    setTimeout(() => setError(null), 3000)
-    return
+  // Check if there are any tests to update
+  if (testsToUpdate.length === 0) {
+    setError("Please select a status for at least one test before updating.");
+    setTimeout(() => setError(null), 3000);
+    return;
   }
 
   try {
     const response = await apiRequest(`${Labbaseurl}hms_update_sample_collected/${barcode}/`, "PUT", {
       barcode: selectedPatient.barcode,
-      samplecollected_time: testDetails.samplecollected_time,
-      updates: [
-        {
-          test_id: testDetails.test_id,
-          samplestatus: updatedStatus,
-          remarks: updatedRemarks || null,
-          received_by: updatedStatus === "Received" ? storedName : null,
-          rejected_by: updatedStatus === "Rejected" ? storedName : null,
-          outsourced_by: updatedStatus === "Outsource" ? storedName : null,
-          outsource_lab: updatedStatus === "Outsource" ? outsourceLabName : null, // ADDED
-        },
-      ],
-    })
+      updates: testsToUpdate,
+    });
 
-      if (response.success) {
-        setSuccessMessage("Sample status updated successfully!")
-        setTimeout(() => setSuccessMessage(null), 3000)
-        setSavedTests((prev) => ({
-          ...prev,
-          [`${barcode}-${testIndex}`]: true,
-        }))
-        setSamples((prevSamples) =>
-          prevSamples.map((sample) =>
-            sample.barcode === barcode
-              ? {
-                  ...sample,
-                  testdetails: sample.testdetails.map((detail, idx) =>
-                    idx === testIndex
-                      ? {
-                          ...detail,
-                          samplestatus: updatedStatus,
-                          remarks: updatedRemarks || null,
-                        }
-                      : detail,
-                  ),
-                }
-              : sample,
-          ),
+    if (response.success) {
+      setSuccessMessage(`Successfully updated ${testsToUpdate.length} test(s)!`);
+      setTimeout(() => {
+        setSuccessMessage(null);
+        closeModal();
+      }, 2000);
+
+      // Update local state
+      setSamples((prevSamples) =>
+        prevSamples.map((sample) =>
+          sample.barcode === barcode
+            ? {
+                ...sample,
+                testdetails: sample.testdetails.map((detail, idx) => {
+                  const update = testsToUpdate.find((t) => t.test_id === detail.test_id);
+                  if (update) {
+                    return {
+                      ...detail,
+                      samplestatus: update.samplestatus,
+                      remarks: update.remarks,
+                      outsource_lab: update.outsource_lab,
+                    };
+                  }
+                  return detail;
+                }),
+              }
+            : sample
         )
-      } else {
-        setError(response.error || "Failed to update sample status")
-        setTimeout(() => setError(null), 3000)
-      }
-    } catch (err) {
-      setError("An unexpected error occurred while updating sample status")
-      setTimeout(() => setError(null), 3000)
-      console.error("Unexpected error:", err)
+      );
+    } else {
+      setError(response.error || "Failed to update sample status");
+      setTimeout(() => setError(null), 3000);
     }
+  } catch (err) {
+    setError("An unexpected error occurred while updating sample status");
+    setTimeout(() => setError(null), 3000);
+    console.error("Unexpected error:", err);
   }
+};
 
   const openModal = (barcode) => {
     const patient = samples.find((sample) => sample.barcode === barcode)
@@ -838,47 +915,26 @@ const handleOutsourceLabChange = (barcode, testIndex, labName) => {
   }
 
   // Updated filteredPatients to include barcode search
-  const filteredPatients = samples.filter(
-    (sample) =>
-      sample.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sample.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sample.barcode?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const filteredPatients = samples.filter((sample) => {
+  const matchesSearch =
+    sample.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    sample.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    sample.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Sample Collected":
-        return (
-          <Badge collected>
-            <Clock size={12} /> Collected
-          </Badge>
-        )
-      case "Received":
-        return (
-          <Badge received>
-            <CheckCircle size={12} /> Received
-          </Badge>
-        )
-      case "Rejected":
-        return (
-          <Badge rejected>
-            <X size={12} /> Rejected
-          </Badge>
-        )
-      case "Outsource":
-        return (
-          <Badge outsource>
-            <Activity size={12} /> Outsourced
-          </Badge>
-        )
-      default:
-        return (
-          <Badge>
-            <Clock size={12} /> {status}
-          </Badge>
-        )
-    }
-  }
+  const matchesStatus =
+    statusFilter === "All" ||
+    (statusFilter === "Emergency" && sample.is_emergency) ||
+    (statusFilter === "Normal" && !sample.is_emergency);
+
+  const opIpStatus =
+    opIpFilter === "All" ||
+    (opIpFilter === "OP" && sample.opiptype === "OP") ||
+    (opIpFilter === "IP" && sample.opiptype === "IP");
+
+  return matchesSearch && matchesStatus && opIpStatus;
+});
+
+ 
 
   return (
     <ThemeProvider theme={theme}>
@@ -938,17 +994,41 @@ const handleOutsourceLabChange = (barcode, testIndex, labName) => {
             </div>
           </Header>
 
-          <SearchContainer>
-            <SearchIcon>
-              <Search size={16} />
-            </SearchIcon>
-            <SearchInput
-              type="text"
-              placeholder="Search by Barcode, Patient name, ID"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </SearchContainer>
+          <FilterContainer>
+  <SearchContainer>
+    <SearchIcon>
+      <Search size={16} />
+    </SearchIcon>
+    <SearchInput
+      type="text"
+      placeholder="Search by Barcode, Patient name, ID"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+    />
+  </SearchContainer>
+
+  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+      Status Filter:
+    </label>
+    <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+      <option value="All">All</option>
+      <option value="Emergency">Emergency</option>
+      <option value="Normal">Normal</option>
+    </Select>
+  </div>
+
+  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+      OP/IP:
+    </label>
+    <Select value={opIpFilter} onChange={(e) => setopIPFilter(e.target.value)}>
+      <option value="All">All</option>
+      <option value="OP">OP</option>
+      <option value="IP">IP</option>
+    </Select>
+  </div>
+</FilterContainer>
 
           {loading ? (
             <LoadingContainer>
@@ -968,10 +1048,12 @@ const handleOutsourceLabChange = (barcode, testIndex, labName) => {
                       <tr>
                         <Th>Date</Th>
                         <Th>Patient ID</Th>
+                        <Th>OP/IP Type</Th>
                         <Th>Patient Name</Th>
                         <Th>Barcode</Th>
                         <Th>Age</Th>
                         <Th>Gender</Th>
+                        <Th>Status</Th>
                         <Th>Actions</Th>
                       </tr>
                     </thead>
@@ -980,10 +1062,24 @@ const handleOutsourceLabChange = (barcode, testIndex, labName) => {
                         <Tr key={sample.barcode}>
                           <Td>{new Date(sample.date).toLocaleDateString("en-GB")}</Td>
                           <Td>{sample.patient_id || "N/A"}</Td>
+                          <Td>{sample.opiptype || "N/A"}</Td>
                           <Td>{sample.patientname || "N/A"}</Td>
                           <Td>{sample.barcode}</Td>
                           <Td>{sample.age || "N/A"}</Td>
                           <Td>{sample.gender || "N/A"}</Td>
+                          <Td>
+  {sample.is_emergency ? (
+    <EmergencyBadge emergency>
+      <AlertCircle size={12} />
+      Emergency
+    </EmergencyBadge>
+  ) : (
+    <EmergencyBadge normal>
+      <CheckCircle size={12} />
+      Normal
+    </EmergencyBadge>
+  )}
+</Td>
                           <Td>
                             <Button primary onClick={() => openModal(sample.barcode)}>
                               <FileText size={16} />
@@ -1019,189 +1115,176 @@ const handleOutsourceLabChange = (barcode, testIndex, labName) => {
         </Card>
 
         {selectedPatient && Array.isArray(selectedPatient.testdetails) && (
-          <Modal>
-            <ModalContent>
-              <ModalHeader>
-                <ModalTitle>
-                  <FileText size={20} />
-                  Sample Details
-                </ModalTitle>
-                <CloseButton onClick={closeModal}>
-                  <X size={20} />
-                </CloseButton>
-              </ModalHeader>
+  <Modal>
+    <ModalContent>
+      <ModalHeader>
+        <ModalTitle>
+          <FileText size={20} />
+          Sample Details
+        </ModalTitle>
+        <CloseButton onClick={closeModal}>
+          <X size={20} />
+        </CloseButton>
+      </ModalHeader>
 
-              {successMessage && (
-                <Alert success>
-                  <CheckCircle size={16} />
-                  {successMessage}
-                </Alert>
-              )}
+      {successMessage && (
+        <Alert success>
+          <CheckCircle size={16} />
+          {successMessage}
+        </Alert>
+      )}
 
-              {error && (
-                <Alert error>
-                  <AlertCircle size={16} />
-                  {error}
-                </Alert>
-              )}
+      {error && (
+        <Alert error>
+          <AlertCircle size={16} />
+          {error}
+        </Alert>
+      )}
 
-              <PatientInfoCard>
-                <PatientInfoItem>
-                  <User size={16} />
-                  <PatientInfoLabel>Patient:</PatientInfoLabel>
-                  <PatientInfoValue>{selectedPatient.patientname || "N/A"}</PatientInfoValue>
-                </PatientInfoItem>
-                <PatientInfoItem>
-                  <Tag size={16} />
-                  <PatientInfoLabel>ID:</PatientInfoLabel>
-                  <PatientInfoValue>{selectedPatient.patient_id || "N/A"}</PatientInfoValue>
-                </PatientInfoItem>
-                <PatientInfoItem>
-                  <Calendar size={16} />
-                  <PatientInfoLabel>Date:</PatientInfoLabel>
-                  <PatientInfoValue>{new Date(selectedPatient.date).toLocaleDateString("en-GB")}</PatientInfoValue>
-                </PatientInfoItem>
-                <PatientInfoItem>
-                  <Tag size={16} />
-                  <PatientInfoLabel>Barcode:</PatientInfoLabel>
-                  <PatientInfoValue>{selectedPatient.barcode}</PatientInfoValue>
-                </PatientInfoItem>
-                <PatientInfoItem>
-                  <User size={16} />
-                  <PatientInfoLabel>Age:</PatientInfoLabel>
-                  <PatientInfoValue>{selectedPatient.age || "N/A"}</PatientInfoValue>
-                </PatientInfoItem>
-                <PatientInfoItem>
-                  <User size={16} />
-                  <PatientInfoLabel>Gender:</PatientInfoLabel>
-                  <PatientInfoValue>{selectedPatient.gender || "N/A"}</PatientInfoValue>
-                </PatientInfoItem>
-              
-              <PatientInfoItem><Clock size={16} color={theme.colors.primary} />
-                                <PatientInfoLabel>Current Time::</PatientInfoLabel>
-                                <PatientInfoValue>{format(currentTime, "dd/MM/yyyy hh:mm:ss a")}</PatientInfoValue>
-                              </PatientInfoItem>
-                                <PatientInfoItem>
-                                <Activity size={16} color={theme.colors.success} />
-                                <PatientInfoLabel>Branch:</PatientInfoLabel>
-                                <PatientInfoValue>{samples.length > 0 ? samples[0].branch : "Shanmuga Reference Lab"}</PatientInfoValue>
-                              </PatientInfoItem>
-                              <PatientInfoItem>
-                                <User size={16} color={theme.colors.info} />
-                                <PatientInfoLabel>Technician:</PatientInfoLabel>
-                                <PatientInfoValue>{storedName || "N/A"}</PatientInfoValue>
-                              </PatientInfoItem>
-              </PatientInfoCard>
+      <PatientInfoCard>
+        <PatientInfoItem>
+          <User size={16} />
+          <PatientInfoLabel>Patient:</PatientInfoLabel>
+          <PatientInfoValue>{selectedPatient.patientname || "N/A"}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <Tag size={16} />
+          <PatientInfoLabel>ID:</PatientInfoLabel>
+          <PatientInfoValue>{selectedPatient.patient_id || "N/A"}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <Calendar size={16} />
+          <PatientInfoLabel>Date:</PatientInfoLabel>
+          <PatientInfoValue>{new Date(selectedPatient.date).toLocaleDateString("en-GB")}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <Tag size={16} />
+          <PatientInfoLabel>Barcode:</PatientInfoLabel>
+          <PatientInfoValue>{selectedPatient.barcode}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <User size={16} />
+          <PatientInfoLabel>Age:</PatientInfoLabel>
+          <PatientInfoValue>{selectedPatient.age || "N/A"}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <User size={16} />
+          <PatientInfoLabel>Gender:</PatientInfoLabel>
+          <PatientInfoValue>{selectedPatient.gender || "N/A"}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <Clock size={16} color={theme.colors.primary} />
+          <PatientInfoLabel>Current Time:</PatientInfoLabel>
+          <PatientInfoValue>{format(currentTime, "dd/MM/yyyy hh:mm:ss a")}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <Activity size={16} color={theme.colors.success} />
+          <PatientInfoLabel>Branch:</PatientInfoLabel>
+          <PatientInfoValue>{samples.length > 0 ? samples[0].branch : "Shanmuga Reference Lab"}</PatientInfoValue>
+        </PatientInfoItem>
+        <PatientInfoItem>
+          <User size={16} color={theme.colors.info} />
+          <PatientInfoLabel>Technician:</PatientInfoLabel>
+          <PatientInfoValue>{storedName || "N/A"}</PatientInfoValue>
+        </PatientInfoItem>
+      </PatientInfoCard>
 
-              <div style={{ padding: "0 1.5rem 1.5rem" }}>
-                <TableContainer>
-                  <Table>
-                    <thead>
-                      <tr>
-                        <Th>Test Name</Th>
-                        <Th>Container Type</Th>
-                        <Th>Department</Th>
-                        <Th>Status</Th>
-                        <Th>Outsource Lab</Th>
-                        <Th>Reason for Rejection</Th>
-                        <Th>Actions</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedPatient.testdetails.map((detail, testIndex) => (
-                        <Tr key={testIndex}>
-                          <Td>{detail.testname}</Td>
-                          <Td>{detail.collection_container}</Td>
-                          <Td>{detail.department}</Td>
-                          <Td>
-                            <Select
-                              value={statusChanges[selectedPatient.barcode]?.[testIndex] ?? detail.samplestatus}
-                              onChange={(e) => handleStatusChange(selectedPatient.barcode, testIndex, e.target.value)}
-                            >
-                              <option value="">Select Status</option>
-                              <option value="Received">Received</option>
-                              <option value="Rejected">Rejected</option>
-                              <option value="Outsource">Outsource</option>
-                            </Select>
-                          </Td>
-                           <Td>
-  {statusChanges[selectedPatient.barcode]?.[testIndex] === "Outsource" && (
-    <div>
-      <Select
-        value={
-          selectedOutsourceLab[
-            `${selectedPatient.barcode}-${testIndex}`
-          ] || ""
-        }
-        onChange={(e) =>
-          handleOutsourceLabChange(
-            selectedPatient.barcode,
-            testIndex,
-            e.target.value
+      <div style={{ padding: "0 1.5rem 1.5rem" }}>
+        <TableContainer>
+          <Table>
+            <thead>
+  <tr>
+    <Th>Test Name</Th>
+    <Th>Container Type</Th>
+    <Th>Department</Th>
+    <Th>Status</Th>
+    <Th>Outsource Lab</Th>
+    <Th>Reason for Rejection</Th>
+    <Th>
+      <Checkbox
+        checked={
+          selectedPatient.testdetails.length > 0 &&
+          selectedPatient.testdetails.every((_, idx) =>
+            selectedTests.includes(`${selectedPatient.barcode}-${idx}`)
           )
         }
-      >
-        <option value="">Select Outsource Lab</option>
-        {Array.isArray(outsourceLabs) && outsourceLabs.length > 0 ? (
-          outsourceLabs.map((lab, index) => (
-            <option key={lab.labID || index} value={lab.labName}>
-              {lab.labName}
-            </option>
-          ))
-        ) : (
-          <option value="" disabled>No labs available</option>
-        )}
-      </Select>
-      {outsourceLabs.length === 0 && (
-        <div style={{ fontSize: "0.75rem", color: theme.colors.warning, marginTop: "0.25rem" }}>
-          Loading labs... (Found: {outsourceLabs.length} labs)
-        </div>
-      )}
-      {outsourceLabs.length > 0 && (
-        <div style={{ fontSize: "0.75rem", color: theme.colors.success, marginTop: "0.25rem" }}>
-          {outsourceLabs.length} labs available
-        </div>
-      )}
-    </div>
-  )}
+        onChange={() => selectAllTests(selectedPatient.barcode)}
+      />
+    </Th>
+  </tr>
+</thead>
+            <tbody>
+              {selectedPatient.testdetails.map((detail, testIndex) => (
+                <Tr key={testIndex}>
+                  <Td>{detail.test_name}</Td>
+                  <Td>{detail.container}</Td>
+                  <Td>{detail.department}</Td>
+                  <Td>
+                    <Select
+                      value={statusChanges[selectedPatient.barcode]?.[testIndex] ?? detail.samplestatus}
+                      onChange={(e) => handleStatusChange(selectedPatient.barcode, testIndex, e.target.value)}
+                    >
+                      <option value="">Select Status</option>
+                      <option value="Received">Received</option>
+                      <option value="Rejected">Rejected</option>
+                      <option value="Outsource">Outsource</option>
+                    </Select>
+                  </Td>
+                  <Td>
+                    {statusChanges[selectedPatient.barcode]?.[testIndex] === "Outsource" && (
+                      <div>
+                        <Select
+                          value={selectedOutsourceLab[`${selectedPatient.barcode}-${testIndex}`] || ""}
+                          onChange={(e) => handleOutsourceLabChange(selectedPatient.barcode, testIndex, e.target.value)}
+                        >
+                          <option value="">Select Outsource Lab</option>
+                          {Array.isArray(outsourceLabs) && outsourceLabs.length > 0 ? (
+                            outsourceLabs.map((lab, index) => (
+                              <option key={lab.labID || index} value={lab.labName}>
+                                {lab.labName}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="" disabled>
+                              No labs available
+                            </option>
+                          )}
+                        </Select>
+                      </div>
+                    )}
+                  </Td>
+                  <Td>
+                    {statusChanges[selectedPatient.barcode]?.[testIndex] === "Rejected" && (
+                      <Textarea
+                        value={remarks[`${selectedPatient.barcode}-${testIndex}`] || ""}
+                        onChange={(e) => handleRemarksChange(selectedPatient.barcode, testIndex, e.target.value)}
+                        placeholder="Enter rejection reason"
+                      />
+                    )}
+                  </Td>
+                  <Td>
+  <Checkbox
+    checked={selectedTests.includes(`${selectedPatient.barcode}-${testIndex}`)}
+    onChange={() => toggleSelectTest(selectedPatient.barcode, testIndex)}
+  />
 </Td>
-                          <Td>
-                            {statusChanges[selectedPatient.barcode]?.[testIndex] === "Rejected" && (
-                              <Textarea
-                                value={remarks[`${selectedPatient.barcode}-${testIndex}`] || ""}
-                                onChange={(e) =>
-                                  handleRemarksChange(selectedPatient.barcode, testIndex, e.target.value)
-                                }
-                                placeholder="Enter rejection reason"
-                              />
-                            )}
-                          </Td>
-                          <Td>
-                            <Button
-                              success={!savedTests[`${selectedPatient.barcode}-${testIndex}`]}
-                              secondary={savedTests[`${selectedPatient.barcode}-${testIndex}`]}
-                              onClick={() => updateTestStatus(selectedPatient.barcode, testIndex)}
-                              disabled={savedTests[`${selectedPatient.barcode}-${testIndex}`]}
-                            >
-                              {savedTests[`${selectedPatient.barcode}-${testIndex}`] ? (
-                                <>
-                                  <CheckCircle size={16} />
-                                  Updated
-                                </>
-                              ) : (
-                                "Update"
-                              )}
-                            </Button>
-                          </Td>
-                        </Tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </TableContainer>
-              </div>
-            </ModalContent>
-          </Modal>
-        )}
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        </TableContainer>
+
+        {/* Single Update All Button */}
+        <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end" }}>
+          <Button success onClick={updateAllTests}>
+            <CheckCircle size={16} />
+            Update All Tests
+          </Button>
+        </div>
+      </div>
+    </ModalContent>
+  </Modal>
+)}
       </Container>
     </ThemeProvider>
   )

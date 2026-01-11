@@ -1132,6 +1132,13 @@ const PatientOverview = () => {
         doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
         doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
         yPos += 10;
+        // NEW: Collect all verified_by values in this department
+        const verifiedBySet = new Set();
+        testsByDepartment[department].forEach((test) => {
+          if (test.verified_by && test.verified_by.trim() !== "") {
+            verifiedBySet.add(test.verified_by);
+          }
+        });
 
         testsByDepartment[department].forEach((test) => {
           // Group parameters by sub_title
@@ -1240,7 +1247,7 @@ const PatientOverview = () => {
           renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
 
           // Move Y position by actual row height
-          yPos += actualRowHeight;
+          yPos += actualRowHeight + 4;
 
           doc.setFont("helvetica", "normal");
           doc.setTextColor(0, 0, 0);
@@ -1418,7 +1425,14 @@ const PatientOverview = () => {
           doc.text(`Verified by: ${test.verified_by || "N/A"}`, leftMargin, yPos);
           yPos += 8;
         });
-
+      // NEW: Display "Verified by" once at the end of department
+        if (verifiedBySet.size > 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
+          doc.text(verifiedByText, leftMargin, yPos);
+          yPos += 8;
+        }
         yPos += 4;
       });
 

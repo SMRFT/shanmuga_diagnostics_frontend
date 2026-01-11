@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   AlertTriangle,
   CheckCircle,
@@ -42,6 +44,20 @@ const GlobalStyle = createGlobalStyle`
     background-color: #f5f7fb;
     color: var(--dark);
     line-height: 1.5;
+  }
+`;
+const StyledToastContainer = styled(ToastContainer)`
+  .Toastify__toast--success {
+    background-color: var(--white);
+  }
+  .Toastify__toast--error {
+    background-color: var(--danger);
+  }
+  .Toastify__toast--info {
+    background-color: var(--info);
+  }
+  .Toastify__toast--warning {
+    background-color: var(--warning);
   }
 `;
 
@@ -422,6 +438,7 @@ function DoctorForm() {
   const [error, setError] = useState(null);
   const [patientHistory, setPatientHistory] = useState("");
   const approved_by = localStorage.getItem("name");
+  const userRole = localStorage.getItem("role");
   const location = useLocation();
   const navigate = useNavigate();
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -503,7 +520,7 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
     if (!test || !testDetail) {
       throw new Error("Test or test detail not found");
     }
-    // Format current time similar to SampleStatus.js
+    
     const formatDateTime = (date) => {
       const d = new Date(date);
       const year = d.getFullYear();
@@ -514,6 +531,7 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
       const seconds = String(d.getSeconds()).padStart(2, "0");
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     };
+    
     const approveTime = formatDateTime(new Date());
     const response = await apiRequest(
       `${Labbaseurl}test-approval/${test.barcode}/approve/`,
@@ -521,15 +539,17 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
       {
         approve: true,
         approve_by,
-        approve_time: approveTime, // Add approve_time
+        approve_time: approveTime,
         barcode: test.barcode,
         created_date: testDetail.created_date,
         test_id: testDetail.test_id,
       }
     );
+    
     if (!response.success) {
       throw new Error(response.error || "Failed to approve test");
     }
+    
     if (
       response.data.message &&
       (response.data.message.includes("Test approved successfully") ||
@@ -546,7 +566,7 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
                       ...detail,
                       approve: true,
                       approve_by,
-                      approve_time: approveTime, // Update local state with approve_time
+                      approve_time: approveTime,
                     }
                   : detail
               ),
@@ -555,16 +575,39 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
           return record;
         });
       });
-      alert("Test approved successfully!");
+      
+      toast.success("Test approved successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } else {
-      alert("Approval failed: " + (response.data.message || "Unknown error"));
+      toast.error("Approval failed: " + (response.data.message || "Unknown error"), {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   } catch (error) {
     console.error("Error updating data:", error);
-    alert("Error during approval: " + error.message);
+    toast.error("Error during approval: " + error.message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
   }
 };
 
+// Replace the handleTestRerun function
 const handleTestRerun = async (recordIndex, testIndex) => {
   try {
     const test = testValues[recordIndex];
@@ -572,7 +615,8 @@ const handleTestRerun = async (recordIndex, testIndex) => {
     if (!testDetail) {
       throw new Error("Test detail not found");
     }
-    // Format current time similar to SampleStatus.js
+    const rerun_by = localStorage.getItem("name");
+    
     const formatDateTime = (date) => {
       const d = new Date(date);
       const year = d.getFullYear();
@@ -583,21 +627,25 @@ const handleTestRerun = async (recordIndex, testIndex) => {
       const seconds = String(d.getSeconds()).padStart(2, "0");
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     };
+    
     const rerunTime = formatDateTime(new Date());
     const response = await apiRequest(
       `${Labbaseurl}test-rerun/${test.barcode}/rerun/`,
       "PATCH",
       {
         rerun: true,
-        rerun_time: rerunTime, // Add rerun_time
+        rerun_by,
+        rerun_time: rerunTime,
         barcode: test.barcode,
         created_date: testDetail.created_date,
         test_id: testDetail.test_id,
       }
     );
+    
     if (!response.success) {
       throw new Error(response.error || "Failed to initiate rerun");
     }
+    
     setTestValues((prevValues) => {
       return prevValues.map((record, idx) => {
         if (idx === recordIndex) {
@@ -608,7 +656,8 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                 ? {
                     ...detail,
                     rerun: true,
-                    rerun_time: rerunTime, // Update local state with rerun_time
+                    rerun_by,
+                    rerun_time: rerunTime,
                   }
                 : detail
             ),
@@ -617,10 +666,25 @@ const handleTestRerun = async (recordIndex, testIndex) => {
         return record;
       });
     });
-    alert("Test rerun initiated successfully!");
+    
+    toast.success("Test rerun initiated successfully!", {
+      position: "top-right",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
   } catch (error) {
     console.error("Error updating data:", error);
-    alert("Error during rerun: " + error.message);
+    toast.error("Error during rerun: " + error.message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
   }
 };
 
@@ -682,7 +746,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
               <TestTitleCell colSpan="2">
                 <div>
                   <strong>
-                    {testNumber}. {detail.testname || "N/A"}
+                    {testNumber}. {detail.test_name || "N/A"}
                     {detail.outsourced && (
                       <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
                         Outsourced
@@ -701,6 +765,8 @@ const handleTestRerun = async (recordIndex, testIndex) => {
               <td></td>
               <td></td>
               <td></td>
+              <td></td>
+              <td></td>
               <TestRemarksCell>{detail.remarks || "N/A"}</TestRemarksCell>
               <td>
                 <RerunButton
@@ -712,15 +778,17 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                 </RerunButton>
               </td>
               <td>
-                <ApproveButton
-                  onClick={() =>
-                    handleTestApprove(recordIndex, detailIndex, approved_by)
-                  }
-                  disabled={detail.approve || detail.rerun}
-                >
-                  <CheckCircle size={14} />
-                  {detail.approve ? "Approved" : "Approve"}
-                </ApproveButton>
+                {userRole !== "Lab Technician" && (
+                  <ApproveButton
+                    onClick={() =>
+                      handleTestApprove(recordIndex, detailIndex, approved_by)
+                    }
+                    disabled={detail.approve || detail.rerun}
+                  >
+                    <CheckCircle size={14} />
+                    {detail.approve ? "Approved" : "Approve"}
+                  </ApproveButton>
+                )}
               </td>
             </TestHeaderRow>
           );
@@ -754,7 +822,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   <td></td>
                   <ParameterNameCell>
                     <div>
-                      {getRomanNumeral(paramCounter)}. {parameter.name || "N/A"}
+                      {getRomanNumeral(paramCounter)}. {parameter.parameter_name || "N/A"}
                       {parameter.comment && (
                         <CommentNote>
                           <CommentLabel>Note:</CommentLabel>
@@ -763,7 +831,9 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                       )}
                     </div>
                   </ParameterNameCell>
-                  <td>{parameter.specimen_type || "N/A"}</td>
+                  <td>{detail.department || "N/A"}</td>
+                  <td>{detail.specimen_type || "N/A"}</td>
+                  <td>{detail.collection_container || "N/A"}</td>
                   <ValueCell>
                     <ValueContainer>
                       <ValueText>{parameter.value || "N/A"}</ValueText>
@@ -793,7 +863,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
               <TestTitleCellMerged colSpan="2">
                 <div>
                   <strong>
-                    {testNumber}. {detail.testname || "N/A"}
+                    {testNumber}. {detail.test_name || "N/A"}
                     {detail.outsourced && (
                       <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
                         Outsourced
@@ -808,7 +878,9 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   )}
                 </div>
               </TestTitleCellMerged>
+              <td>{detail.department || "N/A"}</td>
               <td>{detail.specimen_type || "N/A"}</td>
+              <td>{detail.collection_container || "N/A"}</td>
               <ValueCell>
                 <ValueContainer>
                   <ValueText>{detail.value || "N/A"}</ValueText>
@@ -835,15 +907,17 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                 </RerunButton>
               </td>
               <td>
-                <ApproveButton
-                  onClick={() =>
-                    handleTestApprove(recordIndex, detailIndex, approved_by)
-                  }
-                  disabled={detail.approve || detail.rerun}
-                >
-                  <CheckCircle size={14} />
-                  {detail.approve ? "Approved" : "Approve"}
-                </ApproveButton>
+                {userRole !== "Lab Technician" && (
+                  <ApproveButton
+                    onClick={() =>
+                      handleTestApprove(recordIndex, detailIndex, approved_by)
+                    }
+                    disabled={detail.approve || detail.rerun}
+                  >
+                    <CheckCircle size={14} />
+                    {detail.approve ? "Approved" : "Approve"}
+                  </ApproveButton>
+                )}
               </td>
             </TestHeaderRow>
           );
@@ -876,6 +950,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
   return (
     <Container>
       <GlobalStyle />
+      <StyledToastContainer />
       <Header>
         <Title>Shanmuga Diagnosis</Title>
         <BackButton onClick={handleBack}>
@@ -931,7 +1006,9 @@ const handleTestRerun = async (recordIndex, testIndex) => {
             <tr>
               <th>Sl. No</th>
               <th>Test Name / Parameters</th>
+              <th>Department</th>
               <th>Specimen Type</th>
+              <th>Container</th>
               <th>Value</th>
               <th>Unit</th>
               <th>Reference Range</th>

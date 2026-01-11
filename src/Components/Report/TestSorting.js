@@ -827,6 +827,13 @@ const handlePrint = async (withLetterpad) => {
         );
 
         yPos += 10;
+        // NEW: Collect all verified_by values in this department
+        const verifiedBySet = new Set();
+        testsByDepartment[department].forEach((test) => {
+          if (test.verified_by && test.verified_by.trim() !== "") {
+            verifiedBySet.add(test.verified_by);
+          }
+        });
 
         testsByDepartment[department].forEach((test) => {
           const parametersBySubtitle = {};
@@ -1080,6 +1087,15 @@ const handlePrint = async (withLetterpad) => {
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
         });
+
+        // NEW: Display "Verified by" once at the end of department
+        if (verifiedBySet.size > 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
+          doc.text(verifiedByText, leftMargin, yPos);
+          yPos += 8;
+        }
 
         yPos += 4;
       });

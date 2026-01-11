@@ -402,6 +402,7 @@ function OSTestDetails() {
   const [error, setError] = useState(null);
   const [patientName, setPatientName] = useState("");
   const [initialValues, setInitialValues] = useState({});
+  const [processedRecords, setProcessedRecords] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const location = useLocation();
@@ -412,19 +413,20 @@ function OSTestDetails() {
   const age = queryParams.get("age");
   const barcode = queryParams.get("barcode");
   const locationId = queryParams.get("locationId");
+  const testId = queryParams.get("test_id");
   const testName = queryParams.get("test_name");
   const navigate = useNavigate();
   const verified_by = localStorage.getItem("name") || "";
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  const fetchTestDetails = async (barcode, deviceId = null, testName = null) => {
+  const fetchTestDetails = async (barcode, test_id = null, testName = null) => {
     try {
       setLoading(true);
       setError(null);
 
       let queryParams = `barcode=${encodeURIComponent(barcode)}`;
-      if (deviceId) {
-        queryParams += `&device_id=${encodeURIComponent(deviceId)}`;
+      if (testId) {
+        queryParams += `&test_id=${encodeURIComponent(testId)}`;
       }
       if (testName) {
         queryParams += `&test_name=${encodeURIComponent(testName)}`;
@@ -452,8 +454,17 @@ function OSTestDetails() {
         console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
       }
 
-       else {
+      if (
+        actualResponse.processed_records &&
+        Array.isArray(actualResponse.processed_records)
+      ) {
+        setProcessedRecords(actualResponse.processed_records);
+        console.log(
+          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`
+        );
+      } else {
         console.log("DEBUG: No processed records found in response");
+        setProcessedRecords([]);
       }
 
       const patientInfo = actualResponse.patient_info || {};
@@ -488,7 +499,9 @@ function OSTestDetails() {
           groupedTests[testName] = {
             testname: testName,
             originalTestname: testName,
+            device_id: test.device_id,
             test_id: test.test_id,
+            test_code: test.test_code,
             department: test.department,
             NABL: test.NABL,
             specimen_type: test.specimen_type || "",
@@ -692,7 +705,6 @@ function OSTestDetails() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Prevent duplicate submission
     if (isSubmitting) {
       return;
     }
@@ -756,28 +768,21 @@ function OSTestDetails() {
               const paramName = param.name || param.test_name;
               const uniqueKey = `${test.testname}_${paramName}`;
               parameters.push({
-                name: paramName,
+                test_code: param.test_code || "",
                 value: values[uniqueKey] || "",
-                unit: param.unit || "",
-                specimen_type: test.specimen_type || "",
-                reference_range: param.reference_range || "",
-                method: param.method || "",
-                sub_title: subtitle,
                 comment: parameterComments[uniqueKey] || "",
               });
             });
           });
 
           return {
-            test_id:test.test_id,
-            testname: test.testname,
+            device_id: test.device_id,
+            test_id: test.test_id,
             rerun: parameterEditMode ? false : test.rerun,
             approve: false,
             approve_time: "null",
             dispatch: false,
             dispatch_time: "null",
-            department: test.department || "",
-            NABL: test.NABL || "",
             remarks: parameterRemarks || "",
             verified_by: verified_by,
             parameters: parameters,
@@ -785,15 +790,10 @@ function OSTestDetails() {
           };
         } else {
           return {
-            test_id:test.test_id,
-            testname: test.testname,
-            specimen_type: test.specimen_type || "",
+            device_id: test.device_id,
+            test_id: test.test_id,
+            test_code: test.test_code,
             value: values[test.testname] || "",
-            unit: test.unit || "",
-            reference_range: test.reference_range || "",
-            method: test.method || "",
-            department: test.department || "",
-            NABL: test.NABL || "",
             remarks: remarks[test.testname] || "",
             comment: comments[test.testname] || "",
             rerun: editMode[test.testname] ? false : test.rerun,
@@ -803,7 +803,6 @@ function OSTestDetails() {
             dispatch_time: "null",
             verified_by: verified_by,
             outsourced: true,
-
           };
         }
       });
@@ -813,6 +812,7 @@ function OSTestDetails() {
         barcode: barcode,
         locationId: locationId,
         testdetails: testDetailsData,
+        processed_records: processedRecords,
       };
 
       console.log("DEBUG: Sending POST request with payload:", payload);
@@ -848,7 +848,7 @@ function OSTestDetails() {
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
     
-    navigate("/OutsourceDetails", { 
+    navigate("/OutSourceDetails", { 
       state: { 
         barcode: barcode,
         fromDate: stateFromDate || new Date(),
@@ -895,10 +895,10 @@ function OSTestDetails() {
     <Container>
       <GlobalStyle />
       <Header>
-        <Title> Out Source Test Details</Title>
+        <Title>O/S Test Details</Title>
         <BackButton onClick={handleBack}>
           <ArrowLeft size={18} />
-          Back to O/S Patient Details
+          Back to Patient Details
         </BackButton>
       </Header>
 
@@ -970,6 +970,14 @@ function OSTestDetails() {
                         <Input
                           type="text"
                           value={test.reference_range || ""}
+                          disabled
+                        />
+                      </FormGroup>
+                      <FormGroup>
+                        <Label>Method</Label>
+                        <Input
+                          type="text"
+                          value={test.method || ""}
                           disabled
                         />
                       </FormGroup>
