@@ -1015,6 +1015,7 @@ const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValu
   };
 
   const handleBack = () => {
+    const barcode = location.state?.barcode;
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
     
