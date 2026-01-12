@@ -1,4 +1,4 @@
-// Fetch outsource labs on"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -124,7 +124,6 @@ const Title = styled.h1`
     font-size: 1.875rem;
   }
 `;
-
 
 const FilterContainer = styled.div`
   display: flex;
@@ -332,18 +331,6 @@ const Button = styled.button`
     }
   `}
   
-  ${(props) =>
-    props.danger &&
-    `
-    background-color: ${props.theme.colors.danger};
-    color: white;
-    border: none;
-    
-    &:hover {
-      background-color: ${props.theme.colors.danger}e6;
-    }
-  `}
-  
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -355,44 +342,6 @@ const ButtonGroup = styled.div`
   gap: 0.5rem;
   margin-top: 1.5rem;
   justify-content: flex-end;
-`;
-
-const Badge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: ${(props) => props.theme.borderRadius.full};
-
-  ${(props) =>
-    props.collected &&
-    `
-    background-color: ${props.theme.colors.warning}20;
-    color: ${props.theme.colors.warning};
-  `}
-
-  ${(props) =>
-    props.received &&
-    `
-    background-color: ${props.theme.colors.success}20;
-    color: ${props.theme.colors.success};
-  `}
-  
-  ${(props) =>
-    props.rejected &&
-    `
-    background-color: ${props.theme.colors.danger}20;
-    color: ${props.theme.colors.danger};
-  `}
-  
-  ${(props) =>
-    props.outsource &&
-    `
-    background-color: ${props.theme.colors.info}20;
-    color: ${props.theme.colors.info};
-  `}
 `;
 
 const EmergencyBadge = styled.span`
@@ -627,6 +576,12 @@ const LoadingContainer = styled.div`
   padding: 2rem;
 `;
 
+const Checkbox = styled.input.attrs({ type: "checkbox" })`
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+`;
+
 // Calendar component
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
@@ -718,7 +673,6 @@ const SampleStatusUpdate = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  const [savedTests, setSavedTests] = useState({});
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [statusChanges, setStatusChanges] = useState({});
   const [remarks, setRemarks] = useState({});
@@ -726,6 +680,7 @@ const SampleStatusUpdate = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [outsourceLabs, setOutsourceLabs] = useState([]);
   const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
+  const [selectedTests, setSelectedTests] = useState([]);
   const storedName = localStorage.getItem("name");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -752,19 +707,15 @@ const SampleStatusUpdate = () => {
         console.log("response.data:", response.data);
         console.log("response.success:", response.success);
 
-        // Handle different response structures
         let labs = [];
         
         if (response && response.data) {
-          // Check if data is directly an array
           if (Array.isArray(response.data)) {
             labs = response.data;
           }
-          // Check if data has a nested data property
           else if (response.data.data && Array.isArray(response.data.data)) {
             labs = response.data.data;
           }
-          // Check if it's wrapped in success property
           else if (response.success && Array.isArray(response.data)) {
             labs = response.data;
           }
@@ -868,67 +819,127 @@ const SampleStatusUpdate = () => {
     }));
   };
 
-  const updateTestStatus = async (patientId, testIndex) => {
-    const updatedStatus =
-      statusChanges[selectedPatient.patient_id]?.[testIndex];
-    const testDetails = selectedPatient.testdetails[testIndex];
-    const updatedRemarks = remarks[`${patientId}-${testIndex}`];
-    const outsourceLabName = selectedOutsourceLab[`${patientId}-${testIndex}`];
+  const toggleSelectTest = (patientId, testIndex) => {
+    const isCurrentlySelected = selectedTests.includes(`${patientId}-${testIndex}`);
     
-    if (!updatedStatus) {
-      setError("Please select a status for the test before updating.");
+    if (isCurrentlySelected) {
+      setSelectedTests((prevSelected) =>
+        prevSelected.filter((id) => id !== `${patientId}-${testIndex}`)
+      );
+      handleStatusChange(patientId, testIndex, "");
+    } else {
+      setSelectedTests((prevSelected) => [...prevSelected, `${patientId}-${testIndex}`]);
+      handleStatusChange(patientId, testIndex, "Received");
+    }
+  };
+
+  const selectAllTests = (patientId) => {
+    if (!selectedPatient) return;
+    
+    const allTestIds = selectedPatient.testdetails.map((_, idx) => `${patientId}-${idx}`);
+    const allSelected = allTestIds.every(id => selectedTests.includes(id));
+    
+    if (allSelected) {
+      setSelectedTests([]);
+      selectedPatient.testdetails.forEach((_, testIndex) => {
+        handleStatusChange(patientId, testIndex, "");
+      });
+    } else {
+      setSelectedTests(allTestIds);
+      selectedPatient.testdetails.forEach((_, testIndex) => {
+        handleStatusChange(patientId, testIndex, "Received");
+      });
+    }
+  };
+
+  const updateAllTests = async () => {
+    const patientId = selectedPatient.patient_id;
+    const testsToUpdate = [];
+    let hasErrors = false;
+    let errorMessage = "";
+
+    selectedPatient.testdetails.forEach((detail, testIndex) => {
+      const updatedStatus = statusChanges[patientId]?.[testIndex];
+      
+      if (!updatedStatus) {
+        return;
+      }
+
+      if (updatedStatus === "Outsource") {
+        const outsourceLabName = selectedOutsourceLab[`${patientId}-${testIndex}`];
+        if (!outsourceLabName) {
+          hasErrors = true;
+          errorMessage = `Please select an outsource lab for test: ${detail.testname}`;
+          return;
+        }
+      }
+
+      if (updatedStatus === "Rejected") {
+        const updatedRemarks = remarks[`${patientId}-${testIndex}`];
+        if (!updatedRemarks || updatedRemarks.trim() === "") {
+          hasErrors = true;
+          errorMessage = `Please provide a rejection reason for test: ${detail.testname}`;
+          return;
+        }
+      }
+
+      testsToUpdate.push({
+        test_id: detail.test_id,
+        samplestatus: updatedStatus,
+        remarks: remarks[`${patientId}-${testIndex}`] || null,
+        received_by: updatedStatus === "Received" ? storedName : null,
+        rejected_by: updatedStatus === "Rejected" ? storedName : null,
+        outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+        outsource_lab: updatedStatus === "Outsource" ? selectedOutsourceLab[`${patientId}-${testIndex}`] : null,
+      });
+    });
+
+    if (hasErrors) {
+      setError(errorMessage);
       setTimeout(() => setError(null), 3000);
       return;
     }
 
-    if (updatedStatus === "Outsource" && !outsourceLabName) {
-      setError("Please select an outsource lab.");
+    if (testsToUpdate.length === 0) {
+      setError("Please select a status for at least one test before updating.");
       setTimeout(() => setError(null), 3000);
       return;
     }
-    
+
     try {
       const response = await apiRequest(
         `${Labbaseurl}update_sample_collected/${patientId}/`,
         "PUT",
         {
           barcode: selectedPatient.barcode,
-          samplecollected_time: testDetails.samplecollected_time,
-          updates: [
-            {
-              test_id: testDetails.test_id,
-              samplestatus: updatedStatus,
-              remarks: updatedRemarks || null,
-              received_by: updatedStatus === "Received" ? storedName : null,
-              rejected_by: updatedStatus === "Rejected" ? storedName : null,
-              outsourced_by: updatedStatus === "Outsource" ? storedName : null,
-              outsource_lab: updatedStatus === "Outsource" ? outsourceLabName : null,
-            },
-          ],
+          updates: testsToUpdate,
         }
       );
       
       if (response.success) {
-        setSuccessMessage("Sample status updated successfully!");
-        setTimeout(() => setSuccessMessage(null), 3000);
-        setSavedTests((prev) => ({
-          ...prev,
-          [`${patientId}-${testIndex}`]: true,
-        }));
+        setSuccessMessage(`Successfully updated ${testsToUpdate.length} test(s)!`);
+        setTimeout(() => {
+          setSuccessMessage(null);
+          closeModal();
+        }, 2000);
+
         setSamples((prevSamples) =>
           prevSamples.map((sample) =>
             sample.patient_id === patientId
               ? {
                   ...sample,
-                  testdetails: sample.testdetails.map((detail, idx) =>
-                    idx === testIndex
-                      ? {
-                          ...detail,
-                          samplestatus: updatedStatus,
-                          remarks: updatedRemarks || null,
-                        }
-                      : detail
-                  ),
+                  testdetails: sample.testdetails.map((detail, idx) => {
+                    const update = testsToUpdate.find((t) => t.test_id === detail.test_id);
+                    if (update) {
+                      return {
+                        ...detail,
+                        samplestatus: update.samplestatus,
+                        remarks: update.remarks,
+                        outsource_lab: update.outsource_lab,
+                      };
+                    }
+                    return detail;
+                  }),
                 }
               : sample
           )
@@ -957,9 +968,9 @@ const SampleStatusUpdate = () => {
     setSelectedPatient(null);
     setError(null);
     setSuccessMessage(null);
+    setSelectedTests([]);
   };
 
-  // Filter samples by search query and emergency status
   const filteredPatients = samples.filter((sample) => {
     const matchesSearch =
       sample.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1142,16 +1153,16 @@ const SampleStatusUpdate = () => {
             </>
           )}
           <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: "var(--gray)",
-            fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
-          }}
-        >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+            style={{
+              padding: "1rem 1.5rem",
+              textAlign: "right",
+              color: theme.colors.textLight,
+              fontSize: "0.875rem",
+              borderTop: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+          </div>
         </Card>
 
         {selectedPatient && Array.isArray(selectedPatient.testdetails) && (
@@ -1196,7 +1207,7 @@ const SampleStatusUpdate = () => {
                     {selectedPatient.patient_id}
                   </PatientInfoValue>
                 </PatientInfoItem>
-                                <PatientInfoItem>
+                <PatientInfoItem>
                   <Tag size={16} />
                   <PatientInfoLabel>Barcode:</PatientInfoLabel>
                   <PatientInfoValue>{selectedPatient.barcode}</PatientInfoValue>
@@ -1208,10 +1219,10 @@ const SampleStatusUpdate = () => {
                 </PatientInfoItem>
                 <PatientInfoItem>
                   <Clock size={16} color={theme.colors.primary} />
-                  <PatientInfoLabel>Current Time::</PatientInfoLabel>
+                  <PatientInfoLabel>Current Time:</PatientInfoLabel>
                   <PatientInfoValue>{format(currentTime, "dd/MM/yyyy hh:mm:ss a")}</PatientInfoValue>
                 </PatientInfoItem>
-                  <PatientInfoItem>
+                <PatientInfoItem>
                   <Activity size={16} color={theme.colors.success} />
                   <PatientInfoLabel>Branch:</PatientInfoLabel>
                   <PatientInfoValue>{samples.length > 0 ? samples[0].branch : "Shanmuga Reference Lab"}</PatientInfoValue>
@@ -1221,7 +1232,6 @@ const SampleStatusUpdate = () => {
                   <PatientInfoLabel>Technician:</PatientInfoLabel>
                   <PatientInfoValue>{storedName || "N/A"}</PatientInfoValue>
                 </PatientInfoItem>
-
                 <PatientInfoItem>
                   <AlertCircle size={16} />
                   <PatientInfoLabel>Status:</PatientInfoLabel>
@@ -1241,7 +1251,6 @@ const SampleStatusUpdate = () => {
                 </PatientInfoItem>
               </PatientInfoCard>
 
-
               <TableContainer>
                 <Table>
                   <thead>
@@ -1253,7 +1262,17 @@ const SampleStatusUpdate = () => {
                       <Th>Sample Collector</Th>
                       <Th>Outsource Lab</Th>
                       <Th>Reason for Rejection</Th>
-                      <Th>Actions</Th>
+                      <Th>
+                        <Checkbox
+                          checked={
+                            selectedPatient.testdetails.length > 0 &&
+                            selectedPatient.testdetails.every((_, idx) =>
+                              selectedTests.includes(`${selectedPatient.patient_id}-${idx}`)
+                            )
+                          }
+                          onChange={() => selectAllTests(selectedPatient.patient_id)}
+                        />
+                      </Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1314,16 +1333,6 @@ const SampleStatusUpdate = () => {
                                   <option value="" disabled>No labs available</option>
                                 )}
                               </Select>
-                              {outsourceLabs.length === 0 && (
-                                <div style={{ fontSize: "0.75rem", color: theme.colors.warning, marginTop: "0.25rem" }}>
-                                  Loading labs... (Found: {outsourceLabs.length} labs)
-                                </div>
-                              )}
-                              {outsourceLabs.length > 0 && (
-                                <div style={{ fontSize: "0.75rem", color: theme.colors.success, marginTop: "0.25rem" }}>
-                                  {outsourceLabs.length} labs available
-                                </div>
-                              )}
                             </div>
                           )}
                         </Td>
@@ -1349,46 +1358,23 @@ const SampleStatusUpdate = () => {
                           )}
                         </Td>
                         <Td>
-                          <Button
-                            success={
-                              !savedTests[
-                                `${selectedPatient.patient_id}-${testIndex}`
-                              ]
-                            }
-                            secondary={
-                              savedTests[
-                                `${selectedPatient.patient_id}-${testIndex}`
-                              ]
-                            }
-                            onClick={() =>
-                              updateTestStatus(
-                                selectedPatient.patient_id,
-                                testIndex
-                              )
-                            }
-                            disabled={
-                              savedTests[
-                                `${selectedPatient.patient_id}-${testIndex}`
-                              ]
-                            }
-                          >
-                            {savedTests[
-                              `${selectedPatient.patient_id}-${testIndex}`
-                            ] ? (
-                              <>
-                                <CheckCircle size={16} />
-                                Updated
-                              </>
-                            ) : (
-                              "Update"
-                            )}
-                          </Button>
+                          <Checkbox
+                            checked={selectedTests.includes(`${selectedPatient.patient_id}-${testIndex}`)}
+                            onChange={() => toggleSelectTest(selectedPatient.patient_id, testIndex)}
+                          />
                         </Td>
                       </Tr>
                     ))}
                   </tbody>
                 </Table>
               </TableContainer>
+
+              <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end" }}>
+                <Button success onClick={updateAllTests}>
+                  <CheckCircle size={16} />
+                  Update All Tests
+                </Button>
+              </div>
             </ModalContent>
           </Modal>
         )}

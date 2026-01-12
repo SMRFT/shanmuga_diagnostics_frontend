@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -389,6 +390,128 @@ const SelectIcon = styled(ChevronDown)`
   color: var(--gray);
 `;
 
+// Helper function to calculate derived values for tests with calculated parameters
+// MUST BE DEFINED OUTSIDE THE COMPONENT
+const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEdited = {}) => {
+  if (!currentTest) {
+    return currentValues;
+  }
+
+  const newValues = { ...currentValues };
+  const allParams = Object.values(currentTest.parametersBySubtitle || {}).flat();
+  
+  // Create a map of test_code to value
+  const valuesByTestCode = {};
+  allParams.forEach(param => {
+    const pName = param.name || param.test_name;
+    const key = `${testname}_${pName}`;
+    const val = parseFloat(newValues[key]) || 0;
+    valuesByTestCode[param.test_code] = val;
+  });
+
+  // LIPID PROFILE (test_id 498) calculations
+  if (currentTest.test_id === 498) {
+    const cholesterol = valuesByTestCode['13'] || 0;
+    const triglycerides = valuesByTestCode['14'] || 0;
+    const hdl = valuesByTestCode['15'] || 0;
+    const ldlDirect = valuesByTestCode['18'] || 0;
+
+    console.log('LIPID PROFILE - Calculating with values:', { cholesterol, triglycerides, hdl, ldlDirect });
+
+    // Calculate TESTCODE001: NON-HDL CHOLESTEROL (Cholesterol - HDL)
+    const nonHdlParam = allParams.find(p => p.test_code === 'TESTCODE001');
+    if (nonHdlParam && cholesterol && hdl) {
+      const nonHdlKey = `${testname}_${nonHdlParam.name || nonHdlParam.test_name}`;
+      if (!manuallyEdited[nonHdlKey]) {
+        const nonHdl = cholesterol - hdl;
+        newValues[nonHdlKey] = nonHdl.toFixed(2);
+        console.log(`NON-HDL: ${nonHdl.toFixed(2)}`);
+      }
+    }
+
+    // Calculate TESTCODE002: Cholesterol/HDL Ratio
+    const ratioParam = allParams.find(p => p.test_code === 'TESTCODE002');
+    if (ratioParam && cholesterol && hdl) {
+      const ratioKey = `${testname}_${ratioParam.name || ratioParam.test_name}`;
+      if (!manuallyEdited[ratioKey]) {
+        const ratio = cholesterol / hdl;
+        newValues[ratioKey] = ratio.toFixed(2);
+        console.log(`Cholesterol/HDL Ratio: ${ratio.toFixed(2)}`);
+      }
+    }
+
+    // Calculate TESTCODE003: VLDL-Cholesterol (Triglycerides / 5)
+    const vldlParam = allParams.find(p => p.test_code === 'TESTCODE003');
+    if (vldlParam && triglycerides) {
+      const vldlKey = `${testname}_${vldlParam.name || vldlParam.test_name}`;
+      if (!manuallyEdited[vldlKey]) {
+        const vldl = triglycerides / 5;
+        newValues[vldlKey] = vldl.toFixed(2);
+        console.log(`VLDL: ${vldl.toFixed(2)}`);
+      }
+    }
+
+    // Calculate TESTCODE004: LDL/HDL Ratio
+    const ldlRatioParam = allParams.find(p => p.test_code === 'TESTCODE004');
+    if (ldlRatioParam && ldlDirect && hdl) {
+      const ldlRatioKey = `${testname}_${ldlRatioParam.name || ldlRatioParam.test_name}`;
+      if (!manuallyEdited[ldlRatioKey]) {
+        const ldlHdlRatio = ldlDirect / hdl;
+        newValues[ldlRatioKey] = ldlHdlRatio.toFixed(2);
+        console.log(`LDL/HDL Ratio: ${ldlHdlRatio.toFixed(2)}`);
+      }
+    }
+  }
+
+  // LIVER FUNCTION TEST (test_id 196) calculations
+  if (currentTest.test_id === 196) {
+    const totalProtein = valuesByTestCode['05'] || 0; // Total Protein
+    const albumin = valuesByTestCode['06'] || 0; // Albumin
+    const bilirubinTotal = valuesByTestCode['07'] || 0; // Bilirubin - Total
+    const bilirubinDirect = valuesByTestCode['LFT02'] || 0; // Bilirubin - Direct
+
+    console.log('LIVER FUNCTION TEST - Calculating with values:', { totalProtein, albumin, bilirubinTotal, bilirubinDirect });
+
+    // Calculate LFT09: Globulin (Total Protein - Albumin)
+    const globulinParam = allParams.find(p => p.test_code === 'LFT09');
+    if (globulinParam && totalProtein && albumin) {
+      const globulinKey = `${testname}_${globulinParam.name || globulinParam.test_name}`;
+      if (!manuallyEdited[globulinKey]) {
+        const globulin = totalProtein - albumin;
+        newValues[globulinKey] = globulin.toFixed(2);
+        console.log(`Globulin: ${globulin.toFixed(2)}`);
+      }
+    }
+
+    // Calculate LFT10: A/G Ratio (Albumin / Globulin)
+    const agRatioParam = allParams.find(p => p.test_code === 'LFT10');
+    if (agRatioParam && albumin && totalProtein) {
+      const agRatioKey = `${testname}_${agRatioParam.name || agRatioParam.test_name}`;
+      if (!manuallyEdited[agRatioKey]) {
+        const globulin = totalProtein - albumin;
+        if (globulin > 0) {
+          const agRatio = albumin / globulin;
+          newValues[agRatioKey] = agRatio.toFixed(2);
+          console.log(`A/G Ratio: ${agRatio.toFixed(2)}`);
+        }
+      }
+    }
+
+    // Calculate LFT03: Bilirubin - Indirect (Bilirubin Total - Bilirubin Direct)
+    const bilirubinIndirectParam = allParams.find(p => p.test_code === 'LFT03');
+    if (bilirubinIndirectParam && bilirubinTotal && bilirubinDirect) {
+      const bilirubinIndirectKey = `${testname}_${bilirubinIndirectParam.name || bilirubinIndirectParam.test_name}`;
+      if (!manuallyEdited[bilirubinIndirectKey]) {
+        const bilirubinIndirect = bilirubinTotal - bilirubinDirect;
+        newValues[bilirubinIndirectKey] = bilirubinIndirect.toFixed(2);
+        console.log(`Bilirubin - Indirect: ${bilirubinIndirect.toFixed(2)}`);
+      }
+    }
+  }
+
+  return newValues;
+};
+
 function OSTestDetails() {
   const [testDetails, setTestDetails] = useState([]);
   const [values, setValues] = useState({});
@@ -402,6 +525,7 @@ function OSTestDetails() {
   const [error, setError] = useState(null);
   const [patientName, setPatientName] = useState("");
   const [initialValues, setInitialValues] = useState({});
+  const [processedRecords, setProcessedRecords] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const location = useLocation();
@@ -412,19 +536,21 @@ function OSTestDetails() {
   const age = queryParams.get("age");
   const barcode = queryParams.get("barcode");
   const locationId = queryParams.get("locationId");
+  const testId = queryParams.get("test_id");
   const testName = queryParams.get("test_name");
   const navigate = useNavigate();
   const verified_by = localStorage.getItem("name") || "";
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+  const [manuallyEditedCalculatedFields, setManuallyEditedCalculatedFields] = useState({});
 
-  const fetchTestDetails = async (barcode, deviceId = null, testName = null) => {
+  const fetchTestDetails = async (barcode, test_id = null, testName = null) => {
     try {
       setLoading(true);
       setError(null);
 
       let queryParams = `barcode=${encodeURIComponent(barcode)}`;
-      if (deviceId) {
-        queryParams += `&device_id=${encodeURIComponent(deviceId)}`;
+      if (testId) {
+        queryParams += `&test_id=${encodeURIComponent(testId)}`;
       }
       if (testName) {
         queryParams += `&test_name=${encodeURIComponent(testName)}`;
@@ -452,8 +578,17 @@ function OSTestDetails() {
         console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
       }
 
-       else {
+      if (
+        actualResponse.processed_records &&
+        Array.isArray(actualResponse.processed_records)
+      ) {
+        setProcessedRecords(actualResponse.processed_records);
+        console.log(
+          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`
+        );
+      } else {
         console.log("DEBUG: No processed records found in response");
+        setProcessedRecords([]);
       }
 
       const patientInfo = actualResponse.patient_info || {};
@@ -488,7 +623,9 @@ function OSTestDetails() {
           groupedTests[testName] = {
             testname: testName,
             originalTestname: testName,
+            device_id: test.device_id,
             test_id: test.test_id,
+            test_code: test.test_code,
             department: test.department,
             NABL: test.NABL,
             specimen_type: test.specimen_type || "",
@@ -555,9 +692,23 @@ function OSTestDetails() {
         }
       });
 
-      setValues(tempValues);
       setEditMode(tempEditMode);
       setInitialValues(tempInitialValues);
+      
+      // Auto-calculate derived values for LIPID PROFILE tests after loading from API
+      console.log('Running auto-calculation for loaded data...');
+      transformedTests.forEach((test) => {
+        // Calculate for LIPID PROFILE (498) and LIVER FUNCTION TEST (196)
+        if ((test.test_id === 498 || test.test_id === 196) && 
+            test.parametersBySubtitle && 
+            Object.keys(test.parametersBySubtitle).length > 0) {
+          console.log(`Found test with calculations: ${test.testname} (ID: ${test.test_id})`);
+          tempValues = calculateDerivedValues(test.testname, tempValues, test);
+        }
+      });
+      
+      // Update values with calculated results
+      setValues(tempValues);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching test details:", error);
@@ -585,14 +736,47 @@ function OSTestDetails() {
   };
 
   const handleParameterValueChange = (testname, paramName, event) => {
-    const { value } = event.target;
-    const uniqueKey = `${testname}_${paramName}`;
+  const { value } = event.target;
+  const uniqueKey = `${testname}_${paramName}`;
 
-    setValues((prevValues) => ({
+  setValues((prevValues) => {
+    const newValues = {
       ...prevValues,
       [uniqueKey]: value,
-    }));
-  };
+    };
+
+    // Check if this is a calculated field being manually edited
+    const currentTest = testDetails.find(t => t.testname === testname);
+    const param = Object.values(currentTest?.parametersBySubtitle || {})
+      .flat()
+      .find(p => (p.name || p.test_name) === paramName);
+    
+    // Calculated fields for both LIPID PROFILE and LIVER FUNCTION TEST
+    const calculatedFields = [
+  'TESTCODE001', 'TESTCODE002', 'TESTCODE003', 'TESTCODE004', // LIPID PROFILE
+  'LFT03', 'LFT09', 'LFT10' // LIVER FUNCTION TEST
+];
+const isCalculatedField = calculatedFields.includes(param.test_code);
+const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
+    
+    if (isCalculatedField) {
+      // Mark this field as manually edited
+      setManuallyEditedCalculatedFields(prev => ({
+        ...prev,
+        [uniqueKey]: true
+      }));
+      // Don't auto-calculate, just return the new values
+      return newValues;
+    }
+
+    // Auto-calculate for tests with calculated parameters
+    if (currentTest?.test_id === 498 || currentTest?.test_id === 196) {
+      return calculateDerivedValues(testname, newValues, currentTest, manuallyEditedCalculatedFields);
+    }
+    
+    return newValues;
+  });
+};
 
   const handleRemarksChange = (testname, event) => {
     setRemarks((prevRemarks) => ({
@@ -689,10 +873,10 @@ function OSTestDetails() {
     return allValuesFilled && remarksRequiredForEditedFields;
   };
 
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Prevent duplicate submission
     if (isSubmitting) {
       return;
     }
@@ -756,44 +940,31 @@ function OSTestDetails() {
               const paramName = param.name || param.test_name;
               const uniqueKey = `${test.testname}_${paramName}`;
               parameters.push({
-                name: paramName,
+                test_code: param.test_code || "",
                 value: values[uniqueKey] || "",
-                unit: param.unit || "",
-                specimen_type: test.specimen_type || "",
-                reference_range: param.reference_range || "",
-                method: param.method || "",
-                sub_title: subtitle,
                 comment: parameterComments[uniqueKey] || "",
               });
             });
           });
 
           return {
-            test_id:test.test_id,
-            testname: test.testname,
+            device_id: test.device_id,
+            test_id: test.test_id,
             rerun: parameterEditMode ? false : test.rerun,
             approve: false,
             approve_time: "null",
             dispatch: false,
             dispatch_time: "null",
-            department: test.department || "",
-            NABL: test.NABL || "",
             remarks: parameterRemarks || "",
             verified_by: verified_by,
             parameters: parameters,
-            outsourced: true,
           };
         } else {
           return {
-            test_id:test.test_id,
-            testname: test.testname,
-            specimen_type: test.specimen_type || "",
+            device_id: test.device_id,
+            test_id: test.test_id,
+            test_code: test.test_code,
             value: values[test.testname] || "",
-            unit: test.unit || "",
-            reference_range: test.reference_range || "",
-            method: test.method || "",
-            department: test.department || "",
-            NABL: test.NABL || "",
             remarks: remarks[test.testname] || "",
             comment: comments[test.testname] || "",
             rerun: editMode[test.testname] ? false : test.rerun,
@@ -803,7 +974,6 @@ function OSTestDetails() {
             dispatch_time: "null",
             verified_by: verified_by,
             outsourced: true,
-
           };
         }
       });
@@ -813,6 +983,7 @@ function OSTestDetails() {
         barcode: barcode,
         locationId: locationId,
         testdetails: testDetailsData,
+        processed_records: processedRecords,
       };
 
       console.log("DEBUG: Sending POST request with payload:", payload);
@@ -845,10 +1016,11 @@ function OSTestDetails() {
   };
 
   const handleBack = () => {
+    const barcode = location.state?.barcode;
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
     
-    navigate("/OutsourceDetails", { 
+    navigate("/OSTestDetails", { 
       state: { 
         barcode: barcode,
         fromDate: stateFromDate || new Date(),
@@ -895,10 +1067,10 @@ function OSTestDetails() {
     <Container>
       <GlobalStyle />
       <Header>
-        <Title> Out Source Test Details</Title>
+        <Title>O/S Test Details</Title>
         <BackButton onClick={handleBack}>
           <ArrowLeft size={18} />
-          Back to O/S Patient Details
+          Back to Patient Details
         </BackButton>
       </Header>
 
@@ -970,6 +1142,14 @@ function OSTestDetails() {
                         <Input
                           type="text"
                           value={test.reference_range || ""}
+                          disabled
+                        />
+                      </FormGroup>
+                      <FormGroup>
+                        <Label>Method</Label>
+                        <Input
+                          type="text"
+                          value={test.method || ""}
                           disabled
                         />
                       </FormGroup>
@@ -1105,7 +1285,8 @@ function OSTestDetails() {
                             const paramName = param.name || param.test_name;
                             const uniqueKey = `${test.testname}_${paramName}`;
                             const hasValueOptions = param.value_option && param.value_option.length > 0;
-                            const isDisabled = initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
+                            const isCalculatedField = ['TESTCODE001', 'TESTCODE002', 'TESTCODE003', 'TESTCODE004'].includes(param.test_code);
+                            const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
 
                             return (
                               <ParameterCard key={paramIndex}>

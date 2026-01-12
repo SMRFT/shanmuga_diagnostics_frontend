@@ -561,7 +561,6 @@ const SampleStatus = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentPatientTests, setCurrentPatientTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
-  const [loadingTestDetails, setLoadingTestDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState("");
@@ -616,152 +615,6 @@ const SampleStatus = () => {
     fetchPatientsByDate();
   }, [fromDate, toDate, Labbaseurl]);
 
-  const fetchTestDetailsByIds = async (testIds) => {
-    setLoadingTestDetails(true);
-    try {
-      const testDetailsPromises = testIds.map((testId) =>
-        apiRequest(`${Labbaseurl}testdetails/?test_id=${testId}`, "GET")
-      );
-
-      const results = await Promise.all(testDetailsPromises);
-      const allTestDetails = [];
-
-      results.forEach((result) => {
-        if (result.success) {
-          const data = result.data.data || result.data;
-          if (Array.isArray(data)) {
-            allTestDetails.push(...data);
-          } else if (data) {
-            allTestDetails.push(data);
-          }
-        }
-      });
-
-      return allTestDetails;
-    } catch (err) {
-      console.error("Error fetching test details:", err);
-      return [];
-    } finally {
-      setLoadingTestDetails(false);
-    }
-  };
-
-  const fetchSampleStatus = async (patientId, barcode) => {
-    setLoadingTestDetails(true);
-    try {
-      const patient = patients.find(
-        (p) => p.patient_id === patientId && p.barcode === barcode
-      );
-
-      if (!patient || !patient.testdetails) {
-        setError("No test details found for the selected patient and barcode");
-        return;
-      }
-
-      const testIds = patient.testdetails.map((test) => test.test_id);
-      const detailedTestInfo = await fetchTestDetailsByIds(testIds);
-
-      const result = await apiRequest(
-        `${Labbaseurl}check_sample_status/${barcode}/`,
-        "GET"
-      );
-
-      if (result.success && result.data.exists) {
-        try {
-          const response = await apiRequest(
-            `${Labbaseurl}sample_status_data/${barcode}/`,
-            "GET"
-          );
-
-          if (response.success && response.data && response.data.testdetails) {
-            let testdetails = response.data.testdetails;
-            if (typeof testdetails === "string") {
-              testdetails = JSON.parse(testdetails);
-            }
-
-            const pendingTests = testdetails
-              .filter((test) => test.samplestatus === "Pending")
-              .map((test) => {
-                const detailedInfo = detailedTestInfo.find(
-                  (detail) => detail.test_id === test.test_id
-                );
-                return {
-                  ...test,
-                  status: test.samplestatus || "Pending",
-                  department: detailedInfo?.department || test.department || "N/A",
-                  collection_container: detailedInfo?.collection_container || test.container || "N/A",
-                  samplecollector: patient.sample_collector || "N/A",
-                };
-              });
-
-            if (pendingTests.length > 0) {
-              setCurrentPatientTests(pendingTests);
-            } else {
-              const allTests = patient.testdetails.map((test) => {
-                const detailedInfo = detailedTestInfo.find(
-                  (detail) => detail.test_id === test.test_id
-                );
-                return {
-                  ...test,
-                  status: "Pending",
-                  samplestatus: "Pending",
-                  department: detailedInfo?.department || test.department || "N/A",
-                  collection_container: detailedInfo?.collection_container || test.collection_container || "N/A",
-                  container: detailedInfo?.collection_container || test.collection_container || "N/A",
-                  samplecollector: patient.sample_collector || "N/A",
-                };
-              });
-              setCurrentPatientTests(allTests);
-            }
-          } else {
-            throw new Error("Invalid response from sample_status_data");
-          }
-        } catch (statusError) {
-          console.log(
-            "Error fetching sample_status_data, using original patient data:",
-            statusError
-          );
-          const allTests = patient.testdetails.map((test) => {
-            const detailedInfo = detailedTestInfo.find(
-              (detail) => detail.test_id === test.test_id
-            );
-            return {
-              ...test,
-              status: "Pending",
-              samplestatus: "Pending",
-              department: detailedInfo?.department || test.department || "N/A",
-              collection_container: detailedInfo?.collection_container || test.collection_container || "N/A",
-              container: detailedInfo?.collection_container || test.collection_container || "N/A",
-              samplecollector: patient.sample_collector || "N/A",
-            };
-          });
-          setCurrentPatientTests(allTests);
-        }
-      } else {
-        const allTests = patient.testdetails.map((test) => {
-          const detailedInfo = detailedTestInfo.find(
-            (detail) => detail.test_id === test.test_id
-          );
-          return {
-            ...test,
-            status: "Pending",
-            samplestatus: "Pending",
-            department: detailedInfo?.department || test.department || "N/A",
-            collection_container: detailedInfo?.collection_container || test.collection_container || "N/A",
-            container: detailedInfo?.collection_container || test.collection_container || "N/A",
-            samplecollector: patient.sample_collector || "N/A",
-          };
-        });
-        setCurrentPatientTests(allTests);
-      }
-    } catch (err) {
-      console.error("Error in fetchSampleStatus:", err);
-      setError("Error fetching sample status: " + err.message);
-    } finally {
-      setLoadingTestDetails(false);
-    }
-  };
-
   const handleStatusChange = (testId, status) => {
     setCurrentPatientTests((prevTests) =>
       prevTests.map((test) =>
@@ -797,6 +650,14 @@ const SampleStatus = () => {
         return;
       }
 
+      // Check if at least one test is selected
+      if (selectedTests.length === 0) {
+        setError("Please select at least one test to collect sample");
+        setSuccessMessage(null);
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
       const checkResult = await apiRequest(
         `${Labbaseurl}check_sample_status/${patient.barcode}/`,
         "GET"
@@ -827,7 +688,6 @@ const SampleStatus = () => {
 
             return {
               test_id: test.test_id,
-              testname: test.testname,
               samplestatus: status,
               samplecollected_time:
                 status === "Sample Collected" ? currentTime : null,
@@ -871,9 +731,6 @@ const SampleStatus = () => {
 
             return {
               test_id: test.test_id,
-              testname: test.testname,
-              container: test.container || test.collection_container || "N/A",
-              department: test.department || "N/A",
               samplecollector: patient.sample_collector || "N/A",
               samplestatus: status,
               samplecollected_time:
@@ -967,11 +824,38 @@ const SampleStatus = () => {
     setSelectedBarcode(barcode);
     setShowModal(true);
     setSelectedTests([]);
-    setCurrentPatientTests([]);
     setIsSaving(false);
     setIsSaved(false);
 
-    await fetchSampleStatus(patientId, barcode);
+    try {
+      const patient = patients.find(
+        (p) => p.patient_id === patientId && p.barcode === barcode
+      );
+
+      if (!patient || !patient.testdetails) {
+        setError("No test details found for the selected patient and barcode");
+        setCurrentPatientTests([]);
+        return;
+      }
+
+      // Directly use patient test details from sample_patient response
+      const allTests = patient.testdetails.map((test) => ({
+        ...test,
+        status: "Pending",
+        samplestatus: "Pending",
+        department: test.department || "N/A",
+        collection_container: test.collection_container || "N/A",
+        container: test.collection_container || "N/A",
+        testname: test.testname || test.test_name || "N/A",
+        samplecollector: patient.sample_collector || "N/A",
+      }));
+      
+      setCurrentPatientTests(allTests);
+    } catch (err) {
+      console.error("Error in openModal:", err);
+      setError("Error loading test details: " + err.message);
+      setCurrentPatientTests([]);
+    }
   };
 
   const closeModal = () => {
@@ -1197,9 +1081,9 @@ const SampleStatus = () => {
           style={{
             padding: "1rem 1.5rem",
             textAlign: "right",
-            color: "var(--gray)",
+            color: theme.colors.textLight,
             fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
+            borderTop: `1px solid ${theme.colors.border}`,
           }}
         >
           Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
@@ -1232,7 +1116,6 @@ const SampleStatus = () => {
                 </Alert>
               )}
 
-             
               {getCurrentPatient() && (
                 <div>
                   <div style={{ marginBottom: "1rem" }}>
@@ -1246,81 +1129,75 @@ const SampleStatus = () => {
                     <strong>Payment Mode:</strong> {getPaymentMode()}
                   </div>
 
-                  {loadingTestDetails ? (
-                    <EmptyState>
-                      <div>Loading test details...</div>
-                    </EmptyState>
-                  ) : (
-                    <div style={{ overflowX: "auto" }}>
-                      <Table>
-                        <thead>
-                          <tr>
-                            <Th>Test Name</Th>
-                            <Th>Container Type</Th>
-                            <Th>Department</Th>
-                            <Th>Status</Th>
-                            <Th>
-                              <Checkbox
-                                checked={
-                                  currentPatientTests.length > 0 &&
-                                  currentPatientTests.every((test) =>
-                                    selectedTests.includes(test.test_id)
+                  <div style={{ overflowX: "auto" }}>
+                    <Table>
+                      <thead>
+                        <tr>
+                          <Th>Test Name</Th>
+                          <Th>Container Type</Th>
+                          <Th>Department</Th>
+                          <Th>Status</Th>
+                          <Th>
+                            <Checkbox
+                              checked={
+                                currentPatientTests.length > 0 &&
+                                currentPatientTests.every((test) =>
+                                  selectedTests.includes(test.test_id)
+                                )
+                              }
+                              onChange={selectAllTests}
+                              disabled={isSaving || isSaved}
+                            />
+                          </Th>
+                          <Th>Sample Collector</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentPatientTests.map((test) => (
+                          <Tr key={test.test_id}>
+                            <Td>{test.testname}</Td>
+                            <Td>{test.container || test.collection_container || "N/A"}</Td>
+                            <Td>{test.department || "N/A"}</Td>
+                            <Td>
+                              <Select
+                                value={test.status || "Pending"}
+                                onChange={(e) =>
+                                  handleStatusChange(
+                                    test.test_id,
+                                    e.target.value
                                   )
                                 }
-                                onChange={selectAllTests}
+                                disabled={isSaving || isSaved}
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Sample Collected">
+                                  Collected
+                                </option>
+                              </Select>
+                            </Td>
+                            <Td>
+                              <Checkbox
+                                checked={selectedTests.includes(
+                                  test.test_id
+                                )}
+                                onChange={() =>
+                                  toggleSelectTest(test.test_id)
+                                }
                                 disabled={isSaving || isSaved}
                               />
-                            </Th>
-                            <Th>Sample Collector</Th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {currentPatientTests.map((test) => (
-                            <Tr key={test.test_id}>
-                              <Td>{test.testname}</Td>
-                              <Td>{test.container || test.collection_container || "N/A"}</Td>
-                              <Td>{test.department || "N/A"}</Td>
-                              <Td>
-                                <Select
-                                  value={test.status || "Pending"}
-                                  onChange={(e) =>
-                                    handleStatusChange(
-                                      test.test_id,
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={isSaving || isSaved}
-                                >
-                                  <option value="Pending">Pending</option>
-                                  <option value="Sample Collected">
-                                    Collected
-                                  </option>
-                                </Select>
-                              </Td>
-                              <Td>
-                                <Checkbox
-                                  checked={selectedTests.includes(
-                                    test.test_id
-                                  )}
-                                  onChange={() =>
-                                    toggleSelectTest(test.test_id)
-                                  }
-                                  disabled={isSaving || isSaved}
-                                />
-                              </Td>
-                              <Td>{test.samplecollector || "N/A"}</Td>
-                            </Tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </div>
-                  )}
+                            </Td>
+                            <Td>{test.samplecollector || "N/A"}</Td>
+                          </Tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
 
                   <ButtonGroup>
                     <Button
                       success
                       onClick={saveAllTestsForPatient}
-                      disabled={loadingTestDetails || isSaving || isSaved}
+                      disabled={isSaving || isSaved}
                     >
                       <Check size={16} />
                       {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}

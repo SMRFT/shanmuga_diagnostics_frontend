@@ -421,9 +421,6 @@ const Sidebar = () => {
                 <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
                   Diagnostics Billing
                 </SubLink>
-                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
-                  HMS Billing
-                </SubLink>
                 <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
                   Patient Overview
                 </SubLink>
@@ -443,9 +440,6 @@ const Sidebar = () => {
                 <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
                   Diagnostics Barcode Generation
                 </SubLink>
-                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
-                  HMS Barcode Generation
-                </SubLink>
               </DropdownContent>
 
               <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
@@ -461,9 +455,6 @@ const Sidebar = () => {
               <DropdownContent isOpen={dropdowns.sampleDetails}>
                 <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
                   Diagnostics Sample Collection
-                </SubLink>
-                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
-                  HMS Sample Collection
                 </SubLink>
               </DropdownContent>
 
@@ -629,6 +620,9 @@ const Sidebar = () => {
                 </SubLink>
                 <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
                   O/S Report Generation
+                </SubLink>
+                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                  Report Edit
                 </SubLink>
               </DropdownContent>
 

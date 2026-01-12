@@ -791,7 +791,7 @@ function PatientList() {
                         {patient.testdetails && patient.testdetails.length > 0
                           ? patient.testdetails.map((test, idx) => (
                               <TestItem key={idx}>
-                                <span>{test.testname}</span>
+                                <span>{test.test_id} - {test.test_name}</span>
                                 {test.outsourced && (
                                   <OutsourcedBadge>
                                     Outsourced
