@@ -1081,12 +1081,7 @@ const Sidebar = () => {
                 <SubLink to="/FranchiseBatchApproval" onClick={() => setIsSidebarOpen(false)}>
                   Franchise Batch Approval
                 </SubLink>
-                <SubLink to="/OutsourcedSamples" onClick={() => setIsSidebarOpen(false)}>
-                  Outsourced Samples
-                </SubLink>
-                <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
-                  Home Collection Report
-                </SubLink>
+
               </DropdownContent>
 
               <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>

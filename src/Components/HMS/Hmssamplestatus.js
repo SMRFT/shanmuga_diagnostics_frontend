@@ -171,9 +171,9 @@ const CalendarDay = styled.button`
 
   &:hover {
     background-color: ${(props) =>
-      props.selected
-        ? props.theme.colors.primaryHover
-        : props.theme.colors.backgroundAlt};
+    props.selected
+      ? props.theme.colors.primaryHover
+      : props.theme.colors.backgroundAlt};
   }
 `;
 
@@ -338,11 +338,11 @@ const Button = styled.button`
 
     &:hover {
       background-color: ${(props) =>
-        props.success
-          ? props.theme.colors.success
-          : props.primary
-          ? props.theme.colors.primary
-          : props.secondary
+    props.success
+      ? props.theme.colors.success
+      : props.primary
+        ? props.theme.colors.primary
+        : props.secondary
           ? "white"
           : "initial"};
     }
@@ -895,9 +895,8 @@ const HmsSampleStatus = () => {
         if (result.success) {
           setSuccessMessage(
             result.data?.message ||
-              `All test data saved successfully for ${
-                patient.patientname || "patient"
-              }`
+            `All test data saved successfully for ${patient.patientname || "patient"
+            }`
           );
           setError(null);
           setIsSaved(true);
@@ -987,9 +986,9 @@ const HmsSampleStatus = () => {
   const filteredPatients = (patients || [])
     .filter((patient) => {
       const matchesSearch =
-        patient.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.barcode.toLowerCase().includes(searchQuery.toLowerCase());
+        (patient.patientname?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (String(patient.patient_id || "").toLowerCase()).includes(searchQuery.toLowerCase()) ||
+        (String(patient.barcode || "").toLowerCase()).includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilter === "All" ||
@@ -1008,7 +1007,7 @@ const HmsSampleStatus = () => {
   const getPaymentMode = () => {
     const patient = getCurrentPatient();
     if (!patient || !patient.payment_method) return "N/A";
-    
+
     if (typeof patient.payment_method === 'string') {
       try {
         const parsed = JSON.parse(patient.payment_method);
@@ -1017,7 +1016,7 @@ const HmsSampleStatus = () => {
         return "N/A";
       }
     }
-    
+
     return patient.payment_method.paymentmethod || "N/A";
   };
 
@@ -1154,10 +1153,10 @@ const HmsSampleStatus = () => {
                           </Td>
                           <Td>
                             {patient.testdetails &&
-                            patient.testdetails.length > 0
+                              patient.testdetails.length > 0
                               ? patient.testdetails
-                                  .map((test) => test.testname)
-                                  .join(", ") || "No tests"
+                                .map((test) => test.testname)
+                                .join(", ") || "No tests"
                               : "No tests"}
                           </Td>
                           <Td>
@@ -1183,19 +1182,19 @@ const HmsSampleStatus = () => {
                 </EmptyState>
               )}
             </>
-            
+
           )}
           <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: "var(--gray)",
-            fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
-          }}
-        >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+            style={{
+              padding: "1rem 1.5rem",
+              textAlign: "right",
+              color: "var(--gray)",
+              fontSize: "0.875rem",
+              borderTop: "1px solid var(--gray-light)",
+            }}
+          >
+            Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+          </div>
         </Card>
 
         {showModal && selectedPatientId && selectedBarcode && (
@@ -1224,7 +1223,7 @@ const HmsSampleStatus = () => {
                 </Alert>
               )}
 
-             
+
               {getCurrentPatient() && (
                 <div>
                   <div style={{ marginBottom: "1rem" }}>
