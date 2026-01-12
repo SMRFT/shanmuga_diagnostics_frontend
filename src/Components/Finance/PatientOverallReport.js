@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import apiRequest from "../Auth/apiRequest";
 import axios from "axios";
 import styled, { keyframes, css } from "styled-components";
 import { Save, Edit2, CreditCard, User, FileText, IndianRupee, Calendar, CheckCircle, Clock } from "lucide-react";
@@ -250,18 +251,21 @@ const PatientOverallReport = ({ patient_id, date }) => {
 
     useEffect(() => {
         if (patient_id && date) {
-            axios
-                .get(`${Labbaseurl}overall_report/?patient_id=${patient_id}&selected_date=${date}`)
-                .then(response => {
-                    const patientRecord = response.data.find(item => item.patient_id === patient_id);
+            const fetchReport = async () => {
+                const result = await apiRequest(`${Labbaseurl}overall_report/?patient_id=${patient_id}&selected_date=${date}`, "GET");
+                if (result.success) {
+                    const patientRecord = result.data.find(item => item.patient_id === patient_id);
                     if (patientRecord) {
                         setPatientData(patientRecord);
                         setCreditAmount(patientRecord.credit_amount || "0");
                     } else {
                         setPatientData(null);
                     }
-                })
-                .catch(error => console.error("Error fetching data:", error));
+                } else {
+                    console.error("Error fetching data:", result.error);
+                }
+            };
+            fetchReport();
         }
     }, [patient_id, date]);
 
@@ -279,15 +283,17 @@ const PatientOverallReport = ({ patient_id, date }) => {
         };
 
         const payload = {
+            bill_no: patientData.bill_no,
             credit_amount: updatedCreditAmount.toString(),
             amount_paid: parseFloat(amountPaid || 0),
             paid_date: newPaymentEntry.paid_date,
             payment_method: paymentMethod
         };
 
-        if (patientData && patientData.bill_no) {
-            axios.patch(`${Labbaseurl}credit_amount/${patientData.bill_no}/`, payload)
-                .then(() => {
+        const updateCredit = async () => {
+            if (patientData && patientData.bill_no) {
+                const result = await apiRequest(`${Labbaseurl}credit_amount/`, "PATCH", payload);
+                if (result.success) {
                     // Update state immediately to reflect the new payment in the history table
                     setPatientData((prevData) => ({
                         ...prevData,
@@ -299,14 +305,15 @@ const PatientOverallReport = ({ patient_id, date }) => {
                     setAmountPaid("");
                     setIsEditing(false);
                     toast.success("Credit amount updated successfully!", { autoClose: 3000 });
-                })
-                .catch(error => {
-                    console.error("Error updating credit amount:", error);
+                } else {
+                    console.error("Error updating credit amount:", result.error);
                     toast.error("Failed to update credit amount.");
-                });
-        } else {
-            toast.error("Bill number not found for this patient.");
-        }
+                }
+            } else {
+                toast.error("Bill number not found for this patient.");
+            }
+        };
+        updateCredit();
     };
 
     return (

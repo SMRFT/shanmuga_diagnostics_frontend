@@ -409,11 +409,11 @@ const HMSBarcodeTestDetails = () => {
   const [barcodeData, setBarcodeData] = useState([]);
 
   // Function to extract barcode from bill number
-const extractBarcodeFromBillNo = (billNumber) => {
-  if (!billNumber) return null;
+  const extractBarcodeFromBillNo = (billNumber) => {
+    if (!billNumber) return null;
 
-  return String(billNumber).replace(/\//g, '');
-};
+    return String(billNumber).replace(/\//g, '');
+  };
 
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -438,7 +438,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-      
+
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return false;
@@ -483,11 +483,11 @@ const extractBarcodeFromBillNo = (billNumber) => {
       setBarcodeData(newBarcodeData);
 
       // Prepare payload for saving
-      const payload = {        
+      const payload = {
         date: formatDate(selectedPatient?.date),
         billnumber: bill_no,
         testdetails: updatedTestDetails,
-        barcode: patientBarcode,        
+        barcode: patientBarcode,
       };
 
       // Save the barcode using your apiRequest method
@@ -524,7 +524,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-      
+
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return;
@@ -664,6 +664,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
  font-size: 8px;
  font-weight: bold;
  color: #333;
+ margin-right: 15px;
  }
  .barcode-container {
  display: flex;
@@ -740,7 +741,7 @@ const extractBarcodeFromBillNo = (billNumber) => {
           ...test,
           barcode: generatedBarcode,
         }));
-        
+
         setTestDetails(updatedTestDetails);
 
         // Create barcode data for display
@@ -938,8 +939,8 @@ const extractBarcodeFromBillNo = (billNumber) => {
               {selectedPatient?.gender === "Male"
                 ? "M"
                 : selectedPatient?.gender === "Female"
-                ? "F"
-                : ""}
+                  ? "F"
+                  : ""}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
               {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}
