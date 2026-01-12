@@ -172,9 +172,9 @@ const CalendarDay = styled.button`
 
   &:hover {
     background-color: ${(props) =>
-      props.selected
-        ? props.theme.colors.primaryHover
-        : props.theme.colors.backgroundAlt};
+    props.selected
+      ? props.theme.colors.primaryHover
+      : props.theme.colors.backgroundAlt};
   }
 `;
 
@@ -339,11 +339,11 @@ const Button = styled.button`
 
     &:hover {
       background-color: ${(props) =>
-        props.success
-          ? props.theme.colors.success
-          : props.primary
-          ? props.theme.colors.primary
-          : props.secondary
+    props.success
+      ? props.theme.colors.success
+      : props.primary
+        ? props.theme.colors.primary
+        : props.secondary
           ? "white"
           : "initial"};
     }
@@ -1010,7 +1010,7 @@ const HmsSampleStatus = () => {
                           </Td>
                           <Td>
                             {patient.testdetails &&
-                            patient.testdetails.length > 0
+                              patient.testdetails.length > 0
                               ? patient.testdetails
                                   .map((test) => test.testname || test.test_name)
                                   .join(", ") || "No tests"
@@ -1039,7 +1039,7 @@ const HmsSampleStatus = () => {
                 </EmptyState>
               )}
             </>
-            
+
           )}
           <div
           style={{

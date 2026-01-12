@@ -461,31 +461,27 @@ const BarcodeTestDetails = () => {
       console.log("DEBUG - Parameters:", { patientId, dateString, bill_no });
 
       // Check for existing barcode using your apiRequest method
-      try {
-        existingBarcodeResult = await apiRequest(fullUrl, "GET");
-        existingTests = existingBarcodeResult.testdetails || [];
+      existingBarcodeResult = await apiRequest(fullUrl, "GET");
 
+      if (existingBarcodeResult.success) {
+        existingTests = existingBarcodeResult.data?.testdetails || [];
         if (existingTests.length > 0) {
           existingBarcodeFound = true;
         }
-      } catch (error) {
-        // Handle 404 case - no existing barcode found
-        if (error.response && error.response.status === 404) {
-          existingTests = [];
-        } else {
-          throw error; // Re-throw other errors
-        }
+      } else if (existingBarcodeResult.status === 404) {
+        existingTests = [];
+        existingBarcodeFound = false;
       }
 
       // If barcode already exists, display the existing data
       if (existingBarcodeFound) {
-        toast.info("Displaying existing barcode for this bill.");
+        toast.warning("Barcode already generated");
 
-        // Extract existing barcode information
+        // Use existing barcode data to populate the UI
         const existingBarcode =
-          existingBarcodeResult.barcode || existingTests[0]?.barcode;
+          existingBarcodeResult.data.barcode || existingTests[0]?.barcode;
         const extraBarcode =
-          existingBarcodeResult.extra_barcode || existingBarcode;
+          existingBarcodeResult.data.extra_barcode || existingBarcode;
 
         // Update test details with existing barcode
         const updatedTestDetails = existingTests.map((test) => ({
@@ -523,7 +519,7 @@ const BarcodeTestDetails = () => {
 
         setBarcodeData(existingBarcodeData);
 
-        return true; // Return true to indicate successful display of existing barcode
+        return false;
       }
 
       // Generate new barcode (existing logic continues here)
@@ -1079,8 +1075,8 @@ const BarcodeTestDetails = () => {
               {selectedPatient?.gender === "Male"
                 ? "M"
                 : selectedPatient?.gender === "Female"
-                ? "F"
-                : ""}
+                  ? "F"
+                  : ""}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
               {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}

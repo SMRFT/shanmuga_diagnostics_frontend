@@ -481,20 +481,21 @@ const HmsBilling = () => {
     return local.toISOString().slice(0, 16)
   }
 
-const [formData, setFormData] = useState({
-  patient_id: "",
-  ipnumber: "",
-  salutation: "Mr",   // added field
-  patientname: "",
-  age: "",
-  age_type: "years",
-  gender: "",
-  phone: "",
-  location_id: "hms",
-  billnumber: "",
-  ref_doctor: "",   // you can drop this if not needed anymore
-  date: getLocalDateTime(),
-});
+  const [formData, setFormData] = useState({
+    patient_id: "",
+    ipnumber: "",
+    opiptype: "OP",
+    salutation: "Mr",   // added field
+    patientname: "",
+    age: "",
+    age_type: "years",
+    gender: "",
+    phone: "",
+    location_id: "hms",
+    billnumber: "",
+    ref_doctor: "",   // you can drop this if not needed anymore
+    date: getLocalDateTime(),
+  });
   const [tests, setTests] = useState([])
   const [searchTest, setSearchTest] = useState("")
   const [filteredTests, setFilteredTests] = useState([])
@@ -549,22 +550,30 @@ const [formData, setFormData] = useState({
       setIsShortcutMode(isShortcut)
 
       let filtered = []
-      
+
+      // Always perform name search (matches case-insensitive)
+      const nameMatches = tests.filter((t) => t.testname.toLowerCase().includes(searchTest.toLowerCase()))
+
       if (isShortcut) {
         // Priority search for shortcuts
-        const shortcutMatches = tests.filter(t => 
+        const shortcutMatches = tests.filter(t =>
           t.shortcut && t.shortcut.toLowerCase() === searchTest.toLowerCase()
         )
-        const partialShortcutMatches = tests.filter(t => 
-          t.shortcut && t.shortcut.toLowerCase().startsWith(searchTest.toLowerCase()) && 
+        const partialShortcutMatches = tests.filter(t =>
+          t.shortcut && t.shortcut.toLowerCase().startsWith(searchTest.toLowerCase()) &&
           !shortcutMatches.some(sm => sm.test_id === t.test_id)
         )
-        filtered = [...shortcutMatches, ...partialShortcutMatches]
+
+        // Combine: Shortcuts first, then unique name matches
+        const shortcuts = [...shortcutMatches, ...partialShortcutMatches]
+        const uniqueNameMatches = nameMatches.filter(nm => !shortcuts.some(s => s.test_id === nm.test_id))
+
+        filtered = [...shortcuts, ...uniqueNameMatches]
       } else {
-        // Regular text search
-        filtered = tests.filter((t) => t.testname.toLowerCase().includes(searchTest.toLowerCase()))
+        // Just name matches if not a shortcut pattern
+        filtered = nameMatches
       }
-      
+
       setFilteredTests(filtered.slice(0, 10)) // Limit to 10 results
     } else {
       setFilteredTests([])
@@ -619,7 +628,7 @@ const [formData, setFormData] = useState({
   const handleTestSearchKeyDown = (e) => {
     if (e.key === "Enter" && filteredTests.length > 0) {
       e.preventDefault()
-      addTest(filteredTests)
+      addTest(filteredTests[0])
     } else if (e.key === "Escape") {
       setSearchTest("")
       setFilteredTests([])
@@ -628,67 +637,68 @@ const [formData, setFormData] = useState({
   }
 
   const handleSubmit = async (e) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  const missingFields = []
+    const missingFields = []
 
-  if (!formData.patientname.trim()) missingFields.push("Patient Name")
-  if (!formData.billnumber.trim()) missingFields.push("Bill Number")
-  if (!formData.age || Number(formData.age) <= 0) missingFields.push("Age")
+    if (!formData.patientname.trim()) missingFields.push("Patient Name")
+    if (!formData.billnumber.trim()) missingFields.push("Bill Number")
+    if (!formData.age || Number(formData.age) <= 0) missingFields.push("Age")
 
-  if (missingFields.length > 0) {
-    const message = `Please fill the following required fields:\n• ${missingFields.join("\n• ")}`
-    toast.error(message)
-    alert(message)
-    return
+    if (missingFields.length > 0) {
+      const message = `Please fill the following required fields:\n• ${missingFields.join("\n• ")}`
+      toast.error(message)
+      alert(message)
+      return
+    }
+
+    // Existing validations
+    if (testDetails.length === 0) {
+      toast.error("Please add at least one test before submitting the billing")
+      alert("❌ Cannot save billing without selecting at least one test!")
+      return
+    }
+
+    const payload = {
+      ...formData,
+      patientname: `${formData.salutation} ${formData.patientname}`.trim(),
+      testdetails: testDetails,
+    }
+
+    const result = await apiRequest(
+      `${Labbaseurl}hms_patient_billing/`,
+      "POST",
+      payload
+    )
+
+    if (result.success && result.data.success) {
+      toast.success("Billing saved successfully!")
+      alert("✅ Billing saved successfully!")
+
+      setFormData({
+        patient_id: "",
+        ipnumber: "",
+        opiptype: "OP",
+        salutation: "Mr",
+        patientname: "",
+        age: "",
+        age_type: "years",
+        gender: "",
+        phone: "",
+        location_id: "hms",
+        billnumber: "",
+        ref_doctor: "",
+        date: getLocalDateTime(),
+      })
+
+      setTestDetails([])
+      setSearchDoctor("")
+      setSearchTest("")
+    } else {
+      toast.error("Failed to submit billing data")
+      alert("❌ Failed to submit billing data")
+    }
   }
-
-  // Existing validations
-  if (testDetails.length === 0) {
-    toast.error("Please add at least one test before submitting the billing")
-    alert("❌ Cannot save billing without selecting at least one test!")
-    return
-  }
-
-  const payload = {
-    ...formData,
-    patientname: `${formData.salutation} ${formData.patientname}`.trim(),
-    testdetails: testDetails,
-  }
-
-  const result = await apiRequest(
-    `${Labbaseurl}hms_patient_billing/`,
-    "POST",
-    payload
-  )
-
-  if (result.success && result.data.success) {
-    toast.success("Billing saved successfully!")
-    alert("✅ Billing saved successfully!")
-
-    setFormData({
-      patient_id: "",
-      ipnumber: "",
-      salutation: "Mr",
-      patientname: "",
-      age: "",
-      age_type: "years",
-      gender: "",
-      phone: "",
-      location_id: "hms",
-      billnumber: "",
-      ref_doctor: "",
-      date: getLocalDateTime(),
-    })
-
-    setTestDetails([])
-    setSearchDoctor("")
-    setSearchTest("")
-  } else {
-    toast.error("Failed to submit billing data")
-    alert("❌ Failed to submit billing data")
-  }
-}
 
 
   const totalMRP = testDetails.reduce((sum, t) => sum + (t.SH_Rate || 0), 0)
@@ -722,22 +732,22 @@ const [formData, setFormData] = useState({
                   placeholder="Enter IP number"
                 />
               </FieldGroup>
-<FieldGroup>
-  <Label>Salutation</Label>
-  <Select
-    name="salutation"
-    value={formData.salutation}
-    onChange={handleChange}
-  >
-    <option value="">Select</option>
-    <option value="Mr">Mr</option>
-    <option value="Mrs">Mrs</option>
-    <option value="Baby">Baby</option>
-    <option value="Master">Master</option>
-    <option value="Miss">Miss</option>
-    <option value="Dr">Dr</option>
-  </Select>
-</FieldGroup>
+              <FieldGroup>
+                <Label>Salutation</Label>
+                <Select
+                  name="salutation"
+                  value={formData.salutation}
+                  onChange={handleChange}
+                >
+                  <option value="">Select</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Baby">Baby</option>
+                  <option value="Master">Master</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Dr">Dr</option>
+                </Select>
+              </FieldGroup>
 
               <FieldGroup>
                 <Label>Patient Name</Label>
@@ -797,6 +807,35 @@ const [formData, setFormData] = useState({
                 />
               </FieldGroup>
 
+
+              <FieldGroup>
+                <Label>Patient Type</Label>
+                <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                    <input
+                      type="radio"
+                      name="opiptype"
+                      value="OP"
+                      checked={formData.opiptype === "OP"}
+                      onChange={handleChange}
+                    />
+                    OP
+                  </label>
+
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                    <input
+                      type="radio"
+                      name="opiptype"
+                      value="IP"
+                      checked={formData.opiptype === "IP"}
+                      onChange={handleChange}
+                    />
+                    IP
+                  </label>
+                </div>
+              </FieldGroup>
+
+
               <FieldGroup>
                 <Label>Date & Time</Label>
                 <Input type="datetime-local" name="date" value={formData.date} onChange={handleChange} />
@@ -854,8 +893,8 @@ const [formData, setFormData] = useState({
                   {filteredTests.length > 0 && (
                     <DropdownList>
                       {filteredTests.map((t) => (
-                        <DropdownItem 
-                          key={t.test_id} 
+                        <DropdownItem
+                          key={t.test_id}
                           onClick={() => addTest(t)}
                           className={isShortcutMode && t.shortcut?.toLowerCase() === searchTest.toLowerCase() ? 'shortcut-match' : ''}
                         >
@@ -867,7 +906,7 @@ const [formData, setFormData] = useState({
                   )}
                 </SearchContainer>
                 <ShortcutHelp>
-                  <strong>Quick Tips:</strong> Type shortcuts like <strong>ALP</strong>, <strong>CBC</strong>, <strong>ESR</strong> for instant test selection. 
+                  <strong>Quick Tips:</strong> Type shortcuts like <strong>ALP</strong>, <strong>CBC</strong>, <strong>ESR</strong> for instant test selection.
                   Press <strong>Enter</strong> to add the first result, <strong>Esc</strong> to clear.
                 </ShortcutHelp>
               </FieldGroup>
