@@ -618,7 +618,7 @@ const PatientDetails = () => {
     patientname,
     age,
     barcode,
-    franchise_id,
+    location_id,
     testId,
     testName,
     patientDate,
@@ -635,7 +635,7 @@ const PatientDetails = () => {
     // Pass the current date range in state
     navigate(
       `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
-        franchise_id || "Shanmuga Referrence Lab"
+        location_id || "Shanmuga Referrence Lab"
       }&test_id=${testId}`,
       {
         state: {
@@ -699,7 +699,7 @@ const PatientDetails = () => {
 
     if (!matchesSearch) return false
 
-    const patientLocation = patient.company_id || "Shanmuga Hospital"
+    const patientLocation = patient.location_id || "Shanmuga Reference Lab"
     const matchesFrom = fromFilter === "all" || patientLocation === fromFilter
 
     if (!matchesFrom) return false
@@ -745,7 +745,7 @@ const PatientDetails = () => {
   const getUniqueLocations = () => {
     const locations = new Set()
     patientDetails.forEach(p => {
-      locations.add(p.company_id || "Shanmuga Hospital")
+      locations.add(p.location_id || "Shanmuga Reference Lab")
     })
     return Array.from(locations).sort()
   }
@@ -910,7 +910,7 @@ const PatientDetails = () => {
                         </StatusBadge>
                       </Td>
                       <Td>
-                        <PatientInfo>{patient.company_id || "Shanmuga Hospital"}</PatientInfo>
+                        <PatientInfo>{patient.location_id || "Shanmuga Reference Lab"}</PatientInfo>
                       </Td>
                       <Td>
                         {patient.is_emergency ? (
@@ -944,7 +944,7 @@ const PatientDetails = () => {
                                         patient.patientname,
                                         patient.age,
                                         patient.barcode,
-                                        patient.company_id,
+                                        patient.location_id,
                                         test.test_id,
                                         test.testname,
                                         patient.date,
