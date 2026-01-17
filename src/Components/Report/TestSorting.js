@@ -330,20 +330,20 @@ const TestSorting = ({ patient, onClose }) => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-const [loadingMessage, setLoadingMessage] = useState("");
+  const [loadingMessage, setLoadingMessage] = useState("");
   // Update the useEffect for fetching tests
-useEffect(() => {
-  const fetchTests = async () => {
-    setIsLoading(true);
-    setLoadingMessage("Loading tests...");
-    try {
-      const response = await apiRequest(
-        `${Labbaseurl}patient_test_sorting/?barcode=${patient.barcode}&date=${patient.date}`,
-        "GET",
-        null,
-        {},
-        {}
-      );
+  useEffect(() => {
+    const fetchTests = async () => {
+      setIsLoading(true);
+      setLoadingMessage("Loading tests...");
+      try {
+        const response = await apiRequest(
+          `${Labbaseurl}patient_test_sorting/?barcode=${patient.barcode}&date=${patient.date}`,
+          "GET",
+          null,
+          {},
+          {}
+        );
 
       if (response.success) {
         if (response.data[patient.barcode]) {
@@ -360,24 +360,20 @@ useEffect(() => {
             NABL: test.NABL || false
           })));
         } else {
-          console.log("No test data found for this barcode");
-          setTests([]);
+          console.error("Error fetching tests:", response.error, response.status);
+          toast.error("Failed to load tests");
         }
-      } else {
-        console.error("Error fetching tests:", response.error, response.status);
-        toast.error("Failed to load tests");
+      } catch (error) {
+        console.error("Unexpected error fetching tests:", error);
+        toast.error("An error occurred while loading tests");
+      } finally {
+        setIsLoading(false);
+        setLoadingMessage("");
       }
-    } catch (error) {
-      console.error("Unexpected error fetching tests:", error);
-      toast.error("An error occurred while loading tests");
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage("");
-    }
-  };
+    };
 
-  fetchTests();
-}, [patient.patient_id]);
+    fetchTests();
+  }, [patient.patient_id]);
   const handleSelectTest = (test) => {
   setSelectedTests((prev) => {
     // CHANGED: Compare by test_id instead of testname
@@ -443,50 +439,18 @@ const handlePrint = async (withLetterpad) => {
       return;
     }
 
-    const unicodeMap = {
-      μ: "µ",
-      α: "α",
-      β: "β",
-      γ: "γ",
-      δ: "δ",
-      Ω: "Ω",
-      "²": "²",
-      "³": "³",
-      "⁴": "⁴",
-      "°": "°",
-      "±": "±",
-      "×": "x",
-      "÷": "/",
-      "\\u03bc": "µ",
-      "\\u00b5": "µ",
-      "\\u00b0": "°",
-      "\\u00b1": "±",
-      "\\u00b2": "²",
-      "\\u00b3": "³",
-    };
-
-    const processUnicodeText = (text) => {
-      if (!text) return "";
-      let processedText = text;
-      processedText = processedText.replace(
-        /\\u([0-9a-fA-F]{4})/g,
-        (match, hex) => {
-          const char = String.fromCharCode(parseInt(hex, 16));
-          return unicodeMap[char] || char;
-        }
+    try {
+      console.log("Fetching patient details for barcode:", patient.barcode);
+      const response = await apiRequest(
+        `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
+        "GET"
       );
-      Object.keys(unicodeMap).forEach((unicode) => {
-        const regex = new RegExp(unicode, "g");
-        processedText = processedText.replace(regex, unicodeMap[unicode]);
-      });
-      return processedText;
-    };
 
-    const extractPatientRefNoNumber = (refNo) => {
-      if (!refNo) return "N/A";
-      const numberPart = refNo.split("+")[0];
-      return numberPart;
-    };
+      if (!response.success) {
+        console.error("Failed to fetch patient details:", response.error);
+        toast.error(response.error || "Failed to fetch patient details");
+        return;
+      }
 
     const consultants = [
       ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
@@ -673,62 +637,39 @@ const handlePrint = async (withLetterpad) => {
           doc.internal.pageSize.width,
           footerHeight
         );
-      } else {
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(255, 255, 255);
-        doc.text("Header Space", leftMargin, 10);
-        doc.setTextColor(0, 0, 0);
-      }
-    };
-
-    const renderUnicodeText = (text, x, y, options = {}) => {
-      const processedText = processUnicodeText(text);
-      if (processedText.includes("µ")) {
-        const parts = processedText.split("µ");
-        let currentX = x;
-        parts.forEach((part, index) => {
-          if (index > 0) {
-            doc.setFont("helvetica", options.fontStyle || "normal");
-            doc.text("µ", currentX, y);
-            currentX += doc.getTextWidth("µ");
-          }
-          if (part) {
-            doc.text(part, currentX, y);
-            currentX += doc.getTextWidth(part);
-          }
+        Object.keys(unicodeMap).forEach((unicode) => {
+          const regex = new RegExp(unicode, "g");
+          processedText = processedText.replace(regex, unicodeMap[unicode]);
         });
-      } else {
-        doc.text(processedText, x, y);
-      }
-    };
+        return processedText;
+      };
 
-    const drawTableHeader = (yPos) => {
-      doc.line(leftMargin, yPos, rightMargin, yPos);
-      yPos += 5;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      const headers = [
-        "Test",
-        "Specimen",
-        "",
-        "Result",
-        "Units",
-        "Reference Value",
-        "Method",
+      const extractPatientRefNoNumber = (refNo) => {
+        if (!refNo) return "N/A";
+        const numberPart = refNo.split("+")[0];
+        return numberPart;
+      };
+
+      const consultants = [
+        ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
+        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
       ];
-      let xPos = leftMargin;
-      headers.forEach((header, index) => {
-        if (header) {
-          doc.text(header, xPos, yPos);
-        }
-        xPos += colWidths[index];
-      });
-      yPos += 3;
-      doc.line(leftMargin, yPos, rightMargin, yPos);
-      yPos += 5;
-      return yPos;
-    };
+      const departmentOrder = [
+        "Haematology",
+        "Coagulation",
+        "Biochemistry",
+        "Immunology",
+        "Immunoassay",
+        "Serology",
+        "Clinical Pathology",
+        "Clinical Chemistry",
+        "Cytology",
+        "Genetics",
+        "Histopathology",
+        "Immunohistochemistry",
+        "Microbiology",
+        "Molecular Biology"
+      ];
 
     const wrapTextAndGetLines = (doc, text, maxWidth) => {
       if (!text) return [];
@@ -758,29 +699,52 @@ const handlePrint = async (withLetterpad) => {
         }
       });
 
-      consultants.forEach((consultant, index) => {
-        const xPosition = leftMargin + index * signatureSpacing;
-        const consultantName = consultant[0].toLowerCase();
-        const shouldShowSignature = 
-          (consultantName.includes("brindha") && approvers.has("dr.brindha")) ||
-          (consultantName.includes("vijayan") && approvers.has("vijayan"));
+      const rightDetails = [
+        {
+          label: "Collected On",
+          value:
+            format(
+              new Date(patientDetails.testdetails[0].samplecollected_time),
+              "dd MMM yy / HH:mm"
+            ) || "N/A",
+        },
+        {
+          label: "Received On",
+          value:
+            format(
+              new Date(patientDetails.testdetails[0].received_time),
+              "dd MMM yy / HH:mm"
+            ) || "N/A",
+        },
+        {
+          label: "Reported Date",
+          value: format(new Date(), "dd MMM yy / hh:mm"),
+        },
+        { label: "Patient Ref.No", value: patientRefNoNumber },
+      ];
 
-        if (consultant[2] && shouldShowSignature) {
-          doc.addImage(
-            consultant[2],
-            "PNG",
-            xPosition,
-            signaturesY,
-            signatureWidth,
-            15
-          );
-        }
+      const calculateMaxLabelWidth = (details) => {
+        const tempDoc = new jsPDF();
+        return Math.max(
+          ...details.map((item) => tempDoc.getTextWidth(item.label))
+        );
+      };
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text(consultant[0], xPosition, signaturesY + 15);
+      const doc = new jsPDF();
+      let pageCount = 1;
+      let isTableStarted = false;
 
-        doc.setFont("helvetica", "normal");
+      const addPatientInfo = (yPos) => {
+        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+        const centerPoint = (leftMargin + rightMargin) / 2;
+        const leftLabelX = leftMargin;
+        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+        const leftValueX = leftColonX + 3;
+        const rightLabelX = centerPoint + 28;
+        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+        const rightValueX = rightColonX + 1;
+
         doc.setFontSize(10);
         doc.text(consultant[1], xPosition, signaturesY + 20);
       });
@@ -806,45 +770,19 @@ const handlePrint = async (withLetterpad) => {
       return yPos;
     };
 
-    const getHighLowStatus = (value, reference) => {
-      if (!value || !reference) return null;
-      const numValue = Number.parseFloat(value);
-      if (isNaN(numValue)) return null;
-      if (reference.includes("-")) {
-        const [min, max] = reference
-          .split("-")
-          .map((v) => Number.parseFloat(v));
-        if (!isNaN(min) && !isNaN(max)) {
-          if (numValue < min) return "L";
-          if (numValue > max) return "H";
-        }
-      } else if (reference.includes("<")) {
-        const max = Number.parseFloat(reference.replace("<", ""));
-        if (!isNaN(max) && numValue > max) return "H";
-      } else if (reference.includes(">")) {
-        const min = Number.parseFloat(reference.replace(">", ""));
-        if (!isNaN(min) && numValue < min) return "L";
-      }
-      return null;
-    };
+        for (let i = 0; i < leftDetails.length; i++) {
+          const left = leftDetails[i];
+          const right = rightDetails[i];
 
-    const drawArrowSymbol = (doc, x, y, direction) => {
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.5);
-      if (direction === "up") {
-        doc.line(x, y, x + 1, y - 1);
-        doc.line(x + 1, y - 1, x + 2, y);
-        doc.line(x + 1, y - 1, x + 1, y + 2);
-      } else if (direction === "down") {
-        doc.line(x, y, x + 1, y + 1);
-        doc.line(x + 1, y + 1, x + 2, y);
-        doc.line(x + 1, y + 1, x + 1, y - 2);
-      }
-    };
+          // Handle left side
+          doc.setFont("helvetica", "bold");
+          doc.text(left.label, leftLabelX, patientInfoY);
+          doc.text(":", leftColonX, patientInfoY);
+          doc.setFont("helvetica", "normal");
 
-    addHeaderFooter();
-    let currentYPosition = addPatientInfo(contentYStart);
-    currentYPosition += 10;
+          // Wrap left value to prevent overlap with right side
+          const maxLeftValueWidth = centerPoint + 25 - leftValueX; // Stop just before right side
+          const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
 
     // Sort orderedTests by the selection order
     orderedTests.sort((a, b) => {
@@ -853,11 +791,7 @@ const handlePrint = async (withLetterpad) => {
       return indexA - indexB;
     });
 
-    if (orderedTests.length) {
-      isTableStarted = true;
-      currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
-      let yPos = currentYPosition;
-      yPos = drawTableHeader(yPos);
+          const leftRowHeight = leftValueLines.length * 4;
 
       // CRITICAL FIX: Use orderedTests instead of patientDetails.testdetails
       const testsByDepartment = orderedTests.reduce((acc, test) => {
@@ -1218,32 +1152,29 @@ const handlePrint = async (withLetterpad) => {
         addHeaderFooter();
         return addPatientInfo(contentYStart);
       }
-      return currentYPosition;
-    };
 
-    currentYPosition = ensureSpaceForFooter(currentYPosition);
+      isTableStarted = false;
+      const ensureSpaceForFooter = (currentYPosition) => {
+        const pageHeight = doc.internal.pageSize.height;
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
+        if (currentYPosition + 10 >= footerStart) {
+          addSignatures();
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter();
+          return addPatientInfo(contentYStart);
+        }
+        return currentYPosition;
+      };
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    const centerX = leftMargin + contentWidth / 2;
-    doc.text("**End of the Report**", centerX, currentYPosition, {
-      align: "center",
-    });
+      currentYPosition = ensureSpaceForFooter(currentYPosition);
 
-    addSignatures();
-
-    const finalPageCount = pageCount;
-    for (let i = 1; i <= finalPageCount; i++) {
-      doc.setPage(i);
-      const pageHeight = doc.internal.pageSize.height;
-      const pageNumberY = pageHeight - footerHeight - 5;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
-      doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, {
+      doc.text("**End of the Report**", centerX, currentYPosition, {
         align: "center",
       });
-    }
 
     // Generate the PDF as a Blob
     const pdfBlob = doc.output("blob");
@@ -1271,11 +1202,11 @@ const handlePrint = async (withLetterpad) => {
     <ModalOverlay>
       <ModalContent>
         {isLoading && (
-        <LoadingOverlay>
-          <LoadingSpinner />
-          <LoadingText>{loadingMessage}</LoadingText>
-        </LoadingOverlay>
-      )}
+          <LoadingOverlay>
+            <LoadingSpinner />
+            <LoadingText>{loadingMessage}</LoadingText>
+          </LoadingOverlay>
+        )}
         <ModalHeader>
           <Title>Sort and Select Tests</Title>
         </ModalHeader>
@@ -1329,9 +1260,9 @@ const handlePrint = async (withLetterpad) => {
                       {isSelected && <Check size={14} color="white" />}
                     </CheckboxContainer>
                     <TestName selected={isSelected}>
-  {test.testname}
-  {test.NABL && <span className="nabl-asterisk">*</span>} 
-</TestName>
+                      {test.testname}
+                      {test.NABL && <span className="nabl-asterisk">*</span>}
+                    </TestName>
                   </TestInfo>
                 </TestItem>
               );

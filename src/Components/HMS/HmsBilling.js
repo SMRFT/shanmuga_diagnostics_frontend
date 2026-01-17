@@ -484,7 +484,7 @@ const HmsBilling = () => {
   const [formData, setFormData] = useState({
     patient_id: "",
     ipnumber: "",
-    opiptype: "OP",
+    IPOPType: "OP",
     salutation: "Mr",   // added field
     patientname: "",
     age: "",
@@ -678,7 +678,7 @@ const HmsBilling = () => {
       setFormData({
         patient_id: "",
         ipnumber: "",
-        opiptype: "OP",
+        IPOPType: "OP",
         salutation: "Mr",
         patientname: "",
         age: "",
@@ -814,9 +814,9 @@ const HmsBilling = () => {
                   <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     <input
                       type="radio"
-                      name="opiptype"
+                      name="IPOPType"
                       value="OP"
-                      checked={formData.opiptype === "OP"}
+                      checked={formData.IPOPType === "OP"}
                       onChange={handleChange}
                     />
                     OP
@@ -825,9 +825,9 @@ const HmsBilling = () => {
                   <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     <input
                       type="radio"
-                      name="opiptype"
+                      name="IPOPType"
                       value="IP"
-                      checked={formData.opiptype === "IP"}
+                      checked={formData.IPOPType === "IP"}
                       onChange={handleChange}
                     />
                     IP
