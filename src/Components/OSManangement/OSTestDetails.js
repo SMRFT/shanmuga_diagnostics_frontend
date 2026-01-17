@@ -1020,7 +1020,7 @@ const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValu
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
     
-    navigate("/OSTestDetails", { 
+    navigate("/OutSourceDetails", { 
       state: { 
         barcode: barcode,
         fromDate: stateFromDate || new Date(),

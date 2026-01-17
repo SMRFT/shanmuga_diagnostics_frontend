@@ -832,41 +832,54 @@ const PatientOverview = () => {
         return numberPart;
       };
 
-      const consultants = [
-        ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
-      ];
+    // Document dimensions
+    const leftMargin = 10;
+    const rightMargin = leftMargin + 190;
+    const contentWidth = rightMargin - leftMargin;
+    const headerHeight = 30;
+    const footerHeight = 20;
+    const contentYStart = headerHeight + 20;
+    const signatureHeight = 25;
+    const tableHeaderHeight = 10;
 
-      const departmentOrder = [
-        "Haematology",
-        "Coagulation",
-        "Biochemistry",
-        "Immunology",
-        "Immunoassay",
-        "Serology",
-        "Clinical Pathology",
-        "Clinical Chemistry",
-        "Cytology",
-        "Genetics",
-        "Histopathology",
-        "Immunohistochemistry",
-        "Microbiology",
-        "Molecular Biology"
-      ];
+    // Column widths
+    const colWidths = [
+      contentWidth * 0.28, // Test Description
+      contentWidth * 0.12, // Specimen Type
+      contentWidth * 0.05, // Extra Gap
+      contentWidth * 0.13, // Value(s)
+      contentWidth * 0.1,  // Unit
+      contentWidth * 0.17, // Reference Range
+      contentWidth * 0.15, // Method
+    ];
 
-      const patientRefNo = patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
-      const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
+    // Patient information - UPDATED TO MATCH SECOND HANDLEPRINT
+    const leftDetails = [
+      { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
+      { label: "Name", value: patientDetails.patientname || "No name provided" },
+      { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
+      { label: "Referral", value: patientDetails.refby || "SELF" },      
+      { label: "Branch", value: patientDetails.branch || "N/A" },
+      { label: "Source", value: patientDetails.B2B || "N/A" },
+    ];
 
-      // Generate Barcode
-      let barcodeImage = null;
-      if (patientRefNoNumber !== "N/A") {
-        const barcodeCanvas = document.createElement("canvas");
-        JsBarcode(barcodeCanvas, patientRefNoNumber, {
-          format: "CODE128", lineColor: "#000", width: 1.5,
-          height: 10, displayValue: false, margin: 0,
-        });
-        barcodeImage = barcodeCanvas.toDataURL("image/png");
-      }
+    const rightDetails = [
+      {
+        label: "Collected On",
+        value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A",
+      },
+      {
+        label: "Received On",
+        value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
+      },
+      { label: "Reported Date", value: format(new Date(), "dd MMM yy / hh:mm") },
+      { label: "Patient Ref.No", value: patientRefNoNumber },
+    ];
+
+    const calculateMaxLabelWidth = (details) => {
+      const tempDoc = new jsPDF();
+      return Math.max(...details.map((item) => tempDoc.getTextWidth(item.label)));
+    };
 
       // Document dimensions
       const leftMargin = 10;
