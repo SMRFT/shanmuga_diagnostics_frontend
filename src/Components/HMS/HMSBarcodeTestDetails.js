@@ -484,10 +484,24 @@ const HMSBarcodeTestDetails = () => {
 
       // Prepare payload for saving
       const payload = {
+        patient_id: patientId,
+        patientname: selectedPatient?.patientname,
+        age: selectedPatient?.age,
+        age_type: selectedPatient?.age_type || 'Y',
+        gender: selectedPatient?.gender,
+
         date: formatDate(selectedPatient?.date),
-        billnumber: bill_no,
+        bill_no: bill_no,
+        billnumber: bill_no, // Also send as billnumber for HMS compatibility
         testdetails: updatedTestDetails,
         barcode: patientBarcode,
+
+        // Additional HMS-specific fields
+        ipnumber: selectedPatient?.ipnumber || '',
+        IPOPType: selectedPatient?.IPOPType || '',
+        ref_doctor: selectedPatient?.ref_doctor || '',
+        phone: selectedPatient?.phone || '',
+        source: selectedPatient?.source || 'core_hmspatientbilling',
       };
 
       // Save the barcode using your apiRequest method
@@ -913,15 +927,6 @@ const HMSBarcodeTestDetails = () => {
               {isGenerating ? "Regenerating..." : "Regenerate & Print Barcodes"}
             </SecondaryButton>
 
-            {hasBarcodes && (
-              <SecondaryButton
-                onClick={handlePrintBarcodes}
-                disabled={isPrinting || isLoading}
-              >
-                <Printer size={16} />
-                {isPrinting ? "Printing..." : "Print Barcodes"}
-              </SecondaryButton>
-            )}
           </ButtonsContainer>
         </>
       ) : (
