@@ -891,7 +891,7 @@ const PatientOverview = () => {
 
     // Patient information - UPDATED TO MATCH SECOND HANDLEPRINT
     const leftDetails = [
-      { label: "UHID", value: patientDetails.patient_id || "N/A" },
+      { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
       { label: "Name", value: patientDetails.patientname || "No name provided" },
       { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
       { label: "Referral", value: patientDetails.refby || "SELF" },      

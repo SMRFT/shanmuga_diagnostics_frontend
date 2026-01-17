@@ -353,7 +353,9 @@ useEffect(() => {
             const numB = parseInt(b.test_name.match(/\d+/)?.[0]) || 0;
             return numA - numB;
           });
+          // CHANGED: Store both test_id and test_name
           setTests(sortedTests.map((test) => ({ 
+            test_id: test.test_id,  // Added test_id
             testname: test.test_name,
             NABL: test.NABL || false
           })));
@@ -377,13 +379,14 @@ useEffect(() => {
   fetchTests();
 }, [patient.patient_id]);
   const handleSelectTest = (test) => {
-    setSelectedTests((prev) => {
-      const isSelected = prev.some((t) => t.testname === test.testname);
-      return isSelected
-        ? prev.filter((t) => t.testname !== test.testname)
-        : [...prev, test];
-    });
-  };
+  setSelectedTests((prev) => {
+    // CHANGED: Compare by test_id instead of testname
+    const isSelected = prev.some((t) => t.test_id === test.test_id);
+    return isSelected
+      ? prev.filter((t) => t.test_id !== test.test_id)
+      : [...prev, test];
+  });
+};
 
   const handleSelectAll = () => {
     if (selectAllChecked) {
@@ -426,9 +429,11 @@ const handlePrint = async (withLetterpad) => {
 
     console.log("Processed Patient Details:", patientDetails);
     console.log("Selected Tests:", selectedTests);
+    
+    // Filter tests by test_id
     const orderedTests = selectedTests
-      .map((test) =>
-        patientDetails.testdetails.find((t) => t.testname === test.testname)
+      .map((selectedTest) =>
+        patientDetails.testdetails.find((t) => t.test_id === selectedTest.test_id)
       )
       .filter((test) => test);
 
@@ -487,22 +492,23 @@ const handlePrint = async (withLetterpad) => {
       ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
       ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
     ];
+    
     const departmentOrder = [
-  "Haematology",
-  "Coagulation",
-  "Biochemistry",
-  "Immunology",
-  "Immunoassay",
-  "Serology",
-  "Clinical Pathology",
-  "Clinical Chemistry",
-  "Cytology",
-  "Genetics",
-  "Histopathology",
-  "Immunohistochemistry",
-  "Microbiology",
-  "Molecular Biology"
-];
+      "Haematology",
+      "Coagulation",
+      "Biochemistry",
+      "Immunology",
+      "Immunoassay",
+      "Serology",
+      "Clinical Pathology",
+      "Clinical Chemistry",
+      "Cytology",
+      "Genetics",
+      "Histopathology",
+      "Immunohistochemistry",
+      "Microbiology",
+      "Molecular Biology"
+    ];
 
     const patientRefNo =
       patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
@@ -553,7 +559,7 @@ const handlePrint = async (withLetterpad) => {
           patientDetails.gender || "N/A"
         }`,
       },
-      { label: "Referral", value: patientDetails.refby || "SELF" },
+      { label: "Referral", value: patientDetails.refby || "SELF" }, 
     ];
 
     const rightDetails = [
@@ -592,59 +598,59 @@ const handlePrint = async (withLetterpad) => {
     let isTableStarted = false;
 
     const addPatientInfo = (yPos) => {
-  const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-  const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-  const centerPoint = (leftMargin + rightMargin) / 2;
-  const leftLabelX = leftMargin;
-  const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-  const leftValueX = leftColonX + 3;
-  const rightLabelX = centerPoint + 28;
-  const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-  const rightValueX = rightColonX + 1;
+      const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+      const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+      const centerPoint = (leftMargin + rightMargin) / 2;
+      const leftLabelX = leftMargin;
+      const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+      const leftValueX = leftColonX + 3;
+      const rightLabelX = centerPoint + 28;
+      const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+      const rightValueX = rightColonX + 1;
 
-  doc.setFontSize(10);
-  let patientInfoY = yPos;
+      doc.setFontSize(10);
+      let patientInfoY = yPos;
 
-  for (let i = 0; i < leftDetails.length; i++) {
-    const left = leftDetails[i];
-    const right = rightDetails[i];
+      for (let i = 0; i < leftDetails.length; i++) {
+        const left = leftDetails[i];
+        const right = rightDetails[i];
 
-    // Handle left side
-    doc.setFont("helvetica", "bold");
-    doc.text(left.label, leftLabelX, patientInfoY);
-    doc.text(":", leftColonX, patientInfoY);
-    doc.setFont("helvetica", "normal");
-    
-    // Wrap left value to prevent overlap with right side
-    const maxLeftValueWidth = centerPoint + 25 - leftValueX; // Stop just before right side
-    const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
-    
-    leftValueLines.forEach((line, lineIndex) => {
-      doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
-    });
-    
-    const leftRowHeight = leftValueLines.length * 4;
+        // Handle left side
+        doc.setFont("helvetica", "bold");
+        doc.text(left.label, leftLabelX, patientInfoY);
+        doc.text(":", leftColonX, patientInfoY);
+        doc.setFont("helvetica", "normal");
+        
+        // Wrap left value to prevent overlap with right side
+        const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+        const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+        
+        leftValueLines.forEach((line, lineIndex) => {
+          doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
+        });
+        
+        const leftRowHeight = leftValueLines.length * 4;
 
-    // Handle right side
-    if (right) {
-      doc.setFont("helvetica", "bold");
-      doc.text(right.label, rightLabelX, patientInfoY);
-      doc.text(":", rightColonX, patientInfoY);
-      doc.setFont("helvetica", "normal");
-      doc.text(right.value, rightValueX, patientInfoY);
+        // Handle right side
+        if (right) {
+          doc.setFont("helvetica", "bold");
+          doc.text(right.label, rightLabelX, patientInfoY);
+          doc.text(":", rightColonX, patientInfoY);
+          doc.setFont("helvetica", "normal");
+          doc.text(right.value, rightValueX, patientInfoY);
 
-      if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
+          if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
             doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
               patientInfoY + 4, 25, 10);
           }
-    }
-    
-    // Move to next row
-    patientInfoY += Math.max(leftRowHeight, 5);
-  }
-  
-  return patientInfoY;
-};
+        }
+        
+        // Move to next row
+        patientInfoY += Math.max(leftRowHeight, 5);
+      }
+      
+      return patientInfoY;
+    };
 
     const addHeaderFooter = () => {
       if (withLetterpad) {
@@ -722,13 +728,11 @@ const handlePrint = async (withLetterpad) => {
       return yPos;
     };
 
-    // FIXED: Improved wrapText function that returns actual lines array
     const wrapTextAndGetLines = (doc, text, maxWidth) => {
       if (!text) return [];
       return doc.splitTextToSize(text, maxWidth);
     };
 
-    // FIXED: New function to render wrapped text and return height
     const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
       if (!text) return 0;
       const lines = wrapTextAndGetLines(doc, text, maxWidth);
@@ -746,7 +750,7 @@ const handlePrint = async (withLetterpad) => {
       const signatureSpacing = availableWidth / (consultants.length - 1);
 
       const approvers = new Set();
-      patientDetails.testdetails.forEach((test) => {
+      orderedTests.forEach((test) => {
         if (test.approve_by && test.approve_by.trim() !== "") {
           approvers.add(test.approve_by.toLowerCase());
         }
@@ -780,7 +784,6 @@ const handlePrint = async (withLetterpad) => {
       });
     };
 
-    // FIXED: Improved checkForNewPage with better height estimation
     const checkForNewPage = (yPos, estimatedHeight) => {
       const pageHeight = doc.internal.pageSize.height;
       const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
@@ -841,13 +844,10 @@ const handlePrint = async (withLetterpad) => {
     let currentYPosition = addPatientInfo(contentYStart);
     currentYPosition += 10;
 
+    // Sort orderedTests by the selection order
     orderedTests.sort((a, b) => {
-      const indexA = selectedTests.findIndex(
-        (t) => t.testname === a.testname
-      );
-      const indexB = selectedTests.findIndex(
-        (t) => t.testname === b.testname
-      );
+      const indexA = selectedTests.findIndex((t) => t.test_id === a.test_id);
+      const indexB = selectedTests.findIndex((t) => t.test_id === b.test_id);
       return indexA - indexB;
     });
 
@@ -857,357 +857,355 @@ const handlePrint = async (withLetterpad) => {
       let yPos = currentYPosition;
       yPos = drawTableHeader(yPos);
 
-      const testsByDepartment = patientDetails.testdetails.reduce((acc, test) => {
-  (acc[test.department] = acc[test.department] || []).push(test);
-  return acc;
-}, {});
+      // CRITICAL FIX: Use orderedTests instead of patientDetails.testdetails
+      const testsByDepartment = orderedTests.reduce((acc, test) => {
+        (acc[test.department] = acc[test.department] || []).push(test);
+        return acc;
+      }, {});
 
-
-// Sort departments according to the specified order
-const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
-  const indexA = departmentOrder.indexOf(a);
-  const indexB = departmentOrder.indexOf(b);
-  
-  // If both departments are in the order list, sort by their index
-  if (indexA !== -1 && indexB !== -1) {
-    return indexA - indexB;
-  }
-  // If only A is in the list, it comes first
-  if (indexA !== -1) return -1;
-  // If only B is in the list, it comes first
-  if (indexB !== -1) return 1;
-  // If neither is in the list, sort alphabetically
-  return a.localeCompare(b);
-});
+      // Sort departments according to the specified order
+      const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
+        const indexA = departmentOrder.indexOf(a);
+        const indexB = departmentOrder.indexOf(b);
+        
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+      });
 
       sortedDepartments.forEach((department) => {
-  // Collect all verified_by values in this department
-  const verifiedBySet = new Set();
-  testsByDepartment[department].forEach((test) => {
-    if (test.verified_by && test.verified_by.trim() !== "") {
-      verifiedBySet.add(test.verified_by);
-    }
-  });
-
-  // Check if multiple people verified tests in this department
-  const hasMultipleVerifiers = verifiedBySet.size > 1;
-
-  testsByDepartment[department].forEach((test, testIndex) => {
-    // Render department header only for first test in department
-    if (testIndex === 0) {
-      const departmentHeight = 15;
-      yPos = checkForNewPage(yPos, departmentHeight);
-      
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      const textWidth = doc.getTextWidth(department.toUpperCase());
-      const centerX = leftMargin + contentWidth / 2;
-      doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
-      doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
-      yPos += 10;
-    }
-
-    // Group parameters by sub_title
-    const parametersBySubtitle = {};
-    
-    if (test.parameters && test.parameters.length > 0) {
-      test.parameters.forEach((param) => {
-        const subtitle = param.sub_title || "";
-        if (!parametersBySubtitle[subtitle]) {
-          parametersBySubtitle[subtitle] = [];
-        }
-        parametersBySubtitle[subtitle].push(param);
-      });
-    }
-
-    // Check if we need a new page for the test name
-    const testHeaderHeight = 20;
-    yPos = checkForNewPage(yPos, testHeaderHeight);
-
-    // Render main test
-    doc.setFontSize(10);
-    
-    // Calculate all text wrapping FIRST to get accurate height
-    const testNameText = test.testname;
-    const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
-    
-    const valueText = test.value || "";
-    const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
-    
-    const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
-    
-    const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
-    const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
-    
-    // Calculate actual row height
-    const maxLines = Math.max(
-      testNameLines.length,
-      valueLines.length,
-      referenceLines.length,
-      methodLines.length
-    );
-    const lineHeight = 4;
-    const actualRowHeight = maxLines * lineHeight + 2;
-    
-    // Check for new page with accurate height
-    yPos = checkForNewPage(yPos, actualRowHeight);
-
-    // Now render the row
-    let xPos = leftMargin;
-
-    // Test Name
-    doc.setFont("helvetica", "bold");
-    renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
-    xPos += colWidths[0];
-
-    doc.setFont("helvetica", "normal");
-
-    // Specimen Type
-    doc.text(test.specimen_type || "", xPos, yPos);
-    xPos += colWidths[1];
-
-    // Extra Gap
-    xPos += colWidths[2];
-
-    // Value(s) - Now with text wrapping
-    const statusIndicator = test.isHigh
-      ? "H"
-      : test.isLow
-      ? "L"
-      : getHighLowStatus(valueText, test.reference_range);
-
-    if (statusIndicator) {
-      doc.setFont("helvetica", "bold");
-      if (statusIndicator === "H") {
-        doc.setTextColor(255, 0, 0);
-      } else if (statusIndicator === "L") {
-        doc.setTextColor(0, 0, 255);
-      }
-      renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
-      const valueWidth = doc.getTextWidth(valueText);
-      if (valueWidth < colWidths[3] - 5) {
-        if (statusIndicator === "H") {
-          drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-        } else if (statusIndicator === "L") {
-          drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
-        }
-      }
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "normal");
-    } else {
-      renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
-    }
-    xPos += colWidths[3];
-
-    // Unit
-    renderUnicodeText(test.unit || "", xPos, yPos);
-    xPos += colWidths[4];
-
-    // Reference Range
-    renderWrappedText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
-    xPos += colWidths[5];
-
-    // Method
-    doc.setTextColor(0, 0, 0);
-    renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
-
-    // Move Y position by actual row height
-    yPos += actualRowHeight + 4;
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-
-    // Add outsourced label
-    if (test.outsourced === true) {
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(8);
-      doc.text("(Outsourced)", leftMargin, yPos);
-      yPos += 4;
-    }
-
-    // Add comment for main test (when no parameters)
-    if (!test.parameters || test.parameters.length === 0) {
-      if (test.comment && test.comment.trim() !== "") {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(8);
-        const commentText = `Note: ${test.comment}`;
-        const commentHeight = renderWrappedText(
-          doc,
-          commentText,
-          colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
-          leftMargin,
-          yPos,
-          3.5
-        );
-        yPos += commentHeight + 2;
-      }
-    }
-
-    // Reset styling
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-
-    // Render parameters grouped by sub_title
-    Object.keys(parametersBySubtitle).forEach((subtitle) => {
-      // Render subtitle if it exists
-      if (subtitle && subtitle.trim() !== "") {
-        const subtitleWithParamHeight = 25;
-        yPos = checkForNewPage(yPos, subtitleWithParamHeight);
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.text(subtitle, leftMargin, yPos);
-        yPos += 6;
-      }
-
-      // Render all parameters under this subtitle
-      parametersBySubtitle[subtitle].forEach((currentTest) => {
-        // Calculate all text wrapping FIRST
-        doc.setFontSize(10);
-        
-        const paramNameText = currentTest.name;
-        const paramNameLines = wrapTextAndGetLines(doc, paramNameText, colWidths[0] - 2);
-        
-        const paramValueText = currentTest.value || "";
-        const paramValueLines = wrapTextAndGetLines(doc, paramValueText, colWidths[3] - 2);
-        
-        const paramReferenceLines = wrapTextAndGetLines(
-          doc,
-          currentTest.reference_range || "",
-          colWidths[5] - 2
-        );
-        
-        const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
-        const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
-        
-        // Calculate actual row height
-        const paramMaxLines = Math.max(
-          paramNameLines.length,
-          paramValueLines.length,
-          paramReferenceLines.length,
-          paramMethodLines.length
-        );
-        const paramLineHeight = 4;
-        const paramActualRowHeight = paramMaxLines * paramLineHeight + 2;
-        
-        // Check for new page
-        yPos = checkForNewPage(yPos, paramActualRowHeight);
-
-        // Render parameter row
-        let xPos = leftMargin;
-
-        // Parameter name
-        doc.setFont("helvetica", "normal");
-        renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
-        xPos += colWidths[0];
-
-        // Specimen Type
-        doc.text(currentTest.specimen_type || "", xPos, yPos);
-        xPos += colWidths[1];
-
-        // Extra Gap
-        xPos += colWidths[2];
-
-        // Value(s) with wrapping
-        const paramStatusIndicator = currentTest.isHigh
-          ? "H"
-          : currentTest.isLow
-          ? "L"
-          : getHighLowStatus(paramValueText, currentTest.reference_range);
-
-        if (paramStatusIndicator) {
-          doc.setFont("helvetica", "bold");
-          if (paramStatusIndicator === "H") {
-            doc.setTextColor(255, 0, 0);
-          } else if (paramStatusIndicator === "L") {
-            doc.setTextColor(0, 0, 255);
+        // Collect all verified_by values in this department
+        const verifiedBySet = new Set();
+        testsByDepartment[department].forEach((test) => {
+          if (test.verified_by && test.verified_by.trim() !== "") {
+            verifiedBySet.add(test.verified_by);
           }
-          renderWrappedText(doc, paramValueText, colWidths[3] - 5, xPos, yPos, paramLineHeight);
-          const paramValueWidth = doc.getTextWidth(paramValueText);
-          if (paramValueWidth < colWidths[3] - 5) {
-            if (paramStatusIndicator === "H") {
-              drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "up");
-            } else if (paramStatusIndicator === "L") {
-              drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "down");
+        });
+
+        // Check if multiple people verified tests in this department
+        const hasMultipleVerifiers = verifiedBySet.size > 1;
+
+        testsByDepartment[department].forEach((test, testIndex) => {
+          // Render department header only for first test in department
+          if (testIndex === 0) {
+            const departmentHeight = 15;
+            yPos = checkForNewPage(yPos, departmentHeight);
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            const textWidth = doc.getTextWidth(department.toUpperCase());
+            const centerX = leftMargin + contentWidth / 2;
+            doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
+            doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
+            yPos += 10;
+          }
+
+          // Group parameters by sub_title
+          const parametersBySubtitle = {};
+          
+          if (test.parameters && test.parameters.length > 0) {
+            test.parameters.forEach((param) => {
+              const subtitle = param.sub_title || "";
+              if (!parametersBySubtitle[subtitle]) {
+                parametersBySubtitle[subtitle] = [];
+              }
+              parametersBySubtitle[subtitle].push(param);
+            });
+          }
+
+          // Check if we need a new page for the test name
+          const testHeaderHeight = 20;
+          yPos = checkForNewPage(yPos, testHeaderHeight);
+
+          // Render main test
+          doc.setFontSize(10);
+          
+          // Calculate all text wrapping FIRST to get accurate height
+          const testNameText = test.testname;
+          const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
+          
+          const valueText = test.value || "";
+          const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
+          
+          const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
+          
+          const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
+          const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
+          
+          // Calculate actual row height
+          const maxLines = Math.max(
+            testNameLines.length,
+            valueLines.length,
+            referenceLines.length,
+            methodLines.length
+          );
+          const lineHeight = 4;
+          const actualRowHeight = maxLines * lineHeight + 2;
+          
+          // Check for new page with accurate height
+          yPos = checkForNewPage(yPos, actualRowHeight);
+
+          // Now render the row
+          let xPos = leftMargin;
+
+          // Test Name
+          doc.setFont("helvetica", "bold");
+          renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
+          xPos += colWidths[0];
+
+          doc.setFont("helvetica", "normal");
+
+          // Specimen Type
+          doc.text(test.specimen_type || "", xPos, yPos);
+          xPos += colWidths[1];
+
+          // Extra Gap
+          xPos += colWidths[2];
+
+          // Value(s) - Now with text wrapping
+          const statusIndicator = test.isHigh
+            ? "H"
+            : test.isLow
+            ? "L"
+            : getHighLowStatus(valueText, test.reference_range);
+
+          if (statusIndicator) {
+            doc.setFont("helvetica", "bold");
+            if (statusIndicator === "H") {
+              doc.setTextColor(255, 0, 0);
+            } else if (statusIndicator === "L") {
+              doc.setTextColor(0, 0, 255);
+            }
+            renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
+            const valueWidth = doc.getTextWidth(valueText);
+            if (valueWidth < colWidths[3] - 5) {
+              if (statusIndicator === "H") {
+                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+              } else if (statusIndicator === "L") {
+                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+              }
+            }
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "normal");
+          } else {
+            renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
+          }
+          xPos += colWidths[3];
+
+          // Unit
+          renderUnicodeText(test.unit || "", xPos, yPos);
+          xPos += colWidths[4];
+
+          // Reference Range
+          renderWrappedText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
+          xPos += colWidths[5];
+
+          // Method
+          doc.setTextColor(0, 0, 0);
+          renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
+
+          // Move Y position by actual row height
+          yPos += actualRowHeight + 4;
+
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(0, 0, 0);
+
+          // Add outsourced label
+          if (test.outsourced === true) {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            doc.text("(Outsourced)", leftMargin, yPos);
+            yPos += 4;
+          }
+
+          // Add comment for main test (when no parameters)
+          if (!test.parameters || test.parameters.length === 0) {
+            if (test.comment && test.comment.trim() !== "") {
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
+              const commentText = `Note: ${test.comment}`;
+              const commentHeight = renderWrappedText(
+                doc,
+                commentText,
+                colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                leftMargin,
+                yPos,
+                3.5
+              );
+              yPos += commentHeight + 2;
             }
           }
-          doc.setTextColor(0, 0, 0);
+
+          // Reset styling
           doc.setFont("helvetica", "normal");
-        } else {
-          renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, paramLineHeight);
+          doc.setFontSize(10);
+          doc.setTextColor(0, 0, 0);
+
+          // Render parameters grouped by sub_title
+          Object.keys(parametersBySubtitle).forEach((subtitle) => {
+            // Render subtitle if it exists
+            if (subtitle && subtitle.trim() !== "") {
+              const subtitleWithParamHeight = 25;
+              yPos = checkForNewPage(yPos, subtitleWithParamHeight);
+              
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9);
+              doc.text(subtitle, leftMargin, yPos);
+              yPos += 6;
+            }
+
+            // Render all parameters under this subtitle
+            parametersBySubtitle[subtitle].forEach((currentTest) => {
+              // Calculate all text wrapping FIRST
+              doc.setFontSize(10);
+              
+              const paramNameText = currentTest.name;
+              const paramNameLines = wrapTextAndGetLines(doc, paramNameText, colWidths[0] - 2);
+              
+              const paramValueText = currentTest.value || "";
+              const paramValueLines = wrapTextAndGetLines(doc, paramValueText, colWidths[3] - 2);
+              
+              const paramReferenceLines = wrapTextAndGetLines(
+                doc,
+                currentTest.reference_range || "",
+                colWidths[5] - 2
+              );
+              
+              const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
+              const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
+              
+              // Calculate actual row height
+              const paramMaxLines = Math.max(
+                paramNameLines.length,
+                paramValueLines.length,
+                paramReferenceLines.length,
+                paramMethodLines.length
+              );
+              const paramLineHeight = 4;
+              const paramActualRowHeight = paramMaxLines * paramLineHeight + 2;
+              
+              // Check for new page
+              yPos = checkForNewPage(yPos, paramActualRowHeight);
+
+              // Render parameter row
+              let xPos = leftMargin;
+
+              // Parameter name
+              doc.setFont("helvetica", "normal");
+              renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
+              xPos += colWidths[0];
+
+              // Specimen Type
+              doc.text(currentTest.specimen_type || "", xPos, yPos);
+              xPos += colWidths[1];
+
+              // Extra Gap
+              xPos += colWidths[2];
+
+              // Value(s) with wrapping
+              const paramStatusIndicator = currentTest.isHigh
+                ? "H"
+                : currentTest.isLow
+                ? "L"
+                : getHighLowStatus(paramValueText, currentTest.reference_range);
+
+              if (paramStatusIndicator) {
+                doc.setFont("helvetica", "bold");
+                if (paramStatusIndicator === "H") {
+                  doc.setTextColor(255, 0, 0);
+                } else if (paramStatusIndicator === "L") {
+                  doc.setTextColor(0, 0, 255);
+                }
+                renderWrappedText(doc, paramValueText, colWidths[3] - 5, xPos, yPos, paramLineHeight);
+                const paramValueWidth = doc.getTextWidth(paramValueText);
+                if (paramValueWidth < colWidths[3] - 5) {
+                  if (paramStatusIndicator === "H") {
+                    drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "up");
+                  } else if (paramStatusIndicator === "L") {
+                    drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "down");
+                  }
+                }
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "normal");
+              } else {
+                renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, paramLineHeight);
+              }
+              xPos += colWidths[3];
+
+              // Unit
+              renderUnicodeText(currentTest.unit || "", xPos, yPos);
+              xPos += colWidths[4];
+
+              // Reference Range
+              renderWrappedText(
+                doc,
+                currentTest.reference_range || "",
+                colWidths[5] - 2,
+                xPos,
+                yPos,
+                paramLineHeight
+              );
+              xPos += colWidths[5];
+
+              // Method
+              doc.setTextColor(0, 0, 0);
+              renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, paramLineHeight);
+
+              // Move Y position
+              yPos += paramActualRowHeight;
+
+              // Add comment for parameter
+              if (currentTest.comment && currentTest.comment.trim() !== "") {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                const paramCommentText = `Note: ${currentTest.comment}`;
+                const paramCommentHeight = renderWrappedText(
+                  doc,
+                  paramCommentText,
+                  colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                  leftMargin,
+                  yPos,
+                  3.5
+                );
+                yPos += paramCommentHeight + 2;
+              }
+
+              // Reset styling
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
+              doc.setTextColor(0, 0, 0);
+            });
+          });
+
+          // Display "Verified by" under each test if multiple verifiers in department
+          if (hasMultipleVerifiers && test.verified_by && test.verified_by.trim() !== "") {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
+            yPos += 8;
+          }
+        });
+
+        // Display "Verified by" once at end of department only if single verifier
+        if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
+          doc.text(verifiedByText, leftMargin, yPos);
+          yPos += 8;
         }
-        xPos += colWidths[3];
 
-        // Unit
-        renderUnicodeText(currentTest.unit || "", xPos, yPos);
-        xPos += colWidths[4];
-
-        // Reference Range
-        renderWrappedText(
-          doc,
-          currentTest.reference_range || "",
-          colWidths[5] - 2,
-          xPos,
-          yPos,
-          paramLineHeight
-        );
-        xPos += colWidths[5];
-
-        // Method
-        doc.setTextColor(0, 0, 0);
-        renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, paramLineHeight);
-
-        // Move Y position
-        yPos += paramActualRowHeight;
-
-        // Add comment for parameter
-        if (currentTest.comment && currentTest.comment.trim() !== "") {
-          doc.setFont("helvetica", "italic");
-          doc.setFontSize(8);
-          const paramCommentText = `Note: ${currentTest.comment}`;
-          const paramCommentHeight = renderWrappedText(
-            doc,
-            paramCommentText,
-            colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
-            leftMargin,
-            yPos,
-            3.5
-          );
-          yPos += paramCommentHeight + 2;
-        }
-
-        // Reset styling
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
+        yPos += 4;
       });
-    });
-
-    // Display "Verified by" under each test if multiple verifiers in department
-    if (hasMultipleVerifiers && test.verified_by && test.verified_by.trim() !== "") {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-      yPos += 8;
-    }
-  });
-
-  // Display "Verified by" once at end of department only if single verifier
-  if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
-    doc.text(verifiedByText, leftMargin, yPos);
-    yPos += 8;
-  }
-
-  yPos += 4;
-});
+      
       currentYPosition = yPos;
     }
 
     isTableStarted = false;
+    
     const ensureSpaceForFooter = (currentYPosition) => {
       const pageHeight = doc.internal.pageSize.height;
       const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
@@ -1246,13 +1244,13 @@ const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
     }
 
     // Generate the PDF as a Blob
-      const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      // Open the PDF in a new tab for preview
-      window.open(pdfUrl, "_blank");
+    // Open the PDF in a new tab for preview
+    window.open(pdfUrl, "_blank");
 
-      return pdfBlob;
+    return pdfBlob;
   } catch (error) {
     console.error("Error while generating the PDF:", error);
     toast.error("An unexpected error occurred while generating the PDF");
@@ -1321,7 +1319,7 @@ const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
 
               return (
                 <TestItem
-                  key={test.testname}
+                  key={test.test_id} 
                   onClick={() => handleSelectTest(test)}
                 >
                   <TestInfo>
