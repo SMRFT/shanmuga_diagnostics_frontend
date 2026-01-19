@@ -1092,27 +1092,19 @@ const Sidebar = () => {
                 <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
                   Report Generation
                 </SubLink>
-                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
-                  Report Authorization
-                </SubLink>
-              </DropdownContent>
-
-              <DropdownHeader isOpen={dropdowns.osreportDetails} onClick={() => toggleDropdown("osreportDetails")}>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <IconWrapper>
-                    <FaFileAlt />
-                  </IconWrapper>
-                  Out Source Management
-                </div>
-                <ChevronIcon isOpen={dropdowns.osreportDetails} />
-              </DropdownHeader>
-
-              <DropdownContent isOpen={dropdowns.osreportDetails}>
                 <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
                   O/S Report Generation
                 </SubLink>
+                <SubLink to="/MBPatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                  M/B Report Generation
+                </SubLink>
+                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                  Report Authorization
+                </SubLink>
+                <SubLink to="/MBPatientList" onClick={() => setIsSidebarOpen(false)}>
+                  M/B Report Authorization
+                </SubLink>
               </DropdownContent>
-
 
               <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
                 <div style={{ display: "flex", alignItems: "center" }}>
