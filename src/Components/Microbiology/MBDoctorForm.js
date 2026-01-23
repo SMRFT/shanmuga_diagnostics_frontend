@@ -979,24 +979,40 @@ const handleTestRerun = async (recordIndex, testIndex) => {
       </PatientInfo>
 
       {patientHistory && (
-        <PatientHistoryCard>
-          <HistoryTitle>
-            <FileText size={18} />
-            Patient History
-          </HistoryTitle>
-          <HistoryContent>{patientHistory}</HistoryContent>
-        </PatientHistoryCard>
-      )}
+  <PatientHistoryCard>
+    <HistoryTitle>
+      <FileText size={18} />
+      Patient History
+    </HistoryTitle>
+    <HistoryContent>{patientHistory}</HistoryContent>
+  </PatientHistoryCard>
+)}
 
-      {!patientHistory && testValues.length > 0 && (
-        <PatientHistoryCard>
-          <HistoryTitle>
-            <FileText size={18} />
-            Patient History
-          </HistoryTitle>
-          <NoHistory>No patient history available</NoHistory>
-        </PatientHistoryCard>
-      )}
+{!patientHistory && testValues.length > 0 && (
+  <PatientHistoryCard>
+    <HistoryTitle>
+      <FileText size={18} />
+      Patient History
+    </HistoryTitle>
+    <NoHistory>No patient history available</NoHistory>
+  </PatientHistoryCard>
+)}
+
+{testValues.length > 0 && testValues[0].testdetails?.some(detail => detail.colony_count) && (
+  <PatientHistoryCard>
+    <HistoryTitle>
+      <FileText size={18} />
+      Colony Count
+    </HistoryTitle>
+    {testValues[0].testdetails?.map((detail, idx) => 
+      detail.colony_count && (
+        <HistoryContent key={idx}>
+          {detail.colony_count}
+        </HistoryContent>
+      )
+    )}
+  </PatientHistoryCard>
+)}
 
       <TableContainer>
         <Table>

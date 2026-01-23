@@ -323,13 +323,15 @@ const HMSBarcodeGeneration = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
 
-
+  
   const fetchPatients = async () => {
+      const fromDateStr = fromDate.toISOString().split("T")[0];
+      const toDateStr = toDate.toISOString().split("T")[0];
     setIsLoading(true);
     try {
       const response = await apiRequest(
-        `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDate.toISOString().split("T")[0]
-        }&to_date=${toDate.toISOString().split("T")[0]}`,
+        `${Labbaseurl}hms_patients_get_barcode/?from_date=${
+          fromDateStr}&to_date=${toDateStr}`,
         "GET"
       );
 
@@ -364,24 +366,36 @@ const HMSBarcodeGeneration = () => {
     }
   };
 
-  const handleGenerateBarcode = (patient, e) => {
-    e.stopPropagation(); // Prevent row click if table row has click handler
-    // Convert the patient's bill date to a Date object for consistency
-    const patientDate = new Date(patient.date);
+  
 
-    navigate("/HMSBarcodeTestDetails", {
-      state: {
-        patientId: patient.patient_id,
-        patientName: patient.patientname,
-        age: patient.age,
-        gender: patient.gender,
-        bill_no: patient.bill_no,
-        selectedDate: patientDate, // Now sending the patient's actual bill date
-        fromDate: fromDate, // Also include the date range for reference if needed
-        toDate: toDate,
-      },
-    });
-  };
+const handleGenerateBarcode = (patient, e) => {
+  e.stopPropagation();
+
+  // Convert patient.date → YYYY-MM-DD (IST-safe)
+  const d = new Date(patient.date);
+  const selectedDateStr = [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
+  ].join("-");
+
+  navigate("/HMSBarcodeTestDetails", {
+    state: {
+      patientId: patient.patient_id,
+      patientName: patient.patientname,
+      age: patient.age,
+      gender: patient.gender,
+      bill_no: patient.bill_no,
+
+      // ✅ send STRING, not Date object
+      selectedDate: selectedDateStr,
+
+      fromDate: fromDate.toISOString().split("T")[0],
+      toDate: toDate.toISOString().split("T")[0],
+    },
+  });
+};
+
 
   const handleApplyDateRange = () => {
     if (fromDate > toDate) {
@@ -430,14 +444,19 @@ const HMSBarcodeGeneration = () => {
     handleApplyDateRange();
   }, []);
 
-  // Format the patient.date to show only the date
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const year = date.getUTCFullYear();
-    return `${day}/${month}/${year}`;
-  };
+// Format date as DD/MM/YYYY (IST-safe)
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+
+  const date = new Date(dateString);
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
 
   const getGenderBadgeStyle = (gender) => {
     if (gender.toLowerCase() === "male") {
@@ -615,8 +634,8 @@ const HMSBarcodeGeneration = () => {
             {searchTerm
               ? "No matching patients found. Try a different search term."
               : isLoading
-                ? "Loading patients..."
-                : "No patients found for the selected date range."}
+              ? "Loading patients..."
+              : "No patients found for the selected date range."}
           </EmptyStateText>
         </EmptyState>
       )}

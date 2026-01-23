@@ -83,6 +83,8 @@ import MBPatientDetails from "./Components/Microbiology/MBPatientDetails";
 import MBTestDetails from "./Components/Microbiology/MBTestDetails";
 import MBPatientList from "./Components/Microbiology/MBPatientList";
 import MBDoctorForm from "./Components/Microbiology/MBDoctorForm";
+import MBTestSorting from "./Components/Report/MBTestSorting";
+import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -309,6 +311,7 @@ function App() {
             <Route path="/MDashboard" element={<MDashboard />} />
             <Route path="/Testcount" element={<Testcount />} />
             <Route path="/TestSorting" element={<TestSorting />} />
+            <Route path="/MBTestSorting" element={<MBTestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
             <Route path="/CommunicationLogs" element={<CommunicationLogs />} />
 
@@ -346,6 +349,7 @@ function App() {
 
             {/* HMS Report */}
             <Route path="/HMSTestSorting" element={<HMSTestSorting />} />
+            <Route path="/HMSMBTestSorting" element={<HMSMBTestSorting />} />
             <Route path="/HMSPatientOverview" element={<HMSPatientOverview />} />
             <Route path="/PatientOverallReport" element={<PatientOverallReport />} />
 

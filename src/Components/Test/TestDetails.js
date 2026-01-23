@@ -508,6 +508,23 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       }
     }
   }
+  // HbA1c (test_id 467) calculations
+  if (currentTest.test_id === 467) {
+    const hba1c = valuesByTestCode['HBA1C01'] || 0; // Glycosylated Haemoglobin (HbA1C)
+
+    console.log('HbA1c - Calculating with values:', { hba1c });
+
+    // Calculate HBA1C02: Estimated Average Glucose (EAG) = (HbA1c * 28.7) - 46.1
+    const eagParam = allParams.find(p => p.test_code === 'HBA1C02');
+    if (eagParam && hba1c) {
+      const eagKey = `${testname}_${eagParam.name || eagParam.test_name}`;
+      if (!manuallyEdited[eagKey]) {
+        const eag = (hba1c * 28.7) - 46.1;
+        newValues[eagKey] = eag.toFixed(2);
+        console.log(`Estimated Average Glucose (EAG): ${eag.toFixed(2)}`);
+      }
+    }
+  }
 
   return newValues;
 };
@@ -698,8 +715,8 @@ function TestDetails() {
       // Auto-calculate derived values for LIPID PROFILE tests after loading from API
       console.log('Running auto-calculation for loaded data...');
       transformedTests.forEach((test) => {
-        // Calculate for LIPID PROFILE (498) and LIVER FUNCTION TEST (196)
-        if ((test.test_id === 498 || test.test_id === 196) && 
+        // Calculate for LIPID PROFILE (498) and LIVER FUNCTION TEST (196), and HbA1c (467)
+        if ((test.test_id === 498 || test.test_id === 196|| test.test_id === 467) && 
             test.parametersBySubtitle && 
             Object.keys(test.parametersBySubtitle).length > 0) {
           console.log(`Found test with calculations: ${test.testname} (ID: ${test.test_id})`);
@@ -754,7 +771,8 @@ function TestDetails() {
     // Calculated fields for both LIPID PROFILE and LIVER FUNCTION TEST
     const calculatedFields = [
   'TESTCODE001', 'TESTCODE002', 'TESTCODE003', 'TESTCODE004', // LIPID PROFILE
-  'LFT03', 'LFT09', 'LFT10' // LIVER FUNCTION TEST
+  'LFT03', 'LFT09', 'LFT10', // LIVER FUNCTION TEST
+  'HBA1C02' // HbA1c
 ];
 const isCalculatedField = calculatedFields.includes(param.test_code);
 const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
@@ -770,7 +788,7 @@ const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValu
     }
 
     // Auto-calculate for tests with calculated parameters
-    if (currentTest?.test_id === 498 || currentTest?.test_id === 196) {
+    if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?.test_id === 467) {
       return calculateDerivedValues(testname, newValues, currentTest, manuallyEditedCalculatedFields);
     }
     
