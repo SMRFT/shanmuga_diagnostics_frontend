@@ -79,6 +79,12 @@ import OutSourceDetails from "./Components/OSManangement/OutSourceDetails";
 import RejectedSamples from "./Components/Lab/RejectedSamples";
 import OutsourcedSamples from "./Components/Lab/OutsourcedSamples";
 import HomeCollectionReport from "./Components/Report/HomeCollectionReport";
+import MBPatientDetails from "./Components/Microbiology/MBPatientDetails";
+import MBTestDetails from "./Components/Microbiology/MBTestDetails";
+import MBPatientList from "./Components/Microbiology/MBPatientList";
+import MBDoctorForm from "./Components/Microbiology/MBDoctorForm";
+import MBTestSorting from "./Components/Report/MBTestSorting";
+import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -261,6 +267,8 @@ function App() {
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
             <Route path="/TestDetails" element={<TestDetails />} />
+             <Route path="/MBPatientDetails" element={<MBPatientDetails />} />
+            <Route path="/MBTestDetails" element={<MBTestDetails />} />
             <Route path="/OutSourceDetails" element={<OutSourceDetails />} />
             <Route path="/OSTestDetails" element={<OSTestDetails />} />
 
@@ -283,6 +291,8 @@ function App() {
             {/* Test Approval */}
             <Route path="/PatientList" element={<PatientList />} />
             <Route path="/DoctorForm" element={<DoctorForm />} />
+            <Route path="/MBPatientList" element={<MBPatientList />} />
+            <Route path="/MBDoctorForm" element={<MBDoctorForm />} />
 
             {/* Sales */}
             <Route path="/SalesVisit" element={<SalesVisitLog />} />
@@ -301,6 +311,7 @@ function App() {
             <Route path="/MDashboard" element={<MDashboard />} />
             <Route path="/Testcount" element={<Testcount />} />
             <Route path="/TestSorting" element={<TestSorting />} />
+            <Route path="/MBTestSorting" element={<MBTestSorting />} />
             <Route path="/PatientOverview" element={<PatientOverview />} />
             <Route path="/CommunicationLogs" element={<CommunicationLogs />} />
 
@@ -338,6 +349,7 @@ function App() {
 
             {/* HMS Report */}
             <Route path="/HMSTestSorting" element={<HMSTestSorting />} />
+            <Route path="/HMSMBTestSorting" element={<HMSMBTestSorting />} />
             <Route path="/HMSPatientOverview" element={<HMSPatientOverview />} />
             <Route path="/PatientOverallReport" element={<PatientOverallReport />} />
 

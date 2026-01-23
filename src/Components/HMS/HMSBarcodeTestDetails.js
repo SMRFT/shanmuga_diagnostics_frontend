@@ -407,25 +407,31 @@ const HMSBarcodeTestDetails = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [barcodeData, setBarcodeData] = useState([]);
+  const [fromDate, setFromDate] = useState(new Date());
+  const [toDate, setToDate] = useState(new Date());
 
   // Function to extract barcode from bill number
-  const extractBarcodeFromBillNo = (billNumber) => {
-    if (!billNumber) return null;
+const extractBarcodeFromBillNo = (billNumber) => {
+  if (!billNumber) return null;
 
-    return String(billNumber).replace(/\//g, '');
-  };
+  return String(billNumber).replace(/\//g, '');
+};
 
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  const formatDate = (dateString) => {
-    // Create date object and get UTC components to avoid timezone issues
-    const date = new Date(dateString);
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const year = date.getUTCFullYear();
-    return `${day}/${month}/${year}`;
-  };
+// Format date as DD/MM/YYYY (IST-safe)
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+
+  const date = new Date(dateString);
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
 
   const handleGenerateBarcode = async () => {
     if (!selectedPatient || !bill_no) {
@@ -438,7 +444,7 @@ const HMSBarcodeTestDetails = () => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-
+      
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return false;
@@ -447,7 +453,7 @@ const HMSBarcodeTestDetails = () => {
       // Group tests by container
       const containerGroups = {};
       testDetails.forEach((test) => {
-        const container = test.container || "";
+        const container = test.collection_container || "";
         if (!containerGroups[container]) {
           containerGroups[container] = [];
         }
@@ -455,12 +461,12 @@ const HMSBarcodeTestDetails = () => {
       });
 
       // Update test details with barcode
-      const updatedTestDetails = testDetails.map((test) => {
-        return {
-          ...test,
-          barcode: patientBarcode,
-        };
-      });
+      const updatedTestDetails = testDetails.map((test) => ({
+  test_id: test.test_id,
+  testname: test.testname,
+  barcode: patientBarcode,
+}));
+
 
       setTestDetails(updatedTestDetails);
 
@@ -482,20 +488,20 @@ const HMSBarcodeTestDetails = () => {
 
       setBarcodeData(newBarcodeData);
 
-      // Prepare payload for saving
+      
       const payload = {
         patient_id: patientId,
         patientname: selectedPatient?.patientname,
         age: selectedPatient?.age,
         age_type: selectedPatient?.age_type || 'Y',
         gender: selectedPatient?.gender,
-
+     
         date: formatDate(selectedPatient?.date),
         bill_no: bill_no,
         billnumber: bill_no, // Also send as billnumber for HMS compatibility
         testdetails: updatedTestDetails,
         barcode: patientBarcode,
-
+        
         // Additional HMS-specific fields
         ipnumber: selectedPatient?.ipnumber || '',
         IPOPType: selectedPatient?.IPOPType || '',
@@ -503,7 +509,6 @@ const HMSBarcodeTestDetails = () => {
         phone: selectedPatient?.phone || '',
         source: selectedPatient?.source || 'core_hmspatientbilling',
       };
-
       // Save the barcode using your apiRequest method
       const saveUrl = `${Labbaseurl}save-hms-barcodes/`;
       const saveResponse = await apiRequest(saveUrl, "POST", payload);
@@ -538,7 +543,7 @@ const HMSBarcodeTestDetails = () => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-
+      
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return;
@@ -547,7 +552,7 @@ const HMSBarcodeTestDetails = () => {
       // Group tests by container
       const containerGroups = {};
       testDetails.forEach((test) => {
-        const container = test.container || "";
+        const container = test.collection_container || "";
         if (!containerGroups[container]) {
           containerGroups[container] = [];
         }
@@ -678,7 +683,6 @@ const HMSBarcodeTestDetails = () => {
  font-size: 8px;
  font-weight: bold;
  color: #333;
- margin-right: 15px;
  }
  .barcode-container {
  display: flex;
@@ -717,13 +721,14 @@ const HMSBarcodeTestDetails = () => {
 
   useEffect(() => {
     const fetchTestDetails = async () => {
-      const dateString = selectedDate.toISOString().split("T")[0];
+    // ✅ USE SELECTED DATE, NOT TODAY
+    const fromDateStr = selectedDate;
+    const toDateStr = selectedDate;
 
-      // Get patient data from hms_patients_get_barcode
-      const patientResult = await apiRequest(
-        `${Labbaseurl}hms_patients_get_barcode/?from_date=${dateString}&to_date=${dateString}`,
-        "GET"
-      );
+    const patientResult = await apiRequest(
+      `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
+      "GET"
+    );
 
       if (!patientResult.success) {
         console.error("Error fetching test details:", patientResult.error);
@@ -755,13 +760,13 @@ const HMSBarcodeTestDetails = () => {
           ...test,
           barcode: generatedBarcode,
         }));
-
+        
         setTestDetails(updatedTestDetails);
 
         // Create barcode data for display
         const containerGroups = {};
         updatedTestDetails.forEach((test) => {
-          const container = test.container || "";
+          const container = test.collection_container || "";
           if (!containerGroups[container]) {
             containerGroups[container] = [];
           }
@@ -873,7 +878,7 @@ const HMSBarcodeTestDetails = () => {
                   {testDetails.map((test, index) => (
                     <tr key={index}>
                       <td>{test.testname}</td>
-                      <td>{test.container}</td>
+                      <td>{test.collection_container}</td>
                       <td>
                         {test.barcode ? (
                           <BarcodeContainer>
@@ -927,6 +932,15 @@ const HMSBarcodeTestDetails = () => {
               {isGenerating ? "Regenerating..." : "Regenerate & Print Barcodes"}
             </SecondaryButton>
 
+            {/* {hasBarcodes && (
+              <SecondaryButton
+                onClick={handlePrintBarcodes}
+                disabled={isPrinting || isLoading}
+              >
+                <Printer size={16} />
+                {isPrinting ? "Printing..." : "Print Barcodes"}
+              </SecondaryButton>
+            )} */}
           </ButtonsContainer>
         </>
       ) : (
@@ -944,8 +958,8 @@ const HMSBarcodeTestDetails = () => {
               {selectedPatient?.gender === "Male"
                 ? "M"
                 : selectedPatient?.gender === "Female"
-                  ? "F"
-                  : ""}
+                ? "F"
+                : ""}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
               {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}
