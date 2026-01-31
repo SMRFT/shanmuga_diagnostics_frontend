@@ -7,8 +7,8 @@ import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
-import CorporateTestSorting from "./CorporateTestSorting";
-import CorporateMBTestSorting from "./CorporateMBTestSorting";
+import FranchiseTestSorting from "./FranchiseTestSorting";
+import FranchiseMBTestSorting from "./FranchiseMBTestSorting";
 import {
   Calendar,
   Search,
@@ -538,7 +538,7 @@ const StatusBadgeContainer = styled.div`
   gap: 0.5rem;
 `;
 
-const CorporatePatientOverview = () => {
+const FranchiseOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
@@ -603,7 +603,7 @@ const CorporatePatientOverview = () => {
       const formattedStartDate = startDate.toISOString().split("T")[0];
       const formattedEndDate = endDate.toISOString().split("T")[0];
 
-      const url = `${Labbaseurl}corporate_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
+      const url = `${Labbaseurl}franchise_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
 
       const result = await apiRequest(url, "GET");
 
@@ -712,8 +712,7 @@ const isMBTestSortingEnabled = (patient) => {
       ));
   return (
     patientDate >= startOfDay &&
-    patientDate <= endOfDay &&        
-    (!refBy || patient.refby === refBy) &&
+    patientDate <= endOfDay &&       
     (!patientId || patient.patient_id.includes(patientId)) &&
     (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
     (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
@@ -863,7 +862,7 @@ const isMBTestSortingEnabled = (patient) => {
     try {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
-        `${Labbaseurl}corporate_patient_test_details/?barcode=${patient.barcode}`,
+        `${Labbaseurl}franchise_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
       );
 
@@ -1097,7 +1096,7 @@ const isMBTestSortingEnabled = (patient) => {
             doc.text(right.value, rightValueX, patientInfoY);
 
             if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 15,
+              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 10,
                 patientInfoY + 4, 25, 10);
             }
           }
@@ -1804,7 +1803,7 @@ const addSignatures = () => {
               Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
-          <Title>CHC Patient Status</Title>
+          <Title>Franchise Patient Status</Title>
         </CardHeader>
 
         <FiltersContainer>
@@ -1913,7 +1912,8 @@ const addSignatures = () => {
                 <th>Date</th>
                 <th>Patient ID</th>
                 <th>Barcode</th>
-                <th>Patient Name</th> 
+                <th>Patient Name</th>                
+                <th>Referral</th>
                 <th>Department</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -1974,6 +1974,7 @@ const addSignatures = () => {
                           {patient.patient_name}
                         </div>
                       </td>
+                      <td>{patient.refby || "N/A"}</td>
                       <td>
   <DepartmentCell>
     {getDepartmentStatus(patient).map((deptInfo, idx) => (
@@ -2107,14 +2108,14 @@ const addSignatures = () => {
 
       {/* Test Sorting Modal */}
       {isTestModalOpen && (
-        <CorporateTestSorting
+        <FranchiseTestSorting
           patient={selectedPatient}
           onClose={() => setIsTestModalOpen(false)}
         />
       )}
       {/* M/B Test Sorting Modal */}
       {isMBTestModalOpen && (
-        <CorporateMBTestSorting
+        <FranchiseMBTestSorting
           patient={selectedPatient}
           onClose={() => setIsMBTestModalOpen(false)}
         />
@@ -2181,4 +2182,4 @@ const addSignatures = () => {
   );
 };
 
-export default CorporatePatientOverview;
+export default FranchiseOverview;

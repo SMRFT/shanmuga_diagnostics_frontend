@@ -343,7 +343,7 @@ const LoadingText = styled.p`
   font-weight: 500;
 `;
 
-const MBTestSorting = ({ patient, onClose }) => {
+const CorporateMBTestSorting = ({ patient, onClose }) => {
   const [tests, setTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
   const [selectAllChecked, setSelectAllChecked] = useState(false);
@@ -480,7 +480,7 @@ const MBTestSorting = ({ patient, onClose }) => {
     try {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
-        `${Labbaseurl}mb_get_patient_test_details/?barcode=${patient.barcode}`,
+        `${Labbaseurl}corporate_mb_get_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
       );
 
@@ -563,7 +563,7 @@ const MBTestSorting = ({ patient, onClose }) => {
       ];
 
       const leftDetails = [
-        { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
+        { label: "UHID", value: patientDetails.patient_id || "N/A" },
         {
           label: "Name",
           value: patientDetails.patientname || "No name provided",
@@ -574,8 +574,6 @@ const MBTestSorting = ({ patient, onClose }) => {
             }`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
-        { label: "Branch", value: patientDetails.branch || "N/A" },
-        { label: "Source", value: patientDetails.B2B || "N/A" },
       ];
 
       const rightDetails = [
@@ -656,7 +654,7 @@ const MBTestSorting = ({ patient, onClose }) => {
             doc.text(right.value, rightValueX, patientInfoY);
 
             if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 10,
+              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 19,
                 patientInfoY + 4, 25, 10);
             }
           }
@@ -854,7 +852,6 @@ const MBTestSorting = ({ patient, onClose }) => {
           if (test.remarks && test.remarks.trim() !== "") {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
-            // Check is_AG_title to determine the label
             const remarksLabel = test.is_AG_title ? "Sputum for AFB:" : "Organism Isolated:";
             doc.text(`${remarksLabel} ${test.remarks}`, leftMargin, yPos);
             yPos += 6;
@@ -1137,4 +1134,4 @@ const MBTestSorting = ({ patient, onClose }) => {
   );
 };
 
-export default MBTestSorting;
+export default CorporateMBTestSorting;

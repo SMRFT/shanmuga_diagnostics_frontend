@@ -852,7 +852,8 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
           if (test.remarks && test.remarks.trim() !== "") {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
-            doc.text(`Organism Isolated: ${test.remarks}`, leftMargin, yPos);
+            const remarksLabel = test.is_AG_title ? "Sputum for AFB:" : "Organism Isolated:";
+            doc.text(`${remarksLabel} ${test.remarks}`, leftMargin, yPos);
             yPos += 6;
           } else {
             yPos += 2;

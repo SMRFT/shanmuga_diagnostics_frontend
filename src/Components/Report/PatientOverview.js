@@ -24,6 +24,7 @@ import {
   RefreshCw,
   CreditCard,
   MessageCircle,
+  Eye,
 } from "lucide-react";
 import { IoIosFemale, IoIosMale, IoMdClose } from "react-icons/io";
 import { toast, ToastContainer } from "react-toastify";
@@ -443,6 +444,98 @@ const DepartmentRow = styled.div`
   flex-wrap: nowrap;
 `;
 
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--gray-light);
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.5rem;
+  color: var(--primary-dark);
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--gray);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition);
+
+  &:hover {
+    background-color: var(--gray-light);
+    color: var(--dark);
+  }
+`;
+
+const TestStatusList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const TestStatusItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  background-color: ${(props) => props.highlight ? 'rgba(67, 97, 238, 0.05)' : 'white'};
+  transition: var(--transition);
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const TestNameText = styled.span`
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--dark);
+  flex: 1;
+`;
+
+const StatusBadgeContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
 const PatientOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -470,6 +563,8 @@ const PatientOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("hms");
+  const [isTestStatusModalOpen, setIsTestStatusModalOpen] = useState(false);
+  const [selectedPatientForStatus, setSelectedPatientForStatus] = useState(null);
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   // Set active tab based on current route
@@ -591,10 +686,12 @@ const PatientOverview = () => {
   const isPrintAndMailEnabled = (status) =>
     status === "Approved" ||
     status === "Partially Approved" ||
+    status === "Partially Dispatched" ||
     status === "Dispatched";
   const isSortingEnabled = (status) =>
     status === "Approved" ||
     status === "Partially Approved" ||
+    status === "Partially Dispatched" ||
     status === "Dispatched";     
 
   // Add this helper function after the `isSortingEnabled` function (around line 665):
@@ -604,6 +701,46 @@ const isMBTestSortingEnabled = (patient) => {
   
   const microbiologyStatus = patient.department_statuses['Microbiology'];
   return microbiologyStatus === 'Approved' || microbiologyStatus === 'Dispatched';
+};
+
+
+const TestStatusModal = () => {
+  if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
+
+  const testStatuses = selectedPatientForStatus.test_statuses || [];
+
+  return (
+    <ModalOverlay onClick={() => setIsTestStatusModalOpen(false)}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
+        <ModalHeader>
+          <ModalTitle>
+            Test Status - {selectedPatientForStatus.patient_name}
+          </ModalTitle>
+          <CloseButton onClick={() => setIsTestStatusModalOpen(false)}>
+            <X size={24} />
+          </CloseButton>
+        </ModalHeader>
+
+        <TestStatusList>
+          {testStatuses.length > 0 ? (
+            testStatuses.map((test, index) => (
+              <TestStatusItem 
+                key={index} 
+                highlight={test.status === 'Approved' || test.status === 'Dispatched'}
+              >
+                <TestNameText>{test.test_name}</TestNameText>
+                <Badge color={getBadgeColor(test.status)}>
+                  {test.status}
+                </Badge>
+              </TestStatusItem>
+            ))
+          ) : (
+            <NoData>No test status information available</NoData>
+          )}
+        </TestStatusList>
+      </ModalContent>
+    </ModalOverlay>
+  );
 };
 
   // Filter patients based on multiple criteria
@@ -760,7 +897,7 @@ const isMBTestSortingEnabled = (patient) => {
     }
   };
 
-  const handlePrint = async (patient, withLetterpad = true) => {
+ const handlePrint = async (patient, withLetterpad = true) => {
     try {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
@@ -776,16 +913,29 @@ const isMBTestSortingEnabled = (patient) => {
       }
 
       console.log("API Response:", response.data);
-      let patientDetails = response.data;
+      
+      // Extract patient data and signatures from the new response structure
+      let patientDetails;
+      let signaturesData = [];
+      
+      if (response.data.patient_data && response.data.signatures) {
+        // New structure with signatures
+        patientDetails = response.data.patient_data;
+        signaturesData = response.data.signatures;
+      } else {
+        // Fallback for old structure
+        patientDetails = response.data;
+      }
 
-      if (Array.isArray(response.data)) {
+      if (Array.isArray(patientDetails)) {
         patientDetails = {
-          ...response.data[0],
-          testdetails: response.data.flatMap((record) => record.testdetails || []),
+          ...patientDetails[0],
+          testdetails: patientDetails.flatMap((record) => record.testdetails || []),
         };
       }
 
       console.log("Processed Patient Details:", patientDetails);
+      console.log("Signatures Data:", signaturesData);
 
       if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
         console.error("No test details found for the patient.");
@@ -823,11 +973,42 @@ const isMBTestSortingEnabled = (patient) => {
         return numberPart;
       };
 
-      const consultants = [
-        ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
-        ["Dr. V. Dhana Rangesh Kumar Ph.D.", "Consultant Biochemist", Dhana],
-      ];
+      // CORRECTED: Map designation codes to consultant positions
+      // Note: Data shows DESIG101, DESIG100, DESIG099 (without leading 0)
+      const designationMapping = {
+        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
+        "DESIG100": { position: 1, title: "Consultant Pathologist" },
+        "DESIG099": { position: 2, title: "Consultant Biochemist" },
+      };
+
+      // Build consultants array dynamically from signatures data
+      const consultants = [];
+      
+      // Initialize with empty slots
+      consultants[0] = null; // Microbiologist
+      consultants[1] = null; // Pathologist
+      consultants[2] = null; // Biochemist
+      
+      // Fill in the consultants based on signatures data
+      signaturesData.forEach((sig) => {
+        const mapping = designationMapping[sig.designation];
+        if (mapping) {
+          const signatureImage = sig.signatureBase64 
+            ? `data:image/png;base64,${sig.signatureBase64}` 
+            : null;
+          
+          consultants[mapping.position] = [
+            sig.employeeName,
+            mapping.title,
+            signatureImage
+          ];
+        }
+      });
+      
+      // Filter out null entries (positions without signatures)
+      const activeConsultants = consultants.filter(c => c !== null);
+
+      console.log("Active Consultants:", activeConsultants);
 
       const departmentOrder = [
         "Haematology",
@@ -881,7 +1062,7 @@ const isMBTestSortingEnabled = (patient) => {
         contentWidth * 0.15, // Method
       ];
 
-      // Patient information - UPDATED TO MATCH SECOND HANDLEPRINT
+      // Patient information
       const leftDetails = [
         { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
         { label: "Name", value: patientDetails.patientname || "No name provided" },
@@ -938,7 +1119,7 @@ const isMBTestSortingEnabled = (patient) => {
           doc.setFont("helvetica", "normal");
 
           // Wrap left value to prevent overlap with right side
-          const maxLeftValueWidth = centerPoint + 25 - leftValueX; // Stop just before right side
+          const maxLeftValueWidth = centerPoint + 25 - leftValueX;
           const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
 
           leftValueLines.forEach((line, lineIndex) => {
@@ -1038,30 +1219,32 @@ const isMBTestSortingEnabled = (patient) => {
         return lines.length * lineHeight;
       };
 
-      const addSignatures = () => {
+      // UPDATED: addSignatures function
+  
+const addSignatures = () => {
   const pageHeight = doc.internal.pageSize.height;
-  const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
+  const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
   const signatureWidth = 35;
   
-  // Better spacing calculation to utilize full width
-  const totalConsultants = consultants.length;
-  const signatureSpacing = (contentWidth - signatureWidth) / (totalConsultants - 0.7);
+  // Only show signatures if we have active consultants
+  if (activeConsultants.length === 0) return;
+  
+  // Calculate spacing based on number of active consultants
+  const totalConsultants = activeConsultants.length;
+  
+  // Calculate starting position from RIGHT side
+  const rightEdge = rightMargin;
+  const signatureSpacing = 45; // Fixed spacing between signatures
+  
+  // Start from right edge and work backwards
+  const startX = rightEdge - (totalConsultants * signatureSpacing);
 
-  const approvers = new Set();
-  patientDetails.testdetails.forEach((test) => {
-    if (test.approve_by && test.approve_by.trim() !== "") {
-      approvers.add(test.approve_by.toLowerCase());
-    }
-  });
-
-  consultants.forEach((consultant, index) => {
-    const xPosition = leftMargin + (index * signatureSpacing);
-    const consultantName = consultant[0].toLowerCase();
-    const shouldShowSignature =
-      (consultantName.includes("brindha") && approvers.has("dr.brindha")) ||
-      (consultantName.includes("dhana") && approvers.has("dr dhana rangesh kumar"));
-
-    if (consultant[2] && shouldShowSignature) {
+  activeConsultants.forEach((consultant, index) => {
+    // Position from the calculated start point, moving right
+    const xPosition = startX + (index * signatureSpacing);
+    
+    // Display signature image if available
+    if (consultant[2]) {
       doc.addImage(
         consultant[2],
         "PNG",
@@ -1072,10 +1255,14 @@ const isMBTestSortingEnabled = (patient) => {
       );
     }
 
+    // Display full name with credentials
+    const fullName = consultant[0];
+    
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(consultant[0], xPosition, signaturesY + 20);
+    doc.text(fullName, xPosition, signaturesY + 20);
 
+    // Display title (Consultant position)
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text(consultant[1], xPosition, signaturesY + 25);
@@ -1084,7 +1271,7 @@ const isMBTestSortingEnabled = (patient) => {
 
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
 
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
@@ -1153,21 +1340,16 @@ const isMBTestSortingEnabled = (patient) => {
           return acc;
         }, {});
 
-
         // Sort departments according to the specified order
         const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
           const indexA = departmentOrder.indexOf(a);
           const indexB = departmentOrder.indexOf(b);
 
-          // If both departments are in the order list, sort by their index
           if (indexA !== -1 && indexB !== -1) {
             return indexA - indexB;
           }
-          // If only A is in the list, it comes first
           if (indexA !== -1) return -1;
-          // If only B is in the list, it comes first
           if (indexB !== -1) return 1;
-          // If neither is in the list, sort alphabetically
           return a.localeCompare(b);
         });
 
@@ -1180,7 +1362,6 @@ const isMBTestSortingEnabled = (patient) => {
             }
           });
 
-          // Check if multiple people verified tests in this department
           const hasMultipleVerifiers = verifiedBySet.size > 1;
 
           testsByDepartment[department].forEach((test, testIndex) => {
@@ -1211,14 +1392,13 @@ const isMBTestSortingEnabled = (patient) => {
               });
             }
 
-            // Check if we need a new page for the test name
             const testHeaderHeight = 20;
             yPos = checkForNewPage(yPos, testHeaderHeight);
 
             // Render main test
             doc.setFontSize(10);
 
-            // Calculate all text wrapping FIRST to get accurate height
+            // Calculate all text wrapping FIRST
             const testNameText = test.testname;
             const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
 
@@ -1230,7 +1410,6 @@ const isMBTestSortingEnabled = (patient) => {
             const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
             const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
 
-            // Calculate actual row height
             const maxLines = Math.max(
               testNameLines.length,
               valueLines.length,
@@ -1240,10 +1419,8 @@ const isMBTestSortingEnabled = (patient) => {
             const lineHeight = 4;
             const actualRowHeight = maxLines * lineHeight + 2;
 
-            // Check for new page with accurate height
             yPos = checkForNewPage(yPos, actualRowHeight);
 
-            // Now render the row
             let xPos = leftMargin;
 
             // Test Name
@@ -1257,10 +1434,9 @@ const isMBTestSortingEnabled = (patient) => {
             doc.text(test.specimen_type || "", xPos, yPos);
             xPos += colWidths[1];
 
-            // Extra Gap
             xPos += colWidths[2];
 
-            // Value(s) - Now with text wrapping
+            // Value(s)
             const statusIndicator = test.isHigh
               ? "H"
               : test.isLow
@@ -1302,7 +1478,6 @@ const isMBTestSortingEnabled = (patient) => {
             doc.setTextColor(0, 0, 0);
             renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
 
-            // Move Y position by actual row height
             yPos += actualRowHeight + 4;
 
             doc.setFont("helvetica", "normal");
@@ -1334,14 +1509,12 @@ const isMBTestSortingEnabled = (patient) => {
               }
             }
 
-            // Reset styling
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
 
             // Render parameters grouped by sub_title
             Object.keys(parametersBySubtitle).forEach((subtitle) => {
-              // Render subtitle if it exists
               if (subtitle && subtitle.trim() !== "") {
                 const subtitleWithParamHeight = 25;
                 yPos = checkForNewPage(yPos, subtitleWithParamHeight);
@@ -1352,9 +1525,7 @@ const isMBTestSortingEnabled = (patient) => {
                 yPos += 6;
               }
 
-              // Render all parameters under this subtitle
               parametersBySubtitle[subtitle].forEach((currentTest) => {
-                // Calculate all text wrapping FIRST
                 doc.setFontSize(10);
 
                 const paramNameText = currentTest.name;
@@ -1372,7 +1543,6 @@ const isMBTestSortingEnabled = (patient) => {
                 const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
                 const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
 
-                // Calculate actual row height
                 const paramMaxLines = Math.max(
                   paramNameLines.length,
                   paramValueLines.length,
@@ -1382,25 +1552,19 @@ const isMBTestSortingEnabled = (patient) => {
                 const paramLineHeight = 4;
                 const paramActualRowHeight = paramMaxLines * paramLineHeight + 2;
 
-                // Check for new page
                 yPos = checkForNewPage(yPos, paramActualRowHeight);
 
-                // Render parameter row
                 let xPos = leftMargin;
 
-                // Parameter name
                 doc.setFont("helvetica", "normal");
                 renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
                 xPos += colWidths[0];
 
-                // Specimen Type
                 doc.text(currentTest.specimen_type || "", xPos, yPos);
                 xPos += colWidths[1];
 
-                // Extra Gap
                 xPos += colWidths[2];
 
-                // Value(s) with wrapping
                 const paramStatusIndicator = currentTest.isHigh
                   ? "H"
                   : currentTest.isLow
@@ -1430,11 +1594,9 @@ const isMBTestSortingEnabled = (patient) => {
                 }
                 xPos += colWidths[3];
 
-                // Unit
                 renderUnicodeText(currentTest.unit || "", xPos, yPos);
                 xPos += colWidths[4];
 
-                // Reference Range
                 renderWrappedText(
                   doc,
                   currentTest.reference_range || "",
@@ -1445,14 +1607,11 @@ const isMBTestSortingEnabled = (patient) => {
                 );
                 xPos += colWidths[5];
 
-                // Method
                 doc.setTextColor(0, 0, 0);
                 renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, paramLineHeight);
 
-                // Move Y position
                 yPos += paramActualRowHeight;
 
-                // Add comment for parameter
                 if (currentTest.comment && currentTest.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
@@ -1468,7 +1627,6 @@ const isMBTestSortingEnabled = (patient) => {
                   yPos += paramCommentHeight + 2;
                 }
 
-                // Reset styling
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
@@ -1527,7 +1685,7 @@ const isMBTestSortingEnabled = (patient) => {
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 10;
+        const pageNumberY = pageHeight - footerHeight - 2;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const centerX = leftMargin + contentWidth / 2;
@@ -1582,27 +1740,29 @@ const isMBTestSortingEnabled = (patient) => {
   const getBadgeColor = (status) => {
     switch (status) {
       case "Registered":
-        return "#6C757D"; // Gray for Registered
+        return "#6c757d"; // Gray
       case "Collected":
-        return "#007BFF"; // Blue for Collected
+        return "#0d6efd"; // Bright Blue
       case "Partially Collected":
-        return "#FFC107"; // Yellow for Partially Collected
+        return "#6610f2"; // Indigo/Purple
       case "Received":
-        return "#28A745"; // Green for Received
+        return "#17a2b8"; // Cyan/Turquoise (distinctly different)
       case "Partially Received":
-        return "#17A2B8"; // Teal for Partially Received
+        return "#20c997"; // Teal/Mint Green
       case "Tested":
-        return "#8A2BE2"; // Purple for Tested
+        return "#d63384"; // Pink/Magenta
       case "Partially Tested":
-        return "#FFA500"; // Orange for Partially Tested
+        return "#fd7e14"; // Orange
       case "Approved":
-        return "#00C851"; // Bright Green for Approved
+        return "#28a745"; // Success Green
       case "Partially Approved":
-        return "#FFBB33"; // Light Orange for Partially Approved
+        return "#ffc107"; // Yellow/Amber
       case "Dispatched":
-        return "#2a6e19ff"; // Grey for Dispatched
+        return "#155724"; // Dark Forest Green
+      case "Partially Dispatched":
+        return "#617c68"; 
       default:
-        return "#0f999eff"; // Default Gray
+        return "#dc3545"; // Red for unknown/error
     }
   };
 
@@ -1620,23 +1780,23 @@ const isMBTestSortingEnabled = (patient) => {
     
     switch(backendStatus) {
       case 'Dispatched':
-        color = '#2a6e19ff';
+        color = '#155724';
         isPending = false;
         break;
       case 'Approved':
-        color = '#00C851';
+        color = '#28a745';
         isPending = false;
         break;
       case 'Tested':
-        color = '#8A2BE2';
+        color = '#d63384';
         isPending = false;
         break;
       case 'Received':
-        color = '#28A745';
+        color = '#17a2b8';
         isPending = false;
         break;
       case 'Collected':
-        color = '#007BFF';
+        color = '#0d6efd';
         isPending = false;
         break;
       case 'In Progress':
@@ -1911,8 +2071,24 @@ const isMBTestSortingEnabled = (patient) => {
   </DepartmentCell>
 </td>
                       <td>
-                        <Badge color={badgeColor}>{status}</Badge>
-                      </td>
+  <StatusBadgeContainer>
+    <Badge color={badgeColor}>{status}</Badge>
+    <ActionButton
+      onClick={() => {
+        setSelectedPatientForStatus(patient);
+        setIsTestStatusModalOpen(true);
+      }}
+      title="View Test Details"
+      style={{ 
+        width: '1.75rem', 
+        height: '1.75rem',
+        marginLeft: '0.5rem'
+      }}
+    >
+      <Eye size={14} />
+    </ActionButton>
+  </StatusBadgeContainer>
+</td>
                       <td>
                         <CreditAmount onClick={() => openModal(patient)}>
                           {patient.credit_amount || "0"}
@@ -2092,6 +2268,8 @@ const isMBTestSortingEnabled = (patient) => {
           onClose={() => setIsMBTestModalOpen(false)}
         />
       )}
+      {/* Test Status Modal */}
+      <TestStatusModal />
 
       {/* Credit Amount Modal */}
       <Modal

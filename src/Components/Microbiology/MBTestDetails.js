@@ -483,7 +483,10 @@ const ResultBadge = styled.span`
   border-radius: 12px;
   font-size: 0.875rem;
   font-weight: 600;
-  background-color: ${props => props.type === 'Sensitive' ? '#4caf50' : '#f44336'};
+  background-color: ${props => 
+    props.type === 'Sensitive' ? '#4caf50' : 
+    props.type === 'Intermediate' ? '#ff9800' : 
+    '#f44336'};
   color: white;
 `;
 
@@ -514,6 +517,7 @@ function MBTestDetails() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState([]);
+  const [parameterResults, setParameterResults] = useState({});
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -681,6 +685,7 @@ const remarksOptions = [
       let tempValues = {};
       let tempEditMode = {};
       let tempInitialValues = {};
+      let tempResults = {};
 
       transformedTests.forEach((test) => {
         if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
@@ -690,18 +695,21 @@ const remarksOptions = [
             const paramValue = param.value || "";
             tempValues[uniqueKey] = paramValue;
             tempInitialValues[uniqueKey] = paramValue;
+            tempResults[uniqueKey] = getResultStatus(paramValue);
           });
         } else {
           const testValue = test.test_value || "";
           tempValues[test.testname] = testValue;
           tempEditMode[test.testname] = false;
           tempInitialValues[test.testname] = testValue;
+          tempResults[test.testname] = getResultStatus(testValue);
         }
       });
 
       setEditMode(tempEditMode);
       setInitialValues(tempInitialValues);
       setValues(tempValues);
+      setParameterResults(tempResults);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching test details:", error);
@@ -734,6 +742,22 @@ const remarksOptions = [
 
     setValues((prevValues) => ({
       ...prevValues,
+      [uniqueKey]: value,
+    }));
+    
+    // Update result when value changes
+    setParameterResults((prevResults) => ({
+      ...prevResults,
+      [uniqueKey]: getResultStatus(value),
+    }));
+  };
+
+  const handleResultChange = (testname, paramName, event) => {
+    const { value } = event.target;
+    const uniqueKey = paramName ? `${testname}_${paramName}` : testname;
+    
+    setParameterResults((prevResults) => ({
+      ...prevResults,
       [uniqueKey]: value,
     }));
   };
@@ -815,7 +839,7 @@ const remarksOptions = [
                 subtitle: subtitle,
                 antimicrobial: paramName,
                 zoneOfInhibition: value,
-                result: getResultStatus(value),
+                result: parameterResults[uniqueKey] || getResultStatus(value),
                 comment: parameterComments[uniqueKey] || "-",
               });
             });
@@ -825,7 +849,7 @@ const remarksOptions = [
             subtitle: "-",
             antimicrobial: "-",
             zoneOfInhibition: values[test.testname] || "",
-            result: getResultStatus(values[test.testname]),
+            result: parameterResults[test.testname] || getResultStatus(values[test.testname]),
             comment: comments[test.testname] || "-",
           });
         }
@@ -895,7 +919,7 @@ const remarksOptions = [
               const uniqueKey = `${test.testname}_${paramName}`;
               parameters.push({
                 test_code: param.test_code || "",
-                result: getResultStatus(values[uniqueKey]),
+                result: parameterResults[uniqueKey] || getResultStatus(values[uniqueKey]),
                 value: values[uniqueKey] || "",
                 comment: parameterComments[uniqueKey] || "",
               });
@@ -909,7 +933,7 @@ const remarksOptions = [
         } else {
           return {
             ...baseData,
-            result: result[test.result] || "",
+            result: parameterResults[test.testname] || getResultStatus(values[test.testname]),
             value: values[test.testname] || "",
             comment: comments[test.testname] || "",
           };
@@ -1078,26 +1102,6 @@ const remarksOptions = [
                         <Input type="text" value={test.specimen_type || ""} disabled />
                       </FormGroup>
                       
-                      {test.specimen_type === "URINE" && (
-                        <FormGroup>
-                          <Label>Colony Count <span style={{ color: "red" }}>*</span></Label>
-                          <SelectWrapper>
-                            <Select
-                              value={colonyCount[test.testname] || ""}
-                              onChange={(e) => handleColonyCountChange(test.testname, e)}
-                              required
-                            >
-                              <option value="">Select colony count</option>
-                              {colonyCountOptions.map((option, idx) => (
-                                <option key={idx} value={option}>
-                                  {option}
-                                </option>
-                              ))}
-                            </Select>
-                            <SelectIcon size={18} />
-                          </SelectWrapper>
-                        </FormGroup>
-                      )}
                     </FormRow>
                     
                     <RemarksSection>
@@ -1181,15 +1185,23 @@ const remarksOptions = [
                           
                           <FormGroup>
                             <Label>Result</Label>
-                            <Input 
-                              type="text" 
-                              value={getResultStatus(result[test.testname])} 
-                              disabled 
-                              style={{
-                                color: getResultStatus(result[test.testname]) === 'Sensitive' ? '#4caf50' : '#f44336',
-                                fontWeight: '600'
-                              }}
-                            />
+                            <SelectWrapper>
+                              <Select
+                                value={parameterResults[test.testname] || getResultStatus(values[test.testname])}
+                                onChange={(e) => handleResultChange(test.testname, null, e)}
+                                style={{
+                                  color: (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Sensitive' ? '#4caf50' : 
+                                         (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Intermediate' ? '#ff9800' : 
+                                         '#f44336',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                <option value="Sensitive" style={{ color: '#4caf50' }}>Sensitive</option>
+                                <option value="Intermediate" style={{ color: '#ff9800' }}>Intermediate</option>
+                                <option value="Resistant" style={{ color: '#f44336' }}>Resistant</option>
+                              </Select>
+                              <SelectIcon size={18} />
+                            </SelectWrapper>
                           </FormGroup>
                         </FormRow>
 
@@ -1377,15 +1389,23 @@ const remarksOptions = [
                                       </FormGroup>
                                       <FormGroup>
                                         <Label>Result</Label>
-                                        <Input 
-                                          type="text" 
-                                          value={getResultStatus(values[uniqueKey])} 
-                                          disabled 
-                                          style={{
-                                            color: getResultStatus(values[uniqueKey]) === 'Sensitive' ? '#4caf50' : '#f44336',
-                                            fontWeight: '600'
-                                          }}
-                                        />
+                                        <SelectWrapper>
+                                          <Select
+                                            value={parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])}
+                                            onChange={(e) => handleResultChange(test.testname, paramName, e)}
+                                            style={{
+                                              color: (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Sensitive' ? '#4caf50' : 
+                                                     (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Intermediate' ? '#ff9800' : 
+                                                     '#f44336',
+                                              fontWeight: '600'
+                                            }}
+                                          >
+                                            <option value="Sensitive" style={{ color: '#4caf50' }}>Sensitive</option>
+                                            <option value="Intermediate" style={{ color: '#ff9800' }}>Intermediate</option>
+                                            <option value="Resistant" style={{ color: '#f44336' }}>Resistant</option>
+                                          </Select>
+                                          <SelectIcon size={18} />
+                                        </SelectWrapper>
                                       </FormGroup>
 
                                       <FormGroup>
