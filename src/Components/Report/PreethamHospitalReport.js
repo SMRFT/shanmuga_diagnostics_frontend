@@ -7,11 +7,12 @@ import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import JsBarcode from "jsbarcode"
 import { format } from "date-fns"
-import { Download, RefreshCw } from "lucide-react"
+import { Download, RefreshCw, Search, Printer } from "lucide-react"
 import { toast } from "react-toastify"
+import apiRequest from "../Auth/apiRequest";
 
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
   background-color: #f5f7fb;
@@ -53,7 +54,7 @@ const FiltersContainer = styled.div`
 
 const FilterRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 
@@ -88,11 +89,44 @@ const FilterInput = styled.input`
   }
 `
 
+const SearchInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`
+
+const SearchIcon = styled(Search)`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #667eea;
+  pointer-events: none;
+`
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+`
+
 const ButtonContainer = styled.div`
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
   margin-top: 1rem;
+  flex-wrap: wrap;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -233,13 +267,41 @@ const LoadingSpinner = styled.div`
   }
 `
 
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`
+
+const ActionButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: #667eea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  &:hover {
+    background-color: #5568d3;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`
+
 function PreethamHospitalReport() {
   const [fromDate, setFromDate] = useState(new Date().toISOString().split("T")[0])
   const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0])
+  const [searchQuery, setSearchQuery] = useState("")
   const [patients, setPatients] = useState([])
+  const [filteredPatients, setFilteredPatients] = useState([])
   const [loading, setLoading] = useState(false)
-  const [selectedPatient, setSelectedPatient] = useState(null)
-  const [previewOpen, setPreviewOpen] = useState(false)
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
@@ -251,10 +313,13 @@ function PreethamHospitalReport() {
 
     setLoading(true)
     try {
-      const url = `${Labbaseurl}preetham_hospital_report/?from_date=${fromDate}&to_date=${toDate}`
-      const response = await axios.get(url)
+      const url = `${Labbaseurl}preetham_hospital_report/?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}`
+      console.log("Fetching dashboard data from:", url)
+
+      const response = await apiRequest(url, "GET")
       setPatients(response.data)
-      toast.success(`Loaded ${response.data.length} patients`)
+      setFilteredPatients(response.data)
+      toast.success(`Loaded ${response.data.length} records`)
     } catch (error) {
       console.error("Error fetching patients:", error)
       toast.error("Failed to load patient data")
@@ -263,40 +328,56 @@ function PreethamHospitalReport() {
     }
   }
 
+  const handleSearch = (e) => {
+    const query = e.target.value
+    setSearchQuery(query)
+
+    if (!query.trim()) {
+      setFilteredPatients(patients)
+    } else {
+      const lowerQuery = query.toLowerCase()
+      const filtered = patients.filter(
+        (patient) =>
+          patient.patient_id?.toLowerCase().includes(lowerQuery) ||
+          patient.patient_name?.toLowerCase().includes(lowerQuery) ||
+          patient.barcode?.toLowerCase().includes(lowerQuery)
+      )
+      setFilteredPatients(filtered)
+    }
+  }
+
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
       setLoading(true)
 
       const barcode = patient.barcode || "N/A"
-      console.log("[v0] Fetching patient details for barcode:", barcode)
+      console.log("Fetching patient details for barcode:", barcode)
 
-      const response = await axios.get(`${Labbaseurl}get_patient_test_details/?barcode=${barcode}`)
+      const url = `${Labbaseurl}get_preethampatient_test_details/?barcode=${encodeURIComponent(barcode)}`
+      const response = await apiRequest(url, "GET")
 
-      if (!response.data) {
-        console.error("[v0] Failed to fetch patient details:", response.error)
-        toast.error(response.error || "Failed to fetch patient details")
-        setLoading(false)
-        return null
+      if (!response || !response.data) {
+        toast.error("Failed to fetch patient details")
+        return
       }
 
-      console.log("[v0] API Response:", response.data)
       let patientDetails = response.data
-      if (Array.isArray(response.data)) {
+
+      // If backend returns array → normalize
+      if (Array.isArray(patientDetails)) {
         patientDetails = {
-          ...response.data[0],
-          testdetails: response.data.flatMap((record) => record.testdetails || []),
+          ...patientDetails[0],
+          testdetails: patientDetails.flatMap(
+            (record) => record.testdetails || []
+          ),
         }
       }
 
-      console.log("[v0] Processed Patient Details:", patientDetails)
       if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
-        console.error("[v0] No test details found for the patient.")
         toast.error("No test details found for the patient.")
-        setLoading(false)
-        return null
+        return
       }
 
-      // Unicode character mapping for medical units
       const unicodeMap = {
         μ: "µ",
         α: "α",
@@ -311,32 +392,16 @@ function PreethamHospitalReport() {
         "±": "±",
         "×": "x",
         "÷": "/",
-        "\\u03bc": "µ",
-        "\\u00b5": "µ",
-        "\\u00b0": "°",
-        "\\u00b1": "±",
-        "\\u00b2": "²",
-        "\\u00b3": "³",
       }
 
       const processUnicodeText = (text) => {
         if (!text) return ""
         let processedText = text
-        processedText = processedText.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
-          const char = String.fromCharCode(Number.parseInt(hex, 16))
-          return unicodeMap[char] || char
-        })
         Object.keys(unicodeMap).forEach((unicode) => {
           const regex = new RegExp(unicode, "g")
           processedText = processedText.replace(regex, unicodeMap[unicode])
         })
         return processedText
-      }
-
-      const extractPatientRefNoNumber = (refNo) => {
-        if (!refNo) return "N/A"
-        const numberPart = refNo.split("+")[0]
-        return numberPart
       }
 
       const consultants = [
@@ -346,7 +411,7 @@ function PreethamHospitalReport() {
       ]
 
       const patientRefNo = patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || barcode || "N/A"
-      const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo)
+      const patientRefNoNumber = patientRefNo.split("+")[0] || "N/A"
 
       let barcodeImage = null
       if (patientRefNoNumber !== "N/A") {
@@ -369,7 +434,7 @@ function PreethamHospitalReport() {
       const footerHeight = 20
       const contentYStart = headerHeight + 20
       const signatureHeight = 25
-      const disclaimerHeight = 0
+      const disclaimerHeight = withLetterpad ? 0 : 15
       const tableHeaderHeight = 10
 
       const colWidths = [
@@ -397,11 +462,15 @@ function PreethamHospitalReport() {
       const rightDetails = [
         {
           label: "Collected On",
-          value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A",
+          value: patientDetails.testdetails[0]?.samplecollected_time
+            ? format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm")
+            : "N/A",
         },
         {
           label: "Received On",
-          value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
+          value: patientDetails.testdetails[0]?.received_time
+            ? format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm")
+            : "N/A",
         },
         {
           label: "Reported Date",
@@ -440,7 +509,7 @@ function PreethamHospitalReport() {
           doc.setFont("helvetica", "bold")
           doc.text(left.label, leftLabelX, patientInfoY)
           doc.text(":", leftColonX, patientInfoY)
-          doc.setFont("helvetica", "bold")
+          doc.setFont("helvetica", "normal")
           doc.text(left.value, leftValueX, patientInfoY)
 
           if (right) {
@@ -454,8 +523,8 @@ function PreethamHospitalReport() {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 10,
-                patientInfoY + 2,
+                rightValueX + doc.getTextWidth(right.value) + 2,
+                patientInfoY - 2,
                 25,
                 8,
               )
@@ -473,6 +542,10 @@ function PreethamHospitalReport() {
           doc.setFontSize(8)
           doc.setFont("helvetica", "normal")
           doc.text("PREETHAM HOSPITAL", leftMargin, 15)
+        } else {
+          doc.setFontSize(9)
+          doc.setFont("helvetica", "normal")
+          doc.text("Sample Processed at SHANMUGA HOSPITAL", leftMargin, 15)
         }
       }
 
@@ -487,7 +560,8 @@ function PreethamHospitalReport() {
 
       const addSignatures = () => {
         const pageHeight = doc.internal.pageSize.height
-        const signaturesY = pageHeight - footerHeight - signatureHeight - 10
+        const signaturesY = pageHeight - footerHeight - signatureHeight - disclaimerHeight - 10
+
         const signatureWidth = 35
         const availableWidth = contentWidth - (signatureWidth / 2) * 2
         const signatureSpacing = availableWidth / (consultants.length - 1)
@@ -501,6 +575,16 @@ function PreethamHospitalReport() {
           doc.setFontSize(10)
           doc.text(consultant[1], xPosition, signaturesY + 20)
         })
+
+        if (!withLetterpad) {
+          const disclaimerY = pageHeight - footerHeight - disclaimerHeight
+          doc.setFontSize(8)
+          doc.setFont("helvetica", "italic")
+          doc.text("Sample Processed at SHANMUGA HOSPITAL", leftMargin, disclaimerY, {
+            maxWidth: contentWidth,
+            align: "center",
+          })
+        }
       }
 
       const checkForNewPage = (yPos, estimatedHeight) => {
@@ -536,30 +620,8 @@ function PreethamHospitalReport() {
             if (numValue < min) return "L"
             if (numValue > max) return "H"
           }
-        } else if (reference.includes("<")) {
-          const max = Number.parseFloat(reference.replace("<", ""))
-          if (!isNaN(max) && numValue > max) return "H"
-        } else if (reference.includes(">")) {
-          const min = Number.parseFloat(reference.replace(">", ""))
-          if (!isNaN(min) && numValue < min) return "L"
         }
-
         return null
-      }
-
-      const drawArrowSymbol = (doc, x, y, direction) => {
-        doc.setDrawColor(0, 0, 0)
-        doc.setLineWidth(0.5)
-
-        if (direction === "up") {
-          doc.line(x, y, x + 1, y - 1)
-          doc.line(x + 1, y - 1, x + 2, y)
-          doc.line(x + 1, y - 1, x + 1, y + 2)
-        } else if (direction === "down") {
-          doc.line(x, y, x + 1, y + 1)
-          doc.line(x + 1, y + 1, x + 2, y)
-          doc.line(x + 1, y + 1, x + 1, y - 2)
-        }
       }
 
       const drawTableHeader = (yPos) => {
@@ -591,7 +653,7 @@ function PreethamHospitalReport() {
 
       let currentYPosition = addPatientInfo(contentYStart)
 
-      if (patientDetails.testdetails.length) {
+      if (patientDetails.testdetails && patientDetails.testdetails.length) {
         isTableStarted = true
         currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight)
 
@@ -599,7 +661,7 @@ function PreethamHospitalReport() {
         yPos = drawTableHeader(yPos)
 
         const testsByDepartment = patientDetails.testdetails.reduce((acc, test) => {
-          ;(acc[test.department] = acc[test.department] || []).push(test)
+          ; (acc[test.department] = acc[test.department] || []).push(test)
           return acc
         }, {})
 
@@ -617,18 +679,6 @@ function PreethamHospitalReport() {
           yPos += 10
 
           testsByDepartment[department].forEach((test) => {
-            const parametersBySubtitle = {}
-
-            if (test.parameters && test.parameters.length > 0) {
-              test.parameters.forEach((param) => {
-                const subtitle = param.sub_title || ""
-                if (!parametersBySubtitle[subtitle]) {
-                  parametersBySubtitle[subtitle] = []
-                }
-                parametersBySubtitle[subtitle].push(param)
-              })
-            }
-
             const testHeaderHeight = 20
             yPos = checkForNewPage(yPos, testHeaderHeight)
 
@@ -637,7 +687,7 @@ function PreethamHospitalReport() {
             let xPos = leftMargin
 
             doc.setFont("helvetica", "bold")
-            const testNameText = test.testname
+            const testNameText = test.testname || ""
             const testNameHeight = wrapText(doc, testNameText, colWidths[0] - 2, xPos, yPos, 4)
             xPos += colWidths[0]
 
@@ -648,11 +698,7 @@ function PreethamHospitalReport() {
 
             xPos += colWidths[2]
 
-            const statusIndicator = test.isHigh
-              ? "H"
-              : test.isLow
-                ? "L"
-                : getHighLowStatus(test.value, test.reference_range)
+            const statusIndicator = test.isHigh ? "H" : test.isLow ? "L" : getHighLowStatus(test.value, test.reference_range)
 
             const valueText = test.value || ""
 
@@ -664,13 +710,6 @@ function PreethamHospitalReport() {
                 doc.setTextColor(0, 0, 255)
               }
               const valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4)
-
-              const valueWidth = doc.getTextWidth(valueText)
-              if (statusIndicator === "H") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up")
-              } else if (statusIndicator === "L") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down")
-              }
               doc.setTextColor(0, 0, 0)
               doc.setFont("helvetica", "normal")
             } else {
@@ -685,300 +724,112 @@ function PreethamHospitalReport() {
             xPos += colWidths[5]
 
             doc.setTextColor(0, 0, 0)
-            const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim()
-            const methodHeight = wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4)
 
-            const maxContentHeight = Math.max(
-              testNameHeight,
-              specimenHeight,
-              referenceRangeHeight,
-              methodHeight,
-              unitHeight,
-            )
-            yPos += Math.max(maxContentHeight, 6) + 2
-
-            doc.setFont("helvetica", "normal")
-            doc.setTextColor(0, 0, 0)
-
-            Object.keys(parametersBySubtitle).forEach((subtitle) => {
-              if (subtitle && subtitle.trim() !== "") {
-                const subtitleWithParamHeight = 25
-                yPos = checkForNewPage(yPos, subtitleWithParamHeight)
-
-                doc.setFont("helvetica", "bold")
-                doc.setFontSize(10)
-                doc.text(subtitle, leftMargin, yPos)
-                yPos += 6
-              }
-
-              parametersBySubtitle[subtitle].forEach((currentTest) => {
-                const estimatedHeight = 18
-                yPos = checkForNewPage(yPos, estimatedHeight)
-
-                doc.setFontSize(10)
-                let xPos = leftMargin
-
-                doc.setFont("helvetica", "normal")
-                const testNameText = currentTest.name
-                const testNameHeight = wrapText(doc, testNameText, colWidths[0] - 2, xPos, yPos, 4)
-                xPos += colWidths[0]
-
-                const specimenHeight = wrapText(doc, currentTest.specimen_type || "", colWidths[1] - 2, xPos, yPos, 4)
-                xPos += colWidths[1]
-
-                xPos += colWidths[2]
-
-                const statusIndicator = currentTest.isHigh
-                  ? "H"
-                  : currentTest.isLow
-                    ? "L"
-                    : getHighLowStatus(currentTest.value, currentTest.reference_range)
-
-                const valueText = currentTest.value || ""
-                let valueHeight = 0
-
-                if (statusIndicator) {
-                  doc.setFont("helvetica", "bold")
-                  if (statusIndicator === "H") {
-                    doc.setTextColor(255, 0, 0)
-                  } else if (statusIndicator === "L") {
-                    doc.setTextColor(0, 0, 255)
-                  }
-                  valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4)
-
-                  const valueWidth = doc.getTextWidth(valueText)
-                  if (statusIndicator === "H") {
-                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up")
-                  } else if (statusIndicator === "L") {
-                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down")
-                  }
-                  doc.setTextColor(0, 0, 0)
-                  doc.setFont("helvetica", "normal")
-                } else {
-                  valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4)
-                }
-                xPos += colWidths[3]
-
-                const unitHeight = wrapText(
-                  doc,
-                  processUnicodeText(currentTest.unit || ""),
-                  colWidths[4] - 2,
-                  xPos,
-                  yPos,
-                  4,
-                )
-                xPos += colWidths[4]
-
-                const referenceRangeHeight = wrapText(
-                  doc,
-                  currentTest.reference_range || "",
-                  colWidths[5] - 2,
-                  xPos,
-                  yPos,
-                  4,
-                )
-                xPos += colWidths[5]
-
-                const methodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim()
-                const methodHeight = wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4)
-
-                const maxContentHeight = Math.max(
-                  testNameHeight,
-                  specimenHeight,
-                  valueHeight,
-                  unitHeight,
-                  referenceRangeHeight,
-                  methodHeight,
-                )
-                yPos += Math.max(maxContentHeight, 6) + 2
-
-                doc.setFont("helvetica", "normal")
-                doc.setTextColor(0, 0, 0)
-              })
-            })
-
-            doc.setFont("helvetica", "normal")
-            doc.setFontSize(10)
-            doc.text(`Verified by: ${test.verified_by || "N/A"}`, leftMargin, yPos)
-            yPos += 8
-
-            doc.setFont("helvetica", "normal")
-            doc.setFontSize(10)
+            yPos += Math.max(testNameHeight, specimenHeight, 4, 4, unitHeight, referenceRangeHeight) + 2
           })
 
-          yPos += 4
+          yPos += 5
         })
-
-        currentYPosition = yPos
       }
-
-      isTableStarted = false
-
-      const ensureSpaceForFooter = (currentYPosition) => {
-        const pageHeight = doc.internal.pageSize.height
-        const footerStart = pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12)
-
-        if (currentYPosition + 10 >= footerStart) {
-          addSignatures()
-          doc.addPage()
-          pageCount++
-          addHeaderFooter()
-          return addPatientInfo(contentYStart)
-        }
-        return currentYPosition
-      }
-
-      currentYPosition = ensureSpaceForFooter(currentYPosition)
-
-      doc.setFontSize(10)
-      doc.setFont("helvetica", "bold")
-      const centerX = leftMargin + contentWidth / 2
-      doc.text("**End of the Report**", centerX, currentYPosition, { align: "center" })
 
       addSignatures()
 
-      const finalPageCount = pageCount
-
-      for (let i = 1; i <= finalPageCount; i++) {
-        doc.setPage(i)
-        const pageHeight = doc.internal.pageSize.height
-        const pageNumberY = pageHeight - footerHeight - 10
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(8)
-        const centerX = leftMargin + contentWidth / 2
-        doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, { align: "center" })
-      }
-
-      const patientID = patientDetails.patient_id || "Unknown"
-      const pdfFileName = `PatientReport_${patientID}.pdf`
-      const pdfBlob = doc.output("blob")
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-
-      const link = document.createElement("a")
-      link.href = pdfUrl
-      link.download = pdfFileName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(pdfUrl)
+      const fileName = `${patientDetails.patient_id || "Patient"}_Report_${format(new Date(), "ddMMyyyy")}.pdf`
+      doc.save(fileName)
 
       setLoading(false)
-      toast.success("PDF downloaded successfully")
-      return pdfBlob
+      toast.success("Report downloaded successfully")
     } catch (error) {
-      console.error("[v0] Error while generating the PDF:", error)
-      toast.error("An unexpected error occurred while generating the PDF")
+      console.error("Error generating PDF:", error)
+      toast.error("Failed to generate report")
       setLoading(false)
-      return null
     }
   }
 
-  const generateBulkReport = () => {
-    if (patients.length === 0) {
-      toast.error("No patients to export")
-      return
-    }
-
-    try {
-      const doc = new jsPDF()
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const margin = 10
-
-      doc.setFontSize(14)
-      doc.setFont("helvetica", "bold")
-      doc.text("PREETHAM HOSPITAL - Patient Report", margin, 15)
-
-      doc.setFontSize(10)
-      doc.setFont("helvetica", "normal")
-      doc.text(`Date Range: ${fromDate} to ${toDate}`, margin, 22)
-      doc.text(`Total Patients: ${patients.length}`, margin, 28)
-
-      const tableData = patients.map((p) => [
-        p.date,
-        p.patient_id,
-        p.patient_name,
-        p.age,
-        p.gender,
-        p.no_of_tests,
-        `₹${p.total_amount}`,
-        p.status,
-      ])
-
-      doc.autoTable({
-        head: [["Date", "Patient ID", "Name", "Age", "Gender", "Tests", "Amount", "Status"]],
-        body: tableData,
-        startY: 35,
-        margin: margin,
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [102, 126, 234], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 247, 251] },
-      })
-
-      doc.save(`PreethamHospital_Report_${fromDate}_to_${toDate}.pdf`)
-      toast.success("Bulk report downloaded successfully")
-    } catch (error) {
-      console.error("Error generating bulk report:", error)
-      toast.error("Failed to generate bulk report")
-    }
+  const clearFilters = () => {
+    setFromDate(new Date().toISOString().split("T")[0])
+    setToDate(new Date().toISOString().split("T")[0])
+    setSearchQuery("")
+    setPatients([])
+    setFilteredPatients([])
   }
 
   return (
     <Container>
       <Card>
         <CardHeader>
-          <h1>PREETHAM HOSPITAL - Patient Report</h1>
-          <p>Filter and view patient records by date range</p>
+          <div>
+            <h1>Preetham Hospital Report</h1>
+            <p>View and manage hospital billing records</p>
+          </div>
         </CardHeader>
 
         <FiltersContainer>
           <FilterRow>
             <FilterGroup>
-              <FilterLabel>Start Date</FilterLabel>
-              <FilterInput type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <FilterLabel>From Date</FilterLabel>
+              <FilterInput
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
             </FilterGroup>
 
             <FilterGroup>
-              <FilterLabel>End Date</FilterLabel>
-              <FilterInput type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <FilterLabel>To Date</FilterLabel>
+              <FilterInput
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </FilterGroup>
+
+            <FilterGroup>
+              <FilterLabel>Search (Patient ID / Name / Barcode)</FilterLabel>
+              <SearchInputWrapper>
+                <SearchIcon />
+                <SearchInput
+                  type="text"
+                  placeholder="Enter patient ID, name, or barcode..."
+                  value={searchQuery}
+                  onChange={handleSearch}
+                />
+              </SearchInputWrapper>
             </FilterGroup>
           </FilterRow>
 
           <ButtonContainer>
             <Button onClick={fetchPatients} disabled={loading}>
-              {loading ? (
-                <>
-                  <LoadingSpinner /> Loading...
-                </>
-              ) : (
-                <>
-                  <RefreshCw size={18} /> Load Patients
-                </>
-              )}
+              {loading ? <LoadingSpinner /> : <RefreshCw size={18} />}
+              Load Data
             </Button>
-            <Button variant="secondary" onClick={generateBulkReport} disabled={patients.length === 0}>
-              <Download size={18} /> Download Report
+            <Button variant="secondary" onClick={clearFilters}>
+              Clear Filters
             </Button>
           </ButtonContainer>
         </FiltersContainer>
       </Card>
 
-      {patients.length === 0 ? (
+      {filteredPatients.length === 0 && !loading && (
         <Card>
           <EmptyState>
-            <p>No patients found. Select dates and click "Load Patients" to begin.</p>
+            <p>No records found. Please adjust your filters and try again.</p>
           </EmptyState>
         </Card>
-      ) : (
+      )}
+
+      {filteredPatients.length > 0 && (
         <Card>
           <TableContainer>
             <Table>
               <thead>
                 <tr>
                   <th>Date</th>
+                  <th>Bill No</th>
                   <th>Patient ID</th>
-                  <th>Name</th>
-                  <th>Age</th>
-                  <th>Gender</th>
+                  <th>Patient Name</th>
+                  <th>Barcode</th>
+                  <th>Age/Gender</th>
                   <th>Tests</th>
                   <th>Amount</th>
                   <th>Status</th>
@@ -986,25 +837,40 @@ function PreethamHospitalReport() {
                 </tr>
               </thead>
               <tbody>
-                {patients.map((patient, index) => (
-                  <tr key={index}>
+                {filteredPatients.map((patient, idx) => (
+                  <tr key={idx}>
                     <td>{patient.date}</td>
+                    <td>{patient.bill_no}</td>
                     <td>{patient.patient_id}</td>
                     <td>{patient.patient_name}</td>
-                    <td>{patient.age}</td>
-                    <td>{patient.gender}</td>
+                    <td>{patient.barcode}</td>
+                    <td>
+                      {patient.age}/{patient.gender}
+                    </td>
                     <td>{patient.no_of_tests}</td>
                     <td>₹{patient.total_amount}</td>
                     <td>
                       <StatusBadge status={patient.status}>{patient.status}</StatusBadge>
                     </td>
                     <td>
-                      <Button
-                        onClick={() => handlePrint(patient)}
-                        style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}
-                      >
-                        <Download size={16} /> PDF
-                      </Button>
+                      <ActionButtons>
+                        <ActionButton
+                          onClick={() => handlePrint(patient, true)}
+                          disabled={loading}
+                          title="Print with letterpad"
+                        >
+                          <Printer size={14} />
+                          With Pad
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => handlePrint(patient, false)}
+                          disabled={loading}
+                          title="Print without letterpad (SHANMUGA HOSPITAL)"
+                        >
+                          <Printer size={14} />
+                          Without Pad
+                        </ActionButton>
+                      </ActionButtons>
                     </td>
                   </tr>
                 ))}

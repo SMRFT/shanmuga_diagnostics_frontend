@@ -1566,7 +1566,7 @@ const Sidebar = () => {
               </SidebarNavLink>
             </>
           )}
-           {role === "PH" && (
+          {role === "PH" && (
             <>
               <SidebarNavLink to="/PreethamDashboard" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
@@ -1589,7 +1589,7 @@ const Sidebar = () => {
                 Report Dashboard
               </SidebarNavLink>
             </>
-          )} 
+          )}
         </SidebarContent>
         <SignOutWrapper>
           <SidebarNavLink

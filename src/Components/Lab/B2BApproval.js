@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiRequest from '../Auth/apiRequest';
 import { toast } from 'react-toastify';
-import { 
-  CheckCircle, 
-  Loader2, 
-  AlertCircle, 
-  User, 
-  Calendar, 
-  Tag, 
-  Code, 
-  MapPin, 
-  FileText, 
-  CreditCard, 
+import {
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+  User,
+  Calendar,
+  Tag,
+  Code,
+  MapPin,
+  FileText,
+  CreditCard,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -464,22 +464,27 @@ const B2BApproval = () => {
   useEffect(() => {
     fetchPendingApprovals();
   }, []);
-  
+
   const fetchPendingApprovals = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${Labbaseurl}clinical-names/?status=PENDING_APPROVAL`);
-      // console.log('API Response:', response.data);
-      setPendingApprovals(response.data);
-      
-      // Initialize expanded state for all items
-      const expandedState = {};
-      response.data.forEach(item => {
-        expandedState[item.referrerCode] = false;
-      });
-      setExpandedDetails(expandedState);
-      
-      setError(null);
+      const response = await apiRequest(`${Labbaseurl}clinical-names/?status=PENDING_APPROVAL`, 'GET');
+
+      if (response.success) {
+        setPendingApprovals(response.data);
+
+        // Initialize expanded state for all items
+        const expandedState = {};
+        response.data.forEach(item => {
+          expandedState[item.referrerCode] = false;
+        });
+        setExpandedDetails(expandedState);
+
+        setError(null);
+      } else {
+        setError(response.error || 'Failed to fetch pending approvals');
+        toast.error(response.error || 'Error fetching pending approvals');
+      }
     } catch (error) {
       console.error('Error fetching approvals:', error);
       setError('Failed to fetch pending approvals');
@@ -488,10 +493,10 @@ const B2BApproval = () => {
       setLoading(false);
     }
   };
-  
+
   const handleFirstApprove = async (approval) => {
     const { referrerCode, clinicalname } = approval;
-    
+
     if (!referrerCode) {
       toast.error("Invalid referrer code");
       return;
@@ -499,40 +504,45 @@ const B2BApproval = () => {
 
     try {
       setProcessingApproval(referrerCode);
-      await axios.patch(
-        `${Labbaseurl}clinical-names/${referrerCode}/first_approve/`
+      const response = await apiRequest(
+        `${Labbaseurl}clinical-names/${referrerCode}/first_approve/`,
+        'PATCH'
       );
-      
-      toast.success(`"${clinicalname || referrerCode}" was approved!`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      
-      fetchPendingApprovals(); // Refresh the list
+
+      if (response.success) {
+        toast.success(`"${clinicalname || referrerCode}" was approved!`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        fetchPendingApprovals(); // Refresh the list
+      } else {
+        toast.error("First Approval Failed: " + (response.error || "Unknown error"));
+      }
     } catch (error) {
-      console.error("First Approval Failed:", error.response?.data);
-      toast.error("First Approval Failed: " + (error.response?.data?.error || "Unknown error"));
+      console.error("First Approval Failed:", error);
+      toast.error("First Approval Failed: Unknown error");
     } finally {
       setProcessingApproval(null);
     }
   };
-  
+
   const toggleDetails = (referrerCode) => {
     setExpandedDetails(prev => ({
       ...prev,
       [referrerCode]: !prev[referrerCode]
     }));
   };
-  
+
   const handleReject = (approval) => {
     // Implementation for reject functionality
     toast.info(`Reject functionality would be implemented here for ${approval.clinicalname || approval.referrerCode}`);
   };
-  
+
   const handlePreviewMOU = (approval) => {
     // Open modal with document preview
     setPreviewModal({
@@ -542,7 +552,7 @@ const B2BApproval = () => {
       loading: true
     });
   };
-  
+
   const closePreviewModal = () => {
     setPreviewModal({
       isOpen: false,
@@ -551,14 +561,14 @@ const B2BApproval = () => {
       loading: false
     });
   };
-  
+
   const handleIframeLoad = () => {
     setPreviewModal(prev => ({
       ...prev,
       loading: false
     }));
   };
-  
+
   if (loading) {
     return (
       <Container>
@@ -569,7 +579,7 @@ const B2BApproval = () => {
       </Container>
     );
   }
-  
+
   if (error) {
     return (
       <Container>
@@ -580,7 +590,7 @@ const B2BApproval = () => {
       </Container>
     );
   }
-  
+
   return (
     <>
       <GlobalStyle />
@@ -593,7 +603,7 @@ const B2BApproval = () => {
               Refresh
             </Button>
           </CardHeader>
-          
+
           <CardBody>
             {pendingApprovals.length === 0 ? (
               <EmptyState>
@@ -633,7 +643,7 @@ const B2BApproval = () => {
                           </Badge>
                         </Td>
                         <Td style={{ textAlign: 'right' }}>
-                          <Button 
+                          <Button
                             onClick={() => toggleDetails(approval.referrerCode)}
                           >
                             {expandedDetails[approval.referrerCode] ? (
@@ -653,14 +663,14 @@ const B2BApproval = () => {
                     ))}
                   </tbody>
                 </Table>
-                
+
                 {pendingApprovals.map((approval) => (
                   <DetailCard key={`details-${approval.referrerCode}`}>
                     <DetailHeader onClick={() => toggleDetails(approval.referrerCode)}>
                       <span>{approval.clinicalname || approval.referrerCode} - Detailed Information</span>
                       {expandedDetails[approval.referrerCode] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </DetailHeader>
-                    
+
                     <DetailBody expanded={expandedDetails[approval.referrerCode]}>
                       <DetailGrid>
                         <DetailSection>
@@ -682,7 +692,7 @@ const B2BApproval = () => {
                             <InfoValue>{approval.salesMapping || "N/A"}</InfoValue>
                           </InfoItem>
                         </DetailSection>
-                        
+
                         <DetailSection>
                           <SectionTitle><MapPin size={16} /> Contact & Location</SectionTitle>
                           <InfoItem>
@@ -719,7 +729,7 @@ const B2BApproval = () => {
                           </InfoItem>
                         </DetailSection>
                       </DetailGrid>
-                      
+
                       <DetailGrid>
                         <DetailSection>
                           <SectionTitle><CreditCard size={16} /> Credit Information</SectionTitle>
@@ -740,7 +750,7 @@ const B2BApproval = () => {
                             <InfoValue>{approval.invoicePeriod || "N/A"} days</InfoValue>
                           </InfoItem>
                         </DetailSection>
-                        
+
                         <DetailSection>
                           <SectionTitle><FileText size={16} /> Report Preferences</SectionTitle>
                           <InfoItem>
@@ -756,8 +766,8 @@ const B2BApproval = () => {
                             <InfoValue>
                               {approval.mou_file_id ? (
                                 <DocumentActions>
-                                  <DocumentLink 
-                                    href="#" 
+                                  <DocumentLink
+                                    href="#"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       handlePreviewMOU(approval);
@@ -774,13 +784,13 @@ const B2BApproval = () => {
                           </InfoItem>
                         </DetailSection>
                       </DetailGrid>
-                      
+
                       <ActionBar>
                         <Button danger onClick={() => handleReject(approval)}>
                           <AlertCircle size={16} />
                           Reject
                         </Button>
-                        <Button 
+                        <Button
                           success
                           onClick={() => handleFirstApprove(approval)}
                           disabled={processingApproval === approval.referrerCode}
@@ -806,7 +816,7 @@ const B2BApproval = () => {
           </CardBody>
         </Card>
       </Container>
-      
+
       {/* Document Preview Modal - Updated for better document viewing */}
       {previewModal.isOpen && (
         <ModalOverlay onClick={closePreviewModal}>
@@ -824,12 +834,12 @@ const B2BApproval = () => {
                   <p>Loading document preview...</p>
                 </PreviewLoading>
               )}
-<iframe 
-  src={`${Labbaseurl}mou-preview/${previewModal.fileId}/`} 
-  title="MOU Document Preview"
-  onLoad={handleIframeLoad}
-  style={{ width: '100%', height: '600px', border: 'none' }}
-/>
+              <iframe
+                src={`${Labbaseurl}mou-preview/${previewModal.fileId}/`}
+                title="MOU Document Preview"
+                onLoad={handleIframeLoad}
+                style={{ width: '100%', height: '600px', border: 'none' }}
+              />
 
             </ModalBody>
             <ModalFooter>
