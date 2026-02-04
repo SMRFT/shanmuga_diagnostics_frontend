@@ -471,7 +471,7 @@ const TestSorting = ({ patient, onClose }) => {
     setSelectAllChecked(!selectAllChecked);
   };
 
-  const handlePrint = async (withLetterpad) => {
+ const handlePrint = async (withLetterpad) => {
     if (!selectedTests.length) {
       toast.error("Please select at least one test to print.");
       return;
@@ -491,17 +491,31 @@ const TestSorting = ({ patient, onClose }) => {
       }
 
       console.log("API Response:", response.data);
-      let patientDetails = response.data;
-      if (Array.isArray(response.data)) {
+      
+      // Extract patient data and signatures from the new response structure
+      let patientDetails;
+      let signaturesData = [];
+      
+      if (response.data.patient_data && response.data.signatures) {
+        // New structure with signatures
+        patientDetails = response.data.patient_data;
+        signaturesData = response.data.signatures;
+      } else {
+        // Fallback for old structure
+        patientDetails = response.data;
+      }
+
+      if (Array.isArray(patientDetails)) {
         patientDetails = {
-          ...response.data[0],
-          testdetails: response.data.flatMap(
+          ...patientDetails[0],
+          testdetails: patientDetails.flatMap(
             (record) => record.testdetails || []
           ),
         };
       }
 
       console.log("Processed Patient Details:", patientDetails);
+      console.log("Signatures Data:", signaturesData);
       console.log("Selected Tests:", selectedTests);
 
       // Filter tests by test_id
@@ -562,11 +576,41 @@ const TestSorting = ({ patient, onClose }) => {
         return numberPart;
       };
 
-      const consultants = [
-        ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
-        ["Dr. V. Dhana Rangesh Kumar Ph.D.", "Consultant Biochemist", Dhana],
-      ];
+      // CORRECTED: Map designation codes to consultant positions
+      const designationMapping = {
+        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
+        "DESIG100": { position: 1, title: "Consultant Pathologist" },
+        "DESIG099": { position: 2, title: "Consultant Biochemist" },
+      };
+
+      // Build consultants array dynamically from signatures data
+      const consultants = [];
+      
+      // Initialize with empty slots
+      consultants[0] = null; // Microbiologist
+      consultants[1] = null; // Pathologist
+      consultants[2] = null; // Biochemist
+      
+      // Fill in the consultants based on signatures data
+      signaturesData.forEach((sig) => {
+        const mapping = designationMapping[sig.designation];
+        if (mapping) {
+          const signatureImage = sig.signatureBase64 
+            ? `data:image/png;base64,${sig.signatureBase64}` 
+            : null;
+          
+          consultants[mapping.position] = [
+            sig.employeeName,
+            mapping.title,
+            signatureImage
+          ];
+        }
+      });
+      
+      // Filter out null entries (positions without signatures)
+      const activeConsultants = consultants.filter(c => c !== null);
+
+      console.log("Active Consultants:", activeConsultants);
 
       const departmentOrder = [
         "Haematology",
@@ -608,8 +652,8 @@ const TestSorting = ({ patient, onClose }) => {
       const contentWidth = rightMargin - leftMargin;
       const headerHeight = 30;
       const footerHeight = 20;
-      const contentYStart = headerHeight + 25;
-      const signatureHeight = 25;
+      const contentYStart = headerHeight + 20; // CHANGED from 25 to 20
+      const signatureHeight = 35;
       const tableHeaderHeight = 10;
 
       const colWidths = [
@@ -630,8 +674,7 @@ const TestSorting = ({ patient, onClose }) => {
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${patientDetails.gender || "N/A"
-            }`,
+          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "N/A" },
@@ -655,10 +698,12 @@ const TestSorting = ({ patient, onClose }) => {
               "dd MMM yy / HH:mm"
             ) || "N/A",
         },
-        {
-          label: "Reported Date",
-          value: format(new Date(), "dd MMM yy / hh:mm"),
-        },
+        ...(patientDetails.testdetails[0].dispatch_time ? [{
+            label: "Released On",
+            value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
+          }] : []),
+                
+                { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
 
@@ -818,53 +863,58 @@ const TestSorting = ({ patient, onClose }) => {
         return lines.length * lineHeight;
       };
 
+      // UPDATED: addSignatures function - Right-aligned with full name (MATCHING SECOND DOCUMENT)
       const addSignatures = () => {
-  const pageHeight = doc.internal.pageSize.height;
-  const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
-  const signatureWidth = 35;
-  
-  // Better spacing calculation to utilize full width
-  const totalConsultants = consultants.length;
-  const signatureSpacing = (contentWidth - signatureWidth) / (totalConsultants - 0.7);
+        const pageHeight = doc.internal.pageSize.height;
+        const signaturesY = pageHeight - footerHeight - signatureHeight - 2; // CHANGED from 5 to 2
+        const signatureWidth = 35;
+        
+        // Only show signatures if we have active consultants
+        if (activeConsultants.length === 0) return;
+        
+        // Calculate spacing based on number of active consultants
+        const totalConsultants = activeConsultants.length;
+        
+        // Calculate starting position from RIGHT side
+        const rightEdge = rightMargin;
+        const signatureSpacing = 60; // Fixed spacing between signatures
+        
+        // Start from right edge and work backwards
+        const startX = rightEdge - (totalConsultants * signatureSpacing);
 
-  const approvers = new Set();
-  orderedTests.forEach((test) => {
-    if (test.approve_by && test.approve_by.trim() !== "") {
-      approvers.add(test.approve_by.toLowerCase());
-    }
-  });
+        activeConsultants.forEach((consultant, index) => {
+          // Position from the calculated start point, moving right
+          const xPosition = startX + (index * signatureSpacing);
+          
+          // Display signature image if available
+          if (consultant[2]) {
+            doc.addImage(
+              consultant[2],
+              "PNG",
+              xPosition,
+              signaturesY,
+              signatureWidth,
+              15
+            );
+          }
 
-  consultants.forEach((consultant, index) => {
-    const xPosition = leftMargin + (index * signatureSpacing);
-    const consultantName = consultant[0].toLowerCase();
-    const shouldShowSignature =
-      (consultantName.includes("brindha") && approvers.has("dr.brindha")) ||
-      (consultantName.includes("dhana") && approvers.has("dr dhana rangesh kumar"));
+          // Display full name with credentials
+          const fullName = consultant[0];
+          
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(fullName, xPosition, signaturesY + 20);
 
-    if (consultant[2] && shouldShowSignature) {
-      doc.addImage(
-        consultant[2],
-        "PNG",
-        xPosition,
-        signaturesY,
-        signatureWidth,
-        15
-      );
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(consultant[0], xPosition, signaturesY + 20);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(consultant[1], xPosition, signaturesY + 25);
-  });
-};
+          // Display title (Consultant position)
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.text(consultant[1], xPosition, signaturesY + 25);
+        });
+      };
 
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5); // CHANGED from 10 to 5
 
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
@@ -1286,7 +1336,7 @@ const TestSorting = ({ patient, onClose }) => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 15); // CHANGED from 10 to 15
         if (currentYPosition + 10 >= footerStart) {
           addSignatures();
           doc.addPage();
@@ -1312,7 +1362,7 @@ const TestSorting = ({ patient, onClose }) => {
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 5;
+        const pageNumberY = pageHeight - footerHeight - 2;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const centerX = leftMargin + contentWidth / 2;

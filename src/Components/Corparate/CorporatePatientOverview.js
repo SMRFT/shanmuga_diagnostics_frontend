@@ -22,13 +22,16 @@ import {
   RefreshCw,
   CreditCard,
   MessageCircle,
+  Eye,
 } from "lucide-react";
 import { IoIosFemale, IoIosMale, IoMdClose } from "react-icons/io";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+// Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-import Vijayan from "../Images/Vijayan.png";
+// import Savitha from "../Images/Savitha.png";
+import Dhana from "../Images/Dhana.png";
 import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
@@ -314,6 +317,16 @@ const ActionButton = styled.button`
   }
 `;
 
+const CreditAmount = styled.span`
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const GenderIcon = styled.div`
   display: inline-flex;
   align-items: center;
@@ -399,6 +412,131 @@ const NavigationTab = styled.button`
   }
 `;
 
+const DepartmentBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+  background-color: ${(props) => props.isPending ? 'white' : props.color};
+  color: ${(props) => props.isPending ? '#dc3545' : 'white'};
+  border: ${(props) => props.isPending ? '2px solid #dc3545' : 'none'};
+  animation: ${(props) => props.isPending ? 'blink 1s infinite' : 'none'};
+  
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+`;
+
+const DepartmentCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const DepartmentRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--gray-light);
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.5rem;
+  color: var(--primary-dark);
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--gray);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition);
+
+  &:hover {
+    background-color: var(--gray-light);
+    color: var(--dark);
+  }
+`;
+
+const TestStatusList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const TestStatusItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  background-color: ${(props) => props.highlight ? 'rgba(67, 97, 238, 0.05)' : 'white'};
+  transition: var(--transition);
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const TestNameText = styled.span`
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--dark);
+  flex: 1;
+`;
+
+const StatusBadgeContainer = styled.div`
+  display: flex;
+  align-items: center;s
+  gap: 0.5rem;
+`;
+
 const CorporatePatientOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -407,6 +545,7 @@ const CorporatePatientOverview = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
   const [refByOptions, setRefByOptions] = useState([]);
+  const [branch, setBranch] = useState("");
   const [barcode, setBarcode] = useState("");
   const [refBy, setRefBy] = useState("");
   const [patientId, setPatientId] = useState("");
@@ -414,13 +553,17 @@ const CorporatePatientOverview = () => {
   const [patientName, setPatientName] = useState("");
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [opIpFilter, setopIpFilter] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("hms");
+  const [isTestStatusModalOpen, setIsTestStatusModalOpen] = useState(false);
+  const [selectedPatientForStatus, setSelectedPatientForStatus] = useState(null);
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
    // Set active tab based on current route
@@ -451,31 +594,6 @@ const CorporatePatientOverview = () => {
       }
     };
 
-  // Fetch Refby
-  useEffect(() => {
-    const fetchRefby = async () => {
-      console.log("Fetching Refby from:", `${Labbaseurl}refby/`);
-      const result = await apiRequest(`${Labbaseurl}refby/`, "GET");
-
-      if (result.success) {
-        setRefByOptions(result.data);
-      } else {
-        console.error(
-          "Error fetching Refby:",
-          result.error,
-          "Status:",
-          result.status
-        );
-        setError("Failed to load referral options");
-        toast.error(result.error || "Failed to load referral options");
-      }
-    };
-
-    fetchRefby();
-  }, []);
-
-  
-
   // Fetch patients when component mounts
   useEffect(() => {
     const fetchCombinedPatientData = async () => {
@@ -495,13 +613,14 @@ const CorporatePatientOverview = () => {
         setFilteredPatients(patientData);
 
         const statusMap = {};
-        patientData.forEach((patient) => {
-          statusMap[patient.patient_id] = {
-            status: patient.status,
-            barcode: patient.barcode,
-          };
-        });
-        setStatuses(statusMap);
+patientData.forEach((patient) => {
+  // Use barcode as the unique key since same patient can have multiple barcodes with different statuses
+  statusMap[patient.barcode] = {
+    status: patient.status,
+    barcode: patient.barcode,
+  };
+});
+setStatuses(statusMap);
       } else {
         console.error("Error fetching combined patient data:", result.error);
         setError("Failed to load patient data");
@@ -515,16 +634,57 @@ const CorporatePatientOverview = () => {
     }
   }, [startDate, endDate]);
 
+  const TestStatusModal = () => {
+  if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
+
+  const testStatuses = selectedPatientForStatus.test_statuses || [];
+
+  return (
+    <ModalOverlay onClick={() => setIsTestStatusModalOpen(false)}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
+        <ModalHeader>
+          <ModalTitle>
+            Test Status - {selectedPatientForStatus.patient_name}
+          </ModalTitle>
+          <CloseButton onClick={() => setIsTestStatusModalOpen(false)}>
+            <X size={24} />
+          </CloseButton>
+        </ModalHeader>
+
+        <TestStatusList>
+          {testStatuses.length > 0 ? (
+            testStatuses.map((test, index) => (
+              <TestStatusItem 
+                key={index} 
+                highlight={test.status === 'Approved' || test.status === 'Dispatched'}
+              >
+                <TestNameText>{test.test_name}</TestNameText>
+                <Badge color={getBadgeColor(test.status)}>
+                  {test.status}
+                </Badge>
+              </TestStatusItem>
+            ))
+          ) : (
+            <NoData>No test status information available</NoData>
+          )}
+        </TestStatusList>
+      </ModalContent>
+    </ModalOverlay>
+  );
+};
+
   // Determine icon state based on patient status
   const isPrintAndMailEnabled = (status) =>
     status === "Approved" ||
     status === "Partially Approved" ||
+    status === "Partially Dispatched" ||
     status === "Dispatched";
   const isSortingEnabled = (status) =>
     status === "Approved" ||
     status === "Partially Approved" ||
+    status === "Partially Dispatched" ||
     status === "Dispatched";
-  const isDispatchEnabled = (status) => status === "Approved";
+
 
   useEffect(() => {
      const startOfDay = new Date(startDate);
@@ -532,19 +692,27 @@ const CorporatePatientOverview = () => {
      const endOfDay = new Date(endDate);
      endOfDay.setHours(23, 59, 59, 999);
      const filtered = patients.filter((patient) => {
-       const patientDate = new Date(patient.date);
-       const patientStatus = statuses[patient.patient_id]?.status || '';
-       return (
-         patientDate >= startOfDay &&
-         patientDate <= endOfDay &&        
-         (!refBy || patient.refby === refBy) &&
-         (!patientId || patient.patient_id.includes(patientId)) &&
-         (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
-         (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
-         (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
-         (!statusFilter || patientStatus === statusFilter)
-       );
-     });
+  const patientDate = new Date(patient.date);
+  // Use barcode to lookup status since it's the unique identifier
+  const patientStatus = statuses[patient.barcode]?.status || '';
+  // Department filter logic
+    const matchesDepartment = !departmentFilter || 
+      (patient.department && patient.department.split(',').some(dept => 
+        dept.trim() === departmentFilter
+      ));
+  return (
+    patientDate >= startOfDay &&
+    patientDate <= endOfDay &&        
+    (!refBy || patient.refby === refBy) &&
+    (!patientId || patient.patient_id.includes(patientId)) &&
+    (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
+    (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
+    (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
+    (!statusFilter || patientStatus === statusFilter)&&
+    (!opIpFilter || patient.opiptype === opIpFilter)&&
+    matchesDepartment // Add this line
+  );
+});
      setFilteredPatients(filtered);
    }, [startDate,
     endDate,
@@ -555,6 +723,8 @@ const CorporatePatientOverview = () => {
     IPNumber,
     patientName,
     statusFilter,
+    departmentFilter,
+    opIpFilter,
     statuses,]);
   // Update the clearFilters function to reset the status filter
   const clearFilters = () => {
@@ -566,8 +736,118 @@ const CorporatePatientOverview = () => {
     setIPNumber("");
     setPatientName("");
     setStatusFilter("");
+    setDepartmentFilter("");
+    setopIpFilter("");
     setFilteredPatients(patients);
   };
+
+  
+// const handleWhatsAppShare = async (patient) => {
+//   if (!patient || !patient.phone) {
+//     toast.error("Patient phone number is missing");
+//     return;
+//   }
+
+//   const phoneNumber = patient.phone.startsWith("+91")
+//     ? patient.phone.replace("+", "")
+//     : `91${patient.phone}`;
+
+//   try {
+//     const pdfBlob = await handlePrint(patient, true);
+//     if (!pdfBlob) {
+//       toast.error("Failed to generate the PDF");
+//       return;
+//     }
+
+//     const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+//     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+
+//     // Upload PDF to server
+//     const formData = new FormData();
+//     formData.append("file", pdfFile);
+
+//     const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
+//       headers: { "Content-Type": "multipart/form-data" },
+//     });
+
+//     const fileUrl = uploadResponse.data.file_url;
+//     if (!fileUrl) {
+//       toast.error("File upload failed");
+//       return;
+//     }
+
+//     // Call Django proxy instead of Botify directly
+//     const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+//       patient_name: patient.patient_name || "Valued Patient",
+//       phone: phoneNumber,
+//       collection_time: patient.collection_time || "N/A",
+//       collected_date: patient.collected_date || "N/A",
+//       file_url: fileUrl,
+//       pdf_name: pdfName,
+//     });
+
+//     if (res.data.success) {
+//       toast.success("WhatsApp PDF message sent successfully!");
+//     } else {
+//       toast.error("Failed to send WhatsApp template message.");
+//       console.error("Backend error:", res.data.error);
+//     }
+//   } catch (error) {
+//     console.error("Error sending WhatsApp message:", error);
+//     toast.error("Error sending WhatsApp message.");
+//   }
+// };
+
+
+  //  const handleSendEmail = async (patient) => {
+  //   try {
+  //     const pdfBlob = await handlePrint(patient, true); // Generate PDF with letterpad
+  //     if (!pdfBlob) {
+  //       toast.error("Failed to generate the PDF.");
+  //       return;
+  //     }
+
+  //     if (!patient.email) {
+  //       toast.warning("Patient email is missing.");
+  //       return;
+  //     }
+
+  //     const formData = new FormData();
+  //     formData.append("subject", `Test Details for ${patient.patient_name}`);
+  //     formData.append(
+  //       "message",
+  //       `Dear ${
+  //         patient.patient_name || "Recipient"
+  //       },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
+  //         patient.patient_name || "the patient"
+  //       }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
+  //     );
+  //     formData.append("recipients", patient.email);
+  //     formData.append(
+  //       "attachments",
+  //       new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
+  //         type: "application/pdf",
+  //       })
+  //     );
+
+  //     const emailResponse = await apiRequest(
+  //       `${Labbaseurl}send-email/`,
+  //       "POST",
+  //       formData,
+  //       { "Content-Type": "multipart/form-data" }
+  //     );
+
+  //     if (emailResponse.success) {
+  //       toast.success("Email sent successfully!");
+  //     } else {
+  //       toast.error(`Failed to send email: ${emailResponse.error}`);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error sending email:", error);
+  //     toast.error("Failed to send email.");
+  //   }
+  // };
+
 
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
@@ -585,31 +865,42 @@ const CorporatePatientOverview = () => {
       }
 
       console.log("API Response:", response.data);
-      let patientDetails = response.data;
-      if (Array.isArray(response.data)) {
+      
+      // Extract patient data and signatures from the new response structure
+      let patientDetails;
+      let signaturesData = [];
+      
+      if (response.data.patient_data && response.data.signatures) {
+        // New structure with signatures
+        patientDetails = response.data.patient_data;
+        signaturesData = response.data.signatures;
+      } else {
+        // Fallback for old structure
+        patientDetails = response.data;
+      }
+
+      if (Array.isArray(patientDetails)) {
         patientDetails = {
-          ...response.data[0],
-          testdetails: response.data.flatMap(
-            (record) => record.testdetails || []
-          ),
+          ...patientDetails[0],
+          testdetails: patientDetails.flatMap((record) => record.testdetails || []),
         };
       }
 
       console.log("Processed Patient Details:", patientDetails);
-      if (
-        !patientDetails.testdetails ||
-        patientDetails.testdetails.length === 0
-      ) {
+      console.log("Signatures Data:", signaturesData);
+
+      if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
         console.error("No test details found for the patient.");
         toast.error("No test details found for the patient.");
         setLoading(false);
         return null;
       }
 
+      // Unicode character mapping
       const unicodeMap = {
         μ: "µ", α: "α", β: "β", γ: "γ", δ: "δ", Ω: "Ω",
-        "²": "²", "³": "³", "⁴": "⁴", "°": "°", "±": "±",
-        "×": "x", "÷": "/",
+        "²": "²", "³": "³", "⁴": "⁴",
+        "°": "°", "±": "±", "×": "x", "÷": "/",
         "\\u03bc": "µ", "\\u00b5": "µ", "\\u00b0": "°",
         "\\u00b1": "±", "\\u00b2": "²", "\\u00b3": "³",
       };
@@ -617,13 +908,10 @@ const CorporatePatientOverview = () => {
       const processUnicodeText = (text) => {
         if (!text) return "";
         let processedText = text;
-        processedText = processedText.replace(
-          /\\u([0-9a-fA-F]{4})/g,
-          (match, hex) => {
-            const char = String.fromCharCode(parseInt(hex, 16));
-            return unicodeMap[char] || char;
-          }
-        );
+        processedText = processedText.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+          const char = String.fromCharCode(parseInt(hex, 16));
+          return unicodeMap[char] || char;
+        });
         Object.keys(unicodeMap).forEach((unicode) => {
           const regex = new RegExp(unicode, "g");
           processedText = processedText.replace(regex, unicodeMap[unicode]);
@@ -637,56 +925,113 @@ const CorporatePatientOverview = () => {
         return numberPart;
       };
 
-      const consultants = [
-        ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist"],
-        ["Dr. S. Brindha M.D.", "Consultant Pathologist", Brindha],
+      // CORRECTED: Map designation codes to consultant positions
+      // Note: Data shows DESIG101, DESIG100, DESIG099 (without leading 0)
+      const designationMapping = {
+        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
+        "DESIG100": { position: 1, title: "Consultant Pathologist" },
+        "DESIG099": { position: 2, title: "Consultant Biochemist" },
+      };
+
+      // Build consultants array dynamically from signatures data
+      const consultants = [];
+      
+      // Initialize with empty slots
+      consultants[0] = null; // Microbiologist
+      consultants[1] = null; // Pathologist
+      consultants[2] = null; // Biochemist
+      
+      // Fill in the consultants based on signatures data
+      signaturesData.forEach((sig) => {
+        const mapping = designationMapping[sig.designation];
+        if (mapping) {
+          const signatureImage = sig.signatureBase64 
+            ? `data:image/png;base64,${sig.signatureBase64}` 
+            : null;
+          
+          consultants[mapping.position] = [
+            sig.employeeName,
+            mapping.title,
+            signatureImage
+          ];
+        }
+      });
+      
+      // Filter out null entries (positions without signatures)
+      const activeConsultants = consultants.filter(c => c !== null);
+
+      console.log("Active Consultants:", activeConsultants);
+
+      const departmentOrder = [
+        "Haematology",
+        "Coagulation",
+        "Biochemistry",
+        "Immunology",
+        "Immunoassay",
+        "Serology",
+        "Clinical Pathology",
+        "Clinical Chemistry",
+        "Cytology",
+        "Genetics",
+        "Histopathology",
+        "Immunohistochemistry",
+        "Microbiology",
+        "Molecular Biology"
       ];
 
-      const patientRefNo =
-        patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
+      const patientRefNo = patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
       const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
 
+      // Generate Barcode
       let barcodeImage = null;
       if (patientRefNoNumber !== "N/A") {
         const barcodeCanvas = document.createElement("canvas");
         JsBarcode(barcodeCanvas, patientRefNoNumber, {
-          format: "CODE128",
-          lineColor: "#000",
-          width: 1.5,
-          height: 10,
-          displayValue: false,
-          margin: 0,
+          format: "CODE128", lineColor: "#000", width: 1.5,
+          height: 10, displayValue: false, margin: 0,
         });
         barcodeImage = barcodeCanvas.toDataURL("image/png");
       }
 
+      // Document dimensions
       const leftMargin = 10;
       const rightMargin = leftMargin + 190;
       const contentWidth = rightMargin - leftMargin;
       const headerHeight = 30;
       const footerHeight = 20;
       const contentYStart = headerHeight + 20;
-      const signatureHeight = 25;
-      const disclaimerHeight = 0;
+      const signatureHeight = 35;
       const tableHeaderHeight = 10;
 
+      // Column widths
       const colWidths = [
-        contentWidth * 0.28, contentWidth * 0.12, contentWidth * 0.05,
-        contentWidth * 0.13, contentWidth * 0.1, contentWidth * 0.17,
-        contentWidth * 0.15,
+        contentWidth * 0.28, // Test Description
+        contentWidth * 0.12, // Specimen Type
+        contentWidth * 0.05, // Extra Gap
+        contentWidth * 0.13, // Value(s)
+        contentWidth * 0.1,  // Unit
+        contentWidth * 0.17, // Reference Range
+        contentWidth * 0.15, // Method
       ];
 
+      // Patient information
       const leftDetails = [
-        { label: "UHID", value: patientDetails.patient_id || "N/A" },
+        { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
         { label: "Name", value: patientDetails.patientname || "No name provided" },
         { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
         { label: "Referral", value: patientDetails.refby || "SELF" },
       ];
 
       const rightDetails = [
-        { label: "Collected On", value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A" },
-        { label: "Received On", value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A" },
-        { label: "Reported Date", value: format(new Date(), "dd MMM yy / hh:mm") },
+        {
+          label: "Collected On",
+          value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A",
+        },
+        {
+          label: "Received On",
+          value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
+        },
+        { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
 
@@ -717,12 +1062,23 @@ const CorporatePatientOverview = () => {
           const left = leftDetails[i];
           const right = rightDetails[i];
 
+          // Handle left side
           doc.setFont("helvetica", "bold");
           doc.text(left.label, leftLabelX, patientInfoY);
           doc.text(":", leftColonX, patientInfoY);
-          doc.setFont("helvetica", "bold");
-          doc.text(left.value, leftValueX, patientInfoY);
+          doc.setFont("helvetica", "normal");
 
+          // Wrap left value to prevent overlap with right side
+          const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+          const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+
+          leftValueLines.forEach((line, lineIndex) => {
+            doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
+          });
+
+          const leftRowHeight = leftValueLines.length * 4;
+
+          // Handle right side
           if (right) {
             doc.setFont("helvetica", "bold");
             doc.text(right.label, rightLabelX, patientInfoY);
@@ -731,11 +1087,15 @@ const CorporatePatientOverview = () => {
             doc.text(right.value, rightValueX, patientInfoY);
 
             if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 10, patientInfoY + 2, 25, 8);
+              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 15,
+                patientInfoY + 4, 25, 10);
             }
           }
-          patientInfoY += 5;
+
+          // Move to next row
+          patientInfoY += Math.max(leftRowHeight, 5);
         }
+
         return patientInfoY;
       };
 
@@ -753,68 +1113,116 @@ const CorporatePatientOverview = () => {
         }
       };
 
+      const renderUnicodeText = (text, x, y, options = {}) => {
+        const processedText = processUnicodeText(text);
+        if (processedText.includes("µ")) {
+          const parts = processedText.split("µ");
+          let currentX = x;
+          parts.forEach((part, index) => {
+            if (index > 0) {
+              doc.setFont("helvetica", options.fontStyle || "normal");
+              doc.text("µ", currentX, y);
+              currentX += doc.getTextWidth("µ");
+            }
+            if (part) {
+              doc.text(part, currentX, y);
+              currentX += doc.getTextWidth(part);
+            }
+          });
+        } else {
+          doc.text(processedText, x, y);
+        }
+      };
+
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
+
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
         const headers = ["Test", "Specimen", "", "Result", "Units", "Reference Value", "Method"];
         let xPos = leftMargin;
         headers.forEach((header, index) => {
-          if (header) doc.text(header, xPos, yPos);
+          if (header) {
+            doc.text(header, xPos, yPos);
+          }
           xPos += colWidths[index];
         });
+
         yPos += 3;
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
         return yPos;
       };
 
-      const wrapText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
+      const wrapTextAndGetLines = (doc, text, maxWidth) => {
+        if (!text) return [];
+        return doc.splitTextToSize(text, maxWidth);
+      };
+
+      const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
         if (!text) return 0;
-        const splitText = doc.splitTextToSize(text, maxWidth);
-        splitText.forEach((line, index) => {
+        const lines = wrapTextAndGetLines(doc, text, maxWidth);
+        lines.forEach((line, index) => {
           doc.text(line, startX, yPos + index * lineHeight);
         });
-        return splitText.length * lineHeight;
+        return lines.length * lineHeight;
       };
 
-      const addSignatures = () => {
-        const pageHeight = doc.internal.pageSize.height;
-        const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
-        const signatureWidth = 35;
-        const availableWidth = contentWidth - (signatureWidth / 2) * 2;
-        const signatureSpacing = availableWidth / (consultants.length - 1);
+      // UPDATED: addSignatures function
+  
+const addSignatures = () => {
+  const pageHeight = doc.internal.pageSize.height;
+  const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
+  const signatureWidth = 35;
+  
+  // Only show signatures if we have active consultants
+  if (activeConsultants.length === 0) return;
+  
+  // Calculate spacing based on number of active consultants
+  const totalConsultants = activeConsultants.length;
+  
+  // Calculate starting position from RIGHT side
+  const rightEdge = rightMargin;
+  const signatureSpacing = 60; // Fixed spacing between signatures
+  
+  // Start from right edge and work backwards
+  const startX = rightEdge - (totalConsultants * signatureSpacing);
 
-        const approvers = new Set();
-        patientDetails.testdetails.forEach((test) => {
-          if (test.approve_by && test.approve_by.trim() !== "") {
-            approvers.add(test.approve_by.toLowerCase());
-          }
-        });
+  activeConsultants.forEach((consultant, index) => {
+    // Position from the calculated start point, moving right
+    const xPosition = startX + (index * signatureSpacing);
+    
+    // Display signature image if available
+    if (consultant[2]) {
+      doc.addImage(
+        consultant[2],
+        "PNG",
+        xPosition,
+        signaturesY,
+        signatureWidth,
+        15
+      );
+    }
 
-        consultants.forEach((consultant, index) => {
-          const xPosition = leftMargin + index * signatureSpacing;
-          const consultantName = consultant[0].toLowerCase();
-          const shouldShowSignature = 
-            consultantName.includes("brindha") && approvers.has("brindha") ||
-            consultantName.includes("vijayan") && approvers.has("vijayan");
+    // Display full name with credentials
+    const fullName = consultant[0];
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(fullName, xPosition, signaturesY + 20);
 
-          if (consultant[2] && shouldShowSignature) {
-            doc.addImage(consultant[2], "PNG", xPosition, signaturesY, signatureWidth, 15);
-          }
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(10);
-          doc.text(consultant[0], xPosition, signaturesY + 15);
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-          doc.text(consultant[1], xPosition, signaturesY + 20);
-        });
-      };
+    // Display title (Consultant position)
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(consultant[1], xPosition, signaturesY + 25);
+  });
+};
 
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
+
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
           doc.addPage();
@@ -835,6 +1243,7 @@ const CorporatePatientOverview = () => {
         if (!value || !reference) return null;
         const numValue = Number.parseFloat(value);
         if (isNaN(numValue)) return null;
+
         if (reference.includes("-")) {
           const [min, max] = reference.split("-").map((v) => Number.parseFloat(v));
           if (!isNaN(min) && !isNaN(max)) {
@@ -865,6 +1274,7 @@ const CorporatePatientOverview = () => {
         }
       };
 
+      // Start PDF generation
       addHeaderFooter();
       let currentYPosition = addPatientInfo(contentYStart);
       currentYPosition += 10;
@@ -880,19 +1290,48 @@ const CorporatePatientOverview = () => {
           return acc;
         }, {});
 
-        Object.keys(testsByDepartment).forEach((department) => {
-          const departmentHeight = 25;
-          yPos = checkForNewPage(yPos, departmentHeight);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(10);
-          const textWidth = doc.getTextWidth(department.toUpperCase());
-          const centerX = leftMargin + contentWidth / 2;
-          doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
-          doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
-          yPos += 10;
+        // Sort departments according to the specified order
+        const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
+          const indexA = departmentOrder.indexOf(a);
+          const indexB = departmentOrder.indexOf(b);
 
+          if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+          }
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          return a.localeCompare(b);
+        });
+
+        sortedDepartments.forEach((department) => {
+          // Collect all verified_by values in this department
+          const verifiedBySet = new Set();
           testsByDepartment[department].forEach((test) => {
+            if (test.verified_by && test.verified_by.trim() !== "") {
+              verifiedBySet.add(test.verified_by);
+            }
+          });
+
+          const hasMultipleVerifiers = verifiedBySet.size > 1;
+
+          testsByDepartment[department].forEach((test, testIndex) => {
+            // Render department header only for first test in department
+            if (testIndex === 0) {
+              const departmentHeight = 15;
+              yPos = checkForNewPage(yPos, departmentHeight);
+
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(10);
+              const textWidth = doc.getTextWidth(department.toUpperCase());
+              const centerX = leftMargin + contentWidth / 2;
+              doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
+              doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
+              yPos += 10;
+            }
+
+            // Group parameters by sub_title
             const parametersBySubtitle = {};
+
             if (test.parameters && test.parameters.length > 0) {
               test.parameters.forEach((param) => {
                 const subtitle = param.sub_title || "";
@@ -905,21 +1344,54 @@ const CorporatePatientOverview = () => {
 
             const testHeaderHeight = 20;
             yPos = checkForNewPage(yPos, testHeaderHeight);
+
+            // Render main test
             doc.setFontSize(10);
+
+            // Calculate all text wrapping FIRST
+            const testNameText = test.testname;
+            const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
+
+            const valueText = test.value || "";
+            const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
+
+            const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
+
+            const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
+            const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
+
+            const maxLines = Math.max(
+              testNameLines.length,
+              valueLines.length,
+              referenceLines.length,
+              methodLines.length
+            );
+            const lineHeight = 4;
+            const actualRowHeight = maxLines * lineHeight + 2;
+
+            yPos = checkForNewPage(yPos, actualRowHeight);
+
             let xPos = leftMargin;
 
+            // Test Name
             doc.setFont("helvetica", "bold");
-            const testNameText = test.testname;
-            const testNameHeight = wrapText(doc, testNameText, colWidths[0] - 2, xPos, yPos, 4);
+            renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
             xPos += colWidths[0];
+
             doc.setFont("helvetica", "normal");
 
-            const specimenHeight = wrapText(doc, test.specimen_type || "", colWidths[1] - 2, xPos, yPos, 4);
+            // Specimen Type
+            doc.text(test.specimen_type || "", xPos, yPos);
             xPos += colWidths[1];
+
             xPos += colWidths[2];
 
-            const statusIndicator = test.isHigh ? "H" : test.isLow ? "L" : getHighLowStatus(test.value, test.reference_range);
-            const valueText = test.value || "";
+            // Value(s)
+            const statusIndicator = test.isHigh
+              ? "H"
+              : test.isLow
+                ? "L"
+                : getHighLowStatus(valueText, test.reference_range);
 
             if (statusIndicator) {
               doc.setFont("helvetica", "bold");
@@ -928,33 +1400,40 @@ const CorporatePatientOverview = () => {
               } else if (statusIndicator === "L") {
                 doc.setTextColor(0, 0, 255);
               }
-              const valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
+              renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
               const valueWidth = doc.getTextWidth(valueText);
-              if (statusIndicator === "H") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-              } else if (statusIndicator === "L") {
-                drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+              if (valueWidth < colWidths[3] - 5) {
+                if (statusIndicator === "H") {
+                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+                } else if (statusIndicator === "L") {
+                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+                }
               }
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
-              const valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
+              renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
             }
             xPos += colWidths[3];
 
-            const unitHeight = wrapText(doc, processUnicodeText(test.unit || ""), colWidths[4] - 2, xPos, yPos, 4);
+            // Unit
+            renderUnicodeText(test.unit || "", xPos, yPos);
             xPos += colWidths[4];
 
-            const referenceRangeHeight = wrapText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, 4);
+            // Reference Range
+            renderWrappedText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
             xPos += colWidths[5];
 
+            // Method
             doc.setTextColor(0, 0, 0);
-            const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
-            const methodHeight = wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4);
+            renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
 
-            const maxContentHeight = Math.max(testNameHeight, specimenHeight, referenceRangeHeight, methodHeight, unitHeight);
-            yPos += Math.max(maxContentHeight, 6) + 2;
+            yPos += actualRowHeight + 4;
 
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(0, 0, 0);
+
+            // Add outsourced label
             if (test.outsourced === true) {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
@@ -962,12 +1441,20 @@ const CorporatePatientOverview = () => {
               yPos += 4;
             }
 
+            // Add comment for main test (when no parameters)
             if (!test.parameters || test.parameters.length === 0) {
               if (test.comment && test.comment.trim() !== "") {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
                 const commentText = `Note: ${test.comment}`;
-                const commentHeight = wrapText(doc, commentText, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2, leftMargin, yPos, 3.5);
+                const commentHeight = renderWrappedText(
+                  doc,
+                  commentText,
+                  colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                  leftMargin,
+                  yPos,
+                  3.5
+                );
                 yPos += commentHeight + 2;
               }
             }
@@ -976,74 +1463,118 @@ const CorporatePatientOverview = () => {
             doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
 
+            // Render parameters grouped by sub_title
             Object.keys(parametersBySubtitle).forEach((subtitle) => {
               if (subtitle && subtitle.trim() !== "") {
                 const subtitleWithParamHeight = 25;
                 yPos = checkForNewPage(yPos, subtitleWithParamHeight);
+
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
+                doc.setFontSize(9);
                 doc.text(subtitle, leftMargin, yPos);
                 yPos += 6;
               }
 
               parametersBySubtitle[subtitle].forEach((currentTest) => {
-                const estimatedHeight = 18;
-                yPos = checkForNewPage(yPos, estimatedHeight);
                 doc.setFontSize(10);
+
+                const paramNameText = currentTest.name;
+                const paramNameLines = wrapTextAndGetLines(doc, paramNameText, colWidths[0] - 2);
+
+                const paramValueText = currentTest.value || "";
+                const paramValueLines = wrapTextAndGetLines(doc, paramValueText, colWidths[3] - 2);
+
+                const paramReferenceLines = wrapTextAndGetLines(
+                  doc,
+                  currentTest.reference_range || "",
+                  colWidths[5] - 2
+                );
+
+                const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
+                const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
+
+                const paramMaxLines = Math.max(
+                  paramNameLines.length,
+                  paramValueLines.length,
+                  paramReferenceLines.length,
+                  paramMethodLines.length
+                );
+                const paramLineHeight = 4;
+                const paramActualRowHeight = paramMaxLines * paramLineHeight + 2;
+
+                yPos = checkForNewPage(yPos, paramActualRowHeight);
+
                 let xPos = leftMargin;
 
                 doc.setFont("helvetica", "normal");
-                const testNameText = currentTest.name;
-                const testNameHeight = wrapText(doc, testNameText, colWidths[0] - 2, xPos, yPos, 4);
+                renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
                 xPos += colWidths[0];
 
-                const specimenHeight = wrapText(doc, currentTest.specimen_type || "", colWidths[1] - 2, xPos, yPos, 4);
+                doc.text(currentTest.specimen_type || "", xPos, yPos);
                 xPos += colWidths[1];
+
                 xPos += colWidths[2];
 
-                const statusIndicator = currentTest.isHigh ? "H" : currentTest.isLow ? "L" : getHighLowStatus(currentTest.value, currentTest.reference_range);
-                const valueText = currentTest.value || "";
-                let valueHeight = 0;
+                const paramStatusIndicator = currentTest.isHigh
+                  ? "H"
+                  : currentTest.isLow
+                    ? "L"
+                    : getHighLowStatus(paramValueText, currentTest.reference_range);
 
-                if (statusIndicator) {
+                if (paramStatusIndicator) {
                   doc.setFont("helvetica", "bold");
-                  if (statusIndicator === "H") {
+                  if (paramStatusIndicator === "H") {
                     doc.setTextColor(255, 0, 0);
-                  } else if (statusIndicator === "L") {
+                  } else if (paramStatusIndicator === "L") {
                     doc.setTextColor(0, 0, 255);
                   }
-                  valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
-                  const valueWidth = doc.getTextWidth(valueText);
-                  if (statusIndicator === "H") {
-                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-                  } else if (statusIndicator === "L") {
-                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+                  renderWrappedText(doc, paramValueText, colWidths[3] - 5, xPos, yPos, paramLineHeight);
+                  const paramValueWidth = doc.getTextWidth(paramValueText);
+                  if (paramValueWidth < colWidths[3] - 5) {
+                    if (paramStatusIndicator === "H") {
+                      drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "up");
+                    } else if (paramStatusIndicator === "L") {
+                      drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "down");
+                    }
                   }
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
-                  valueHeight = wrapText(doc, valueText, colWidths[3] - 2, xPos, yPos, 4);
+                  renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, paramLineHeight);
                 }
                 xPos += colWidths[3];
 
-                const unitHeight = wrapText(doc, processUnicodeText(currentTest.unit || ""), colWidths[4] - 2, xPos, yPos, 4);
+                renderUnicodeText(currentTest.unit || "", xPos, yPos);
                 xPos += colWidths[4];
 
-                const referenceRangeHeight = wrapText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, 4);
+                renderWrappedText(
+                  doc,
+                  currentTest.reference_range || "",
+                  colWidths[5] - 2,
+                  xPos,
+                  yPos,
+                  paramLineHeight
+                );
                 xPos += colWidths[5];
 
-                const methodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
-                const methodHeight = wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4);
+                doc.setTextColor(0, 0, 0);
+                renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, paramLineHeight);
 
-                const maxContentHeight = Math.max(testNameHeight, specimenHeight, valueHeight, unitHeight, referenceRangeHeight, methodHeight);
-                yPos += Math.max(maxContentHeight, 6) + 2;
+                yPos += paramActualRowHeight;
 
                 if (currentTest.comment && currentTest.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
-                  const commentText = `Note: ${currentTest.comment}`;
-                  const commentHeight = wrapText(doc, commentText, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2, leftMargin, yPos, 3.5);
-                  yPos += commentHeight + 2;
+                  const paramCommentText = `Note: ${currentTest.comment}`;
+                  const paramCommentHeight = renderWrappedText(
+                    doc,
+                    paramCommentText,
+                    colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                    leftMargin,
+                    yPos,
+                    3.5
+                  );
+                  yPos += paramCommentHeight + 2;
                 }
 
                 doc.setFont("helvetica", "normal");
@@ -1052,15 +1583,27 @@ const CorporatePatientOverview = () => {
               });
             });
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.text(`Verified by: ${test.verified_by || "N/A"}`, leftMargin, yPos);
-            yPos += 8;
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
+            // Display "Verified by" under each test if multiple verifiers in department
+            if (hasMultipleVerifiers && test.verified_by && test.verified_by.trim() !== "") {
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
+              doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
+              yPos += 8;
+            }
           });
+
+          // Display "Verified by" once at end of department only if single verifier
+          if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
+            doc.text(verifiedByText, leftMargin, yPos);
+            yPos += 8;
+          }
+
           yPos += 4;
         });
+
         currentYPosition = yPos;
       }
 
@@ -1068,7 +1611,7 @@ const CorporatePatientOverview = () => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + disclaimerHeight + 12);
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
         if (currentYPosition + 10 >= footerStart) {
           addSignatures();
           doc.addPage();
@@ -1080,28 +1623,29 @@ const CorporatePatientOverview = () => {
       };
 
       currentYPosition = ensureSpaceForFooter(currentYPosition);
+
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
       doc.text("**End of the Report**", centerX, currentYPosition, { align: "center" });
+
       addSignatures();
 
       const finalPageCount = pageCount;
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 10;
+        const pageNumberY = pageHeight - footerHeight - 2;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const centerX = leftMargin + contentWidth / 2;
         doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, { align: "center" });
       }
 
-      const patientID = patientDetails.patient_id || "Unknown";
-      const patientName = (patientDetails.patientname || "Unknown");
-      const pdfFileName = `${patientName}_${patientID}.pdf`;
-      doc.save(pdfFileName);
       const pdfBlob = doc.output("blob");
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, "_blank");
+
       setLoading(false);
       return pdfBlob;
     } catch (error) {
@@ -1127,9 +1671,10 @@ const CorporatePatientOverview = () => {
     setSelectedPatient(patient);
     setIsTestModalOpen(true);
   };
+  
 
-  const showDropdown = (patientId) => {
-    setActiveDropdownPatientId(patientId);
+  const showDropdown = (barcode) => {
+    setActiveDropdownPatientId(barcode);
   };
 
   const hideDropdown = () => {
@@ -1139,33 +1684,80 @@ const CorporatePatientOverview = () => {
   const getBadgeColor = (status) => {
     switch (status) {
       case "Registered":
-        return "#6C757D"; // Gray for Registered
+        return "#6c757d"; // Gray
       case "Collected":
-        return "#007BFF"; // Blue for Collected
+        return "#0d6efd"; // Bright Blue
       case "Partially Collected":
-        return "#c24296ff"; // Yellow for Partially Collected
-      case "Transferred":
-        return "#c681b0ff"; // Blue for Collected
-      case "Partially Transferred":
-        return "#FFC107"; // Yellow for Partially Collected
+        return "#6610f2"; // Indigo/Purple
       case "Received":
-        return "#28A745"; // Green for Received
+        return "#17a2b8"; // Cyan/Turquoise (distinctly different)
       case "Partially Received":
-        return "#17A2B8"; // Teal for Partially Received
+        return "#20c997"; // Teal/Mint Green
       case "Tested":
-        return "#8A2BE2"; // Purple for Tested
+        return "#d63384"; // Pink/Magenta
       case "Partially Tested":
-        return "#FFA500"; // Orange for Partially Tested
+        return "#fd7e14"; // Orange
       case "Approved":
-        return "#a5633aff"; // Bright Green for Approved
+        return "#28a745"; // Success Green
       case "Partially Approved":
-        return "#FFBB33"; // Light Orange for Partially Approved
+        return "#ffc107"; // Yellow/Amber
       case "Dispatched":
-        return "#2a6e19ff"; // Grey for Dispatched
+        return "#155724"; // Dark Forest Green
+      case "Partially Dispatched":
+        return "#617c68"; 
       default:
-        return "#0f999eff"; // Default Gray
+        return "#dc3545"; // Red for unknown/error
     }
   };
+
+  const getDepartmentStatus = (patient) => {
+  if (!patient.department) return [];
+  
+  const departments = patient.department.split(',').map(d => d.trim());
+  const departmentStatuses = patient.department_statuses || {};
+  
+  return departments.map(dept => {
+    const backendStatus = departmentStatuses[dept] || 'Pending';
+    let status = backendStatus;
+    let color = '#dc3545';
+    let isPending = true;
+    
+    switch(backendStatus) {
+      case 'Dispatched':
+        color = '#155724';
+        isPending = false;
+        break;
+      case 'Approved':
+        color = '#28a745';
+        isPending = false;
+        break;
+      case 'Tested':
+        color = '#d63384';
+        isPending = false;
+        break;
+      case 'Received':
+        color = '#17a2b8';
+        isPending = false;
+        break;
+      case 'Collected':
+        color = '#0d6efd';
+        isPending = false;
+        break;
+      case 'In Progress':
+        color = '#ffc107';
+        isPending = false;
+        status = 'In Progress';
+        break;
+      default:
+        color = '#dc3545';
+        isPending = true;
+        status = 'Pending';
+    }
+    
+    return { department: dept, status, color, isPending };
+  });
+};
+
 
   return (
     <Container>
@@ -1199,7 +1791,7 @@ const CorporatePatientOverview = () => {
               Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
-          <Title>CHC Status</Title>
+          <Title>CHC Patient Status</Title>
         </CardHeader>
 
         <FiltersContainer>
@@ -1220,17 +1812,15 @@ const CorporatePatientOverview = () => {
                 value={endDate.toISOString().split("T")[0]}
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
-            </FilterGroup>           
-                      
+            </FilterGroup>  
             <FilterGroup>
-              <FilterLabel>Employee ID</FilterLabel>
+              <FilterLabel>Patient ID</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter Employee ID"
+                placeholder="Enter Patient ID"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
               />
-            
             </FilterGroup>
             <FilterGroup>
               <FilterLabel>Barcode</FilterLabel>
@@ -1243,10 +1833,10 @@ const CorporatePatientOverview = () => {
             </FilterGroup>
 
             <FilterGroup>
-              <FilterLabel>Employee Name</FilterLabel>
+              <FilterLabel>Patient Name</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter employee name"
+                placeholder="Enter patient name"
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
               />
@@ -1261,8 +1851,6 @@ const CorporatePatientOverview = () => {
                 <option value="Registered">Registered</option>
                 <option value="Collected">Collected</option>
                 <option value="Partially Collected">Partially Collected</option>
-                <option value="Transferred">Transferred</option>
-                <option value="Partially Transferred">Partially Transferred</option>
                 <option value="Received">Received</option>
                 <option value="Partially Received">Partially Received</option>
                 <option value="Tested">Tested</option>
@@ -1272,6 +1860,29 @@ const CorporatePatientOverview = () => {
                 <option value="Dispatched">Dispatched</option>
               </FilterSelect>
             </FilterGroup>
+            <FilterGroup>
+  <FilterLabel>Department</FilterLabel>
+  <FilterSelect
+    value={departmentFilter}
+    onChange={(e) => setDepartmentFilter(e.target.value)}
+  >
+    <option value="">All Departments</option>
+    <option value="Haematology">Haematology</option>
+    <option value="Coagulation">Coagulation</option>
+    <option value="Biochemistry">Biochemistry</option>
+    <option value="Immunology">Immunology</option>
+    <option value="Immunoassay">Immunoassay</option>
+    <option value="Serology">Serology</option>
+    <option value="Clinical Pathology">Clinical Pathology</option>
+    <option value="Clinical Chemistry">Clinical Chemistry</option>
+    <option value="Cytology">Cytology</option>
+    <option value="Genetics">Genetics</option>
+    <option value="Histopathology">Histopathology</option>
+    <option value="Immunohistochemistry">Immunohistochemistry</option>
+    <option value="Microbiology">Microbiology</option>
+    <option value="Molecular Biology">Molecular Biology</option>
+  </FilterSelect>
+</FilterGroup>
           </FilterRow>
 
           <ButtonContainer>
@@ -1287,9 +1898,10 @@ const CorporatePatientOverview = () => {
             <TableHead>
               <tr>
                 <th>Date</th>
-                <th>Employee ID</th>
+                <th>Patient ID</th>
                 <th>Barcode</th>
-                <th>Employee Name</th> 
+                <th>Patient Name</th> 
+                <th>Department</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1319,16 +1931,16 @@ const CorporatePatientOverview = () => {
                 </tr>
               ) : filteredPatients.length > 0 ? (
                 filteredPatients.map((patient) => {
-                  const patientStatus = statuses[patient.patient_id] || {};
-                  const status = patientStatus.status || "Loading...";
-                  const barcode = patientStatus.barcode || "N/A";
-                  const isPrintMailEnabled = isPrintAndMailEnabled(status);
-                  const isDispatchEnabledFlag = isDispatchEnabled(status);
-                  const isSortingEnabledFlag = isSortingEnabled(status);
-                  const badgeColor = getBadgeColor(status);
+                // Use barcode to look up status since it's unique per test registration
+                const patientStatus = statuses[patient.barcode] || {};
+                const status = patientStatus.status || "Loading...";
+                const barcode = patientStatus.barcode || patient.barcode || "N/A";
+                const isPrintMailEnabled = isPrintAndMailEnabled(status);
+                const isSortingEnabledFlag = isSortingEnabled(status);
+                const badgeColor = getBadgeColor(status);
 
                   return (
-                    <tr key={patient.patient_id}>
+                    <tr key={`${patient.patient_id}-${patient.barcode}`}>
                       <td>
                         {patient.date
                           ? format(new Date(patient.date), "yyyy-MM-dd")
@@ -1349,8 +1961,39 @@ const CorporatePatientOverview = () => {
                         </div>
                       </td>
                       <td>
-                        <Badge color={badgeColor}>{status}</Badge>
-                      </td>                      
+  <DepartmentCell>
+    {getDepartmentStatus(patient).map((deptInfo, idx) => (
+      <DepartmentRow key={idx}>
+        <span style={{ whiteSpace: 'nowrap' }}>{deptInfo.department}</span>
+        <DepartmentBadge 
+          color={deptInfo.color}
+          isPending={deptInfo.isPending}
+        >
+          {deptInfo.status}
+        </DepartmentBadge>
+      </DepartmentRow>
+    ))}
+  </DepartmentCell>
+</td>
+                      <td>
+  <StatusBadgeContainer>
+    <Badge color={badgeColor}>{status}</Badge>
+    <ActionButton
+      onClick={() => {
+        setSelectedPatientForStatus(patient);
+        setIsTestStatusModalOpen(true);
+      }}
+      title="View Test Details"
+      style={{ 
+        width: '1.75rem', 
+        height: '1.75rem',
+        marginLeft: '0.5rem'
+      }}
+    >
+      <Eye size={14} />
+    </ActionButton>
+  </StatusBadgeContainer>
+</td>                    
                       <td>
                         <ActionContainer>
                           <ActionButton
@@ -1364,7 +2007,7 @@ const CorporatePatientOverview = () => {
                           <PrintDropdown
                             onMouseEnter={() =>
                               isPrintMailEnabled &&
-                              showDropdown(patient.patient_id)
+                              showDropdown(patient.barcode)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -1378,7 +2021,7 @@ const CorporatePatientOverview = () => {
                             {isPrintMailEnabled && (
                               <DropdownMenu
                                 isVisible={
-                                  activeDropdownPatientId === patient.patient_id
+                                  activeDropdownPatientId === patient. barcode
                                 }
                               >
                                 <DropdownItem
@@ -1394,6 +2037,25 @@ const CorporatePatientOverview = () => {
                               </DropdownMenu>
                             )}
                           </PrintDropdown>
+{/* 
+                          <ActionButton
+                            disabled={!isPrintMailEnabled}
+                            onClick={() =>
+                              isPrintMailEnabled && handleWhatsAppShare(patient)
+                            }
+                            title="Share via WhatsApp"
+                          >
+                            <MessageCircle size={16} />
+                          </ActionButton>
+                          <ActionButton
+                            disabled={!isPrintMailEnabled}
+                            onClick={() =>
+                              isPrintMailEnabled && handleSendEmail(patient)
+                            }
+                            title="Send Email"
+                          >
+                            <Mail size={16} />
+                          </ActionButton> */}
                         </ActionContainer>
                       </td>
                     </tr>
@@ -1429,7 +2091,9 @@ const CorporatePatientOverview = () => {
           onClose={() => setIsTestModalOpen(false)}
         />
       )}
-
+     
+      {/* Test Status Modal */}
+      <TestStatusModal />
       {/* Credit Amount Modal */}
       <Modal
         isOpen={modalIsOpen}

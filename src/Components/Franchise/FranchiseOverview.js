@@ -7,9 +7,8 @@ import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
-import TestSorting from "./TestSorting";
-import MBTestSorting from "./MBTestSorting";
-import PatientOverallReport from "../Finance/PatientOverallReport";
+import FranchiseTestSorting from "./FranchiseTestSorting";
+import FranchiseMBTestSorting from "./FranchiseMBTestSorting";
 import {
   Calendar,
   Search,
@@ -27,10 +26,12 @@ import {
   Eye,
 } from "lucide-react";
 import { IoIosFemale, IoIosMale, IoMdClose } from "react-icons/io";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+// Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
+// import Savitha from "../Images/Savitha.png";
 import Dhana from "../Images/Dhana.png";
 import Brindha from "../Images/Brindha.png";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -55,13 +56,13 @@ const GlobalStyle = createGlobalStyle`
     --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
   }
- 
+  
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
- 
+  
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -311,9 +312,9 @@ const ActionButton = styled.button`
   &:hover {
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
     box-shadow: ${(props) =>
-    props.disabled
-      ? "0 2px 4px rgba(0, 0, 0, 0.1)"
-      : "0 4px 8px rgba(0, 0, 0, 0.1)"};
+      props.disabled
+        ? "0 2px 4px rgba(0, 0, 0, 0.1)"
+        : "0 4px 8px rgba(0, 0, 0, 0.1)"};
   }
 `;
 
@@ -411,6 +412,7 @@ const NavigationTab = styled.button`
     background: ${(props) => (props.active ? "#ccc" : "transparent")};
   }
 `;
+
 const DepartmentBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -532,34 +534,33 @@ const TestNameText = styled.span`
 
 const StatusBadgeContainer = styled.div`
   display: flex;
-  align-items: center;
+  align-items: center;s
   gap: 0.5rem;
 `;
 
-const PatientOverview = () => {
+const FranchiseOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
-  const [activeDropdownType, setActiveDropdownType] = useState(null); // 'print' or 'email'
   const [refByOptions, setRefByOptions] = useState([]);
-  const [clinicalNames, setClinicalNames] = useState([]);
   const [branch, setBranch] = useState("");
   const [barcode, setBarcode] = useState("");
-  const [B2B, setB2B] = useState("");
   const [refBy, setRefBy] = useState("");
   const [patientId, setPatientId] = useState("");
+  const [IPNumber, setIPNumber] = useState("");
   const [patientName, setPatientName] = useState("");
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
-  const [isMBTestModalOpen, setIsMBTestModalOpen] = useState(false);
+  const [isMBTestModalOpen, setIsMBTestModalOpen] = useState(false);  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [opIpFilter, setopIpFilter] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("hms");
@@ -567,81 +568,33 @@ const PatientOverview = () => {
   const [selectedPatientForStatus, setSelectedPatientForStatus] = useState(null);
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  // Set active tab based on current route
-  useEffect(() => {
-    if (location.pathname === "/HMSPatientOverview") {
-      setActiveTab("hms");
-    } else if (location.pathname === "/PatientOverview") {
-      setActiveTab("reference");
-    } else if (location.pathname === "/FranchiseOverview") {
-      setActiveTab("franchise");
-    } else if (location.pathname === "/CorporateOverview") {
-      setActiveTab("corporate");
-    }
-  }, [location.pathname]);
-
-  // Handle tab navigation
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === "hms") {
-      navigate("/HMSPatientOverview");
-    } else if (tab === "reference") {
-      navigate("/PatientOverview");
-    } else if (tab === "franchise") {
-      navigate("/FranchiseOverview");
-    } else if (tab === "corporate") {
-      navigate("/CorporateOverview");
-    }
-  };
-
-  // Fetch Refby
-  useEffect(() => {
-    const fetchRefby = async () => {
-      console.log("Fetching Refby from:", `${Labbaseurl}refby/`);
-      const result = await apiRequest(`${Labbaseurl}refby/`, "GET");
-
-      if (result.success) {
-        setRefByOptions(result.data);
-      } else {
-        console.error(
-          "Error fetching Refby:",
-          result.error,
-          "Status:",
-          result.status
-        );
-        setError("Failed to load referral options");
-        toast.error(result.error || "Failed to load referral options");
+   // Set active tab based on current route
+    useEffect(() => {
+      if (location.pathname === "/HMSPatientOverview") {
+        setActiveTab("hms");
+      } else if (location.pathname === "/PatientOverview") {
+        setActiveTab("reference");
+        } else if (location.pathname === "/FranchiseOverview") {
+        setActiveTab("franchise");
+      }else if (location.pathname === "/CorporateOverview") {
+        setActiveTab("corporate");
+      }
+    }, [location.pathname]);
+  
+    // Handle tab navigation
+    const handleTabChange = (tab) => {
+      setActiveTab(tab);
+      if (tab === "hms") {
+        navigate("/HMSPatientOverview");
+      } else if (tab === "reference") {
+        navigate("/PatientOverview");
+         } else if (tab === "franchise") {
+        navigate("/FranchiseOverview");
+      }
+      else if (tab === "corporate") {
+        navigate("/CorporateOverview");
       }
     };
-
-    fetchRefby();
-  }, []);
-
-  // Fetch Clinical Names
-  useEffect(() => {
-    const fetchClinicalNames = async () => {
-      console.log(
-        "Fetching Clinical Names from:",
-        `${Labbaseurl}clinical_name/`
-      );
-      const result = await apiRequest(`${Labbaseurl}clinical_name/`, "GET");
-
-      if (result.success) {
-        setClinicalNames(result.data);
-      } else {
-        console.error(
-          "Error fetching clinical names:",
-          result.error,
-          "Status:",
-          result.status
-        );
-        setError("Failed to load clinical names");
-        toast.error(result.error || "Failed to load clinical names");
-      }
-    };
-
-    fetchClinicalNames();
-  }, []);
 
   // Fetch patients when component mounts
   useEffect(() => {
@@ -650,7 +603,7 @@ const PatientOverview = () => {
       const formattedStartDate = startDate.toISOString().split("T")[0];
       const formattedEndDate = endDate.toISOString().split("T")[0];
 
-      const url = `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
+      const url = `${Labbaseurl}franchise_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
 
       const result = await apiRequest(url, "GET");
 
@@ -662,13 +615,14 @@ const PatientOverview = () => {
         setFilteredPatients(patientData);
 
         const statusMap = {};
-        patientData.forEach((patient) => {
-          statusMap[patient.patient_id] = {
-            status: patient.status,
-            barcode: patient.barcode,
-          };
-        });
-        setStatuses(statusMap);
+patientData.forEach((patient) => {
+  // Use barcode as the unique key since same patient can have multiple barcodes with different statuses
+  statusMap[patient.barcode] = {
+    status: patient.status,
+    barcode: patient.barcode,
+  };
+});
+setStatuses(statusMap);
       } else {
         console.error("Error fetching combined patient data:", result.error);
         setError("Failed to load patient data");
@@ -682,29 +636,7 @@ const PatientOverview = () => {
     }
   }, [startDate, endDate]);
 
-  // Determine icon state based on patient status
-  const isPrintAndMailEnabled = (status) =>
-    status === "Approved" ||
-    status === "Partially Approved" ||
-    status === "Partially Dispatched" ||
-    status === "Dispatched";
-  const isSortingEnabled = (status) =>
-    status === "Approved" ||
-    status === "Partially Approved" ||
-    status === "Partially Dispatched" ||
-    status === "Dispatched";     
-
-  // Add this helper function after the `isSortingEnabled` function (around line 665):
-const isMBTestSortingEnabled = (patient) => {
-  // Check if patient has Microbiology department and its status is Approved
-  if (!patient.department_statuses) return false;
-  
-  const microbiologyStatus = patient.department_statuses['Microbiology'];
-  return microbiologyStatus === 'Approved' || microbiologyStatus === 'Dispatched';
-};
-
-
-const TestStatusModal = () => {
+  const TestStatusModal = () => {
   if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
 
   const testStatuses = selectedPatientForStatus.test_statuses || [];
@@ -743,165 +675,194 @@ const TestStatusModal = () => {
   );
 };
 
-  // Filter patients based on multiple criteria
+  // Determine icon state based on patient status
+  const isPrintAndMailEnabled = (status) =>
+    status === "Approved" ||
+    status === "Partially Approved" ||
+    status === "Partially Dispatched" ||
+    status === "Dispatched";
+  const isSortingEnabled = (status) =>
+    status === "Approved" ||
+    status === "Partially Approved" ||
+    status === "Partially Dispatched" ||
+    status === "Dispatched";
+
+    // Add this helper function after the `isSortingEnabled` function (around line 665):
+const isMBTestSortingEnabled = (patient) => {
+  // Check if patient has Microbiology department and its status is Approved
+  if (!patient.department_statuses) return false;
+  
+  const microbiologyStatus = patient.department_statuses['Microbiology'];
+  return microbiologyStatus === 'Approved' || microbiologyStatus === 'Dispatched';
+};
+
   useEffect(() => {
-  const startOfDay = new Date(startDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(endDate);
-  endOfDay.setHours(23, 59, 59, 999);
-  const filtered = patients.filter((patient) => {
-    const patientDate = new Date(patient.date);
-    const patientStatus = statuses[patient.patient_id]?.status || '';
-    
-    // Department filter logic
+     const startOfDay = new Date(startDate);
+     startOfDay.setHours(0, 0, 0, 0);
+     const endOfDay = new Date(endDate);
+     endOfDay.setHours(23, 59, 59, 999);
+     const filtered = patients.filter((patient) => {
+  const patientDate = new Date(patient.date);
+  // Use barcode to lookup status since it's the unique identifier
+  const patientStatus = statuses[patient.barcode]?.status || '';
+  // Department filter logic
     const matchesDepartment = !departmentFilter || 
       (patient.department && patient.department.split(',').some(dept => 
         dept.trim() === departmentFilter
       ));
-    
-    return (
-      patientDate >= startOfDay &&
-      patientDate <= endOfDay &&
-      (!branch || patient.b2b === branch) &&
-      (!B2B || patient.b2b === B2B) &&
-      (!refBy || patient.refby === refBy) &&
-      (!patientId || patient.patient_id.includes(patientId)) &&
-      (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
-      (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
-      (!statusFilter || patientStatus === statusFilter) &&
-      matchesDepartment // Add this line
-    );
-  });
-  setFilteredPatients(filtered);
-}, [startDate, endDate, patients, branch, B2B, refBy, patientId, barcode, patientName, statusFilter, departmentFilter, statuses]); // Add departmentFilter to dependencies
+  return (
+    patientDate >= startOfDay &&
+    patientDate <= endOfDay &&       
+    (!patientId || patient.patient_id.includes(patientId)) &&
+    (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
+    (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
+    (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
+    (!statusFilter || patientStatus === statusFilter)&&
+    (!opIpFilter || patient.opiptype === opIpFilter)&&
+    matchesDepartment // Add this line
+  );
+});
+     setFilteredPatients(filtered);
+   }, [startDate,
+    endDate,
+    patients,    
+    refBy,
+    patientId,
+    barcode,
+    IPNumber,
+    patientName,
+    statusFilter,
+    departmentFilter,
+    opIpFilter,
+    statuses,]);
   // Update the clearFilters function to reset the status filter
   const clearFilters = () => {
     setStartDate(new Date());
-    setEndDate(new Date());
-    setBranch("");
+    setEndDate(new Date());    
     setBarcode("");
-    setB2B("");
     setRefBy("");
     setPatientId("");
+    setIPNumber("");
     setPatientName("");
     setStatusFilter("");
     setDepartmentFilter("");
+    setopIpFilter("");
     setFilteredPatients(patients);
   };
 
   
-  const handleWhatsAppShare = async (patient, withLetterpad = true) => {
-    if (!patient || !patient.phone) {
-      toast.error("Patient phone number is missing");
-      return;
-    }
+// const handleWhatsAppShare = async (patient) => {
+//   if (!patient || !patient.phone) {
+//     toast.error("Patient phone number is missing");
+//     return;
+//   }
 
-    const phoneNumber = patient.phone.startsWith("+91")
-      ? patient.phone.replace("+", "")
-      : `91${patient.phone}`;
+//   const phoneNumber = patient.phone.startsWith("+91")
+//     ? patient.phone.replace("+", "")
+//     : `91${patient.phone}`;
 
-    try {
-      const pdfBlob = await handlePrint(patient, withLetterpad, false); // Generate PDF (no download)
-      if (!pdfBlob) {
-        toast.error("Failed to generate the PDF");
-        return;
-      }
+//   try {
+//     const pdfBlob = await handlePrint(patient, true);
+//     if (!pdfBlob) {
+//       toast.error("Failed to generate the PDF");
+//       return;
+//     }
 
-      const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
-      const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+//     const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+//     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
 
-      // Upload PDF to server
-      const formData = new FormData();
-      formData.append("file", pdfFile);
+//     // Upload PDF to server
+//     const formData = new FormData();
+//     formData.append("file", pdfFile);
 
-      const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+//     const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
+//       headers: { "Content-Type": "multipart/form-data" },
+//     });
 
-      const fileUrl = uploadResponse.data.file_url;
-      if (!fileUrl) {
-        toast.error("File upload failed");
-        return;
-      }
+//     const fileUrl = uploadResponse.data.file_url;
+//     if (!fileUrl) {
+//       toast.error("File upload failed");
+//       return;
+//     }
 
-      // Call Django proxy instead of Botify directly
-      const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
-        patient_name: patient.patient_name || "Valued Patient",
-        phone: phoneNumber,
-        collection_time: patient.collection_time || "N/A",
-        collected_date: patient.collected_date || "N/A",
-        file_url: fileUrl,
-        pdf_name: pdfName,
-        patient_id: patient.patient_id,
-      });
+//     // Call Django proxy instead of Botify directly
+//     const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+//       patient_name: patient.patient_name || "Valued Patient",
+//       phone: phoneNumber,
+//       collection_time: patient.collection_time || "N/A",
+//       collected_date: patient.collected_date || "N/A",
+//       file_url: fileUrl,
+//       pdf_name: pdfName,
+//     });
 
-      if (res.data.success) {
-        toast.success("WhatsApp PDF message sent successfully!");
-      } else {
-        toast.error("Failed to send WhatsApp template message.");
-        console.error("Backend error:", res.data.error);
-      }
-    } catch (error) {
-      console.error("Error sending WhatsApp message:", error);
-      toast.error("Error sending WhatsApp message.");
-    }
-  };
+//     if (res.data.success) {
+//       toast.success("WhatsApp PDF message sent successfully!");
+//     } else {
+//       toast.error("Failed to send WhatsApp template message.");
+//       console.error("Backend error:", res.data.error);
+//     }
+//   } catch (error) {
+//     console.error("Error sending WhatsApp message:", error);
+//     toast.error("Error sending WhatsApp message.");
+//   }
+// };
 
 
-  const handleSendEmail = async (patient, withLetterpad = true) => {
-    try {
-      const pdfBlob = await handlePrint(patient, withLetterpad, false); // Generate PDF (no download)
-      if (!pdfBlob) {
-        toast.error("Failed to generate the PDF.");
-        return;
-      }
+  //  const handleSendEmail = async (patient) => {
+  //   try {
+  //     const pdfBlob = await handlePrint(patient, true); // Generate PDF with letterpad
+  //     if (!pdfBlob) {
+  //       toast.error("Failed to generate the PDF.");
+  //       return;
+  //     }
 
-      if (!patient.email) {
-        toast.warning("Patient email is missing.");
-        return;
-      }
+  //     if (!patient.email) {
+  //       toast.warning("Patient email is missing.");
+  //       return;
+  //     }
 
-      const formData = new FormData();
-      formData.append("subject", `Test Details for ${patient.patient_name}`);
-      formData.append(
-        "message",
-        `Dear ${patient.patient_name || "Recipient"
-        },\n\nWe hope this message finds you well. Please find attached the lab test results for ${patient.patient_name || "the patient"
-        }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
-      );
-      formData.append("recipients", patient.email);
-      formData.append("patient_id", patient.patient_id);
-      formData.append("patient_name", patient.patient_name);
-      formData.append(
-        "attachments",
-        new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
-          type: "application/pdf",
-        })
-      );
+  //     const formData = new FormData();
+  //     formData.append("subject", `Test Details for ${patient.patient_name}`);
+  //     formData.append(
+  //       "message",
+  //       `Dear ${
+  //         patient.patient_name || "Recipient"
+  //       },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
+  //         patient.patient_name || "the patient"
+  //       }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
+  //     );
+  //     formData.append("recipients", patient.email);
+  //     formData.append(
+  //       "attachments",
+  //       new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
+  //         type: "application/pdf",
+  //       })
+  //     );
 
-      const emailResponse = await apiRequest(
-        `${Labbaseurl}send-email/`,
-        "POST",
-        formData,
-        { "Content-Type": "multipart/form-data" }
-      );
+  //     const emailResponse = await apiRequest(
+  //       `${Labbaseurl}send-email/`,
+  //       "POST",
+  //       formData,
+  //       { "Content-Type": "multipart/form-data" }
+  //     );
 
-      if (emailResponse.success) {
-        toast.success("Email sent successfully!");
-      } else {
-        toast.error(`Failed to send email: ${emailResponse.error}`);
-      }
-    } catch (error) {
-      console.error("Error sending email:", error);
-      toast.error("Failed to send email.");
-    }
-  };
+  //     if (emailResponse.success) {
+  //       toast.success("Email sent successfully!");
+  //     } else {
+  //       toast.error(`Failed to send email: ${emailResponse.error}`);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error sending email:", error);
+  //     toast.error("Failed to send email.");
+  //   }
+  // };
 
- const handlePrint = async (patient, withLetterpad = true) => {
+
+  const handlePrint = async (patient, withLetterpad = true) => {
     try {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
-        `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
+        `${Labbaseurl}franchise_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
       );
 
@@ -1068,8 +1029,6 @@ const TestStatusModal = () => {
         { label: "Name", value: patientDetails.patientname || "No name provided" },
         { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
         { label: "Referral", value: patientDetails.refby || "SELF" },
-        { label: "Branch", value: patientDetails.branch || "N/A" },
-        { label: "Source", value: patientDetails.B2B || "N/A" },
       ];
 
       const rightDetails = [
@@ -1081,11 +1040,6 @@ const TestStatusModal = () => {
           label: "Received On",
           value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
         },
-        ...(patientDetails.testdetails[0].dispatch_time ? [{
-    label: "Released On",
-    value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
-  }] : []),
-        
         { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
@@ -1710,7 +1664,6 @@ const addSignatures = () => {
       return null;
     }
   };
-
   // Open modal for editing credit amount
   const openModal = (patient) => {
     setSelectedPatient(patient);
@@ -1732,14 +1685,12 @@ const addSignatures = () => {
     setIsMBTestModalOpen(true);
   };
 
-  const showDropdown = (barcode, type) => {
+  const showDropdown = (barcode) => {
     setActiveDropdownPatientId(barcode);
-    setActiveDropdownType(type);
   };
 
   const hideDropdown = () => {
     setActiveDropdownPatientId(null);
-    setActiveDropdownType(null);
   };
 
   const getBadgeColor = (status) => {
@@ -1819,6 +1770,7 @@ const addSignatures = () => {
   });
 };
 
+
   return (
     <Container>
       <GlobalStyle />
@@ -1844,19 +1796,18 @@ const addSignatures = () => {
             >
               Franchise
             </NavigationTab>
-            <NavigationTab
+             <NavigationTab
               active={activeTab === "corporate"}
               onClick={() => handleTabChange("corporate")}
             >
               Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
-          <Title>Diagnostics Patient Status</Title>
+          <Title>Franchise Patient Status</Title>
         </CardHeader>
 
         <FiltersContainer>
           <FilterRow>
-           
             <FilterGroup>
               <FilterLabel>Start Date</FilterLabel>
               <FilterInput
@@ -1873,44 +1824,12 @@ const addSignatures = () => {
                 value={endDate.toISOString().split("T")[0]}
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
-            </FilterGroup>
-
-            <FilterGroup>
-              <FilterLabel>Select B2B</FilterLabel>
-              <FilterSelect
-                value={B2B}
-                onChange={(e) => setB2B(e.target.value)}
-              >
-                <option value="">Select Clinical Name</option>
-                {clinicalNames.map((name, index) => (
-                  <option key={index} value={name.clinicalname}>
-                    {name.clinicalname}
-                  </option>
-                ))}
-              </FilterSelect>
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>Select Referral</FilterLabel>
-              <FilterSelect
-                value={refBy}
-                onChange={(e) => setRefBy(e.target.value)}
-              >
-                <option value="">Select Refby</option>
-                {refByOptions.map((refby, index) => (
-                  <option key={index} value={refby.name}>
-                    {refby.name}
-                  </option>
-                ))}
-              </FilterSelect>
-            </FilterGroup>
-            {/* </FilterRow>
-
-          <FilterRow> */}
+            </FilterGroup>  
             <FilterGroup>
               <FilterLabel>Patient ID</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter patient ID"
+                placeholder="Enter Patient ID"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
               />
@@ -1993,13 +1912,10 @@ const addSignatures = () => {
                 <th>Date</th>
                 <th>Patient ID</th>
                 <th>Barcode</th>
-                <th>Patient Name</th>
-                <th>Branch</th>
+                <th>Patient Name</th>                
                 <th>Referral</th>
-                <th>B2B</th>
                 <th>Department</th>
                 <th>Status</th>
-                <th>Credit</th>
                 <th>Actions</th>
               </tr>
             </TableHead>
@@ -2028,16 +1944,17 @@ const addSignatures = () => {
                 </tr>
               ) : filteredPatients.length > 0 ? (
                 filteredPatients.map((patient) => {
-                  const patientStatus = statuses[patient.patient_id] || {};
-                  const status = patientStatus.status || "Loading...";
-                  const barcode = patientStatus.barcode || "N/A";
-                  const isPrintMailEnabled = isPrintAndMailEnabled(status);
-                  const isSortingEnabledFlag = isSortingEnabled(status);
-                  const isMBSortingEnabledFlag = isMBTestSortingEnabled(patient);
-                  const badgeColor = getBadgeColor(status);
+                // Use barcode to look up status since it's unique per test registration
+                const patientStatus = statuses[patient.barcode] || {};
+                const status = patientStatus.status || "Loading...";
+                const barcode = patientStatus.barcode || patient.barcode || "N/A";
+                const isPrintMailEnabled = isPrintAndMailEnabled(status);
+                const isSortingEnabledFlag = isSortingEnabled(status);
+                const isMBSortingEnabledFlag = isMBTestSortingEnabled(patient);
+                const badgeColor = getBadgeColor(status);
 
                   return (
-                    <tr key={patient.patient_id}>
+                    <tr key={`${patient.patient_id}-${patient.barcode}`}>
                       <td>
                         {patient.date
                           ? format(new Date(patient.date), "yyyy-MM-dd")
@@ -2057,9 +1974,7 @@ const addSignatures = () => {
                           {patient.patient_name}
                         </div>
                       </td>
-                      <td>{patient.branch || "N/A"}</td>
                       <td>{patient.refby || "N/A"}</td>
-                      <td>{patient.b2b || "N/A"}</td>
                       <td>
   <DepartmentCell>
     {getDepartmentStatus(patient).map((deptInfo, idx) => (
@@ -2093,21 +2008,16 @@ const addSignatures = () => {
       <Eye size={14} />
     </ActionButton>
   </StatusBadgeContainer>
-</td>
-                      <td>
-                        <CreditAmount onClick={() => openModal(patient)}>
-                          {patient.credit_amount || "0"}
-                        </CreditAmount>
-                      </td>
+</td>                    
                       <td>
                         <ActionContainer>
                           <ActionButton
-  onClick={() => openMBTestModal(patient)}
-  title={isMBSortingEnabledFlag ? "Sort M/B Tests" : "Microbiology not approved"}
-  disabled={!isMBSortingEnabledFlag}
->
-  <List size={16} />
-</ActionButton>
+                            onClick={() => openMBTestModal(patient)}
+                            title={isMBSortingEnabledFlag ? "Sort M/B Tests" : "Microbiology not approved"}
+                            disabled={!isMBSortingEnabledFlag}
+                          >
+                            <List size={16} />
+                          </ActionButton>
                           <ActionButton
                             onClick={() => openTestModal(patient)}
                             title="Sort Tests"
@@ -2119,7 +2029,7 @@ const addSignatures = () => {
                           <PrintDropdown
                             onMouseEnter={() =>
                               isPrintMailEnabled &&
-                              showDropdown(patient.barcode, "print")
+                              showDropdown(patient.barcode)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -2133,9 +2043,7 @@ const addSignatures = () => {
                             {isPrintMailEnabled && (
                               <DropdownMenu
                                 isVisible={
-                                  activeDropdownPatientId ===
-                                  patient.barcode &&
-                                  activeDropdownType === "print"
+                                  activeDropdownPatientId === patient. barcode
                                 }
                               >
                                 <DropdownItem
@@ -2151,86 +2059,25 @@ const addSignatures = () => {
                               </DropdownMenu>
                             )}
                           </PrintDropdown>
-
-                          <PrintDropdown
-                            onMouseEnter={() =>
-                              isPrintMailEnabled &&
-                              showDropdown(patient.patient_id, "whatsapp")
+{/* 
+                          <ActionButton
+                            disabled={!isPrintMailEnabled}
+                            onClick={() =>
+                              isPrintMailEnabled && handleWhatsAppShare(patient)
                             }
-                            onMouseLeave={hideDropdown}
+                            title="Share via WhatsApp"
                           >
-                            <ActionButton
-                              disabled={!isPrintMailEnabled}
-                              title="Share via WhatsApp"
-                            >
-                              <MessageCircle size={16} />
-                            </ActionButton>
-
-                            {isPrintMailEnabled && (
-                              <DropdownMenu
-                                isVisible={
-                                  activeDropdownPatientId ===
-                                  patient.patient_id &&
-                                  activeDropdownType === "whatsapp"
-                                }
-                              >
-                                <DropdownItem
-                                  onClick={() =>
-                                    handleWhatsAppShare(patient, true)
-                                  }
-                                >
-                                  Send with Letterpad
-                                </DropdownItem>
-                                <DropdownItem
-                                  onClick={() =>
-                                    handleWhatsAppShare(patient, false)
-                                  }
-                                >
-                                  Send without Letterpad
-                                </DropdownItem>
-                              </DropdownMenu>
-                            )}
-                          </PrintDropdown>
-                          <PrintDropdown
-                            onMouseEnter={() =>
-                              isPrintMailEnabled &&
-                              patient.email &&
-                              showDropdown(patient.patient_id, "email")
+                            <MessageCircle size={16} />
+                          </ActionButton>
+                          <ActionButton
+                            disabled={!isPrintMailEnabled}
+                            onClick={() =>
+                              isPrintMailEnabled && handleSendEmail(patient)
                             }
-                            onMouseLeave={hideDropdown}
+                            title="Send Email"
                           >
-                            <ActionButton
-                              disabled={!isPrintMailEnabled || !patient.email}
-                              title={patient.email ? "Send Email" : "Email not available"}
-                              style={{
-                                opacity: !patient.email ? 0.5 : 1,
-                                cursor: !patient.email ? "not-allowed" : "pointer"
-                              }}
-                            >
-                              <Mail size={16} color={patient.email ? "currentColor" : "var(--gray)"} />
-                            </ActionButton>
-
-                            {isPrintMailEnabled && patient.email && (
-                              <DropdownMenu
-                                isVisible={
-                                  activeDropdownPatientId ===
-                                  patient.patient_id &&
-                                  activeDropdownType === "email"
-                                }
-                              >
-                                <DropdownItem
-                                  onClick={() => handleSendEmail(patient, true)}
-                                >
-                                  Send with Letterpad
-                                </DropdownItem>
-                                <DropdownItem
-                                  onClick={() => handleSendEmail(patient, false)}
-                                >
-                                  Send without Letterpad
-                                </DropdownItem>
-                              </DropdownMenu>
-                            )}
-                          </PrintDropdown>
+                            <Mail size={16} />
+                          </ActionButton> */}
                         </ActionContainer>
                       </td>
                     </tr>
@@ -2261,21 +2108,20 @@ const addSignatures = () => {
 
       {/* Test Sorting Modal */}
       {isTestModalOpen && (
-        <TestSorting
+        <FranchiseTestSorting
           patient={selectedPatient}
           onClose={() => setIsTestModalOpen(false)}
         />
       )}
       {/* M/B Test Sorting Modal */}
       {isMBTestModalOpen && (
-        <MBTestSorting
+        <FranchiseMBTestSorting
           patient={selectedPatient}
           onClose={() => setIsMBTestModalOpen(false)}
         />
       )}
       {/* Test Status Modal */}
       <TestStatusModal />
-
       {/* Credit Amount Modal */}
       <Modal
         isOpen={modalIsOpen}
@@ -2329,26 +2175,11 @@ const addSignatures = () => {
               alignItems: "center",
             }}
           >
-            <PatientOverallReport
-              patient_id={selectedPatient.patient_id}
-              date={selectedPatient.date}
-            />
-          </div>
+                     </div>
         )}
       </Modal>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
     </Container>
   );
 };
 
-export default PatientOverview;
+export default FranchiseOverview;

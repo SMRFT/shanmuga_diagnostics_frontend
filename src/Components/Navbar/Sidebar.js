@@ -25,7 +25,7 @@ import { GrOverview } from "react-icons/gr"
 import { TbReport } from "react-icons/tb"
 import { FaClinicMedical } from "react-icons/fa"
 import { FaMapMarkerAlt } from "react-icons/fa"
-import { DollarSign } from "lucide-react"
+import { DollarSign} from "lucide-react"
 
 const slideIn = keyframes`
  from { transform: translateX(-20px); opacity: 0; }

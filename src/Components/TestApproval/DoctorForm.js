@@ -437,7 +437,7 @@ function DoctorForm() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [patientHistory, setPatientHistory] = useState("");
-  const approved_by = localStorage.getItem("name");
+  const approved_by = localStorage.getItem("employeeId");
   const userRole = localStorage.getItem("role");
   const location = useLocation();
   const navigate = useNavigate();

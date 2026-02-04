@@ -491,17 +491,31 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
       }
 
       console.log("API Response:", response.data);
-      let patientDetails = response.data;
-      if (Array.isArray(response.data)) {
+      
+      // Extract patient data and signatures from the new response structure
+      let patientDetails;
+      let signaturesData = [];
+      
+      if (response.data.patient_data && response.data.signatures) {
+        // New structure with signatures
+        patientDetails = response.data.patient_data;
+        signaturesData = response.data.signatures;
+      } else {
+        // Fallback for old structure
+        patientDetails = response.data;
+      }
+
+      if (Array.isArray(patientDetails)) {
         patientDetails = {
-          ...response.data[0],
-          testdetails: response.data.flatMap(
+          ...patientDetails[0],
+          testdetails: patientDetails.flatMap(
             (record) => record.testdetails || []
           ),
         };
       }
 
       console.log("Processed Patient Details:", patientDetails);
+      console.log("Signatures Data:", signaturesData);
       console.log("Selected Tests:", selectedTests);
 
       // Filter tests by test_id
@@ -523,10 +537,40 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
         return numberPart;
       };
 
-      // Only Rajesh consultant
-      const consultants = [        
-        ["Dr. Rajesh Sengodan M.D.", "Consultant Microbiologist", Rajesh],
-      ];
+      // CORRECTED: Map designation codes to consultant positions
+      // Note: Adjust designation codes based on your actual data
+      const designationMapping = {
+        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
+        "DESIG100": { position: 1, title: "Consultant Pathologist" },
+        "DESIG099": { position: 2, title: "Consultant Biochemist" },
+      };
+
+      // Build consultants array dynamically from signatures data
+      const consultants = [];
+      
+      // Initialize with empty slot for Microbiologist
+      consultants[0] = null;
+      
+      // Fill in the consultants based on signatures data
+      signaturesData.forEach((sig) => {
+        const mapping = designationMapping[sig.designation];
+        if (mapping) {
+          const signatureImage = sig.signatureBase64 
+            ? `data:image/png;base64,${sig.signatureBase64}` 
+            : null;
+          
+          consultants[mapping.position] = [
+            sig.employeeName,
+            mapping.title,
+            signatureImage
+          ];
+        }
+      });
+      
+      // Filter out null entries (positions without signatures)
+      const activeConsultants = consultants.filter(c => c !== null);
+
+      console.log("Active Consultants:", activeConsultants);
 
       const patientRefNo =
         patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
@@ -563,7 +607,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
       ];
 
       const leftDetails = [
-        { label: "UHID", value: patientDetails.patient_id || "N/A" },
+        { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
         {
           label: "Name",
           value: patientDetails.patientname || "No name provided",
@@ -574,6 +618,8 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
             }`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
+        { label: "Branch", value: patientDetails.branch || "N/A" },
+        { label: "Source", value: patientDetails.B2B || "N/A" },
       ];
 
       const rightDetails = [
@@ -593,9 +639,13 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
               "dd MMM yy / HH:mm"
             ) || "N/A",
         },
+        ...(patientDetails.testdetails[0].dispatch_time ? [{
+            label: "Released On",
+            value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
+          }] : []),
         {
           label: "Reported Date",
-          value: format(new Date(), "dd MMM yy / hh:mm"),
+          value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
@@ -743,21 +793,26 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
         const pageHeight = doc.internal.pageSize.height;
         const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
         const signatureWidth = 35;
+        
+        // Only show signatures if we have active consultants
+        if (activeConsultants.length === 0) return;
+        
+        // Calculate spacing based on number of active consultants
+        const totalConsultants = activeConsultants.length;
+        
+        // Calculate starting position from RIGHT side
+        const rightEdge = rightMargin;
+        const signatureSpacing = 60; // Fixed spacing between signatures
+        
+        // Start from right edge and work backwards
+        const startX = rightEdge - (totalConsultants * signatureSpacing);
 
-        const approvers = new Set();
-        orderedTests.forEach((test) => {
-          if (test.approve_by && test.approve_by.trim() !== "") {
-            approvers.add(test.approve_by.toLowerCase());
-          }
-        });
-
-        consultants.forEach((consultant, index) => {
-          // Position signature at right side with 10 units padding from edge
-          const xPosition = rightMargin - signatureWidth - 10;
-          const consultantName = consultant[0].toLowerCase();
-          const shouldShowSignature = consultantName.includes("rajesh");
-
-          if (consultant[2] && shouldShowSignature) {
+        activeConsultants.forEach((consultant, index) => {
+          // Position from the calculated start point, moving right
+          const xPosition = startX + (index * signatureSpacing);
+          
+          // Display signature image if available
+          if (consultant[2]) {
             doc.addImage(
               consultant[2],
               "PNG",
@@ -768,10 +823,14 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
             );
           }
 
+          // Display full name with credentials
+          const fullName = consultant[0];
+          
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
-          doc.text(consultant[0], xPosition, signaturesY + 18);
+          doc.text(fullName, xPosition, signaturesY + 18);
 
+          // Display title (Consultant position)
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           doc.text(consultant[1], xPosition, signaturesY + 23);
@@ -852,7 +911,9 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
           if (test.remarks && test.remarks.trim() !== "") {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
-            doc.text(`Organism Isolated: ${test.remarks}`, leftMargin, yPos);
+            // Check is_AG_title to determine the label
+            const remarksLabel = test.is_AG_title ? "Sputum for AFB:" : "Organism Isolated:";
+            doc.text(`${remarksLabel} ${test.remarks}`, leftMargin, yPos);
             yPos += 6;
           } else {
             yPos += 2;
