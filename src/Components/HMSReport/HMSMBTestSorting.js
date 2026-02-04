@@ -639,10 +639,11 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
               "dd MMM yy / HH:mm"
             ) || "N/A",
         },
-        ...(patientDetails.testdetails[0].dispatch_time ? [{
-            label: "Released On",
-            value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
-          }] : []),
+         ...(patientDetails.testdetails[0].dispatch_time && 
+      patientDetails.testdetails[0].dispatch_time !== "null" ? [{
+    label: "Released On",
+    value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
+  }] : []),
         {
           label: "Reported Date",
           value: format(new Date(), "dd MMM yy / HH:mm"),
