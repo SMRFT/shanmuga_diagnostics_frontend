@@ -85,6 +85,9 @@ import MBPatientList from "./Components/Microbiology/MBPatientList";
 import MBDoctorForm from "./Components/Microbiology/MBDoctorForm";
 import MBTestSorting from "./Components/Report/MBTestSorting";
 import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
+import PreethamDashboard from "./Components/PreethamHospital/PreethamDashboard";
+import PreethamPatientOverview from "./Components/PreethamHospital/PreethamPatientOverview";
+
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -141,6 +144,9 @@ function App() {
         break;
       case "Accounts":
         navigate("/Invoice");
+        break;
+      case "PH":
+        navigate("/PreethamPatientOverview");
         break;
       default:
         navigate("/PatientForm"); // Default fallback
@@ -267,7 +273,7 @@ function App() {
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
             <Route path="/TestDetails" element={<TestDetails />} />
-             <Route path="/MBPatientDetails" element={<MBPatientDetails />} />
+            <Route path="/MBPatientDetails" element={<MBPatientDetails />} />
             <Route path="/MBTestDetails" element={<MBTestDetails />} />
             <Route path="/OutSourceDetails" element={<OutSourceDetails />} />
             <Route path="/OSTestDetails" element={<OSTestDetails />} />
@@ -354,6 +360,8 @@ function App() {
             <Route path="/PatientOverallReport" element={<PatientOverallReport />} />
 
             <Route path="/PreethamHospitalReport" element={<PreethamHospitalReport />} />
+            <Route path="/PreethamDashboard" element={<PreethamDashboard />} />
+            <Route path="/PreethamPatientOverview" element={<PreethamPatientOverview />} />
 
           </Routes>
         </ContentWrapper>

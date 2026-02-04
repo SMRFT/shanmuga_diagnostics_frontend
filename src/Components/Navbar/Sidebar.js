@@ -17,6 +17,7 @@ import {
   FaVial,
   FaFileAlt,
   FaSignOutAlt,
+  FaDollarSign,
   FaUserCircle
 } from "react-icons/fa"
 import { PiTestTubeDuotone } from "react-icons/pi"
@@ -533,7 +534,7 @@ const Sidebar = () => {
                 Billing Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -636,14 +637,14 @@ const Sidebar = () => {
                 Test Edit
               </SidebarNavLink>
 
-              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/ShanmugaMIS" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -764,7 +765,7 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -786,7 +787,7 @@ const Sidebar = () => {
               </SidebarNavLink>
 
 
-              <SidebarNavLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/ShanmugaMIS" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -905,7 +906,7 @@ const Sidebar = () => {
                 B2B Master
               </SidebarNavLink>
 
-              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -1279,7 +1280,7 @@ const Sidebar = () => {
                 <SubLink to="/B2BReport" onClick={() => setIsSidebarOpen(false)}>
                   B2B Report
                 </SubLink>
-                {/* <SubLink
+                <SubLink
                   to="/B2BApproval"
                   onClick={() => setIsSidebarOpen(false)}
                 >
@@ -1290,7 +1291,7 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   B2B Package
-                </SubLink> */}
+                </SubLink>
               </DropdownContent>
 
               <SectionDivider />
@@ -1331,9 +1332,6 @@ const Sidebar = () => {
                 <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
                   Diagnostics Billing
                 </SubLink>
-                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
-                  HMS Billing
-                </SubLink>
                 <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
                   Patient Overview
                 </SubLink>
@@ -1353,9 +1351,6 @@ const Sidebar = () => {
                 <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
                   Diagnostics Barcode Generation
                 </SubLink>
-                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
-                  HMS Barcode Generation
-                </SubLink>
               </DropdownContent>
 
               <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
@@ -1372,10 +1367,6 @@ const Sidebar = () => {
                 <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
                   Diagnostics Sample Collection
                 </SubLink>
-                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
-                  HMS Sample Collection
-                </SubLink>
-
               </DropdownContent>
 
               <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
@@ -1542,7 +1533,7 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -1556,7 +1547,7 @@ const Sidebar = () => {
                 Corporate Report Approval
               </SidebarNavLink>
 
-              <SidebarNavLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/ShanmugaMIS" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -1572,6 +1563,30 @@ const Sidebar = () => {
                   <FaMapMarkerAlt />
                 </IconWrapper>
                 Logistics Tracking
+              </SidebarNavLink>
+            </>
+          )}
+          {role === "PH" && (
+            <>
+              <SidebarNavLink to="/PreethamDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <FaChartPie />
+                </IconWrapper>
+                Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <FaDollarSign />
+                </IconWrapper>
+                Bill Estimate
+              </SidebarNavLink>
+
+              <SidebarNavLink to="/PreethamPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Report Dashboard
               </SidebarNavLink>
             </>
           )}

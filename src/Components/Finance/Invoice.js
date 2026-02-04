@@ -768,7 +768,8 @@ const B2BPatients = () => {
             testNameFormatted = patient.testdetails
               .map((test, testIndex) => {
                 const amount = test.MRP ? ` (${test.MRP})` : "";
-                return `${testIndex + 1}. ${test.test_name || "N/A"}${amount}`;
+                const tName = test.testname || test.test_name || "N/A";
+                return `${testIndex + 1}. ${tName}${amount}`;
               })
               .join("\n");
           } else if (
@@ -778,7 +779,8 @@ const B2BPatients = () => {
             const amount = patient.testdetails.MRP
               ? ` (${patient.testdetails.MRP})`
               : "";
-            testNameFormatted = `1. ${patient.testdetails.test_name || "N/A"}${amount}`;
+            const tName = patient.testdetails.testname || patient.testdetails.test_name || "N/A";
+            testNameFormatted = `1. ${tName}${amount}`;
           } else {
             testNameFormatted = "N/A";
           }

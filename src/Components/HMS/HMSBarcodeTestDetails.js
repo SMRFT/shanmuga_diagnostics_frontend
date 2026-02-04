@@ -411,27 +411,27 @@ const HMSBarcodeTestDetails = () => {
   const [toDate, setToDate] = useState(new Date());
 
   // Function to extract barcode from bill number
-const extractBarcodeFromBillNo = (billNumber) => {
-  if (!billNumber) return null;
+  const extractBarcodeFromBillNo = (billNumber) => {
+    if (!billNumber) return null;
 
-  return String(billNumber).replace(/\//g, '');
-};
+    return String(billNumber).replace(/\//g, '');
+  };
 
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-// Format date as DD/MM/YYYY (IST-safe)
-const formatDate = (dateString) => {
-  if (!dateString) return "";
+  // Format date as DD/MM/YYYY (IST-safe)
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
 
-  const date = new Date(dateString);
+    const date = new Date(dateString);
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
 
-  return `${day}/${month}/${year}`;
-};
+    return `${day}/${month}/${year}`;
+  };
 
   const handleGenerateBarcode = async () => {
     if (!selectedPatient || !bill_no) {
@@ -444,7 +444,7 @@ const formatDate = (dateString) => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-      
+
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return false;
@@ -462,10 +462,10 @@ const formatDate = (dateString) => {
 
       // Update test details with barcode
       const updatedTestDetails = testDetails.map((test) => ({
-  test_id: test.test_id,
-  testname: test.testname,
-  barcode: patientBarcode,
-}));
+        test_id: test.test_id,
+        testname: test.testname,
+        barcode: patientBarcode,
+      }));
 
 
       setTestDetails(updatedTestDetails);
@@ -488,20 +488,20 @@ const formatDate = (dateString) => {
 
       setBarcodeData(newBarcodeData);
 
-      
+
       const payload = {
         patient_id: patientId,
         patientname: selectedPatient?.patientname,
         age: selectedPatient?.age,
         age_type: selectedPatient?.age_type || 'Y',
         gender: selectedPatient?.gender,
-     
+
         date: formatDate(selectedPatient?.date),
         bill_no: bill_no,
         billnumber: bill_no, // Also send as billnumber for HMS compatibility
         testdetails: updatedTestDetails,
         barcode: patientBarcode,
-        
+
         // Additional HMS-specific fields
         ipnumber: selectedPatient?.ipnumber || '',
         IPOPType: selectedPatient?.IPOPType || '',
@@ -543,7 +543,7 @@ const formatDate = (dateString) => {
 
       // Extract barcode from bill number
       const patientBarcode = extractBarcodeFromBillNo(bill_no);
-      
+
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
         return;
@@ -721,14 +721,14 @@ const formatDate = (dateString) => {
 
   useEffect(() => {
     const fetchTestDetails = async () => {
-    // ✅ USE SELECTED DATE, NOT TODAY
-    const fromDateStr = selectedDate;
-    const toDateStr = selectedDate;
+      // ✅ USE SELECTED DATE, NOT TODAY
+      const fromDateStr = selectedDate;
+      const toDateStr = selectedDate;
 
-    const patientResult = await apiRequest(
-      `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
-      "GET"
-    );
+      const patientResult = await apiRequest(
+        `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
+        "GET"
+      );
 
       if (!patientResult.success) {
         console.error("Error fetching test details:", patientResult.error);
@@ -760,7 +760,7 @@ const formatDate = (dateString) => {
           ...test,
           barcode: generatedBarcode,
         }));
-        
+
         setTestDetails(updatedTestDetails);
 
         // Create barcode data for display
@@ -958,8 +958,8 @@ const formatDate = (dateString) => {
               {selectedPatient?.gender === "Male"
                 ? "M"
                 : selectedPatient?.gender === "Female"
-                ? "F"
-                : ""}
+                  ? "F"
+                  : ""}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
               {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}
