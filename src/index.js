@@ -75,6 +75,8 @@ function getUserRole(allowedActions) {
     return "Accounts";
   } else if (allowedActions.includes("SD-R-CEO")) {
     return "CEO";
+  } else if (allowedActions.includes("SD-R-PH")) {
+    return "PH";
   } else if (allowedActions.includes("SD-R-HR")) {
     return "HR";
 
