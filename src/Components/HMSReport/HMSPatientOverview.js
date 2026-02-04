@@ -1041,7 +1041,12 @@ const isMBTestSortingEnabled = (patient) => {
           label: "Received On",
           value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
         },
-        { label: "Reported Date", value: format(new Date(), "dd MMM yy / hh:mm") },
+        ...(patientDetails.testdetails[0].dispatch_time ? [{
+    label: "Released On",
+    value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
+  }] : []),
+                
+                { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
 
@@ -1194,7 +1199,7 @@ const addSignatures = () => {
   
   // Calculate starting position from RIGHT side
   const rightEdge = rightMargin;
-  const signatureSpacing = 45; // Fixed spacing between signatures
+  const signatureSpacing = 60; // Fixed spacing between signatures
   
   // Start from right edge and work backwards
   const startX = rightEdge - (totalConsultants * signatureSpacing);

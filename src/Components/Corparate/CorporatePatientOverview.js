@@ -8,7 +8,6 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
 import CorporateTestSorting from "./CorporateTestSorting";
-import CorporateMBTestSorting from "./CorporateMBTestSorting";
 import {
   Calendar,
   Search,
@@ -554,8 +553,7 @@ const CorporatePatientOverview = () => {
   const [patientName, setPatientName] = useState("");
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
-  const [isMBTestModalOpen, setIsMBTestModalOpen] = useState(false);  
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -687,14 +685,6 @@ setStatuses(statusMap);
     status === "Partially Dispatched" ||
     status === "Dispatched";
 
-    // Add this helper function after the `isSortingEnabled` function (around line 665):
-const isMBTestSortingEnabled = (patient) => {
-  // Check if patient has Microbiology department and its status is Approved
-  if (!patient.department_statuses) return false;
-  
-  const microbiologyStatus = patient.department_statuses['Microbiology'];
-  return microbiologyStatus === 'Approved' || microbiologyStatus === 'Dispatched';
-};
 
   useEffect(() => {
      const startOfDay = new Date(startDate);
@@ -1041,7 +1031,7 @@ const isMBTestSortingEnabled = (patient) => {
           label: "Received On",
           value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
         },
-        { label: "Reported Date", value: format(new Date(), "dd MMM yy / hh:mm") },
+        { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
 
@@ -1194,7 +1184,7 @@ const addSignatures = () => {
   
   // Calculate starting position from RIGHT side
   const rightEdge = rightMargin;
-  const signatureSpacing = 45; // Fixed spacing between signatures
+  const signatureSpacing = 60; // Fixed spacing between signatures
   
   // Start from right edge and work backwards
   const startX = rightEdge - (totalConsultants * signatureSpacing);
@@ -1681,10 +1671,7 @@ const addSignatures = () => {
     setSelectedPatient(patient);
     setIsTestModalOpen(true);
   };
-  const openMBTestModal = (patient) => {
-    setSelectedPatient(patient);
-    setIsMBTestModalOpen(true);
-  };
+  
 
   const showDropdown = (barcode) => {
     setActiveDropdownPatientId(barcode);
@@ -1950,7 +1937,6 @@ const addSignatures = () => {
                 const barcode = patientStatus.barcode || patient.barcode || "N/A";
                 const isPrintMailEnabled = isPrintAndMailEnabled(status);
                 const isSortingEnabledFlag = isSortingEnabled(status);
-                const isMBSortingEnabledFlag = isMBTestSortingEnabled(patient);
                 const badgeColor = getBadgeColor(status);
 
                   return (
@@ -2010,13 +1996,6 @@ const addSignatures = () => {
 </td>                    
                       <td>
                         <ActionContainer>
-                          <ActionButton
-                            onClick={() => openMBTestModal(patient)}
-                            title={isMBSortingEnabledFlag ? "Sort M/B Tests" : "Microbiology not approved"}
-                            disabled={!isMBSortingEnabledFlag}
-                          >
-                            <List size={16} />
-                          </ActionButton>
                           <ActionButton
                             onClick={() => openTestModal(patient)}
                             title="Sort Tests"
@@ -2112,13 +2091,7 @@ const addSignatures = () => {
           onClose={() => setIsTestModalOpen(false)}
         />
       )}
-      {/* M/B Test Sorting Modal */}
-      {isMBTestModalOpen && (
-        <CorporateMBTestSorting
-          patient={selectedPatient}
-          onClose={() => setIsMBTestModalOpen(false)}
-        />
-      )}
+     
       {/* Test Status Modal */}
       <TestStatusModal />
       {/* Credit Amount Modal */}

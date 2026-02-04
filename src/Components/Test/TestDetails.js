@@ -465,7 +465,7 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
 
   // LIVER FUNCTION TEST (test_id 196) calculations
   if (currentTest.test_id === 196) {
-    const totalProtein = valuesByTestCode['05'] || 0; // Total Protein
+    const totalProtein = valuesByTestCode['26'] || 0;  // Total Protein
     const albumin = valuesByTestCode['06'] || 0; // Albumin
     const bilirubinTotal = valuesByTestCode['07'] || 0; // Bilirubin - Total
     const bilirubinDirect = valuesByTestCode['LFT02'] || 0; // Bilirubin - Direct
