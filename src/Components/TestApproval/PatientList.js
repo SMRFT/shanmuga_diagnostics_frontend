@@ -484,6 +484,7 @@ function PatientList() {
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
   const [emergencyFilter, setEmergencyFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
   const [patientList, setPatientList] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -547,6 +548,7 @@ function PatientList() {
     setFromDate(today);
     setToDate(today);
     setEmergencyFilter("all");
+    setLocationFilter("all");
     fetchPatientData(today, today, "all");
     setCurrentPage(1);
   };
@@ -606,40 +608,51 @@ function PatientList() {
   const safePatientList = Array.isArray(patientList) ? patientList : [];
 
   const groupedByBarcode = safePatientList.reduce((acc, patient) => {
-  const barcode = patient.barcode;
-  if (!acc[barcode]) {
-    acc[barcode] = { 
-      ...patient, 
-      testdetails: patient.testdetails ? patient.testdetails.map(test => ({
+    const barcode = patient.barcode;
+    if (!acc[barcode]) {
+      acc[barcode] = { 
+        ...patient, 
+        testdetails: patient.testdetails ? patient.testdetails.map(test => ({
+          ...test,
+          created_date: patient.created_date
+        })) : [],
+        is_emergency: patient.is_emergency || false,
+        patient_history: patient.patient_history || ""
+      };
+    } else {
+      const testsWithCreatedDate = patient.testdetails ? patient.testdetails.map(test => ({
         ...test,
-        created_date: patient.created_date // Add created_date to each test
-      })) : [],
-      is_emergency: patient.is_emergency || false,
-      patient_history: patient.patient_history || ""
-    };
-  } else {
-    // When merging tests from multiple records, preserve their individual created_dates
-    const testsWithCreatedDate = patient.testdetails ? patient.testdetails.map(test => ({
-      ...test,
-      created_date: patient.created_date
-    })) : [];
-    
-    acc[barcode].testdetails = [
-      ...acc[barcode].testdetails,
-      ...testsWithCreatedDate,
-    ];
-  }
-  return acc;
-}, {});
+        created_date: patient.created_date
+      })) : [];
+      
+      acc[barcode].testdetails = [
+        ...acc[barcode].testdetails,
+        ...testsWithCreatedDate,
+      ];
+    }
+    return acc;
+  }, {});
   
   const uniquePatients = Object.values(groupedByBarcode);
 
-  const filteredPatients = uniquePatients.filter(
-    (p) =>
+  // Extract unique locations from patient list
+  const uniqueLocations = useMemo(() => {
+    const locations = uniquePatients
+      .map(p => p.locationId)
+      .filter(loc => loc && loc.trim() !== "");
+    return [...new Set(locations)].sort();
+  }, [uniquePatients]);
+
+  const filteredPatients = uniquePatients.filter((p) => {
+    const matchesSearch = 
       p.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.barcode?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      p.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesLocation = locationFilter === "all" || p.locationId === locationFilter;
+    
+    return matchesSearch && matchesLocation;
+  });
 
   const patientsPerPage = 10;
   const indexOfLastPatient = currentPage * patientsPerPage;
@@ -658,7 +671,8 @@ function PatientList() {
   const showClear =
     (fromDate && formatYmd(fromDate) !== formatYmd(today)) ||
     (toDate && formatYmd(toDate) !== formatYmd(today)) ||
-    emergencyFilter !== "all";
+    emergencyFilter !== "all" ||
+    locationFilter !== "all";
 
   if (error) {
     return (
@@ -730,6 +744,20 @@ function PatientList() {
                 <option value="emergency">Emergency</option>
                 <option value="normal">Normal</option>
               </Select>
+              <Select 
+                value={locationFilter} 
+                onChange={(e) => {
+                  setLocationFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Locations</option>
+                {uniqueLocations.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </Select>
               <FilterButton onClick={handleFilter}>
                 <Filter size={16} /> Apply Filter
               </FilterButton>
@@ -762,6 +790,7 @@ function PatientList() {
                 <th>Date</th>
                 <th>Patient ID</th>
                 <th>Patient Name</th>
+                <th>Location</th>
                 <th>Barcode</th>
                 <th>Age</th>
                 <th>Priority Status</th>
@@ -773,7 +802,7 @@ function PatientList() {
             <TableBody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: "center", padding: "2rem" }}>
+                  <td colSpan={10} style={{ textAlign: "center", padding: "2rem" }}>
                     Loading patient data...
                   </td>
                 </tr>
@@ -783,6 +812,7 @@ function PatientList() {
                     <td>{patient.date ? new Date(patient.date).toLocaleDateString() : "Invalid Date"}</td>
                     <td>{patient.patient_id}</td>
                     <td>{patient.patientname}</td>
+                    <td>{patient.locationId}</td>
                     <td>{patient.barcode}</td>
                     <td>{patient.age}</td>
                     <td>{getPriorityBadge(patient.is_emergency)}</td>
@@ -822,7 +852,7 @@ function PatientList() {
                 ))
               ) : (
                 <tr>
-                  <NoData colSpan={9}>
+                  <NoData colSpan={10}>
                     No patient data available for the selected criteria.
                   </NoData>
                 </tr>

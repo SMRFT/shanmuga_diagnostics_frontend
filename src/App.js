@@ -28,9 +28,9 @@ import TestSorting from "./Components/Report/TestSorting";
 import PatientOverview from "./Components/Report/PatientOverview";
 import CommunicationLogs from "./Components/Report/CommunicationLogs";
 import PatientOverallReport from "./Components/Finance/PatientOverallReport";
-import FranchiseOverview from "./Components/Report/FranchiseOverview";
+import FranchiseOverview from "./Components/Franchise/FranchiseOverview";
 import FranchiseBatchApproval from "./Components/Sample/FranchiseBatchApproval";
-import FranchiseTestSorting from "./Components/Report/FranchiseTestSorting";
+import FranchiseTestSorting from "./Components/Franchise/FranchiseTestSorting";
 import HMSTestSorting from "./Components/HMSReport/HMSTestSorting";
 import HMSPatientOverview from "./Components/HMSReport/HMSPatientOverview";
 import Invoice from "./Components/Finance/Invoice";
@@ -85,6 +85,7 @@ import MBPatientList from "./Components/Microbiology/MBPatientList";
 import MBDoctorForm from "./Components/Microbiology/MBDoctorForm";
 import MBTestSorting from "./Components/Report/MBTestSorting";
 import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
+import FranchiseMBTestSorting from "./Components/Franchise/FranchiseMBTestSorting";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -320,6 +321,7 @@ function App() {
             <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
             <Route path="/FranchiseTestSorting" element={<FranchiseTestSorting />} />
+            <Route path="/FranchiseMBTestSorting" element={<FranchiseMBTestSorting />} />
 
             {/* Corporate Report */}
             <Route path="/CorporateOverview" element={<CorporateOverview />} />

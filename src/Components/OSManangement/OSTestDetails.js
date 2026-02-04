@@ -957,6 +957,8 @@ const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValu
             dispatch_time: "null",
             remarks: parameterRemarks || "",
             verified_by: verified_by,
+            outsourced: true,
+
             parameters: parameters,
           };
         } else {

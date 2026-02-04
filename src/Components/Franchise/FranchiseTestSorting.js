@@ -6,8 +6,6 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-import Dhana from "../Images/Dhana.png";
-import Brindha from "../Images/Brindha.png";
 import apiRequest from "../Auth/apiRequest";
 import { toast } from "react-toastify";
 import {
@@ -167,37 +165,7 @@ const TestName = styled.span`
   }
 `;
 
-const DispatchButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  background-color: ${props => props.dispatched ? '#28A745' : '#DB9BB9'};
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  gap: 6px;
-  margin-left: 10px;
 
-  &:hover {
-    background-color: ${props => props.dispatched ? '#218838' : '#c985a7'};
-    transform: translateY(-2px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
 
 const ModalFooter = styled.div`
   display: flex;
@@ -343,7 +311,7 @@ const LoadingText = styled.p`
   font-weight: 500;
 `;
 
-const HMSTestSorting = ({ patient, onClose }) => {
+const FranchiseTestSorting = ({ patient, onClose }) => {
   const [tests, setTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
   const [selectAllChecked, setSelectAllChecked] = useState(false);
@@ -414,46 +382,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
     fetchTests();
   }, [patient.patient_id, patient.barcode, patient.date]);
 
-  const handleDispatchTest = async (test, e) => {
-    e.stopPropagation(); // Prevent test selection when clicking dispatch
-    
-    try {
-      const response = await apiRequest(
-        `${Labbaseurl}update_dispatch_status/${patient.barcode}/`,
-        "PATCH",
-        {
-          test_id: test.test_id,
-          created_date: test.created_date  // Send the created_date to target specific document
-        },
-        {
-          "Content-Type": "application/json",
-        }
-      );
-
-      if (response.success) {
-        toast.success(`Test "${test.test_name}" dispatched successfully!`);
-        
-        // Update the dispatched tests set
-        setDispatchedTests(prev => {
-          const newSet = new Set(prev);
-          newSet.add(test.test_id);
-          return newSet;
-        });
-        
-        // Update the tests array
-        setTests(prev => prev.map(t => 
-          t.test_id === test.test_id ? { ...t, dispatched: true } : t
-        ));
-      } else {
-        toast.error(`Failed to dispatch test: ${response.error}`);
-      }
-    } catch (error) {
-      console.error("Error dispatching test:", error);
-      toast.error("Failed to dispatch test");
-    }
-  };
-
-  const handleSelectTest = (test) => {
+   const handleSelectTest = (test) => {
     setSelectedTests((prev) => {
       const isSelected = prev.some((t) => t.test_id === test.test_id);
       return isSelected
@@ -480,7 +409,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
     try {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
-        `${Labbaseurl}get_hms_patient_test_details/?barcode=${patient.barcode}`,
+        `${Labbaseurl}franchise_patient_test_details/?barcode=${patient.barcode}`,
         "GET"
       );
 
@@ -667,14 +596,14 @@ const HMSTestSorting = ({ patient, onClose }) => {
       ];
 
       const leftDetails = [
-        { label: "UHID", value: patientDetails.patient_id || "" },
+        { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
         {
           label: "Name",
-          value: patientDetails.patientname || "",
+          value: patientDetails.patientname || "No name provided",
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || ""} ${patientDetails.age_type || ""}/ ${patientDetails.gender || ""}`,
+          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
       ];
@@ -696,12 +625,10 @@ const HMSTestSorting = ({ patient, onClose }) => {
               "dd MMM yy / HH:mm"
             ) || "N/A",
         },
-        ...(patientDetails.testdetails[0].dispatch_time ? [{
-            label: "Released On",
-            value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
-          }] : []),
-                
-                { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
+        {
+          label: "Reported Date",
+          value: format(new Date(), "dd MMM yy / HH:mm"),
+        },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
 
@@ -759,7 +686,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
             doc.text(right.value, rightValueX, patientInfoY);
 
             if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
+              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 10,
                 patientInfoY + 4, 25, 10);
             }
           }
@@ -1436,7 +1363,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
               const isSelected = selectedTests.some(
                 (t) => t.test_id === test.test_id
               );
-              const isDispatched = dispatchedTests.has(test.test_id);
+              
 
               return (
                 <TestItem
@@ -1452,15 +1379,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
                       {test.NABL && <span className="nabl-asterisk">*</span>}
                     </TestName>
                   </TestInfo>
-                  <DispatchButton
-                    dispatched={isDispatched}
-                    onClick={(e) => handleDispatchTest(test, e)}
-                    disabled={isDispatched}
-                    title={isDispatched ? "Already Dispatched" : "Dispatch Test"}
-                  >
-                    <Flag size={14} />
-                    {isDispatched ? "Dispatched" : "Dispatch"}
-                  </DispatchButton>
+                
                 </TestItem>
               );
             })
@@ -1505,4 +1424,4 @@ const HMSTestSorting = ({ patient, onClose }) => {
   );
 };
 
-export default HMSTestSorting;
+export default FranchiseTestSorting;
