@@ -486,6 +486,7 @@ const ResultBadge = styled.span`
   background-color: ${props => 
     props.type === 'Sensitive' ? '#4caf50' : 
     props.type === 'Intermediate' ? '#ff9800' : 
+    props.type === 'Nil' ? '#0f0d0a' : 
     '#f44336'};
   color: white;
 `;
@@ -1192,6 +1193,7 @@ const remarksOptions = [
                                 style={{
                                   color: (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Sensitive' ? '#4caf50' : 
                                          (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Intermediate' ? '#ff9800' : 
+                                         (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Nil' ? '#151310' : 
                                          '#f44336',
                                   fontWeight: '600'
                                 }}
@@ -1199,6 +1201,7 @@ const remarksOptions = [
                                 <option value="Sensitive" style={{ color: '#4caf50' }}>Sensitive</option>
                                 <option value="Intermediate" style={{ color: '#ff9800' }}>Intermediate</option>
                                 <option value="Resistant" style={{ color: '#f44336' }}>Resistant</option>
+                                <option value="Nil" style={{ color: '#1f1a1a' }}>Nil</option>
                               </Select>
                               <SelectIcon size={18} />
                             </SelectWrapper>
@@ -1396,6 +1399,7 @@ const remarksOptions = [
                                             style={{
                                               color: (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Sensitive' ? '#4caf50' : 
                                                      (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Intermediate' ? '#ff9800' : 
+                                                     (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Nil' ? '#100e0b' : 
                                                      '#f44336',
                                               fontWeight: '600'
                                             }}
@@ -1403,6 +1407,7 @@ const remarksOptions = [
                                             <option value="Sensitive" style={{ color: '#4caf50' }}>Sensitive</option>
                                             <option value="Intermediate" style={{ color: '#ff9800' }}>Intermediate</option>
                                             <option value="Resistant" style={{ color: '#f44336' }}>Resistant</option>
+                                            <option value="Nil" style={{ color: '#111010' }}>Nil</option>
                                           </Select>
                                           <SelectIcon size={18} />
                                         </SelectWrapper>
