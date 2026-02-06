@@ -718,59 +718,65 @@ const HMSTestSorting = ({ patient, onClose }) => {
       let isTableStarted = false;
 
       const addPatientInfo = (yPos) => {
-        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-        const centerPoint = (leftMargin + rightMargin) / 2;
-        const leftLabelX = leftMargin;
-        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-        const leftValueX = leftColonX + 3;
-        const rightLabelX = centerPoint + 28;
-        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-        const rightValueX = rightColonX + 1;
+  const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+  const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+  const centerPoint = (leftMargin + rightMargin) / 2;
+  const leftLabelX = leftMargin;
+  const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+  const leftValueX = leftColonX + 3;
+  const rightLabelX = centerPoint + 28;
+  const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+  const rightValueX = rightColonX + 1;
 
-        doc.setFontSize(10);
-        let patientInfoY = yPos;
+  doc.setFontSize(10);
+  let patientInfoY = yPos;
 
-        for (let i = 0; i < leftDetails.length; i++) {
-          const left = leftDetails[i];
-          const right = rightDetails[i];
+  // FIX: Use the maximum length of both arrays
+  const maxLength = Math.max(leftDetails.length, rightDetails.length);
 
-          // Handle left side
-          doc.setFont("helvetica", "bold");
-          doc.text(left.label, leftLabelX, patientInfoY);
-          doc.text(":", leftColonX, patientInfoY);
-          doc.setFont("helvetica", "normal");
+  for (let i = 0; i < maxLength; i++) {
+    const left = leftDetails[i];
+    const right = rightDetails[i];
 
-          // Wrap left value to prevent overlap with right side
-          const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-          const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+    // Handle left side (only if exists)
+    if (left) {
+      doc.setFont("helvetica", "bold");
+      doc.text(left.label, leftLabelX, patientInfoY);
+      doc.text(":", leftColonX, patientInfoY);
+      doc.setFont("helvetica", "normal");
 
-          leftValueLines.forEach((line, lineIndex) => {
-            doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
-          });
+      const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+      const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
 
-          const leftRowHeight = leftValueLines.length * 4;
+      leftValueLines.forEach((line, lineIndex) => {
+        doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
+      });
 
-          // Handle right side
-          if (right) {
-            doc.setFont("helvetica", "bold");
-            doc.text(right.label, rightLabelX, patientInfoY);
-            doc.text(":", rightColonX, patientInfoY);
-            doc.setFont("helvetica", "normal");
-            doc.text(right.value, rightValueX, patientInfoY);
+      var leftRowHeight = leftValueLines.length * 4;
+    } else {
+      var leftRowHeight = 5; // Default height when no left detail
+    }
 
-            if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
-                patientInfoY + 4, 25, 10);
-            }
-          }
+    // Handle right side (only if exists)
+    if (right) {
+      doc.setFont("helvetica", "bold");
+      doc.text(right.label, rightLabelX, patientInfoY);
+      doc.text(":", rightColonX, patientInfoY);
+      doc.setFont("helvetica", "normal");
+      doc.text(right.value, rightValueX, patientInfoY);
 
-          // Move to next row
-          patientInfoY += Math.max(leftRowHeight, 5);
-        }
+      if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
+        doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
+          patientInfoY + 4, 25, 10);
+      }
+    }
 
-        return patientInfoY;
-      };
+    // Move to next row
+    patientInfoY += Math.max(leftRowHeight, 5);
+  }
+
+  return patientInfoY;
+};
 
       const addHeaderFooter = () => {
         if (withLetterpad) {

@@ -639,7 +639,11 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
               "dd MMM yy / HH:mm"
             ) || "N/A",
         },
-        
+         ...(patientDetails.testdetails[0].dispatch_time && 
+      patientDetails.testdetails[0].dispatch_time !== "null" ? [{
+    label: "Released On",
+    value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
+  }] : []),
         {
           label: "Reported Date",
           value: format(new Date(), "dd MMM yy / HH:mm"),
@@ -659,59 +663,65 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       let isTableStarted = false;
 
       const addPatientInfo = (yPos) => {
-        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-        const centerPoint = (leftMargin + rightMargin) / 2;
-        const leftLabelX = leftMargin;
-        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-        const leftValueX = leftColonX + 3;
-        const rightLabelX = centerPoint + 28;
-        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-        const rightValueX = rightColonX + 1;
+  const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+  const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+  const centerPoint = (leftMargin + rightMargin) / 2;
+  const leftLabelX = leftMargin;
+  const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+  const leftValueX = leftColonX + 3;
+  const rightLabelX = centerPoint + 28;
+  const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+  const rightValueX = rightColonX + 1;
 
-        doc.setFontSize(10);
-        let patientInfoY = yPos;
+  doc.setFontSize(10);
+  let patientInfoY = yPos;
 
-        for (let i = 0; i < leftDetails.length; i++) {
-          const left = leftDetails[i];
-          const right = rightDetails[i];
+  // FIX: Use the maximum length of both arrays
+  const maxLength = Math.max(leftDetails.length, rightDetails.length);
 
-          // Handle left side
-          doc.setFont("helvetica", "bold");
-          doc.text(left.label, leftLabelX, patientInfoY);
-          doc.text(":", leftColonX, patientInfoY);
-          doc.setFont("helvetica", "normal");
+  for (let i = 0; i < maxLength; i++) {
+    const left = leftDetails[i];
+    const right = rightDetails[i];
 
-          // Wrap left value to prevent overlap with right side
-          const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-          const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+    // Handle left side (only if exists)
+    if (left) {
+      doc.setFont("helvetica", "bold");
+      doc.text(left.label, leftLabelX, patientInfoY);
+      doc.text(":", leftColonX, patientInfoY);
+      doc.setFont("helvetica", "normal");
 
-          leftValueLines.forEach((line, lineIndex) => {
-            doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
-          });
+      const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+      const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
 
-          const leftRowHeight = leftValueLines.length * 4;
+      leftValueLines.forEach((line, lineIndex) => {
+        doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
+      });
 
-          // Handle right side
-          if (right) {
-            doc.setFont("helvetica", "bold");
-            doc.text(right.label, rightLabelX, patientInfoY);
-            doc.text(":", rightColonX, patientInfoY);
-            doc.setFont("helvetica", "normal");
-            doc.text(right.value, rightValueX, patientInfoY);
+      var leftRowHeight = leftValueLines.length * 4;
+    } else {
+      var leftRowHeight = 5; // Default height when no left detail
+    }
 
-            if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 10,
-                patientInfoY + 4, 25, 10);
-            }
-          }
+    // Handle right side (only if exists)
+    if (right) {
+      doc.setFont("helvetica", "bold");
+      doc.text(right.label, rightLabelX, patientInfoY);
+      doc.text(":", rightColonX, patientInfoY);
+      doc.setFont("helvetica", "normal");
+      doc.text(right.value, rightValueX, patientInfoY);
 
-          // Move to next row
-          patientInfoY += Math.max(leftRowHeight, 5);
-        }
+      if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
+        doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
+          patientInfoY + 4, 25, 10);
+      }
+    }
 
-        return patientInfoY;
-      };
+    // Move to next row
+    patientInfoY += Math.max(leftRowHeight, 5);
+  }
+
+  return patientInfoY;
+};
 
       const addHeaderFooter = () => {
         if (withLetterpad) {
@@ -742,7 +752,16 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       };
 
       const drawMicrobiologyTableHeader = (yPos) => {
+        // Top border of table
+        doc.setDrawColor(0, 0, 0); // Black color
         doc.line(leftMargin, yPos, rightMargin, yPos);
+        
+        // Left border
+        doc.line(leftMargin, yPos, leftMargin, yPos + 13);
+        
+        // Right border
+        doc.line(rightMargin, yPos, rightMargin, yPos + 13);
+        
         yPos += 5;
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
@@ -753,22 +772,28 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           "Zone of Inhibition (mm)",
         ];
         
-        let xPos = leftMargin;
+        const headerPadding = 2; // Left padding for first column
+        let xPos = leftMargin + headerPadding;
+        
         headers.forEach((header, index) => {
-          if (index === 2) {
+          if (index === 0) {
+            // First column with padding
+            doc.text(header, xPos, yPos);
+            xPos = leftMargin + microbiologyColWidths[0]; // Reset to column boundary
+          } else if (index === 2) {
             // Center the "Zone of Inhibition (mm)" header
             const headerWidth = microbiologyColWidths[index];
             const textWidth = doc.getTextWidth(header);
             doc.text(header, xPos + (headerWidth - textWidth) / 2, yPos);
           } else {
             doc.text(header, xPos, yPos);
+            xPos += microbiologyColWidths[index];
           }
-          xPos += microbiologyColWidths[index];
         });
         
         yPos += 3;
         doc.line(leftMargin, yPos, rightMargin, yPos);
-        yPos += 5;
+        yPos += 7;
         return yPos;
       };
 
@@ -890,17 +915,35 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           doc.text(test.testname, leftMargin, yPos);
           yPos += 6;
 
+          // Calculate max label width for proper alignment
+          const testLabels = [
+            "Specimen Type",
+            "Colony Count",
+            test.is_AG_title ? "Sputum for AFB" : "Organism Isolated"
+          ];
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          const maxLabelWidth = Math.max(...testLabels.map(label => doc.getTextWidth(label)));
+          const colonX = leftMargin + maxLabelWidth + 2;
+          const valueX = colonX + 3;
+
           // Display Specimen Type
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
-          doc.text(`Specimen Type: ${test.specimen_type || "N/A"}`, leftMargin, yPos);
+          doc.text("Specimen Type", leftMargin, yPos);
+          doc.text(":", colonX, yPos);
+          doc.setFont("helvetica", "normal");
+          doc.text(test.specimen_type || "N/A", valueX, yPos);
           yPos += 6;
 
           // Display Colony Count (if exists)
           if (test.colony_count && test.colony_count.trim() !== "") {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
-            doc.text(`Colony Count: ${test.colony_count}`, leftMargin, yPos);
+            doc.text("Colony Count", leftMargin, yPos);
+            doc.text(":", colonX, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text(test.colony_count, valueX, yPos);
             yPos += 6;
           }
 
@@ -909,8 +952,11 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
             // Check is_AG_title to determine the label
-            const remarksLabel = test.is_AG_title ? "Sputum for AFB:" : "Organism Isolated:";
-            doc.text(`${remarksLabel} ${test.remarks}`, leftMargin, yPos);
+            const remarksLabel = test.is_AG_title ? "Sputum for AFB" : "Organism Isolated";
+            doc.text(remarksLabel, leftMargin, yPos);
+            doc.text(":", colonX, yPos);
+            doc.setFont("helvetica", "normal");
+            doc.text(test.remarks, valueX, yPos);
             yPos += 6;
           } else {
             yPos += 2;
@@ -919,26 +965,34 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           // Only draw table header if parameters exist
           if (test.parameters && test.parameters.length > 0) {
             doc.setFont("helvetica", "normal");
+            const tableStartY = yPos;
             yPos = drawMicrobiologyTableHeader(yPos);
 
             // Render parameters
-            test.parameters.forEach((param) => {
-              const paramHeight = 8;
+            const validParameters = test.parameters.filter(param => param.result !== "Nil");
+            
+            validParameters.forEach((param, paramIndex) => {
+              const paramHeight = 11;
               // Pass true to indicate we need table header if page breaks
               yPos = checkForNewPage(yPos, paramHeight, true);
 
               doc.setFontSize(10);
               doc.setFont("helvetica", "normal");
 
-              let xPos = leftMargin;
+              const paramPadding = 2; // Left padding for parameter names
+              let xPos = leftMargin + paramPadding;
 
               // Check if zone value exists to determine if we should bold
               const hasZoneValue = param.value && param.value.trim() !== "";
 
-              // Antimicrobial (test_name)
+              // Draw left border
+              doc.setDrawColor(0, 0, 0);
+              doc.line(leftMargin, yPos - 4, leftMargin, yPos + 2);
+
+              // Antimicrobial (test_name) - with padding
               const antimicrobialText = param.test_name || "";
-              renderWrappedText(doc, antimicrobialText, microbiologyColWidths[0] - 2, xPos, yPos);
-              xPos += microbiologyColWidths[0];
+              renderWrappedText(doc, antimicrobialText, microbiologyColWidths[0] - paramPadding - 2, xPos, yPos);
+              xPos = leftMargin + microbiologyColWidths[0]; // Reset to column boundary
 
               // Result - make bold if zone value exists
               if (hasZoneValue) {
@@ -957,9 +1011,24 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
                 doc.text(zoneText, centeredX, yPos);
               }
 
+              // Draw right border
+              doc.line(rightMargin, yPos - 4, rightMargin, yPos + 2);
+
               // Reset font to normal
               doc.setFont("helvetica", "normal");
-              yPos += 6;
+              yPos += 4;
+
+              // Draw grey dotted line for parameter separation (skip for last parameter)
+              const isLastParameter = paramIndex === validParameters.length - 1;
+              if (!isLastParameter) {
+                doc.setDrawColor(128, 128, 128); // Grey color
+                doc.setLineDash([1, 1]); // Dotted pattern
+                doc.line(leftMargin, yPos, rightMargin, yPos);
+                doc.setLineDash([]); // Reset to solid line
+                doc.setDrawColor(0, 0, 0); // Reset to black
+              }
+              
+              yPos += 5;
 
               // Add comment for parameter if exists
               if (param.comment && param.comment.trim() !== "") {
@@ -981,6 +1050,10 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
             });
+
+            // Draw bottom border of table
+            doc.setDrawColor(0, 0, 0);
+            doc.line(leftMargin, yPos - 4, rightMargin, yPos - 4);
           }
 
           // Add comment for main test (if no parameters and comment exists)
@@ -1001,7 +1074,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
 
           // Display "Verified by"
           if (test.verified_by && test.verified_by.trim() !== "") {
-            yPos += 4;
+            yPos += 14;
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
