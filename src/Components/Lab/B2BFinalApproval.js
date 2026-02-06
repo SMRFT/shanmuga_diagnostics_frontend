@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiRequest from '../Auth/apiRequest';
 import { toast } from 'react-toastify';
 import { CheckCircle, Loader2, AlertCircle, User, Calendar, Tag, Code } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
@@ -238,14 +238,19 @@ const B2BFinalApproval = () => {
   useEffect(() => {
     fetchPendingApprovals();
   }, []);
-  
+
   const fetchPendingApprovals = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${Labbaseurl}clinical-names/?status=PENDING_FINAL`);
-      // console.log('API Response:', response.data);
-      setPendingApprovals(response.data);
-      setError(null);
+      const response = await apiRequest(`${Labbaseurl}clinical-names/?status=PENDING_FINAL`, 'GET');
+
+      if (response.success) {
+        setPendingApprovals(response.data);
+        setError(null);
+      } else {
+        setError(response.error || 'Failed to fetch pending final approvals');
+        toast.error(response.error || 'Error fetching pending final approvals');
+      }
     } catch (error) {
       console.error('Error fetching approvals:', error);
       setError('Failed to fetch pending final approvals');
@@ -254,10 +259,10 @@ const B2BFinalApproval = () => {
       setLoading(false);
     }
   };
-  
+
   const handleFinalApprove = async (approval) => {
     const { referrerCode, clinicalname } = approval;
-    
+
     if (!referrerCode) {
       toast.error("Invalid referrer code");
       return;
@@ -265,29 +270,34 @@ const B2BFinalApproval = () => {
 
     try {
       setProcessingApproval(referrerCode);
-      await axios.patch(
-        `${Labbaseurl}clinical-names/${referrerCode}/final_approve/`
+      const response = await apiRequest(
+        `${Labbaseurl}clinical-names/${referrerCode}/final_approve/`,
+        'PATCH'
       );
-      
-      // Custom success toast message
-      toast.success(`"${clinicalname || referrerCode}" was finally approved!`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      
-      fetchPendingApprovals(); // Refresh the list
+
+      if (response.success) {
+        // Custom success toast message
+        toast.success(`"${clinicalname || referrerCode}" was finally approved!`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        fetchPendingApprovals(); // Refresh the list
+      } else {
+        toast.error("Final Approval Failed: " + (response.error || "Unknown error"));
+      }
     } catch (error) {
-      console.error("Final Approval Failed:", error.response?.data);
-      toast.error("Final Approval Failed: " + (error.response?.data?.error || "Unknown error"));
+      console.error("Final Approval Failed:", error);
+      toast.error("Final Approval Failed: Unknown error");
     } finally {
       setProcessingApproval(null);
     }
   };
-  
+
   if (loading) {
     return (
       <Container>
@@ -298,7 +308,7 @@ const B2BFinalApproval = () => {
       </Container>
     );
   }
-  
+
   if (error) {
     return (
       <Container>
@@ -309,7 +319,7 @@ const B2BFinalApproval = () => {
       </Container>
     );
   }
-  
+
   return (
     <>
       <GlobalStyle />
@@ -322,7 +332,7 @@ const B2BFinalApproval = () => {
               Refresh
             </Button>
           </CardHeader>
-          
+
           <CardBody>
             {pendingApprovals.length === 0 ? (
               <EmptyState>
@@ -355,7 +365,7 @@ const B2BFinalApproval = () => {
                         </Badge>
                       </Td>
                       <Td style={{ textAlign: 'right' }}>
-                        <Button 
+                        <Button
                           success
                           onClick={() => handleFinalApprove(approval)}
                           disabled={processingApproval === approval.referrerCode}

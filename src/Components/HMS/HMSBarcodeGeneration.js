@@ -191,6 +191,12 @@ const TableBody = styled.tbody``;
 const TableRow = styled.tr`
   border-bottom: 1px solid #e2e8f0;
   transition: background-color 0.2s ease;
+  background-color: ${(props) =>
+    props.ipop === "IP"
+      ? "#fff1f2"
+      : props.ipop === "OP"
+        ? "#f0fdf4"
+        : "white"};
 
   &:hover {
     background-color: #f8fafc;
@@ -200,6 +206,7 @@ const TableRow = styled.tr`
     border-bottom: none;
   }
 `;
+
 
 const TableCell = styled.td`
   padding: 1rem 1.5rem;
@@ -319,19 +326,20 @@ const HMSBarcodeGeneration = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [ipopFilter, setIpopFilter] = useState("ALL");
+
   const patientsPerPage = 15; // Increased for table layout
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
 
-  
+
   const fetchPatients = async () => {
-      const fromDateStr = fromDate.toISOString().split("T")[0];
-      const toDateStr = toDate.toISOString().split("T")[0];
+    const fromDateStr = fromDate.toISOString().split("T")[0];
+    const toDateStr = toDate.toISOString().split("T")[0];
     setIsLoading(true);
     try {
       const response = await apiRequest(
-        `${Labbaseurl}hms_patients_get_barcode/?from_date=${
-          fromDateStr}&to_date=${toDateStr}`,
+        `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
         "GET"
       );
 
@@ -366,35 +374,35 @@ const HMSBarcodeGeneration = () => {
     }
   };
 
-  
 
-const handleGenerateBarcode = (patient, e) => {
-  e.stopPropagation();
 
-  // Convert patient.date → YYYY-MM-DD (IST-safe)
-  const d = new Date(patient.date);
-  const selectedDateStr = [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, "0"),
-    String(d.getDate()).padStart(2, "0"),
-  ].join("-");
+  const handleGenerateBarcode = (patient, e) => {
+    e.stopPropagation();
 
-  navigate("/HMSBarcodeTestDetails", {
-    state: {
-      patientId: patient.patient_id,
-      patientName: patient.patientname,
-      age: patient.age,
-      gender: patient.gender,
-      bill_no: patient.bill_no,
+    // Convert patient.date → YYYY-MM-DD (IST-safe)
+    const d = new Date(patient.date);
+    const selectedDateStr = [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, "0"),
+      String(d.getDate()).padStart(2, "0"),
+    ].join("-");
 
-      // ✅ send STRING, not Date object
-      selectedDate: selectedDateStr,
+    navigate("/HMSBarcodeTestDetails", {
+      state: {
+        patientId: patient.patient_id,
+        patientName: patient.patientname,
+        age: patient.age,
+        gender: patient.gender,
+        bill_no: patient.bill_no,
 
-      fromDate: fromDate.toISOString().split("T")[0],
-      toDate: toDate.toISOString().split("T")[0],
-    },
-  });
-};
+        // ✅ send STRING, not Date object
+        selectedDate: selectedDateStr,
+
+        fromDate: fromDate.toISOString().split("T")[0],
+        toDate: toDate.toISOString().split("T")[0],
+      },
+    });
+  };
 
 
   const handleApplyDateRange = () => {
@@ -409,27 +417,31 @@ const handleGenerateBarcode = (patient, e) => {
 
   // Filter patients based on search term
   useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredPatients(allPatients);
-    } else {
-      const filtered = allPatients.filter((patient) => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          patient.patientname?.toLowerCase().includes(searchLower) ||
-          patient.patient_id?.toLowerCase().includes(searchLower) ||
-          patient.bill_no?.toString().includes(searchLower) ||
-          patient.age?.toString().includes(searchLower) ||
-          patient.gender?.toLowerCase().includes(searchLower)
-        );
-      });
-      setFilteredPatients(filtered);
+    let filtered = allPatients;
+
+    if (searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((patient) =>
+        patient.patientname?.toLowerCase().includes(searchLower) ||
+        patient.patient_id?.toLowerCase().includes(searchLower) ||
+        patient.bill_no?.toString().includes(searchLower) ||
+        patient.age?.toString().includes(searchLower) ||
+        patient.gender?.toLowerCase().includes(searchLower)
+      );
     }
 
+    if (ipopFilter !== "ALL") {
+      filtered = filtered.filter(
+        (patient) => patient.IPOPType === ipopFilter
+      );
+    }
+
+    setFilteredPatients(filtered);
     setCurrentPage(1);
-    setTotalPages(
-      Math.max(1, Math.ceil(filteredPatients.length / patientsPerPage))
-    );
-  }, [searchTerm, allPatients]);
+    setTotalPages(Math.max(1, Math.ceil(filtered.length / patientsPerPage)));
+
+  }, [searchTerm, ipopFilter, allPatients]);
+
 
   // Update displayed patients based on current page
   useEffect(() => {
@@ -444,18 +456,18 @@ const handleGenerateBarcode = (patient, e) => {
     handleApplyDateRange();
   }, []);
 
-// Format date as DD/MM/YYYY (IST-safe)
-const formatDate = (dateString) => {
-  if (!dateString) return "";
+  // Format date as DD/MM/YYYY (IST-safe)
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
 
-  const date = new Date(dateString);
+    const date = new Date(dateString);
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
 
-  return `${day}/${month}/${year}`;
-};
+    return `${day}/${month}/${year}`;
+  };
 
 
   const getGenderBadgeStyle = (gender) => {
@@ -515,17 +527,36 @@ const formatDate = (dateString) => {
       </PageHeader>
 
       <ControlsContainer>
-        <SearchContainer>
-          <SearchIcon>
-            <Search size={16} />
-          </SearchIcon>
-          <SearchInput
-            type="text"
-            placeholder="Search by ID, Name, bill no, age..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </SearchContainer>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <SearchContainer>
+            <SearchIcon>
+              <Search size={16} />
+            </SearchIcon>
+            <SearchInput
+              type="text"
+              placeholder="Search by ID, Name, bill no, age..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </SearchContainer>
+
+          <select
+            value={ipopFilter}
+            onChange={(e) => setIpopFilter(e.target.value)}
+            style={{
+              padding: "0.75rem 1rem",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              background: "#f8fafc",
+              fontWeight: 600,
+            }}
+          >
+            <option value="ALL">All</option>
+            <option value="IP">IP</option>
+            <option value="OP">OP</option>
+          </select>
+        </div>
+
 
         <DateRangeContainer>
           <DateInputGroup>
@@ -573,7 +604,7 @@ const formatDate = (dateString) => {
                 <TableHeaderCell>Patient Name</TableHeaderCell>
                 <TableHeaderCell>Age</TableHeaderCell>
                 <TableHeaderCell>Gender</TableHeaderCell>
-
+                <TableHeaderCell>IP/OP</TableHeaderCell>
                 <TableHeaderCell>Bill No</TableHeaderCell>
                 <TableHeaderCell>Action</TableHeaderCell>
               </TableHeaderRow>
@@ -583,7 +614,8 @@ const formatDate = (dateString) => {
                 const genderStyle = getGenderBadgeStyle(patient.gender);
 
                 return (
-                  <TableRow key={index}>
+                  <TableRow key={index} ipop={patient.IPOPType}>
+
                     <TableCell>{formatDate(patient.date)}</TableCell>
                     <TableCell>{patient.patient_id}</TableCell>
                     <TableCell>
@@ -612,6 +644,20 @@ const formatDate = (dateString) => {
                       </Badge>
                     </TableCell>
 
+                    <TableCell>
+                      <Badge
+                        style={{
+                          backgroundColor:
+                            patient.IPOPType === "IP" ? "#fee2e2" : "#dcfce7",
+                          color:
+                            patient.IPOPType === "IP" ? "#b91c1c" : "#166534",
+                        }}
+                      >
+                        {patient.IPOPType || "-"}
+                      </Badge>
+                    </TableCell>
+
+
                     <TableCell>{patient.bill_no || "-"}</TableCell>
                     <TableCell>
                       <ActionButton
@@ -634,8 +680,8 @@ const formatDate = (dateString) => {
             {searchTerm
               ? "No matching patients found. Try a different search term."
               : isLoading
-              ? "Loading patients..."
-              : "No patients found for the selected date range."}
+                ? "Loading patients..."
+                : "No patients found for the selected date range."}
           </EmptyStateText>
         </EmptyState>
       )}
