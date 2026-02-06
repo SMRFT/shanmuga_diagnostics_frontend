@@ -488,7 +488,7 @@ const HMSBarcodeTestDetails = () => {
       setIsGenerating(true);
 
       // Extract barcode from bill number and bill type
-      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.bill_type || bill_type);
+      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.BillType || bill_type);
 
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
@@ -587,7 +587,7 @@ const HMSBarcodeTestDetails = () => {
       setIsGenerating(true);
 
       // Extract barcode from bill number and bill type
-      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.bill_type || bill_type);
+      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.BillType || bill_type);
 
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
@@ -805,7 +805,7 @@ const HMSBarcodeTestDetails = () => {
       );
 
       // Generate barcode immediately from bill number and bill type
-      const generatedBarcode = extractBarcodeFromBillNo(bill_no, patientData.bill_type || bill_type);
+      const generatedBarcode = extractBarcodeFromBillNo(bill_no, patientData.BillType || bill_type);
       if (generatedBarcode) {
         const updatedTestDetails = (patientData.testdetails || []).map((test) => ({
           ...test,
@@ -904,7 +904,7 @@ const HMSBarcodeTestDetails = () => {
                   <InfoLabel>Generated Barcode</InfoLabel>
                   <InfoValue>
                     <BarcodeScan size={14} />
-                    {extractBarcodeFromBillNo(bill_no, selectedPatient?.bill_type || bill_type)}
+                    {extractBarcodeFromBillNo(bill_no, selectedPatient?.BillType || bill_type)}
                   </InfoValue>
                 </PatientInfoItem>
               </PatientInfoGrid>
