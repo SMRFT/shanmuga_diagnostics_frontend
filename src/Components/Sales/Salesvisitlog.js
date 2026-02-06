@@ -17,6 +17,7 @@ import {
   FaMapMarkerAlt,
   FaTag,
   FaComments,
+  FaCamera,
 } from "react-icons/fa";
 import HospitalLabForm from "../Sales/HospitalLabForm";
 
@@ -479,6 +480,96 @@ const SalesVisitLog = () => {
     comments: "",
   });
 
+  const [visitImage, setVisitImage] = useState(null);
+  const [location, setLocation] = useState({ latitude: "", longitude: "" });
+  const [isLocating, setIsLocating] = useState(false);
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const startCamera = async () => {
+    setIsCameraOpen(true);
+    setVisitImage(null);
+    setPreviewUrl(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
+      // Small timeout to ensure ref is mounted before assigning stream
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      console.error("Camera Error:", err);
+      setMessage({ type: "danger", text: "Camera access denied or unavailable." });
+      setIsCameraOpen(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraOpen(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+
+      // Draw video frame to canvas
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `visit_capture_${Date.now()}.jpg`, { type: "image/jpeg" });
+          setVisitImage(file);
+          setPreviewUrl(URL.createObjectURL(blob));
+          stopCamera();
+          getLocation(); // Auto get location after capture
+        }
+      }, "image/jpeg", 0.8);
+    }
+  };
+
+  const getLocation = () => {
+    if (!navigator.geolocation) {
+      setMessage({ type: "danger", text: "Geolocation is not supported by your browser" });
+      setTimeout(() => handleCloseAlert(), 3000);
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        setIsLocating(false);
+        setMessage({ type: "success", text: "Image & Location captured successfully!" });
+        setTimeout(() => handleCloseAlert(), 3000);
+      },
+      (error) => {
+        setIsLocating(false);
+        console.error("Error getting location:", error);
+        setMessage({ type: "danger", text: "Unable to retrieve your location. Please enable location services." });
+        setTimeout(() => handleCloseAlert(), 3000);
+      }
+    );
+  };
+
+
   // Fetch current time every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -613,23 +704,33 @@ const SalesVisitLog = () => {
       const formattedDate = format(zonedDate, "yyyy-MM-dd");
       const formattedTime = format(zonedDate, "HH:mm:ss");
 
-      const postData = {
-        ...formData,
-        date: formattedDate,
-        time: formattedTime,
-      };
+      const formDataToSend = new FormData();
 
-      // API call with axios; adjust if your backend needs token headers
-      // const response = await axios.post(`${Labbaseurl}SalesVisitLog/`, postData);
+      // Append all form fields
+      Object.keys(formData).forEach(key => {
+        formDataToSend.append(key, formData[key]);
+      });
 
+      formDataToSend.append("date", formattedDate);
+      formDataToSend.append("time", formattedTime);
+
+      if (location.latitude && location.longitude) {
+        formDataToSend.append("latitude", location.latitude);
+        formDataToSend.append("longitude", location.longitude);
+      }
+
+      if (visitImage) {
+        formDataToSend.append("visit_image", visitImage);
+      }
 
       const response = await apiRequest(
         `${Labbaseurl}SalesVisitLog/`,
         "POST",
-        postData
+        formDataToSend,
+        { "Content-Type": undefined }
       );
 
-      if (response.status === 200 || response.status === 201) {
+      if (response.success || response.status === 200 || response.status === 201) {
         setMessage({ type: "success", text: "Sales Visit form submitted successfully!" });
         setTimeout(() => { handleCloseAlert(); }, 3000);
 
@@ -645,6 +746,9 @@ const SalesVisitLog = () => {
           noOfVisits: "",
           comments: "",
         });
+        setVisitImage(null);
+        setPreviewUrl(null);
+        setLocation({ latitude: "", longitude: "" });
         setSearchTerm("");
       } else {
         setMessage({ type: "danger", text: "Failed to submit Sales Visit form." });
@@ -852,7 +956,99 @@ const SalesVisitLog = () => {
               />
             </FormGroup>
           </FormSection>
-          <Button type="submit">Submit</Button>
+
+          <FormSection>
+            <FormGroup>
+              <Label>
+                <FaCamera /> Visit Image & Location
+              </Label>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                {!isCameraOpen && !visitImage && (
+                  <Button type="button" onClick={startCamera}>
+                    <FaCamera /> Open Camera to Capture
+                  </Button>
+                )}
+
+                {isCameraOpen && (
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "10px",
+                    background: "#000",
+                    padding: "10px",
+                    borderRadius: "8px"
+                  }}>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      style={{ width: "100%", maxWidth: "400px", borderRadius: "8px" }}
+                    />
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <Button type="button" onClick={capturePhoto} style={{ background: theme.success }}>
+                        Capture
+                      </Button>
+                      <Button type="button" onClick={stopCamera} style={{ background: theme.error }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hidden canvas for capture processing */}
+                <canvas ref={canvasRef} style={{ display: "none" }} />
+
+                {visitImage && !isCameraOpen && (
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    padding: "10px",
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: "8px",
+                    background: theme.secondary
+                  }}>
+                    {previewUrl && (
+                      <img
+                        src={previewUrl}
+                        alt="Captured Visit"
+                        style={{ width: "100%", maxWidth: "300px", borderRadius: "8px", border: "1px solid #ddd" }}
+                      />
+                    )}
+
+                    <div style={{ fontSize: "0.9rem", color: theme.text }}>
+                      <strong>Captured:</strong> {visitImage.name}
+                    </div>
+
+                    {isLocating && (
+                      <span style={{ color: theme.primary, display: "flex", alignItems: "center", gap: "6px" }}>
+                        <FaMapMarkerAlt /> Acquiring location...
+                      </span>
+                    )}
+
+                    {location.latitude && (
+                      <div style={{ color: theme.success, fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <FaMapMarkerAlt />
+                        <strong>Location:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                      </div>
+                    )}
+
+                    <Button
+                      type="button"
+                      onClick={startCamera}
+                      style={{ background: theme.primary, alignSelf: "flex-start" }}
+                    >
+                      <FaCamera /> Retake Photo
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </FormGroup>
+          </FormSection>
+
+          <Button type="submit">Submit Log</Button>
         </Form>
         <HospitalLabForm
           show={showModal}

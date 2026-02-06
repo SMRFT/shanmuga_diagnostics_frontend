@@ -1681,26 +1681,37 @@ const PatientForm = () => {
       } else {
         // Appointment or new patient - create both patient and bill
         try {
-          const formDataToSend = new FormData()
-
-          Object.keys(baseData).forEach((key) => {
-            if (key === "address") {
-              formDataToSend.append(key, JSON.stringify(baseData[key]))
-            } else if (key === "emergency") {
-              formDataToSend.append(key, baseData[key].toString())
-            } else {
-              formDataToSend.append(key, baseData[key])
-            }
-          })
-
-          if (prescriptionFile) {
-            formDataToSend.append("prescription", prescriptionFile)
-          }
-
-          const patientResult = await apiRequest(`${Labbaseurl}create_patient/`, "POST", formDataToSend, true)
+          // Send patient data as JSON (correctly handles address object)
+          const patientResult = await apiRequest(`${Labbaseurl}create_patient/`, "POST", baseData)
 
           if (patientResult && patientResult.success) {
-            const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData)
+            let billPayload = billData
+            let headers = {}
+
+            // If prescription file exists, use FormData for create_bill
+            if (prescriptionFile) {
+              const billFormData = new FormData()
+
+              Object.keys(billData).forEach((key) => {
+                const value = billData[key]
+                if (value === null || value === undefined) return
+
+                // Stringify complex objects/arrays for backend parsing
+                if (typeof value === "object" && !(value instanceof Date) && key !== "date") {
+                  billFormData.append(key, JSON.stringify(value))
+                } else {
+                  billFormData.append(key, value)
+                }
+              })
+
+              billFormData.append("prescription_file", prescriptionFile)
+
+              billPayload = billFormData
+              // Unset Content-Type to let browser set boundary for multipart
+              headers = { "Content-Type": undefined }
+            }
+
+            const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billPayload, headers)
 
             if (billResult && billResult.success) {
               toast.success(`Patient registered and bill created successfully!`)
@@ -1970,9 +1981,9 @@ const PatientForm = () => {
                           <span className="value">
                             {appointment.appointment_date
                               ? new Date(appointment.appointment_date).toLocaleTimeString("en-IN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                               : "N/A"}
                           </span>
                         </div>
