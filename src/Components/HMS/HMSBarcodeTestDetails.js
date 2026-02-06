@@ -398,7 +398,7 @@ const HMSBarcodeTestDetails = () => {
   const toast = useToast();
   const printSectionRef = useRef(null);
   const navigate = useNavigate();
-  const { patientId, selectedDate, gender, bill_no } = location.state || {};
+  const { patientId, selectedDate, gender, bill_no, bill_type } = location.state || {};
   const [testDetails, setTestDetails] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -409,12 +409,21 @@ const HMSBarcodeTestDetails = () => {
   const [barcodeData, setBarcodeData] = useState([]);
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
+  const [generationTimestamp, setGenerationTimestamp] = useState(null);
 
-  // Function to extract barcode from bill number
-  const extractBarcodeFromBillNo = (billNumber) => {
+  // Function to extract barcode from bill number and bill type
+  const extractBarcodeFromBillNo = (billNumber, billType) => {
     if (!billNumber) return null;
 
-    return String(billNumber).replace(/\//g, '');
+    // Split bill number by '/' to get year and number parts
+    const parts = String(billNumber).split('/');
+    if (parts.length !== 2) return null;
+
+    const year = parts[0]; // e.g., "2526"
+    const number = parts[1]; // e.g., "014079"
+
+    // Construct barcode as: year + billType + number
+    return `${year}${billType || ''}${number}`;
   };
 
 
@@ -433,6 +442,42 @@ const HMSBarcodeTestDetails = () => {
     return `${day}/${month}/${year}`;
   };
 
+  // Get current Indian time formatted as DD/MM/YYYY and HH:MM AM/PM
+  const getIndianDateTime = () => {
+    const now = new Date();
+
+    // Convert to Indian time (IST is UTC+5:30)
+    const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+    const istTime = new Date(now.getTime() + istOffset);
+
+    // Format date as DD/MM/YYYY
+    const day = String(istTime.getUTCDate()).padStart(2, "0");
+    const month = String(istTime.getUTCMonth() + 1).padStart(2, "0");
+    const year = istTime.getUTCFullYear();
+
+    // Format time as HH:MM AM/PM
+    let hours = istTime.getUTCHours();
+    const minutes = String(istTime.getUTCMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const formattedHours = String(hours).padStart(2, "0");
+
+    return {
+      date: `${day}/${month}/${year}`,
+      time: `${formattedHours}:${minutes} ${ampm}`
+    };
+  };
+
+  // Format gender as F or M
+  const formatGender = (gender) => {
+    if (!gender) return "";
+    const genderLower = gender.toLowerCase();
+    if (genderLower.includes("female") || genderLower === "f") return "F";
+    if (genderLower.includes("male") || genderLower === "m") return "M";
+    return "";
+  };
+
   const handleGenerateBarcode = async () => {
     if (!selectedPatient || !bill_no) {
       toast.error("Patient information or bill number is missing.");
@@ -442,8 +487,8 @@ const HMSBarcodeTestDetails = () => {
     try {
       setIsGenerating(true);
 
-      // Extract barcode from bill number
-      const patientBarcode = extractBarcodeFromBillNo(bill_no);
+      // Extract barcode from bill number and bill type
+      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.bill_type || bill_type);
 
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
@@ -541,8 +586,8 @@ const HMSBarcodeTestDetails = () => {
     try {
       setIsGenerating(true);
 
-      // Extract barcode from bill number
-      const patientBarcode = extractBarcodeFromBillNo(bill_no);
+      // Extract barcode from bill number and bill type
+      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.bill_type || bill_type);
 
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
@@ -594,6 +639,9 @@ const HMSBarcodeTestDetails = () => {
   };
 
   const handleGenerateAndPrint = async () => {
+    // Capture current Indian time when button is clicked
+    setGenerationTimestamp(getIndianDateTime());
+
     const newBarcodesGenerated = await handleGenerateBarcode();
     if (newBarcodesGenerated) {
       setTimeout(() => {
@@ -603,6 +651,9 @@ const HMSBarcodeTestDetails = () => {
   };
 
   const handleReGenerateAndPrint = () => {
+    // Capture current Indian time when button is clicked
+    setGenerationTimestamp(getIndianDateTime());
+
     handleReGenerateBarcode();
     setTimeout(() => {
       handlePrintBarcodes();
@@ -753,8 +804,8 @@ const HMSBarcodeTestDetails = () => {
         new Array(patientData.testdetails?.length || 0).fill(false)
       );
 
-      // Generate barcode immediately from bill number
-      const generatedBarcode = extractBarcodeFromBillNo(bill_no);
+      // Generate barcode immediately from bill number and bill type
+      const generatedBarcode = extractBarcodeFromBillNo(bill_no, patientData.bill_type || bill_type);
       if (generatedBarcode) {
         const updatedTestDetails = (patientData.testdetails || []).map((test) => ({
           ...test,
@@ -853,7 +904,7 @@ const HMSBarcodeTestDetails = () => {
                   <InfoLabel>Generated Barcode</InfoLabel>
                   <InfoValue>
                     <BarcodeScan size={14} />
-                    {extractBarcodeFromBillNo(bill_no)}
+                    {extractBarcodeFromBillNo(bill_no, selectedPatient?.bill_type || bill_type)}
                   </InfoValue>
                 </PatientInfoItem>
               </PatientInfoGrid>
@@ -954,15 +1005,10 @@ const HMSBarcodeTestDetails = () => {
         {barcodeData.map((item, index) => (
           <BarcodeItem key={index} className="barcode-item">
             <BarcodeText className="barcode-text">
-              {selectedPatient?.patientname} | {selectedPatient?.age} |{" "}
-              {selectedPatient?.gender === "Male"
-                ? "M"
-                : selectedPatient?.gender === "Female"
-                  ? "F"
-                  : ""}
+              {selectedPatient?.patientname} | {selectedPatient?.age} | {formatGender(selectedPatient?.gender)}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
-              {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}
+              {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}{generationTimestamp ? `      ${generationTimestamp.time}` : ""}
             </BarcodeDate>
             <BarcodeContainer className="barcode-container">
               <svg

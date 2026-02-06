@@ -301,14 +301,14 @@ const Badge = styled.span`
   font-size: 12px;
   font-weight: 500;
   background: ${props => {
-    switch(props.type) {
+    switch (props.type) {
       case 'B2B': return '#dbeafe';
       case 'B2C': return '#dcfce7';
       default: return '#f3f4f6';
     }
   }};
   color: ${props => {
-    switch(props.type) {
+    switch (props.type) {
       case 'B2B': return '#1e40af';
       case 'B2C': return '#166534';
       default: return '#374151';
@@ -324,7 +324,7 @@ const PrintBill = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [patientsPerPage] = useState(15);
   const [loading, setLoading] = useState(false);
-  
+
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
@@ -341,7 +341,7 @@ const PrintBill = () => {
         `${Labbaseurl}patients_by_date/?start_date=${formattedStart}&end_date=${formattedEnd}`,
         "GET",
       );
-      
+
       const data = response.data.data;
       if (Array.isArray(data)) {
         const processedData = data.map((patient) => {
@@ -471,7 +471,7 @@ const PrintBill = () => {
     const formatDateTimeUTC = (isoString) => {
       if (!isoString) return "NIL";
 
-      const dateObj = new Date(isoString);
+      const dateObj = new Date(isoString.replace("Z", ""));
       const formatted = dateObj.toLocaleString("en-IN", {
         year: "numeric",
         month: "long",
@@ -585,26 +585,21 @@ const PrintBill = () => {
             <div class="details">
               <table id="invoiceTable">
                 <tr>
-                  <td><strong>Bill Date:</strong> ${
-                    formatDateTimeUTC(patient.date) || "NIL"
-                  }</td>
-                  <td><strong>Bill No / Lab ID:</strong> ${
-                    patient.lab_id || "NIL"
-                  }</td>
+                  <td><strong>Bill Date:</strong> ${formatDateTimeUTC(patient.bill_date) || "NIL"
+      }</td>
+                  <td><strong>Bill No / Lab ID:</strong> ${patient.lab_id || "NIL"
+      }</td>
                 </tr>
                 <tr>
-                  <td><strong>Patient ID:</strong> ${
-                    patient.patient_id || "NIL"
-                  }</td>
+                  <td><strong>Patient ID:</strong> ${patient.patient_id || "NIL"
+      }</td>
                   <td><strong>Lab Name:</strong> ${patient.B2B || "NIL"}</td>
                 </tr>
                 <tr>
-                  <td><strong>Name:</strong> ${
-                    patient.patientname || "NIL"
-                  }</td>
-                  <td><strong>Gender/Age:</strong> ${patient.gender || "NIL"}/${
-      patient.age || "NIL"
-    } Yrs</td>
+                  <td><strong>Name:</strong> ${patient.patientname || "NIL"
+      }</td>
+                  <td><strong>Gender/Age:</strong> ${patient.gender || "NIL"}/${patient.age || "NIL"
+      } Yrs</td>
                 </tr>
                 <tr>
                   <td><strong>Mobile:</strong> ${patient.phone || "NIL"}</td>
@@ -639,14 +634,13 @@ const PrintBill = () => {
                     <td>Total Amount</td>
                     <td style="text-align:right">₹${parseFloat(patient.totalAmount || 0).toFixed(2)}</td>
                   </tr>
-                  ${
-                    patient.discount && parseFloat(patient.discount) > 0
-                      ? `<tr>
+                  ${patient.discount && parseFloat(patient.discount) > 0
+        ? `<tr>
                           <td>Discount</td>
                           <td style="text-align:right">₹${parseFloat(patient.discount).toFixed(2)}</td>
                         </tr>`
-                      : ""
-                  }
+        : ""
+      }
                   <tr class="total-row">
                     <td><strong>Net Amount</strong></td>
                     <td style="text-align:right"><strong>₹${parseFloat(patient.netAmount || 0).toFixed(2)}</strong></td>
@@ -705,7 +699,7 @@ const PrintBill = () => {
           <Filter size={20} />
           Search & Filter Options
         </FilterHeader>
-        
+
         <FilterGrid>
           <FilterGroup>
             <Label>
@@ -799,8 +793,8 @@ const PrintBill = () => {
                     <td>₹{parseFloat(patient.totalAmount || 0).toFixed(2)}</td>
                     <td><strong>₹{parseFloat(patient.netAmount || 0).toFixed(2)}</strong></td>
                     <td>
-                      {patient.discount && parseFloat(patient.discount) > 0 
-                        ? `₹${parseFloat(patient.discount).toFixed(2)}` 
+                      {patient.discount && parseFloat(patient.discount) > 0
+                        ? `₹${parseFloat(patient.discount).toFixed(2)}`
                         : '-'
                       }
                     </td>

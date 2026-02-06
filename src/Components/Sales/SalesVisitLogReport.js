@@ -10,6 +10,7 @@ import {
   faCalendarWeek,
   faCalendarAlt,
   faUser,
+  faImage,
 } from "@fortawesome/free-solid-svg-icons";
 
 // Styled Components
@@ -382,6 +383,7 @@ const SalesVisitLogReport = () => {
         "Location",
         "Visits",
         "Comments",
+        "Image Link",
       ],
       ...logs.map((log) => [
         escapeCSV(formatDate(log.date)),
@@ -394,6 +396,7 @@ const SalesVisitLogReport = () => {
         escapeCSV(log.location || "N/A"),
         escapeCSV(log.noOfVisits || 0),
         escapeCSV(log.comments || "No comments"),
+        escapeCSV(log.visit_image_id ? `${Labbaseurl}serve_sales_image/${log.visit_image_id}/` : "N/A"),
       ]),
     ];
 
@@ -475,12 +478,13 @@ const SalesVisitLogReport = () => {
             <th>Location</th>
             <th>Visits</th>
             <th>Comments</th>
+            <th>Image</th>
           </tr>
         </TableHead>
         <TableBody>
           {loading ? (
             <EmptyRow>
-              <td colSpan={10}>Loading data...</td>
+              <td colSpan={11}>Loading data...</td>
             </EmptyRow>
           ) : logs.length > 0 ? (
             logs.map((log, index) => (
@@ -495,11 +499,26 @@ const SalesVisitLogReport = () => {
                 <td>{log.location || "N/A"}</td>
                 <td>{log.noOfVisits || 0}</td>
                 <td>{log.comments || "No comments"}</td>
+                <td>
+                  {log.visit_image_id ? (
+                    <a
+                      href={`${Labbaseurl}serve_sales_image/${log.visit_image_id}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "#4299e1", display: "flex", justifyContent: "center" }}
+                      title="View Image"
+                    >
+                      <FontAwesomeIcon icon={faImage} />
+                    </a>
+                  ) : (
+                    <span style={{ color: "#a0aec0", display: "block", textAlign: "center" }}>-</span>
+                  )}
+                </td>
               </tr>
             ))
           ) : (
             <EmptyRow>
-              <td colSpan={10}>No data available for the selected filters.</td>
+              <td colSpan={11}>No data available for the selected filters.</td>
             </EmptyRow>
           )}
         </TableBody>
