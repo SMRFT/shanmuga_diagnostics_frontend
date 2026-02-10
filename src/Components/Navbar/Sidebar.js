@@ -1507,7 +1507,7 @@ const Sidebar = () => {
 
               <DropdownContent isOpen={dropdowns.b2bDetails}>
                 <SubLink
-                  to="/B2BApproval"
+                  to="/B2BFinalApproval"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   B2B Approval
@@ -1609,5 +1609,6 @@ const Sidebar = () => {
     </>
   )
 }
+
 
 export default Sidebar
