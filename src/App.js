@@ -50,9 +50,6 @@ import HMSBarcodeGeneration from "./Components/HMS/HMSBarcodeGeneration";
 import HMSBarcodeTestDetails from "./Components/HMS/HMSBarcodeTestDetails";
 import HmsTestDetails from "./Components/HMS/HmsTestDetails";
 import PrintBill from "./Components/Patients/PrintBill";
-import Logisticsmap from "./Components/Logistics/Logisticsmap";
-import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
-import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
@@ -66,7 +63,6 @@ import B2B from "./Components/Lab/B2B";
 import B2BApproval from "./Components/Lab/B2BApproval";
 import B2BFinalApproval from "./Components/Lab/B2BFinalApproval";
 import B2BReport from "./Components/Lab/B2BReport";
-import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 import PaymentDashboard from "./Components/Patients/PaymentDashboard";
 import RegisterDashboard from "./Components/Patients/RegisterDashboard";
 import Refund from "./Components/Refund/Refund";
@@ -87,8 +83,12 @@ import MBTestSorting from "./Components/Report/MBTestSorting";
 import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
 import PreethamDashboard from "./Components/PreethamHospital/PreethamDashboard";
 import PreethamPatientOverview from "./Components/PreethamHospital/PreethamPatientOverview";
-
 import FranchiseMBTestSorting from "./Components/Franchise/FranchiseMBTestSorting";
+import LogisticsTaskAssign from "./Components/Logistics/LogisticsTaskAssign";
+import LogisticsTaskManagement from "./Components/Logistics/LogisticsTaskManagement";
+import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
+import LogisticsTAT from "./Components/Mis/LogisticsTAT";
+import LogisticsTracking from "./Components/Logistics/LogisticsTracking";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -138,7 +138,7 @@ function App() {
         navigate("/SalesVisitLog");
         break;
       case "HR":
-        navigate("/LogisticMap");
+        navigate("/LogisticsTracking");
         break;
       case "CEO":
         navigate("/CHCreport");
@@ -251,9 +251,9 @@ function App() {
       "/PatientTAT": "Patient TAT",
       "/ShanmugaMIS": "Shanmuga MIS",
       "/FranchiseMIS": "Franchise MIS",
-      "/LogisticManagementApproval": "Logistic Management Approval",
-      "/LogisticManagementAdmin": "Logistic Management Admin",
-      "/LogisticMap": "Logistics Map",
+      "/LogisticsTaskAssign": "Logistic Task Assign",
+      "/LogisticsManagement": "Logistic Management",
+      "/LogisticsTracking": "Logistics Tracking",
       "/LogisticsTAT": "Logistics TAT",
       "/HmsBilling": "HMS Billing",
       "/Hmssamplestatus": "HMS Sample Status",
@@ -428,10 +428,11 @@ function App() {
             <Route path="/FranchiseMIS" element={<FranchiseMIS />} />
 
             {/* Logistics */}
-            <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval />} />
-            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin />} />
-            <Route path="/LogisticMap" element={<Logisticsmap />} />
+            <Route path="/LogisticsTaskAssign" element={<LogisticsTaskAssign />} />
+            <Route path="/LogisticsTaskManagement" element={<LogisticsTaskManagement />} />
+            <Route path="/LogisticsDashboard" element={<LogisticsDashboard />} />
             <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
+            <Route path="/LogisticsTracking" element={<LogisticsTracking />} />
 
             {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling />} />
@@ -465,3 +466,4 @@ export default function AppWrapper() {
     </Router>
   );
 }
+
