@@ -1244,7 +1244,7 @@ const PatientBilling = () => {
             <div class="details">
               <table id="invoiceTable">
                 <tr>
-                  <td><strong>Bill Date:</strong> ${formatDateTimeUTC(selectedPatient.date) || "NIL"}</td>
+                  <td><strong>Bill Date:</strong> ${formatDateTimeUTC(new Date().toISOString())}</td>
                   <td><strong>Bill No / Lab ID:</strong> ${selectedPatient.lab_id || "NIL"}</td>
                 </tr>
                 <tr>
@@ -1253,9 +1253,8 @@ const PatientBilling = () => {
                 </tr>
                 <tr>
                   <td><strong>Name:</strong> ${selectedPatient.patientname || "NIL"}</td>
-                  <td><strong>Gender/Age:</strong> ${selectedPatient.gender || "NIL"}/${
-                    selectedPatient.age || "NIL"
-                  } Yrs</td>
+                  <td><strong>Gender/Age:</strong> ${selectedPatient.gender || "NIL"}/${selectedPatient.age || "NIL"
+      } Yrs</td>
                 </tr>
                 <tr>
                   <td><strong>Mobile:</strong> ${selectedPatient.phone || "NIL"}</td>
@@ -1294,14 +1293,13 @@ const PatientBilling = () => {
                     <td>Total Amount</td>
                     <td style="text-align:right">₹${Number.parseFloat(billingData.totalAmount || 0).toFixed(2)}</td>
                   </tr>
-                  ${
-                    billingData.discount && Number.parseFloat(billingData.discount) > 0
-                      ? `<tr>
+                  ${billingData.discount && Number.parseFloat(billingData.discount) > 0
+        ? `<tr>
                           <td>Discount</td>
                           <td style="text-align:right">₹${Number.parseFloat(billingData.discount).toFixed(2)}</td>
                         </tr>`
-                      : ""
-                  }
+        : ""
+      }
                   <tr class="total-row">
                     <td><strong>Net Amount</strong></td>
                     <td style="text-align:right"><strong>₹${Number.parseFloat(billingData.netAmount || 0).toFixed(2)}</strong></td>

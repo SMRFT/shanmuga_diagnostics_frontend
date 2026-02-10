@@ -1286,12 +1286,6 @@ const Sidebar = () => {
                 >
                   B2B Approval
                 </SubLink>
-                <SubLink
-                  to="/B2BPackage"
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  B2B Package
-                </SubLink>
               </DropdownContent>
 
               <SectionDivider />
@@ -1329,9 +1323,6 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.billingDetails}>
-                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
-                  Diagnostics Billing
-                </SubLink>
                 <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
                   Patient Overview
                 </SubLink>
@@ -1380,13 +1371,13 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
-                <SubLink to="/LogisticManagementAdmin" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink to="/LogisticsTaskAssign" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Task Assigning
                 </SubLink>
                 <SubLink to="/LogisticsDashboard" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Dashboard
                 </SubLink>
-                <SubLink to="/LogisticMap" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink to="/LogisticsTracking" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Tracking
                 </SubLink>
               </DropdownContent>
@@ -1507,7 +1498,7 @@ const Sidebar = () => {
 
               <DropdownContent isOpen={dropdowns.b2bDetails}>
                 <SubLink
-                  to="/B2BApproval"
+                  to="/B2BFinalApproval"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   B2B Approval
@@ -1566,7 +1557,7 @@ const Sidebar = () => {
               </SidebarNavLink>
             </>
           )}
-           {role === "PH" && (
+          {role === "PH" && (
             <>
               <SidebarNavLink to="/PreethamDashboard" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
@@ -1589,7 +1580,7 @@ const Sidebar = () => {
                 Report Dashboard
               </SidebarNavLink>
             </>
-          )} 
+          )}
         </SidebarContent>
         <SignOutWrapper>
           <SidebarNavLink
@@ -1610,4 +1601,6 @@ const Sidebar = () => {
   )
 }
 
+
 export default Sidebar
+

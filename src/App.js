@@ -50,9 +50,6 @@ import HMSBarcodeGeneration from "./Components/HMS/HMSBarcodeGeneration";
 import HMSBarcodeTestDetails from "./Components/HMS/HMSBarcodeTestDetails";
 import HmsTestDetails from "./Components/HMS/HmsTestDetails";
 import PrintBill from "./Components/Patients/PrintBill";
-import Logisticsmap from "./Components/Logistics/Logisticsmap";
-import LogisticManagementApproval from "./Components/Logistics/LogisticManagementApproval";
-import LogisticManagementAdmin from "./Components/Logistics/LogisticManagementAdmin";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
 import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
@@ -66,7 +63,6 @@ import B2B from "./Components/Lab/B2B";
 import B2BApproval from "./Components/Lab/B2BApproval";
 import B2BFinalApproval from "./Components/Lab/B2BFinalApproval";
 import B2BReport from "./Components/Lab/B2BReport";
-import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 import PaymentDashboard from "./Components/Patients/PaymentDashboard";
 import RegisterDashboard from "./Components/Patients/RegisterDashboard";
 import Refund from "./Components/Refund/Refund";
@@ -85,7 +81,14 @@ import MBPatientList from "./Components/Microbiology/MBPatientList";
 import MBDoctorForm from "./Components/Microbiology/MBDoctorForm";
 import MBTestSorting from "./Components/Report/MBTestSorting";
 import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
+import PreethamDashboard from "./Components/PreethamHospital/PreethamDashboard";
+import PreethamPatientOverview from "./Components/PreethamHospital/PreethamPatientOverview";
 import FranchiseMBTestSorting from "./Components/Franchise/FranchiseMBTestSorting";
+import LogisticsTaskAssign from "./Components/Logistics/LogisticsTaskAssign";
+import LogisticsTaskManagement from "./Components/Logistics/LogisticsTaskManagement";
+import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
+import LogisticsTAT from "./Components/Mis/LogisticsTAT";
+import LogisticsTracking from "./Components/Logistics/LogisticsTracking";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -135,13 +138,16 @@ function App() {
         navigate("/SalesVisitLog");
         break;
       case "HR":
-        navigate("/LogisticMap");
+        navigate("/LogisticsTracking");
         break;
       case "CEO":
         navigate("/CHCreport");
         break;
       case "Accounts":
         navigate("/Invoice");
+        break;
+      case "PH":
+        navigate("/PreethamPatientOverview");
         break;
       default:
         navigate("/PatientForm"); // Default fallback
@@ -181,6 +187,93 @@ function App() {
     if (location.pathname !== "/") {
       setHasNavigatedToRole(true);
     }
+  }, [location.pathname]);
+
+  // Dynamic Document Title
+  useEffect(() => {
+    const routeTitles = {
+      "/AppointmentBooking": "Appointment Booking",
+      "/PatientForm": "Patient Registration",
+      "/PatientBilling": "Patient Billing",
+      "/PaymentDashboard": "Payment Dashboard",
+      "/RegisterDashboard": "Register Dashboard",
+      "/PrintBill": "Print Bill",
+      "/Estimate": "Estimate",
+      "/BarcodeGeneration": "Barcode Generation",
+      "/BarcodeTestDetails": "Barcode Test Details",
+      "/SampleStatus": "Sample Status",
+      "/SampleStatusUpdate": "Sample Status Update",
+      "/TestEdit": "Test Edit",
+      "/PatientDetails": "Patient Details",
+      "/TestDetails": "Test Details",
+      "/MBPatientDetails": "Microbiology Patient Details",
+      "/MBTestDetails": "Microbiology Test Details",
+      "/OutSourceDetails": "Outsource Details",
+      "/OSTestDetails": "Outsource Test Details",
+      "/CashTally": "Cash Tally",
+      "/Invoice": "Invoice",
+      "/LedgerBalance": "Ledger Balance",
+      "/Refund": "Refund",
+      "/Cancellation": "Cancellation",
+      "/RefundAndCancellationLog": "Refund & Cancellation Log",
+      "/RejectedSamples": "Rejected Samples",
+      "/OutsourcedSamples": "Outsourced Samples",
+      "/HomeCollectionReport": "Home Collection Report",
+      "/PatientList": "Patient List",
+      "/DoctorForm": "Doctor Form",
+      "/MBPatientList": "Microbiology Patient List",
+      "/MBDoctorForm": "Microbiology Doctor Form",
+      "/SalesVisit": "Sales Visit Log",
+      "/SalesDashboard": "Sales Dashboard",
+      "/SalesDetailsEdit": "Sales Details Edit",
+      "/SalesVisitLogReport": "Sales Visit Log Report",
+      "/SalesindividualReport": "Sales Individual Report",
+      "/B2B": "B2B",
+      "/B2BApproval": "B2B Approval",
+      "/B2BFinalApproval": "B2B Final Approval",
+      "/B2BReport": "B2B Report",
+      "/MDashboard": "MDashboard",
+      "/Testcount": "Test Count",
+      "/TestSorting": "Test Sorting",
+      "/MBTestSorting": "Microbiology Test Sorting",
+      "/PatientOverview": "Patient Overview",
+      "/CommunicationLogs": "Communication Logs",
+      "/FranchiseBatchApproval": "Franchise Batch Approval",
+      "/CorporateBatchApproval": "Corporate Batch Approval",
+      "/FranchiseOverview": "Franchise Overview",
+      "/FranchiseTestSorting": "Franchise Test Sorting",
+      "/FranchiseMBTestSorting": "Franchise MB Test Sorting",
+      "/CorporateOverview": "Corporate Overview",
+      "/CHCReport": "CHC Report",
+      "/CHCApproval": "CHC Approval",
+      "/CorporateTestSorting": "Corporate Test Sorting",
+      "/MIS": "MIS",
+      "/PatientTAT": "Patient TAT",
+      "/ShanmugaMIS": "Shanmuga MIS",
+      "/FranchiseMIS": "Franchise MIS",
+      "/LogisticsTaskAssign": "Logistic Task Assign",
+      "/LogisticsManagement": "Logistic Management",
+      "/LogisticsDashboard": "Logistics Dashboard",
+      "/LogisticsTracking": "Logistics Tracking",
+      "/LogisticsTAT": "Logistics TAT",
+      "/HmsBilling": "HMS Billing",
+      "/Hmssamplestatus": "HMS Sample Status",
+      "/HmsSampleStatusUpdate": "HMS Sample Status Update",
+      "/HMSBarcodeGeneration": "HMS Barcode Generation",
+      "/HMSBarcodeTestDetails": "HMS Barcode Test Details",
+      "/HmsTestDetails": "HMS Test Details",
+      "/HMSTestSorting": "HMS Test Sorting",
+      "/HMSMBTestSorting": "HMS Microbiology Test Sorting",
+      "/HMSPatientOverview": "HMS Patient Overview",
+      "/PatientOverallReport": "Patient Overall Report",
+      "/PreethamHospitalReport": "Preetham Hospital Report",
+      "/PreethamDashboard": "Preetham Dashboard",
+      "/PreethamPatientOverview": "Preetham Patient Overview",
+    };
+
+    const path = location.pathname;
+    const title = routeTitles[path] || "Shanmuga Diagnostics";
+    document.title = title;
   }, [location.pathname]);
 
   // Paths where the sidebar should be hidden
@@ -268,7 +361,7 @@ function App() {
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
             <Route path="/TestDetails" element={<TestDetails />} />
-             <Route path="/MBPatientDetails" element={<MBPatientDetails />} />
+            <Route path="/MBPatientDetails" element={<MBPatientDetails />} />
             <Route path="/MBTestDetails" element={<MBTestDetails />} />
             <Route path="/OutSourceDetails" element={<OutSourceDetails />} />
             <Route path="/OSTestDetails" element={<OSTestDetails />} />
@@ -336,10 +429,11 @@ function App() {
             <Route path="/FranchiseMIS" element={<FranchiseMIS />} />
 
             {/* Logistics */}
-            <Route path="/LogisticManagementApproval" element={<LogisticManagementApproval />} />
-            <Route path="/LogisticManagementAdmin" element={<LogisticManagementAdmin />} />
-            <Route path="/LogisticMap" element={<Logisticsmap />} />
+            <Route path="/LogisticsTaskAssign" element={<LogisticsTaskAssign />} />
+            <Route path="/LogisticsTaskManagement" element={<LogisticsTaskManagement />} />
+            <Route path="/LogisticsDashboard" element={<LogisticsDashboard />} />
             <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
+            <Route path="/LogisticsTracking" element={<LogisticsTracking />} />
 
             {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling />} />
@@ -356,6 +450,8 @@ function App() {
             <Route path="/PatientOverallReport" element={<PatientOverallReport />} />
 
             <Route path="/PreethamHospitalReport" element={<PreethamHospitalReport />} />
+            <Route path="/PreethamDashboard" element={<PreethamDashboard />} />
+            <Route path="/PreethamPatientOverview" element={<PreethamPatientOverview />} />
 
           </Routes>
         </ContentWrapper>
@@ -371,3 +467,5 @@ export default function AppWrapper() {
     </Router>
   );
 }
+
+

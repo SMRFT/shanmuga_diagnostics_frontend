@@ -1,319 +1,589 @@
-import React, { useEffect, useState } from "react";
-import styled from "styled-components";
-import apiRequest from "../Auth/apiRequest";
-import { FiRefreshCw } from "react-icons/fi";
-/* -------------------- Styles -------------------- */
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import apiRequest from '../Auth/apiRequest';
+
 const Container = styled.div`
+  padding: 24px;
   max-width: 1400px;
-  margin: auto;
-  padding: 2rem;
-  /* background removed */
-  min-height: 100vh;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 `;
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-  h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem 0;
-    background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  p {
-    color: #64748B;
-    font-size: 1rem;
+
+const Header = styled.h1`
+  color: #1a1a1a;
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: 600;
+`;
+
+const FilterSection = styled.div`
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const FilterRow = styled.div`
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
   }
 `;
-const Controls = styled.div`
+
+const FilterGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 150px;
+`;
+
+const Label = styled.label`
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+`;
+
+const Input = styled.input`
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const Button = styled.button`
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    background: #2563eb;
+  }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+`;
+
+const ClearButton = styled(Button)`
+  background: #6b7280;
+
+  &:hover {
+    background: #4b5563;
+  }
+`;
+
+const TableContainer = styled.div`
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+`;
+
+const TableHeader = styled.div`
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-  flex-wrap: wrap;
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
 `;
-const DateFilters = styled.div`
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  background: white;
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  label {
-    color: #334155;
-    font-weight: 500;
-    font-size: 0.875rem;
-  }
-`;
-const DateInput = styled.input`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  background: white;
-  font-size: 0.875rem;
-  color: #334155;
-  outline: none;
-  transition: all 0.2s;
-  &:focus {
-    border-color: #6e8efb;
-    box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.1);
-  }
-`;
-const RefreshButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #6e8efb, #a777e3);
-  color: white;
-  border: none;
-  border-radius: 12px;
+
+const TableTitle = styled.h3`
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 6px rgba(110, 142, 251, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(110, 142, 251, 0.3);
-  }
-  &:active {
-    transform: translateY(0);
-  }
+  color: #1a1a1a;
 `;
-const Card = styled.div`
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: 1px solid #E2E8F0;
-  overflow: hidden;
+
+const EntryCount = styled.div`
+  font-size: 14px;
+  color: #6b7280;
 `;
+
 const TableWrapper = styled.div`
   overflow-x: auto;
 `;
+
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  font-size: 14px;
 `;
+
 const Thead = styled.thead`
-  background: linear-gradient(135deg, #6e8efb 0%, #a777e3 50%, #e56f8f 100%);
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
 `;
+
 const Th = styled.th`
-  padding: 1rem;
+  padding: 12px 16px;
   text-align: left;
-  color: white;
   font-weight: 600;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: #374151;
   white-space: nowrap;
 `;
-const Tbody = styled.tbody`
-  tr {
-    transition: background 0.2s;
-    &:hover {
-      background: #F8FAFC;
-    }
-    &:not(:last-child) {
-      border-bottom: 1px solid #E2E8F0;
-    }
+
+const Tbody = styled.tbody``;
+
+const Tr = styled.tr`
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f9fafb;
+  }
+
+  &:last-child {
+    border-bottom: none;
   }
 `;
+
 const Td = styled.td`
-  padding: 1rem;
-  color: #334155;
-  font-size: 0.875rem;
   white-space: nowrap;
+  padding: 12px 16px;
+  color: #1a1a1a;
 `;
-const Badge = styled.span`
-  padding: 0.375rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-  background: ${(p) =>
-    !p.val ? "#E5E7EB" :
-      parseInt(p.val.split(":")[0]) < 1 ? "#DCFCE7" :
-        parseInt(p.val.split(":")[0]) < 2 ? "#FEF9C3" : "#FEE2E2"};
-  color: ${(p) =>
-    !p.val ? "#6B7280" :
-      parseInt(p.val.split(":")[0]) < 1 ? "#166534" :
-        parseInt(p.val.split(":")[0]) < 2 ? "#854D0E" : "#991B1B"};
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+const StatusBadge = styled.span`
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: ${props => {
+    switch (props.status) {
+      case 'PickedUp':
+        return '#d1fae5';
+      case 'Accepted':
+        return '#dbeafe';
+      default:
+        return '#f3f4f6';
+    }
+  }};
+  color: ${props => {
+    switch (props.status) {
+      case 'PickedUp':
+        return '#065f46';
+      case 'Accepted':
+        return '#1e40af';
+      default:
+        return '#374151';
+    }
+  }};
 `;
-const LoadingState = styled.div`
-  padding: 4rem 2rem;
+
+const TATValue = styled.span`
+  font-weight: 500;
+  color: ${props => {
+    if (!props.value) return '#9ca3af';
+    if (props.value < 30) return '#059669';
+    if (props.value < 60) return '#d97706';
+    return '#dc2626';
+  }};
+`;
+
+const LoadingMessage = styled.div`
   text-align: center;
-  color: #64748B;
-  .spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid #E2E8F0;
-    border-top-color: #667EEA;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 1rem;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+  padding: 40px;
+  color: #6b7280;
+  font-size: 16px;
+`;
+
+const ErrorMessage = styled.div`
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+`;
+
+const NoDataMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 16px;
+`;
+
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
   }
 `;
-const EmptyState = styled.div`
-  padding: 4rem 2rem;
-  text-align: center;
-  color: #64748B;
-  svg {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1rem;
+
+const PaginationInfo = styled.div`
+  font-size: 14px;
+  color: #6b7280;
+`;
+
+const PaginationButtons = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const PageButton = styled.button`
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  background: ${props => props.active ? '#3b82f6' : 'white'};
+  color: ${props => props.active ? 'white' : '#374151'};
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: ${props => props.active ? '#2563eb' : '#f9fafb'};
+    border-color: ${props => props.active ? '#2563eb' : '#9ca3af'};
+  }
+
+  &:disabled {
     opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
-/* -------------------- Helpers -------------------- */
-const toDateTime = (time, isoDate) => {
-  if (!time || !isoDate) return null;
-  const [t, mer] = time.split(" ");
-  const parts = t.split(":");
-  let h = parseInt(parts[0]);
-  let m = parseInt(parts[1]);
-  let s = parts[2] ? parseInt(parts[2]) : 0;
-  if (mer === "PM" && h !== 12) h += 12;
-  if (mer === "AM" && h === 12) h = 0;
-  const d = new Date(isoDate);
-  d.setHours(h, m, s, 0);
-  return isNaN(d.getTime()) ? null : d;
-};
-const diffTime = (a, b) => {
-  if (!a || !b) return null;
-  const diff = Math.abs(b - a) / 1000;
-  const h = Math.floor(diff / 3600);
-  const m = Math.floor((diff % 3600) / 60);
-  const s = Math.floor(diff % 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-};
-/* -------------------- Component -------------------- */
-const LogisticsTAT = () => {
-  const [employeeData, setEmployeeData] = useState([]);
-  const [isloading, setIsLoading] = useState(true);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-  useEffect(() => {
+
+const LogisticsTATReport = () => {
+  // Get current date in YYYY-MM-DD format
+  const getCurrentDate = () => {
     const today = new Date();
-    const from = new Date();
-    from.setDate(today.getDate() - 7);
-    setStartDate(from.toISOString().split("T")[0]);
-    setEndDate(today.toISOString().split("T")[0]);
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [filters, setFilters] = useState({
+    start_date: getCurrentDate(),
+    end_date: getCurrentDate(),
+    search: ''
+  });
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchReport();
   }, []);
-  const fetchLogisticData = async () => {
-    setIsLoading(true);
+
+  const fetchReport = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      const url =
-        `${Labbaseurl}get_logistic_task/` +
-        `?start_date=${encodeURIComponent(startDate)}` +
-        `&end_date=${encodeURIComponent(endDate)}`;
-      const response = await apiRequest(url, "GET");
-      // :white_check_mark: NORMALIZE RESPONSE (MANDATORY)
-      const list = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response)
-          ? response
-          : [];
-      setEmployeeData(list);
-    } catch (error) {
-      console.error("Error fetching logistic data:", error);
-      setEmployeeData([]);
+      const params = new URLSearchParams();
+
+      Object.keys(filters).forEach(key => {
+        if (filters[key]) {
+          params.append(key, filters[key]);
+        }
+      });
+
+      const response = await apiRequest(
+        `${Labbaseurl}logistics-tat-report/?${params.toString()}`,
+        'GET'
+      );
+
+      setData(response?.data || response);
+      setCurrentPage(1); // Reset to first page on new fetch
+    } catch (err) {
+      console.error('Error fetching report:', err);
+      setError('Failed to fetch report');
+      setData(null);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-  useEffect(() => {
-    if (startDate && endDate) fetchLogisticData();
-  }, [startDate, endDate]);
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      start_date: getCurrentDate(),
+      end_date: getCurrentDate(),
+      search: ''
+    });
+  };
+
+  const formatTAT = (minutes) => {
+    if (minutes === null || minutes === undefined) return '-';
+    
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${mins}m`;
+    }
+    return `${mins}m`;
+  };
+
+  const formatTime = (dateTimeString) => {
+    if (!dateTimeString) return '-';
+    
+    try {
+      const date = new Date(dateTimeString);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      
+      return `${hours}:${minutes}:${seconds}`;
+    } catch (e) {
+      return '-';
+    }
+  };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data?.data?.slice(indexOfFirstItem, indexOfLastItem) || [];
+  const totalPages = Math.ceil((data?.data?.length || 0) / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   return (
     <Container>
-      <Header>
-        <h1>Logistics Turnaround Time</h1>
-        <p>Track and monitor logistics performance metrics</p>
-      </Header>
-      <Controls>
-        <RefreshButton onClick={fetchLogisticData}>
-          <FiRefreshCw /> Refresh Data
-        </RefreshButton>
-        <DateFilters>
-          <label>From</label>
-          <DateInput
-            type="date"
-            value={startDate}
-            onChange={e => setStartDate(e.target.value)}
-          />
-          <label>To</label>
-          <DateInput
-            type="date"
-            value={endDate}
-            onChange={e => setEndDate(e.target.value)}
-          />
-        </DateFilters>
-      </Controls>
-      <Card>
-        {isloading ? (
-          <LoadingState>
-            <div className="spinner"></div>
-            <p>Loading logistics data...</p>
-          </LoadingState>
-        ) : employeeData.length === 0 ? (
-          <EmptyState>
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p>No data found for the selected date range</p>
-          </EmptyState>
-        ) : (
-          <TableWrapper>
-            <Table>
-              <Thead>
-                <tr>
-                  <Th>Lab</Th>
-                  <Th>Date</Th>
-                  <Th>Order</Th>
-                  <Th>Accepted</Th>
-                  <Th>Picked</Th>
-                  <Th>O → A</Th>
-                  <Th>A → P</Th>
-                  <Th>O → P</Th>
-                </tr>
-              </Thead>
-              <Tbody>
-                {employeeData.map((item, i) => {
-                  const o = toDateTime(item.sampleordertime, item.date);
-                  const a = toDateTime(item.sampleacceptedtime, item.date);
-                  const p = toDateTime(item.samplepickeduptime, item.date);
-                  return (
-                    <tr key={i}>
-                      <Td><strong>{item.lab_name}</strong></Td>
-                      <Td>{new Date(item.date).toISOString().split("T")[0]}</Td>
-                      <Td>{item.sampleordertime || "—"}</Td>
-                      <Td>{item.sampleacceptedtime || "—"}</Td>
-                      <Td>{item.samplepickeduptime || "—"}</Td>
-                      <Td><Badge val={diffTime(o, a)}>{diffTime(o, a) || "N/A"}</Badge></Td>
-                      <Td><Badge val={diffTime(a, p)}>{diffTime(a, p) || "N/A"}</Badge></Td>
-                      <Td><Badge val={diffTime(o, p)}>{diffTime(o, p) || "N/A"}</Badge></Td>
-                    </tr>
-                  );
-                })}
-              </Tbody>
-            </Table>
-          </TableWrapper>
-        )}
-      </Card>
+      <Header>Logistics TAT Report</Header>
+
+      <FilterSection>
+        <FilterRow>
+          <FilterGroup>
+            <Label>Start Date</Label>
+            <Input
+              type="date"
+              value={filters.start_date}
+              onChange={(e) => handleFilterChange('start_date', e.target.value)}
+            />
+          </FilterGroup>
+
+          <FilterGroup>
+            <Label>End Date</Label>
+            <Input
+              type="date"
+              value={filters.end_date}
+              onChange={(e) => handleFilterChange('end_date', e.target.value)}
+            />
+          </FilterGroup>
+
+          <FilterGroup style={{ flex: 2 }}>
+            <Label>Search</Label>
+            <Input
+              type="text"
+              placeholder="Search by collector, lab name..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+            />
+          </FilterGroup>
+
+          <ButtonGroup>
+            <Button onClick={fetchReport} disabled={loading}>
+              {loading ? 'Loading...' : 'Generate Report'}
+            </Button>
+            <ClearButton onClick={handleClearFilters}>
+              Clear
+            </ClearButton>
+          </ButtonGroup>
+        </FilterRow>
+      </FilterSection>
+
+      {error && (
+        <ErrorMessage>
+          Error: {error}
+        </ErrorMessage>
+      )}
+
+      {loading && (
+        <LoadingMessage>Loading report data...</LoadingMessage>
+      )}
+
+      {!loading && data && (
+        <>
+          {data.data && data.data.length > 0 ? (
+            <TableContainer>
+              <TableHeader>
+                <TableTitle>TAT Report</TableTitle>
+                <EntryCount>
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, data.data.length)} of {data.data.length} entries
+                </EntryCount>
+              </TableHeader>
+              
+              <TableWrapper>
+                <Table>
+                  <Thead>
+                    <Tr>
+                      <Th>S.No</Th>
+                      <Th>Lab Name</Th>
+                      <Th>Sample Collector</Th>
+                      <Th>Date</Th>
+                      <Th>Order Time</Th>
+                      <Th>Accepted Time</Th>
+                      <Th>Picked Up Time</Th>
+                      <Th>Order ↔ Accept</Th>
+                      <Th>Accept ↔ Pickup</Th>
+                      <Th>Total TAT</Th>
+                      <Th>Status</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {currentItems.map((row, index) => (
+                      <Tr key={index}>
+                        <Td>{indexOfFirstItem + index + 1}</Td>
+                        <Td>{row.lab_name}</Td>
+                        <Td>{row.sample_collector || '-'}</Td>
+                        <Td>{row.date}</Td>
+                        <Td>{formatTime(row.order_time)}</Td>
+                        <Td>{formatTime(row.accepted_time)}</Td>
+                        <Td>{formatTime(row.picked_up_time)}</Td>
+                        <Td>
+                          <TATValue value={row.order_to_accept_tat_minutes}>
+                            {formatTAT(row.order_to_accept_tat_minutes)}
+                          </TATValue>
+                        </Td>
+                        <Td>
+                          <TATValue value={row.accept_to_pickup_tat_minutes}>
+                            {formatTAT(row.accept_to_pickup_tat_minutes)}
+                          </TATValue>
+                        </Td>
+                        <Td>
+                          <TATValue value={row.total_tat_minutes}>
+                            {formatTAT(row.total_tat_minutes)}
+                          </TATValue>
+                        </Td>
+                        <Td>
+                          <StatusBadge status={row.status}>
+                            {row.status}
+                          </StatusBadge>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableWrapper>
+
+              {totalPages > 1 && (
+                <PaginationContainer>
+                  <PaginationInfo>
+                    Page {currentPage} of {totalPages}
+                  </PaginationInfo>
+                  
+                  <PaginationButtons>
+                    <PageButton 
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </PageButton>
+                    
+                    {[...Array(totalPages)].map((_, index) => {
+                      const pageNumber = index + 1;
+                      // Show only 5 page numbers at a time
+                      if (
+                        pageNumber === 1 ||
+                        pageNumber === totalPages ||
+                        (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                      ) {
+                        return (
+                          <PageButton
+                            key={pageNumber}
+                            active={currentPage === pageNumber}
+                            onClick={() => handlePageChange(pageNumber)}
+                          >
+                            {pageNumber}
+                          </PageButton>
+                        );
+                      } else if (
+                        pageNumber === currentPage - 2 ||
+                        pageNumber === currentPage + 2
+                      ) {
+                        return <span key={pageNumber}>...</span>;
+                      }
+                      return null;
+                    })}
+                    
+                    <PageButton 
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </PageButton>
+                  </PaginationButtons>
+                </PaginationContainer>
+              )}
+            </TableContainer>
+          ) : (
+            <TableContainer>
+              <NoDataMessage>
+                No data available for Today
+              </NoDataMessage>
+            </TableContainer>
+          )}
+        </>
+      )}
+
+      {!loading && !data && !error && (
+        <LoadingMessage>
+          Loading today's report...
+        </LoadingMessage>
+      )}
     </Container>
   );
 };
-export default LogisticsTAT;
+
+export default LogisticsTATReport;
