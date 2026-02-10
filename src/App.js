@@ -253,6 +253,7 @@ function App() {
       "/FranchiseMIS": "Franchise MIS",
       "/LogisticsTaskAssign": "Logistic Task Assign",
       "/LogisticsManagement": "Logistic Management",
+      "/LogisticsDashboard": "Logistics Dashboard",
       "/LogisticsTracking": "Logistics Tracking",
       "/LogisticsTAT": "Logistics TAT",
       "/HmsBilling": "HMS Billing",
@@ -466,4 +467,5 @@ export default function AppWrapper() {
     </Router>
   );
 }
+
 
