@@ -538,6 +538,63 @@ const StatusBadgeContainer = styled.div`
   gap: 0.5rem;
 `;
 
+const TATIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  min-width: 120px;
+  justify-content: center;
+  background-color: ${props => {
+    if (!props.secondsLeft && props.secondsLeft !== 0) return 'transparent';
+    if (props.secondsLeft < 0) return '#dc3545'; // Red - Overdue
+    if (props.secondsLeft < 7200) return '#ffc107'; // Yellow - Critical (less than 2 hours)
+    return '#28a745'; // Green - On track
+  }};
+  color: ${props => (props.secondsLeft !== null ? 'white' : 'var(--gray)')};
+`;
+
+const TATText = styled.span`
+  white-space: nowrap;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+`;
+
+const TATLabel = styled.div`
+  font-size: 0.7rem;
+  opacity: 0.9;
+`;
+
+
+// Add this helper function before the PatientOverview component
+const formatTimeRemaining = (seconds) => {
+  if (seconds === null || seconds === undefined) return null;
+  
+  const absSeconds = Math.abs(seconds);
+  const days = Math.floor(absSeconds / 86400);
+  const hours = Math.floor((absSeconds % 86400) / 3600);
+  const minutes = Math.floor((absSeconds % 3600) / 60);
+  const secs = Math.floor(absSeconds % 60);
+  
+  let parts = [];
+  
+  if (days > 0) {
+    parts.push(`${days}D`);
+  }
+  if (hours > 0 || days > 0) {
+    parts.push(`${hours}H`);
+  }
+  if (minutes > 0 || hours > 0 || days > 0) {
+    parts.push(`${minutes}M`);
+  }
+  parts.push(`${secs}S`);
+  
+  return parts.join(':');
+};
+
 const HMSPatientOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -638,43 +695,145 @@ setStatuses(statusMap);
   }, [startDate, endDate]);
 
   const TestStatusModal = () => {
-  if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
-
-  const testStatuses = selectedPatientForStatus.test_statuses || [];
-
-  return (
-    <ModalOverlay onClick={() => setIsTestStatusModalOpen(false)}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>
-          <ModalTitle>
-            Test Status - {selectedPatientForStatus.patient_name}
-          </ModalTitle>
-          <CloseButton onClick={() => setIsTestStatusModalOpen(false)}>
-            <X size={24} />
-          </CloseButton>
-        </ModalHeader>
-
-        <TestStatusList>
-          {testStatuses.length > 0 ? (
-            testStatuses.map((test, index) => (
-              <TestStatusItem 
-                key={index} 
-                highlight={test.status === 'Approved' || test.status === 'Dispatched'}
-              >
-                <TestNameText>{test.test_name}</TestNameText>
-                <Badge color={getBadgeColor(test.status)}>
-                  {test.status}
-                </Badge>
-              </TestStatusItem>
-            ))
-          ) : (
-            <NoData>No test status information available</NoData>
-          )}
-        </TestStatusList>
-      </ModalContent>
-    </ModalOverlay>
-  );
-};
+    const [currentTime, setCurrentTime] = useState(new Date());
+  
+    // Update current time every second for live countdown
+    useEffect(() => {
+      if (!isTestStatusModalOpen) return;
+  
+      const timer = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+  
+      return () => clearInterval(timer);
+    }, [isTestStatusModalOpen]);
+  
+    if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
+  
+    const testStatuses = selectedPatientForStatus.test_statuses || [];
+  
+    const calculateLiveSecondsLeft = (test) => {
+      if (test.tat_status === 'completed') {
+        // For completed tests, return the static value
+        return test.seconds_left;
+      }
+      
+      if (test.tat_status === 'pending' && test.tat_deadline) {
+        // Calculate live countdown
+        const deadline = new Date(test.tat_deadline);
+        const secondsLeft = Math.floor((deadline - currentTime) / 1000);
+        return secondsLeft;
+      }
+      
+      return test.seconds_left;
+    };
+  
+    const formatTATDisplay = (test) => {
+      if (!test.tat_time) return null;
+      
+      const liveSecondsLeft = calculateLiveSecondsLeft(test);
+      
+      if (test.tat_status === 'completed') {
+        // Test is completed
+        const timeStr = formatTimeRemaining(liveSecondsLeft);
+        if (liveSecondsLeft >= 0) {
+          return {
+            label: 'Completed',
+            time: `${timeStr} early`,
+            isOverdue: false
+          };
+        } else {
+          return {
+            label: 'Completed',
+            time: `${timeStr} late`,
+            isOverdue: true
+          };
+        }
+      } else if (test.tat_status === 'pending') {
+        // Test is still pending
+        const timeStr = formatTimeRemaining(liveSecondsLeft);
+        if (liveSecondsLeft > 0) {
+          return {
+            label: 'Time Left',
+            time: timeStr,
+            isOverdue: false
+          };
+        } else {
+          return {
+            label: 'Overdue',
+            time: timeStr,
+            isOverdue: true
+          };
+        }
+      }
+      
+      return {
+        label: 'TAT',
+        time: test.tat_time,
+        isOverdue: false
+      };
+    };
+  
+    return (
+      <ModalOverlay onClick={() => setIsTestStatusModalOpen(false)}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>
+              Test Status - {selectedPatientForStatus.patient_name}
+            </ModalTitle>
+            <CloseButton onClick={() => setIsTestStatusModalOpen(false)}>
+              <X size={24} />
+            </CloseButton>
+          </ModalHeader>
+  
+          <TestStatusList>
+            {testStatuses.length > 0 ? (
+              testStatuses.map((test, index) => {
+                const tatDisplay = formatTATDisplay(test);
+                const liveSecondsLeft = calculateLiveSecondsLeft(test);
+                
+                return (
+                  <TestStatusItem 
+                    key={index} 
+                    highlight={test.status === 'Approved' || test.status === 'Dispatched'}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <TestNameText>{test.test_name}</TestNameText>
+                      {test.sample_collected_time && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
+                          Collected: {format(new Date(test.sample_collected_time), "dd MMM yy, HH:mm:ss")}
+                        </div>
+                      )}
+                      {test.approve_time && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
+                          Approved: {format(new Date(test.approve_time), "dd MMM yy, HH:mm:ss")}
+                        </div>
+                      )}
+                    </div>
+                    <StatusBadgeContainer style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                      <Badge color={getBadgeColor(test.status)}>
+                        {test.status}
+                      </Badge>
+                      {tatDisplay && (
+                        <TATIndicator secondsLeft={liveSecondsLeft}>
+                          <div style={{ textAlign: 'center' }}>
+                            <TATLabel>{tatDisplay.label}</TATLabel>
+                            <TATText>{tatDisplay.time}</TATText>
+                          </div>
+                        </TATIndicator>
+                      )}
+                    </StatusBadgeContainer>
+                  </TestStatusItem>
+                );
+              })
+            ) : (
+              <NoData>No test status information available</NoData>
+            )}
+          </TestStatusList>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
 
   // Determine icon state based on patient status
   const isPrintAndMailEnabled = (status) =>

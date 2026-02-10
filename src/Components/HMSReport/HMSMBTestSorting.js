@@ -1108,7 +1108,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
-      doc.text("**End of the Report**", centerX, currentYPosition, {
+      doc.text("***", centerX, currentYPosition, {
         align: "center",
       });
 

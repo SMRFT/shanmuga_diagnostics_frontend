@@ -508,6 +508,26 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       }
     }
   }
+
+  // BILIRUBIN (TOTAL, DIRECT & ID) (test_id 449) calculations
+  if (currentTest.test_id === 449) {
+    const bilirubinTotal = valuesByTestCode['07'] || 0; // Bilirubin - Total
+    const bilirubinDirect = valuesByTestCode['LFT02'] || 0; // Bilirubin - Direct
+
+    console.log('BILIRUBIN TEST - Calculating with values:', { bilirubinTotal, bilirubinDirect });
+
+    // Calculate LFT03: Bilirubin - Indirect (Bilirubin Total - Bilirubin Direct)
+    const bilirubinIndirectParam = allParams.find(p => p.test_code === 'LFT03');
+    if (bilirubinIndirectParam && bilirubinTotal && bilirubinDirect) {
+      const bilirubinIndirectKey = `${testname}_${bilirubinIndirectParam.name || bilirubinIndirectParam.test_name}`;
+      if (!manuallyEdited[bilirubinIndirectKey]) {
+        const bilirubinIndirect = bilirubinTotal - bilirubinDirect;
+        newValues[bilirubinIndirectKey] = bilirubinIndirect.toFixed(2);
+        console.log(`Bilirubin - Indirect: ${bilirubinIndirect.toFixed(2)}`);
+      }
+    }
+  }
+
   // HbA1c (test_id 467) calculations
   if (currentTest.test_id === 467) {
     const hba1c = valuesByTestCode['HBA1C01'] || 0; // Glycosylated Haemoglobin (HbA1C)
@@ -712,17 +732,17 @@ function TestDetails() {
       setEditMode(tempEditMode);
       setInitialValues(tempInitialValues);
       
-      // Auto-calculate derived values for LIPID PROFILE tests after loading from API
-      console.log('Running auto-calculation for loaded data...');
-      transformedTests.forEach((test) => {
-        // Calculate for LIPID PROFILE (498) and LIVER FUNCTION TEST (196), and HbA1c (467)
-        if ((test.test_id === 498 || test.test_id === 196|| test.test_id === 467) && 
-            test.parametersBySubtitle && 
-            Object.keys(test.parametersBySubtitle).length > 0) {
-          console.log(`Found test with calculations: ${test.testname} (ID: ${test.test_id})`);
-          tempValues = calculateDerivedValues(test.testname, tempValues, test);
-        }
-      });
+     // Auto-calculate derived values for tests after loading from API
+console.log('Running auto-calculation for loaded data...');
+transformedTests.forEach((test) => {
+  // Calculate for LIPID PROFILE (498), LIVER FUNCTION TEST (196), BILIRUBIN (449), and HbA1c (467)
+  if ((test.test_id === 498 || test.test_id === 196 || test.test_id === 449 || test.test_id === 467) && 
+      test.parametersBySubtitle && 
+      Object.keys(test.parametersBySubtitle).length > 0) {
+    console.log(`Found test with calculations: ${test.testname} (ID: ${test.test_id})`);
+    tempValues = calculateDerivedValues(test.testname, tempValues, test);
+  }
+});
       
       // Update values with calculated results
       setValues(tempValues);
@@ -788,9 +808,9 @@ const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValu
     }
 
     // Auto-calculate for tests with calculated parameters
-    if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?.test_id === 467) {
-      return calculateDerivedValues(testname, newValues, currentTest, manuallyEditedCalculatedFields);
-    }
+if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?.test_id === 449 || currentTest?.test_id === 467) {
+  return calculateDerivedValues(testname, newValues, currentTest, manuallyEditedCalculatedFields);
+}
     
     return newValues;
   });

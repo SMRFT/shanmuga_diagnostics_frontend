@@ -44,7 +44,7 @@ const GlobalStyle = createGlobalStyle`
 
 // Styled Components
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -239,6 +239,18 @@ const Badge = styled.span`
   background-color: #e0e7ff;
   color: #4f46e5;
 `
+
+const TATBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: ${props => props.exceeded ? '#fee2e2' : '#e0e7ff'};
+  color: ${props => props.exceeded ? '#dc2626' : '#4f46e5'};
+`
+
 const NavigationContainer = styled.div`
   display: flex;
   margin-bottom: 20px;
@@ -274,6 +286,19 @@ const NavigationTab = styled.button`
     background: ${(props) => (props.active ? "#ccc" : "transparent")};
   }
 `;
+
+const OverageBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #dc2626;
+  background-color: #fee2e2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+`
+
 const FranchiseMIS = () => {
   const [data, setData] = useState([])
   const [fromDate, setFromDate] = useState(new Date().toISOString().split("T")[0])
@@ -281,59 +306,59 @@ const FranchiseMIS = () => {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-   const navigate = useNavigate();
-    const location = useLocation();
-    const [activeTab, setActiveTab] = useState("hms");
-     // Set active tab based on current route
-    
-      useEffect(() => {
-        if (location.pathname === "/ShanmugaMIS") {
-          setActiveTab("hms");
-        } else if (location.pathname === "/MIS") {
-          setActiveTab("mis");
-          } else if (location.pathname === "/FranchiseMIS") {
-          setActiveTab("franchise");
-        }
-      }, [location.pathname]);
-    
-      // Handle tab navigation
-      const handleTabChange = (tab) => {
-        setActiveTab(tab);
-        if (tab === "hms") {
-          navigate("/ShanmugaMIS");
-        } else if (tab === "mis") {
-          navigate("/MIS");
-           } else if (tab === "franchise") {
-          navigate("/FranchiseMIS");
-        }
-      };
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState("hms");
+
   useEffect(() => {
-  fetchConsolidatedData(fromDate, toDate)
-}, [fromDate, toDate])
-
-const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
-  setLoading(true);
-  
-  try {
-    const url = `${Labbaseurl}franchise-consolidated-data/?from_date=${encodeURIComponent(selectedFromDate)}&to_date=${encodeURIComponent(selectedToDate)}`;
-    
-    const result = await apiRequest(url, "GET");
-    
-    if (result.success) {
-      setData(result.data);
-    } else {
-      console.error("Error fetching consolidated data:", result.error);
-      setData([]);
+    if (location.pathname === "/ShanmugaMIS") {
+      setActiveTab("hms");
+    } else if (location.pathname === "/MIS") {
+      setActiveTab("mis");
+    } else if (location.pathname === "/FranchiseMIS") {
+      setActiveTab("franchise");
     }
-  } catch (error) {
-    console.error("Unexpected error in fetchConsolidatedData:", error);
-    setData([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [location.pathname]);
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === "hms") {
+      navigate("/ShanmugaMIS");
+    } else if (tab === "mis") {
+      navigate("/MIS");
+    } else if (tab === "franchise") {
+      navigate("/FranchiseMIS");
+    }
+  };
 
+  useEffect(() => {
+    fetchConsolidatedData(fromDate, toDate)
+  }, [fromDate, toDate])
+
+  const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
+    setLoading(true);
+    
+    try {
+      const url = `${Labbaseurl}franchise-consolidated-data/?from_date=${encodeURIComponent(selectedFromDate)}&to_date=${encodeURIComponent(selectedToDate)}`;
+      
+      const result = await apiRequest(url, "GET");
+      
+      if (result.success) {
+        // Handle new response format with data wrapper
+        const responseData = result.data.data || result.data;
+        setData(responseData);
+        console.log(`Loaded ${responseData.length} records`);
+      } else {
+        console.error("Error fetching consolidated data:", result.error);
+        setData([]);
+      }
+    } catch (error) {
+      console.error("Unexpected error in fetchConsolidatedData:", error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatTime = (dateStr) => {
     if (dateStr === "pending" || !dateStr || dateStr === null) {
@@ -357,27 +382,27 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
   }
 
   const formatDuration = (durationStr) => {
-  if (durationStr === "pending" || !durationStr) {
-    return "Pending"
+    if (durationStr === "pending" || !durationStr) {
+      return "Pending"
+    }
+
+    try {
+      // Parse duration string like "0:29:05" or "1 day, 2:30:45"
+      const parts = durationStr.split(", ")
+      let timeStr = parts.length > 1 ? parts[1] : parts[0]
+      let days = parts.length > 1 ? parseInt(parts[0].split(" ")[0]) : 0
+
+      const timeParts = timeStr.split(":")
+      const hours = parseInt(timeParts[0]) + (days * 24)
+      const minutes = parseInt(timeParts[1])
+      const seconds = parseInt(timeParts[2])
+
+      return `${String(hours).padStart(2, "0")}H:${String(minutes).padStart(2, "0")}M:${String(seconds).padStart(2, "0")}S`
+    } catch (error) {
+      console.error("Error formatting duration:", error)
+      return durationStr
+    }
   }
-
-  try {
-    // Parse duration string like "0:29:05" or "1 day, 2:30:45"
-    const parts = durationStr.split(", ")
-    let timeStr = parts.length > 1 ? parts[1] : parts[0]
-    let days = parts.length > 1 ? parseInt(parts[0].split(" ")[0]) : 0
-
-    const timeParts = timeStr.split(":")
-    const hours = parseInt(timeParts[0]) + (days * 24)
-    const minutes = parseInt(timeParts[1])
-    const seconds = parseInt(timeParts[2])
-
-    return `${String(hours).padStart(2, "0")}H:${String(minutes).padStart(2, "0")}M:${String(seconds).padStart(2, "0")}S`
-  } catch (error) {
-    console.error("Error formatting duration:", error)
-    return durationStr
-  }
-}
 
   const groupedData = data.reduce((acc, row) => {
     const key = `${row.patient_name}_${row.age}`
@@ -389,155 +414,162 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
   }, {})
 
   const exportToExcel = () => {
-  if (!fromDate || !toDate) {
-    alert("Please select from and to dates!")
-    return
-  }
-
-  try {
-    const fromDateObj = new Date(fromDate)
-    const toDateObj = new Date(toDate)
-    const formattedFromDate = fromDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
-    const formattedToDate = toDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
-
-    // Filter data between the date range
-    const filteredData = data.filter((row) => {
-      const rowDate = new Date(row.date.split(' ')[0]) // Extract date part
-      return rowDate >= fromDateObj && rowDate <= toDateObj
-    })
-
-    if (filteredData.length === 0) {
-      alert("No data available for the selected date range!")
+    if (!fromDate || !toDate) {
+      alert("Please select from and to dates!")
       return
     }
 
-    const formattedData = filteredData.map((row) => ({
-  Date: new Date(row.date).toLocaleDateString("en-GB").replace(/\//g, "-"),
-  "Patient ID": row.patient_id,
-  "Patient Name": row.patient_name,
-  "Barcode": row.barcode,
-  Age: row.age,
-  "Test Name": row.test_name,
-  Department: row.department,
-  "Registered Time": formatTime(row.date),
-  "Collected Time": formatTime(row.collected_time),
-  "Received Time": formatTime(row.received_time),
-  "Approval Time": formatTime(row.approval_time),
-  "Dispatch Time": formatTime(row.dispatch_time),
-  "TAT Time": formatDuration(row.tat_time),
-  "Processing Time": formatDuration(row.total_processing_time),
-}))
+    try {
+      const fromDateObj = new Date(fromDate)
+      const toDateObj = new Date(toDate)
+      const formattedFromDate = fromDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
+      const formattedToDate = toDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
 
-    const worksheet = XLSX.utils.json_to_sheet(formattedData)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "MIS Data")
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" })
-    const dataBlob = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    })
+      // Use the data that's already filtered by the API
+      if (data.length === 0) {
+        alert("No data available for the selected date range!")
+        return
+      }
 
-    saveAs(dataBlob, `MIS_Report_${formattedFromDate}_to_${formattedToDate}.xlsx`)
-  } catch (error) {
-    console.error("Error exporting Excel:", error)
-    alert("An error occurred while exporting the data.")
+      // Apply search filter if there's a search query
+      const dataToExport = searchQuery 
+        ? filteredPatients.flatMap(group => group.tests)
+        : data
+
+      const formattedData = dataToExport.map((row) => ({
+        Date: new Date(row.date).toLocaleDateString("en-GB").replace(/\//g, "-"),
+        "Patient ID": row.patient_id,
+        "Patient Name": row.patient_name,
+        "Barcode": row.barcode,
+        Age: row.age,
+        "Test Name": row.test_name,
+        Department: row.department,
+        "Registered Time": formatTime(row.date),
+        "Collected Time": formatTime(row.collected_time),
+        "Received Time": formatTime(row.received_time),
+        "Approval Time": formatTime(row.approval_time),
+        "Expected TAT": row.expected_tat || 'N/A',
+        "Actual TAT": formatDuration(row.tat_time),
+        "TAT Overage": row.tat_out_time 
+          ? `+${formatDuration(row.tat_out_time)}` 
+          : (row.tat_status === 'within_limit' ? 'On Time' : '—'),
+        "TAT Status": row.tat_status === 'exceeded' ? 'EXCEEDED' : 
+                      row.tat_status === 'within_limit' ? 'ON TIME' : 'PENDING',        
+        "Processing Time": formatDuration(row.total_processing_time),
+        
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "MIS Data")
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" })
+      const dataBlob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+
+      saveAs(dataBlob, `Franchise_MIS_Report_${formattedFromDate}_to_${formattedToDate}.xlsx`)
+    } catch (error) {
+      console.error("Error exporting Excel:", error)
+      alert("An error occurred while exporting the data.")
+    }
   }
-}
 
   const filteredPatients = Object.values(groupedData).filter(
-  (patient) =>
-    patient.patient_name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-    patient.patient_id?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-    patient.barcode?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-    patient.tests.some(
-      (test) =>
-        test.test_name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-        test.department?.toLowerCase().includes(searchQuery?.toLowerCase()),
-    ),
-)
+    (patient) =>
+      patient.patient_name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+      patient.patient_id?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+      patient.barcode?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+      patient.tests.some(
+        (test) =>
+          test.test_name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+          test.department?.toLowerCase().includes(searchQuery?.toLowerCase()),
+      ),
+  )
 
   return (
     <Container>
-        <GlobalStyle />
-        <CardHeader>
-          {/* Navigation Tabs */}
-          <NavigationContainer>
-             <NavigationTab
-              active={activeTab === "hms"}
-              onClick={() => handleTabChange("hms")}
-            >
-              Shanmuga Lab
-            </NavigationTab>
-            <NavigationTab
-              active={activeTab === "mis"}
-              onClick={() => handleTabChange("mis")}
-            >
-              Shanmuga Diagnostics
-            </NavigationTab>
-            <NavigationTab
-              active={activeTab === "franchise"}
-              onClick={() => handleTabChange("franchise")}
-            >
-              Franchise
-            </NavigationTab>
-          </NavigationContainer>
-          <Title>Diagnostics Overall TAT Report</Title>
-        </CardHeader>
+      <GlobalStyle />
+      <CardHeader>
+        <NavigationContainer>
+          <NavigationTab
+            active={activeTab === "hms"}
+            onClick={() => handleTabChange("hms")}
+          >
+            Shanmuga Lab
+          </NavigationTab>
+          <NavigationTab
+            active={activeTab === "mis"}
+            onClick={() => handleTabChange("mis")}
+          >
+            Shanmuga Diagnostics
+          </NavigationTab>
+          <NavigationTab
+            active={activeTab === "franchise"}
+            onClick={() => handleTabChange("franchise")}
+          >
+            Franchise
+          </NavigationTab>
+        </NavigationContainer>
+        <Title>Franchise Overall TAT Report</Title>
+      </CardHeader>
 
-        <Controls>
-  <DatePickerWrapper>
-    <Calendar size={16} color="#6b7280" />
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>From:</span>
-    <DateInput type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-  </DatePickerWrapper>
+      <Controls>
+        <DatePickerWrapper>
+          <Calendar size={16} color="#6b7280" />
+          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>From:</span>
+          <DateInput type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        </DatePickerWrapper>
 
-  <DatePickerWrapper>
-    <Calendar size={16} color="#6b7280" />
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>To:</span>
-    <DateInput type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-  </DatePickerWrapper>
+        <DatePickerWrapper>
+          <Calendar size={16} color="#6b7280" />
+          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>To:</span>
+          <DateInput type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        </DatePickerWrapper>
 
-  <SearchWrapper>
-    <Search size={16} color="#6b7280" />
-    <SearchInput
-      type="text"
-      placeholder="Search patient, test, department, barcode..."
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-    />
-  </SearchWrapper>
+        <SearchWrapper>
+          <Search size={16} color="#6b7280" />
+          <SearchInput
+            type="text"
+            placeholder="Search patient, test, department, barcode..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </SearchWrapper>
 
-  <ExportButton onClick={exportToExcel}>
-    <Download size={16} />
-    <span>Export</span>
-  </ExportButton>
-</Controls>
-     
+        <ExportButton onClick={exportToExcel}>
+          <Download size={16} />
+          <span>Export</span>
+        </ExportButton>
+      </Controls>
 
       {loading ? (
         <LoadingWrapper>
           <LoadingSpinner />
+          <p style={{ marginTop: '1rem', color: '#6b7280' }}>Loading data...</p>
         </LoadingWrapper>
       ) : (
         <TableContainer>
           <StyledTable>
             <TableHead>
-  <tr>
-    <th>Date</th>
-    <th>Patient ID</th>
-    <th>Patient Name</th>
-    <th>Barcode</th>
-    <th>Age</th>
-    <th>Test Name</th>
-    <th>Department</th>
-    <th>Registered</th>
-    <th>Collected</th>
-    <th>Received</th>
-    <th>Approved</th>
-    <th>Dispatched</th>
-    <th>TAT Time</th>
-    <th>Processing Time</th>
-  </tr>
-</TableHead>
+              <tr>
+                <th>Date</th>
+                <th>Patient ID</th>
+                <th>Patient Name</th>
+                <th>Barcode</th>
+                <th>Age</th>
+                <th>Test Name</th>
+                <th>Department</th>
+                <th>Registered</th>
+                <th>Collected</th>
+                <th>Received</th>
+                <th>Approved</th>
+                <th>Expected TAT</th>  
+                <th>Actual TAT(C-A)</th>
+                <th>TAT Overage</th>    
+                <th>Processing Time(R-D)</th>
+                
+              </tr>
+            </TableHead>
             <TableBody>
               {filteredPatients.length > 0 ? (
                 filteredPatients.map((group, groupIndex) =>
@@ -546,11 +578,9 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
                       {testIndex === 0 && (
                         <>
                           <td rowSpan={group.tests.length}>{new Date(group.date).toLocaleDateString('en-IN')}</td>
-
                           <td rowSpan={group.tests.length}>
                             <Badge>{group.patient_id}</Badge>
                           </td>
-                          
                           <td rowSpan={group.tests.length}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                               <User size={16} color="#6b7280" />
@@ -572,30 +602,67 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
                       <td>{formatTime(test.collected_time)}</td>
                       <td>{formatTime(test.received_time)}</td>
                       <td>{formatTime(test.approval_time)}</td>
-<td>{formatTime(test.dispatch_time)}</td>
-<td>
-  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-    <Clock size={16} color="#10b981" />
-    <span>{formatDuration(test.tat_time)}</span>
-  </div>
-</td>
-<td>
-  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-    <Clock size={16} color="#6b7280" />
-    <span>{formatDuration(test.total_processing_time)}</span>
-  </div>
-</td>
+
+                       {/* Expected TAT */}
+                      <td>
+                        <TATBadge exceeded={false}>
+                          {test.expected_tat || 'N/A'}
+                        </TATBadge>
+                      </td>
+                      
+                      {/* Actual TAT (Approval - Registered) */}                     
+                      <td>
+                        <div style={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: "0.5rem",
+                          color: test.tat_status === 'exceeded' ? '#dc2626' : 
+                                 test.tat_status === 'within_limit' ? '#10b981' : '#6b7280',
+                          fontWeight: test.tat_status === 'exceeded' ? '600' : '400'
+                        }}>
+                          <Clock size={16} />
+                          <span>{formatDuration(test.tat_time)}</span>
+                        </div>
+                      </td>
+                      
+                      {/* TAT Overage - Only show if exceeded */}
+                      <td>
+                        {test.tat_out_time ? (
+                          <OverageBadge>
+                            <Clock size={14} />
+                            <span>+{formatDuration(test.tat_out_time)}</span>
+                          </OverageBadge>
+                        ) : (
+                          <span style={{ 
+                            color: test.tat_status === 'within_limit' ? '#10b981' : '#9ca3af',
+                            fontSize: '0.875rem',
+                            fontWeight: test.tat_status === 'within_limit' ? '500' : '400'
+                          }}>
+                            {test.tat_status === 'within_limit' ? '✓ On Time' : '—'}
+                          </span>
+                        )}
+                      </td>
+                      
+                                           
+                      {/* Processing Time (Approval - Collected) */}
+                       <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <Clock size={16} color="#6b7280" />
+                          <span>{formatDuration(test.total_processing_time)}</span>
+                        </div>
+                      </td>
+                      
                     </tr>
                   )),
                 )
               ) : (
                 <tr>
-                  <td colSpan={14}>
-  <EmptyState>
-    <Activity size={32} color="#9ca3af" />
-    <p>No data available for the selected criteria</p>
-  </EmptyState>
-</td>
+                  <td colSpan={15}>
+                    <EmptyState>
+                      <Activity size={32} color="#9ca3af" />
+                      <p>No data available for the selected criteria</p>
+                    </EmptyState>
+                  </td>
                 </tr>
               )}
             </TableBody>
@@ -603,16 +670,16 @@ const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
         </TableContainer>
       )}
       <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: "var(--gray)",
-            fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
-          }}
-        >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+        style={{
+          padding: "1rem 1.5rem",
+          textAlign: "right",
+          color: "var(--gray)",
+          fontSize: "0.875rem",
+          borderTop: "1px solid var(--gray-light)",
+        }}
+      >
+        Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+      </div>
     </Container>
   )
 }

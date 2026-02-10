@@ -44,7 +44,7 @@ const GlobalStyle = createGlobalStyle`
 
 // Styled Components
 const Container = styled.div`
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -240,6 +240,17 @@ const Badge = styled.span`
   color: #4f46e5;
 `
 
+const TATBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: ${props => props.exceeded ? '#fee2e2' : '#e0e7ff'};
+  color: ${props => props.exceeded ? '#dc2626' : '#4f46e5'};
+`
+
 const NavigationContainer = styled.div`
   display: flex;
   margin-bottom: 20px;
@@ -275,6 +286,18 @@ const NavigationTab = styled.button`
     background: ${(props) => (props.active ? "#ccc" : "transparent")};
   }
 `;
+
+const OverageBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #dc2626;
+  background-color: #fee2e2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+`
 
 const MIS = () => {
   const [data, setData] = useState([])
@@ -321,7 +344,10 @@ const MIS = () => {
       const result = await apiRequest(url, "GET");
       
       if (result.success) {
-        setData(result.data);
+        // Handle new response format with data wrapper
+        const responseData = result.data.data || result.data;
+        setData(responseData);
+        console.log(`Loaded ${responseData.length} records`);
       } else {
         console.error("Error fetching consolidated data:", result.error);
         setData([]);
@@ -388,58 +414,66 @@ const MIS = () => {
   }, {})
 
   const exportToExcel = () => {
-    if (!fromDate || !toDate) {
-      alert("Please select from and to dates!")
+  if (!fromDate || !toDate) {
+    alert("Please select from and to dates!")
+    return
+  }
+
+  try {
+    const fromDateObj = new Date(fromDate)
+    const toDateObj = new Date(toDate)
+    const formattedFromDate = fromDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
+    const formattedToDate = toDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
+
+    // Use the data that's already filtered by the API
+    if (data.length === 0) {
+      alert("No data available for the selected date range!")
       return
     }
 
-    try {
-      const fromDateObj = new Date(fromDate)
-      const toDateObj = new Date(toDate)
-      const formattedFromDate = fromDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
-      const formattedToDate = toDateObj.toLocaleDateString("en-GB").replace(/\//g, "-")
+    // Apply search filter if there's a search query
+    const dataToExport = searchQuery 
+      ? filteredPatients.flatMap(group => group.tests)
+      : data
 
-      const filteredData = data.filter((row) => {
-        const rowDate = new Date(row.date.split(' ')[0])
-        return rowDate >= fromDateObj && rowDate <= toDateObj
-      })
+    const formattedData = dataToExport.map((row) => ({
+      Date: new Date(row.date).toLocaleDateString("en-GB").replace(/\//g, "-"),
+      "Patient ID": row.patient_id,
+      "Patient Name": row.patient_name,
+      "Barcode": row.barcode,
+      Age: row.age,
+      "Test Name": row.test_name,
+      Department: row.department,
+      "Registered Time": formatTime(row.date),
+      "Collected Time": formatTime(row.collected_time),
+      "Received Time": formatTime(row.received_time),
+      "Approval Time": formatTime(row.approval_time),
+      "Dispatch Time": formatTime(row.dispatch_time),
+      "Expected TAT": row.expected_tat || 'N/A',
+      "Actual TAT": formatDuration(row.tat_time),   
+      "TAT Overage": row.tat_out_time 
+        ? `+${formatDuration(row.tat_out_time)}` 
+        : (row.tat_status === 'within_limit' ? 'On Time' : '—'),
+      "TAT Status": row.tat_status === 'exceeded' ? 'EXCEEDED' : 
+                    row.tat_status === 'within_limit' ? 'ON TIME' : 'PENDING',   
+      "Processing Time": formatDuration(row.total_processing_time),
+     
+    }))
 
-      if (filteredData.length === 0) {
-        alert("No data available for the selected date range!")
-        return
-      }
+    const worksheet = XLSX.utils.json_to_sheet(formattedData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "MIS Data")
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" })
+    const dataBlob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
 
-      const formattedData = filteredData.map((row) => ({
-        Date: new Date(row.date).toLocaleDateString("en-GB").replace(/\//g, "-"),
-        "Patient ID": row.patient_id,
-        "Patient Name": row.patient_name,
-        "Barcode": row.barcode,
-        Age: row.age,
-        "Test Name": row.test_name,
-        Department: row.department,
-        "Registered Time": formatTime(row.date),
-        "Collected Time": formatTime(row.collected_time),
-        "Received Time": formatTime(row.received_time),
-        "Approval Time": formatTime(row.approval_time),
-        "Dispatch Time": formatTime(row.dispatch_time),
-        "TAT Time": formatDuration(row.tat_time),
-        "Processing Time": formatDuration(row.total_processing_time),
-      }))
-
-      const worksheet = XLSX.utils.json_to_sheet(formattedData)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "MIS Data")
-      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" })
-      const dataBlob = new Blob([excelBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      })
-
-      saveAs(dataBlob, `MIS_Report_${formattedFromDate}_to_${formattedToDate}.xlsx`)
-    } catch (error) {
-      console.error("Error exporting Excel:", error)
-      alert("An error occurred while exporting the data.")
-    }
+    saveAs(dataBlob, `MIS_Report_${formattedFromDate}_to_${formattedToDate}.xlsx`)
+  } catch (error) {
+    console.error("Error exporting Excel:", error)
+    alert("An error occurred while exporting the data.")
   }
+}
 
   const filteredPatients = Object.values(groupedData).filter(
     (patient) =>
@@ -512,6 +546,7 @@ const MIS = () => {
       {loading ? (
         <LoadingWrapper>
           <LoadingSpinner />
+          <p style={{ marginTop: '1rem', color: '#6b7280' }}>Loading data...</p>
         </LoadingWrapper>
       ) : (
         <TableContainer>
@@ -530,8 +565,11 @@ const MIS = () => {
                 <th>Received</th>
                 <th>Approved</th>
                 <th>Dispatched</th>
-                <th>TAT Time</th>
-                <th>Processing Time</th>
+                <th>Expected TAT</th>  
+                <th>Actual TAT (C-A)</th>
+                <th>TAT Overage</th>                     
+                <th>Processing Time(R-D)</th>
+                
               </tr>
             </TableHead>
             <TableBody>
@@ -567,24 +605,59 @@ const MIS = () => {
                       <td>{formatTime(test.received_time)}</td>
                       <td>{formatTime(test.approval_time)}</td>
                       <td>{formatTime(test.dispatch_time)}</td>
+                       {/* Expected TAT */}
                       <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <Clock size={16} color="#10b981" />
+                        <TATBadge exceeded={false}>
+                          {test.expected_tat || 'N/A'}
+                        </TATBadge>
+                      </td>
+                       {/* Actual TAT */}
+                      <td>
+                        <div style={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: "0.5rem",
+                          color: test.tat_status === 'exceeded' ? '#dc2626' : 
+                                 test.tat_status === 'within_limit' ? '#10b981' : '#6b7280',
+                          fontWeight: test.tat_status === 'exceeded' ? '600' : '400'
+                        }}>
+                          <Clock size={16} />
                           <span>{formatDuration(test.tat_time)}</span>
                         </div>
-                      </td>
+                      </td>   
+
+                       {/* TAT Overage - Only show if exceeded */}
                       <td>
+                        {test.tat_out_time ? (
+                          <OverageBadge>
+                            <Clock size={14} />
+                            <span>+{formatDuration(test.tat_out_time)}</span>
+                          </OverageBadge>
+                        ) : (
+                          <span style={{ 
+                            color: test.tat_status === 'within_limit' ? '#10b981' : '#9ca3af',
+                            fontSize: '0.875rem',
+                            fontWeight: test.tat_status === 'within_limit' ? '500' : '400'
+                          }}>
+                            {test.tat_status === 'within_limit' ? '✓ On Time' : '—'}
+                          </span>
+                        )}
+                      </td>               
+                                          
+                      {/* Processing Time */}
+                       <td>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                           <Clock size={16} color="#6b7280" />
                           <span>{formatDuration(test.total_processing_time)}</span>
                         </div>
                       </td>
+                     
                     </tr>
                   )),
                 )
               ) : (
                 <tr>
-                  <td colSpan={14}>
+                  <td colSpan={16}>
                     <EmptyState>
                       <Activity size={32} color="#9ca3af" />
                       <p>No data available for the selected criteria</p>

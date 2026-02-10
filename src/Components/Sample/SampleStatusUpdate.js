@@ -382,7 +382,7 @@ const Modal = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 50;
+  z-index: 1200;
   padding: 1rem;
 `;
 
@@ -391,7 +391,7 @@ const ModalContent = styled.div`
   border-radius: ${(props) => props.theme.borderRadius.lg};
   box-shadow: ${(props) => props.theme.shadows.xl};
   width: 100%;
-  max-width: 900px;
+  max-width: 1200px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 1.5rem;
