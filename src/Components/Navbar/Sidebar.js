@@ -470,7 +470,7 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
-                <SubLink to="/LogisticManagementApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink to="/LogisticsTaskManagement" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Approval
                 </SubLink>
               </DropdownContent>
@@ -1127,16 +1127,16 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
-                <SubLink to="/LogisticManagementAdmin" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink to="/LogisticsTaskAssign" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Task Assigning
                 </SubLink>
-                <SubLink to="/LogisticManagementApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink to="/LogisticsTaskManagement" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Approval
                 </SubLink>
                 <SubLink to="/LogisticsDashboard" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Dashboard
                 </SubLink>
-                <SubLink to="/LogisticMap" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink to="/LogisticsTracking" onClick={() => setIsSidebarOpen(false)}>
                   Logistics Tracking
                 </SubLink>
               </DropdownContent>
@@ -1549,7 +1549,7 @@ const Sidebar = () => {
 
           {role === "HR" && (
             <>
-              <SidebarNavLink to="/LiveTrackingDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink to="/LogisticsTracking" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <FaMapMarkerAlt />
                 </IconWrapper>
