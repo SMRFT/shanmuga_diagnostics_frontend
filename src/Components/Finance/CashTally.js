@@ -427,7 +427,6 @@ const MyDocument = ({ reportData }) => {
               <Text style={styles.tableCell}>Gross Amount</Text>
               <Text style={styles.tableCell}>Discount</Text>
               <Text style={styles.tableCell}>Due Amount</Text>
-              <Text style={styles.tableCell}>Net Amount</Text>
               <Text style={styles.tableCell}>Pending Amount</Text>
               <Text style={styles.tableCellLast}>Total Collection</Text>
             </View>
@@ -435,8 +434,7 @@ const MyDocument = ({ reportData }) => {
               <Text style={styles.tableCell}>{reportData.gross_amount}</Text>
               <Text style={styles.tableCell}>{reportData.discount}</Text>
               <Text style={styles.tableCell}>{reportData.due_amount}</Text>
-              <Text style={styles.tableCell}>{reportData.net_amount}</Text>
-              <Text style={styles.tableCell}>{reportData.pending_amount}</Text>
+              <Text style={styles.tableCell}>{reportData.credit_payment_received}</Text>
               <Text style={styles.tableCellLast}>{reportData.total_collection}</Text>
             </View>
           </View>
@@ -480,7 +478,6 @@ const PaymentDetailsModal = ({ isOpen, onClose, reportData }) => {
       case "neft":
       case "cheque":
       case "credit":
-      case "partialpayment":
       default:
         return <CreditCard size={20} />
     }
@@ -641,7 +638,7 @@ const fetchReportData = async (start, end) => {
                   <th>Credit Amount</th>
                   <th>Pending Paid</th>
                   <th>Refund</th>
-                  <th>Net Amount</th>
+                  {/* <th>Net Amount</th> */}
                   <th>Total Collection</th>
                   <th>Payment Details</th>
                   <th>Download</th>
@@ -656,7 +653,7 @@ const fetchReportData = async (start, end) => {
                     <td>₹ {item.due_amount}</td>
                     <td>₹ {item.credit_payment_received}</td>
                     <td>₹ {item.refund_amount}</td>
-                    <td>₹ {item.net_amount}</td>
+                    {/* <td>₹ {item.net_amount}</td> */}
                     <td>₹ {item.total_collection}</td>
                     <td>
                       <ViewDetailsButton onClick={() => openModal(item)}>

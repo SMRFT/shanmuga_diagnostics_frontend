@@ -1579,6 +1579,13 @@ const Sidebar = () => {
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
+
+              <SidebarNavLink to="/PreethamHospitalLedger" onClick={() => setIsSidebarOpen(false)}>
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Ledger Balance
+              </SidebarNavLink>
             </>
           )}
         </SidebarContent>
