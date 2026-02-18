@@ -52,7 +52,6 @@ import HmsTestDetails from "./Components/HMS/HmsTestDetails";
 import PrintBill from "./Components/Patients/PrintBill";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
-import PreethamHospitalReport from "./Components/Report/PreethamHospitalReport";
 import TestEdit from "./Components/Forms/TestEdit";
 import SalesDashboard from "./Components/Sales/SalesDashboard";
 import SalesDetailsEdit from "./Components/Sales/SalesDetailsEdit";
@@ -89,6 +88,7 @@ import LogisticsTaskManagement from "./Components/Logistics/LogisticsTaskManagem
 import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
 import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 import LogisticsTracking from "./Components/Logistics/LogisticsTracking";
+import PreethamHospitalLedger from "./Components/PreethamHospital/PreethamLedgerBalance";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -266,7 +266,6 @@ function App() {
       "/HMSMBTestSorting": "HMS Microbiology Test Sorting",
       "/HMSPatientOverview": "HMS Patient Overview",
       "/PatientOverallReport": "Patient Overall Report",
-      "/PreethamHospitalReport": "Preetham Hospital Report",
       "/PreethamDashboard": "Preetham Dashboard",
       "/PreethamPatientOverview": "Preetham Patient Overview",
     };
@@ -379,9 +378,6 @@ function App() {
             <Route path="/OutsourcedSamples" element={<OutsourcedSamples />} />
             <Route path="/HomeCollectionReport" element={<HomeCollectionReport />} />
 
-
-
-
             {/* Test Approval */}
             <Route path="/PatientList" element={<PatientList />} />
             <Route path="/DoctorForm" element={<DoctorForm />} />
@@ -399,7 +395,6 @@ function App() {
             <Route path="/B2BApproval" element={<B2BApproval />} />
             <Route path="/B2BFinalApproval" element={<B2BFinalApproval />} />
             <Route path="/B2BReport" element={<B2BReport />} />
-
 
             {/* Diagnostics Report */}
             <Route path="/MDashboard" element={<MDashboard />} />
@@ -449,9 +444,9 @@ function App() {
             <Route path="/HMSPatientOverview" element={<HMSPatientOverview />} />
             <Route path="/PatientOverallReport" element={<PatientOverallReport />} />
 
-            <Route path="/PreethamHospitalReport" element={<PreethamHospitalReport />} />
             <Route path="/PreethamDashboard" element={<PreethamDashboard />} />
             <Route path="/PreethamPatientOverview" element={<PreethamPatientOverview />} />
+            <Route path="/PreethamHospitalLedger" element={<PreethamHospitalLedger />} />
 
           </Routes>
         </ContentWrapper>
