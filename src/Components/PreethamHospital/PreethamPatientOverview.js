@@ -398,268 +398,275 @@ const PreethamPatientOverview = () => {
     // ---------------------------------------------------------------------------
     // PDF Generation (Adapted from PreethamHospitalReport.js)
     // ---------------------------------------------------------------------------
-const handlePrint = async (patient, withLetterpad = true) => {
-    try {
-      console.log("Fetching patient details for barcode:", patient.barcode);
-      const response = await apiRequest(
-        `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
-        "GET"
-      );
+    const handlePrint = async (patient, withLetterpad = true) => {
+        try {
+        console.log("Fetching patient details for barcode:", patient.barcode);
+        const response = await apiRequest(
+            `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
+            "GET"
+        );
 
-      if (!response.success) {
-        console.error("Failed to fetch patient details:", response.error);
-        toast.error(response.error || "Failed to fetch patient details");
-        setLoading(false);
-        return null;
-      }
+        if (!response.success) {
+            console.error("Failed to fetch patient details:", response.error);
+            toast.error(response.error || "Failed to fetch patient details");
+            setLoading(false);
+            return null;
+        }
 
-      console.log("API Response:", response.data);
-      
-      // Extract patient data and signatures from the new response structure
-      let patientDetails;
-      let signaturesData = [];
-      
-      if (response.data.patient_data && response.data.signatures) {
-        // New structure with signatures
-        patientDetails = response.data.patient_data;
-        signaturesData = response.data.signatures;
-      } else {
-        // Fallback for old structure
-        patientDetails = response.data;
-      }
+        console.log("API Response:", response.data);
+        
+        // Extract patient data and signatures from the new response structure
+        let patientDetails;
+        let signaturesData = [];
+        
+        if (response.data.patient_data && response.data.signatures) {
+            // New structure with signatures
+            patientDetails = response.data.patient_data;
+            signaturesData = response.data.signatures;
+        } else {
+            // Fallback for old structure
+            patientDetails = response.data;
+        }
 
-      if (Array.isArray(patientDetails)) {
-        patientDetails = {
-          ...patientDetails[0],
-          testdetails: patientDetails.flatMap((record) => record.testdetails || []),
+        if (Array.isArray(patientDetails)) {
+            patientDetails = {
+            ...patientDetails[0],
+            testdetails: patientDetails.flatMap((record) => record.testdetails || []),
+            };
+        }
+
+        console.log("Processed Patient Details:", patientDetails);
+        console.log("Signatures Data:", signaturesData);
+
+        if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
+            console.error("No test details found for the patient.");
+            toast.error("No test details found for the patient.");
+            setLoading(false);
+            return null;
+        }
+
+        // Unicode character mapping
+        const unicodeMap = {
+            μ: "µ", α: "α", β: "β", γ: "γ", δ: "δ", Ω: "Ω",
+            "²": "²", "³": "³", "⁴": "⁴",
+            "°": "°", "±": "±", "×": "x", "÷": "/",
+            "\\u03bc": "µ", "\\u00b5": "µ", "\\u00b0": "°",
+            "\\u00b1": "±", "\\u00b2": "²", "\\u00b3": "³",
         };
-      }
 
-      console.log("Processed Patient Details:", patientDetails);
-      console.log("Signatures Data:", signaturesData);
-
-      if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
-        console.error("No test details found for the patient.");
-        toast.error("No test details found for the patient.");
-        setLoading(false);
-        return null;
-      }
-
-      // Unicode character mapping
-      const unicodeMap = {
-        μ: "µ", α: "α", β: "β", γ: "γ", δ: "δ", Ω: "Ω",
-        "²": "²", "³": "³", "⁴": "⁴",
-        "°": "°", "±": "±", "×": "x", "÷": "/",
-        "\\u03bc": "µ", "\\u00b5": "µ", "\\u00b0": "°",
-        "\\u00b1": "±", "\\u00b2": "²", "\\u00b3": "³",
-      };
-
-      const processUnicodeText = (text) => {
-        if (!text) return "";
-        let processedText = text;
-        processedText = processedText.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
-          const char = String.fromCharCode(parseInt(hex, 16));
-          return unicodeMap[char] || char;
-        });
-        Object.keys(unicodeMap).forEach((unicode) => {
-          const regex = new RegExp(unicode, "g");
-          processedText = processedText.replace(regex, unicodeMap[unicode]);
-        });
-        return processedText;
-      };
-
-      const extractPatientRefNoNumber = (refNo) => {
-        if (!refNo) return "N/A";
-        const numberPart = refNo.split("+")[0];
-        return numberPart;
-      };
-
-      const designationMapping = {
-        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
-        "DESIG100": { position: 1, title: "Consultant Pathologist" },
-        "DESIG099": { position: 2, title: "Consultant Biochemist" },
-      };
-
-      // Build consultants array dynamically from signatures data
-      const consultants = [];
-      consultants[0] = null;
-      consultants[1] = null;
-      consultants[2] = null;
-      
-      signaturesData.forEach((sig) => {
-        const mapping = designationMapping[sig.designation];
-        if (mapping) {
-          const signatureImage = sig.signatureBase64 
-            ? `data:image/png;base64,${sig.signatureBase64}` 
-            : null;
-          
-          consultants[mapping.position] = [
-            sig.employeeName,
-            mapping.title,
-            signatureImage
-          ];
-        }
-      });
-      
-      const activeConsultants = consultants.filter(c => c !== null);
-
-      console.log("Active Consultants:", activeConsultants);
-
-      const departmentOrder = [
-        "Haematology",
-        "Coagulation",
-        "Biochemistry",
-        "Immunology",
-        "Immunoassay",
-        "Serology",
-        "Clinical Pathology",
-        "Clinical Chemistry",
-        "Cytology",
-        "Genetics",
-        "Histopathology",
-        "Immunohistochemistry",
-        "Microbiology",
-        "Molecular Biology"
-      ];
-
-      const patientRefNo = patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
-      const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
-
-      // Generate Barcode
-      let barcodeImage = null;
-      if (patientRefNoNumber !== "N/A") {
-        const barcodeCanvas = document.createElement("canvas");
-        JsBarcode(barcodeCanvas, patientRefNoNumber, {
-          format: "CODE128", lineColor: "#000", width: 1.5,
-          height: 10, displayValue: false, margin: 0,
-        });
-        barcodeImage = barcodeCanvas.toDataURL("image/png");
-      }
-
-      // Document dimensions
-      const leftMargin = 10;
-      const rightMargin = leftMargin + 190;
-      const contentWidth = rightMargin - leftMargin;
-      const headerHeight = 30;
-      const footerHeight = 20;
-      const contentYStart = headerHeight + 20;
-      const signatureHeight = 35;
-      const tableHeaderHeight = 10;
-
-      // Column widths
-      const colWidths = [
-        contentWidth * 0.28, // Test Description
-        contentWidth * 0.12, // Specimen Type
-        contentWidth * 0.05, // Extra Gap
-        contentWidth * 0.13, // Value(s)
-        contentWidth * 0.1,  // Unit
-        contentWidth * 0.17, // Reference Range
-        contentWidth * 0.15, // Method
-      ];
-
-      // Patient information
-      const leftDetails = [
-        { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
-        { label: "Name", value: patientDetails.patientname || "No name provided" },
-        { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
-        { label: "Referral", value: patientDetails.refby || "SELF" },
-        { label: "Branch", value: patientDetails.branch || "N/A" },
-        { label: "Source", value: patientDetails.B2B || "N/A" },
-      ];
-
-      const rightDetails = [
-        {
-          label: "Collected On",
-          value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A",
-        },
-        {
-          label: "Received On",
-          value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
-        },
-        ...(patientDetails.testdetails[0].dispatch_time && 
-          patientDetails.testdetails[0].dispatch_time !== "null" ? [{
-          label: "Released On",
-          value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
-        }] : []),
-        { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
-        { label: "Patient Ref.No", value: patientRefNoNumber },
-      ];
-
-      const calculateMaxLabelWidth = (details) => {
-        const tempDoc = new jsPDF();
-        tempDoc.setFontSize(10);
-        return Math.max(...details.map((item) => tempDoc.getTextWidth(item.label)));
-      };
-
-      const doc = new jsPDF();
-      let pageCount = 1;
-      let isTableStarted = false;
-
-      const addPatientInfo = (yPos) => {
-        const leftMaxLabelWidth  = calculateMaxLabelWidth(leftDetails);
-        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-
-        // ── Both halves get exactly equal width so columns are symmetric ─
-        const halfWidth = contentWidth / 2;
-
-        // LEFT column positions (anchored to leftMargin)
-        const leftLabelX = leftMargin;
-        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-        const leftValueX = leftColonX + 5;
-
-        // RIGHT column positions — start at leftMargin + halfWidth
-        // mirrors left: same internal offsets, just shifted by halfWidth
-        const rightLabelX = leftMargin + halfWidth;
-        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-        const rightValueX = rightColonX + 5;
-
-        doc.setFontSize(10);
-        let patientInfoY = yPos;
-
-        const maxLength = Math.max(leftDetails.length, rightDetails.length);
-
-        for (let i = 0; i < maxLength; i++) {
-          const left  = leftDetails[i];
-          const right = rightDetails[i];
-
-          // ── LEFT ──────────────────────────────────────────────────────
-          if (left) {
-            doc.setFont("helvetica", "bold");
-            doc.text(left.label, leftLabelX, patientInfoY);
-            doc.text(":", leftColonX, patientInfoY);
-            doc.setFont("helvetica", "normal");
-
-            const maxLeftValueWidth = halfWidth - (leftValueX - leftMargin) - 2;
-            const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
-            leftValueLines.forEach((line, lineIndex) => {
-              doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
+        const processUnicodeText = (text) => {
+            if (!text) return "";
+            let processedText = text;
+            processedText = processedText.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+            const char = String.fromCharCode(parseInt(hex, 16));
+            return unicodeMap[char] || char;
             });
-            var leftRowHeight = leftValueLines.length * 4;
-          } else {
-            var leftRowHeight = 5;
-          }
+            Object.keys(unicodeMap).forEach((unicode) => {
+            const regex = new RegExp(unicode, "g");
+            processedText = processedText.replace(regex, unicodeMap[unicode]);
+            });
+            return processedText;
+        };
 
-          // ── RIGHT ─────────────────────────────────────────────────────
-          if (right) {
-            doc.setFont("helvetica", "bold");
-            doc.text(right.label, rightLabelX, patientInfoY);
-            doc.text(":", rightColonX, patientInfoY);
-            doc.setFont("helvetica", "normal");
-            doc.text(right.value, rightValueX, patientInfoY);
+        const extractPatientRefNoNumber = (refNo) => {
+            if (!refNo) return "N/A";
+            const numberPart = refNo.split("+")[0];
+            return numberPart;
+        };
 
-            // Barcode placed just below Patient Ref.No value
-            if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX, patientInfoY + 3, 28, 10);
+        const designationMapping = {
+            "DESIG101": { position: 0, title: "Consultant Microbiologist" },
+            "DESIG100": { position: 1, title: "Consultant Pathologist" },
+            "DESIG099": { position: 2, title: "Consultant Biochemist" },
+        };
+
+        // Build consultants array dynamically from signatures data
+        const consultants = [];
+        consultants[0] = null;
+        consultants[1] = null;
+        consultants[2] = null;
+        
+        signaturesData.forEach((sig) => {
+            const mapping = designationMapping[sig.designation];
+            if (mapping) {
+            const signatureImage = sig.signatureBase64 
+                ? `data:image/png;base64,${sig.signatureBase64}` 
+                : null;
+            
+            consultants[mapping.position] = [
+                sig.employeeName,
+                mapping.title,
+                signatureImage
+            ];
             }
-          }
+        });
+        
+        const activeConsultants = consultants.filter(c => c !== null);
 
-          patientInfoY += Math.max(leftRowHeight, 5);
+        console.log("Active Consultants:", activeConsultants);
+
+        const departmentOrder = [
+            "Haematology",
+            "Coagulation",
+            "Biochemistry",
+            "Immunology",
+            "Immunoassay",
+            "Serology",
+            "Clinical Pathology",
+            "Clinical Chemistry",
+            "Cytology",
+            "Genetics",
+            "Histopathology",
+            "Immunohistochemistry",
+            "Microbiology",
+            "Molecular Biology"
+        ];
+
+        const patientRefNo = patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
+        const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
+
+        // Generate Barcode
+        let barcodeImage = null;
+        if (patientRefNoNumber !== "N/A") {
+            const barcodeCanvas = document.createElement("canvas");
+            JsBarcode(barcodeCanvas, patientRefNoNumber, {
+            format: "CODE128", lineColor: "#000", width: 1.5,
+            height: 10, displayValue: false, margin: 0,
+            });
+            barcodeImage = barcodeCanvas.toDataURL("image/png");
         }
 
-        return patientInfoY;
-      };
+        // Document dimensions
+        const leftMargin = 10;
+        const rightMargin = leftMargin + 190;
+        const contentWidth = rightMargin - leftMargin;
+        const headerHeight = 30;
+        const footerHeight = 20;
+        const contentYStart = headerHeight + 20;
+        const signatureHeight = 35;
+        const tableHeaderHeight = 10;
 
-      const addHeaderFooter = () => {
+        // Column widths
+        const colWidths = [
+            contentWidth * 0.28, // Test Description
+            contentWidth * 0.12, // Specimen Type
+            contentWidth * 0.05, // Extra Gap
+            contentWidth * 0.13, // Value(s)
+            contentWidth * 0.1,  // Unit
+            contentWidth * 0.17, // Reference Range
+            contentWidth * 0.15, // Method
+        ];
+
+        // Patient information
+        const leftDetails = [
+            { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
+            { label: "Name", value: patientDetails.patientname || "No name provided" },
+            { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
+            { label: "Referral", value: patientDetails.refby || "SELF" },
+            { label: "Branch", value: patientDetails.branch || "N/A" },
+            { label: "Source", value: patientDetails.B2B || "N/A" },
+        ];
+
+        const rightDetails = [
+            {
+            label: "Collected On",
+            value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A",
+            },
+            {
+            label: "Received On",
+            value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
+            },
+            ...(patientDetails.testdetails[0].dispatch_time && 
+            patientDetails.testdetails[0].dispatch_time !== "null" ? [{
+            label: "Released On",
+            value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
+            }] : []),
+            { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
+            { label: "Patient Ref.No", value: patientRefNoNumber },
+        ];
+
+        const calculateMaxLabelWidth = (details) => {
+            const tempDoc = new jsPDF();
+            tempDoc.setFontSize(10);
+            return Math.max(...details.map((item) => tempDoc.getTextWidth(item.label)));
+        };
+
+        const doc = new jsPDF();
+        let pageCount = 1;
+        let isTableStarted = false;
+
+        const addPatientInfo = (yPos) => {
+            const leftMaxLabelWidth  = calculateMaxLabelWidth(leftDetails);
+            const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+
+            // ── Both halves get exactly equal width so columns are symmetric ─
+            const halfWidth = contentWidth / 2;
+
+            // LEFT column positions (anchored to leftMargin)
+            const leftLabelX = leftMargin;
+            const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+            const leftValueX = leftColonX + 5;
+
+            // RIGHT column positions — start at leftMargin + halfWidth
+            // mirrors left: same internal offsets, just shifted by halfWidth
+            // Calculate full width of right section
+            const rightSectionWidth =
+                rightMaxLabelWidth  + 35; 
+                // label + colon gap + value gap + approx value width
+
+            // Anchor right section to page end
+            const rightLabelX = rightMargin - rightSectionWidth;
+            const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+            const rightValueX = rightColonX + 5;
+
+
+            doc.setFontSize(10);
+            let patientInfoY = yPos;
+
+            const maxLength = Math.max(leftDetails.length, rightDetails.length);
+
+            for (let i = 0; i < maxLength; i++) {
+            const left  = leftDetails[i];
+            const right = rightDetails[i];
+
+            // ── LEFT ──────────────────────────────────────────────────────
+            if (left) {
+                doc.setFont("helvetica", "bold");
+                doc.text(left.label, leftLabelX, patientInfoY);
+                doc.text(":", leftColonX, patientInfoY);
+                doc.setFont("helvetica", "normal");
+
+                const maxLeftValueWidth = halfWidth - (leftValueX - leftMargin) - 2;
+                const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+                leftValueLines.forEach((line, lineIndex) => {
+                doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
+                });
+                var leftRowHeight = leftValueLines.length * 4;
+            } else {
+                var leftRowHeight = 5;
+            }
+
+            // ── RIGHT ─────────────────────────────────────────────────────
+            if (right) {
+                doc.setFont("helvetica", "bold");
+                doc.text(right.label, rightLabelX, patientInfoY);
+                doc.text(":", rightColonX, patientInfoY);
+                doc.setFont("helvetica", "normal");
+                doc.text(right.value, rightValueX, patientInfoY);
+
+                // Barcode placed just below Patient Ref.No value
+                if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
+                doc.addImage(barcodeImage, "PNG", rightValueX, patientInfoY + 3, 28, 10);
+                }
+            }
+
+            patientInfoY += Math.max(leftRowHeight, 5);
+            }
+
+            return patientInfoY;
+        };
+
+    const addHeaderFooter = () => {
         if (withLetterpad) {
           doc.addImage(headerImage, "PNG", 0, 10, doc.internal.pageSize.width, headerHeight);
           const footerY = doc.internal.pageSize.height - footerHeight;
@@ -691,498 +698,498 @@ const handlePrint = async (patient, withLetterpad = true) => {
         }
       };
 
-      const renderUnicodeText = (text, x, y, options = {}) => {
-        const processedText = processUnicodeText(text);
-        if (processedText.includes("µ")) {
-          const parts = processedText.split("µ");
-          let currentX = x;
-          parts.forEach((part, index) => {
-            if (index > 0) {
-              doc.setFont("helvetica", options.fontStyle || "normal");
-              doc.text("µ", currentX, y);
-              currentX += doc.getTextWidth("µ");
-            }
-            if (part) {
-              doc.text(part, currentX, y);
-              currentX += doc.getTextWidth(part);
-            }
-          });
-        } else {
-          doc.text(processedText, x, y);
-        }
-      };
-
-      const drawTableHeader = (yPos) => {
-        doc.line(leftMargin, yPos, rightMargin, yPos);
-        yPos += 5;
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        const headers = ["Test", "Specimen", "", "Result", "Units", "Reference Value", "Method"];
-        let xPos = leftMargin;
-        headers.forEach((header, index) => {
-          if (header) {
-            doc.text(header, xPos, yPos);
-          }
-          xPos += colWidths[index];
-        });
-
-        yPos += 3;
-        doc.line(leftMargin, yPos, rightMargin, yPos);
-        yPos += 5;
-        return yPos;
-      };
-
-      const wrapTextAndGetLines = (doc, text, maxWidth) => {
-        if (!text) return [];
-        return doc.splitTextToSize(text, maxWidth);
-      };
-
-      const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
-        if (!text) return 0;
-        const lines = wrapTextAndGetLines(doc, text, maxWidth);
-        lines.forEach((line, index) => {
-          doc.text(line, startX, yPos + index * lineHeight);
-        });
-        return lines.length * lineHeight;
-      };
-
-      const addSignatures = () => {
-        const pageHeight = doc.internal.pageSize.height;
-        const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
-        const signatureWidth = 35;
-        
-        if (activeConsultants.length === 0) return;
-        
-        const totalConsultants = activeConsultants.length;
-        const rightEdge = rightMargin;
-        const signatureSpacing = 60;
-        const startX = rightEdge - (totalConsultants * signatureSpacing);
-
-        activeConsultants.forEach((consultant, index) => {
-          const xPosition = startX + (index * signatureSpacing);
-          
-          if (consultant[2]) {
-            doc.addImage(
-              consultant[2],
-              "PNG",
-              xPosition,
-              signaturesY,
-              signatureWidth,
-              15
-            );
-          }
-
-          const fullName = consultant[0];
-          
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(10);
-          doc.text(fullName, xPosition, signaturesY + 20);
-
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-          doc.text(consultant[1], xPosition, signaturesY + 25);
-        });
-      };
-
-      const checkForNewPage = (yPos, estimatedHeight) => {
-        const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
-
-        if (yPos + estimatedHeight >= footerStart) {
-          addSignatures();
-          doc.addPage();
-          pageCount++;
-          addHeaderFooter();
-          let newYPos = contentYStart;
-          newYPos = addPatientInfo(newYPos);
-          newYPos += 10;
-          if (isTableStarted) {
-            newYPos = drawTableHeader(newYPos);
-          }
-          return newYPos;
-        }
-        return yPos;
-      };
-
-      const getHighLowStatus = (value, reference) => {
-        if (!value || !reference) return null;
-        const numValue = Number.parseFloat(value);
-        if (isNaN(numValue)) return null;
-
-        if (reference.includes("-")) {
-          const [min, max] = reference.split("-").map((v) => Number.parseFloat(v));
-          if (!isNaN(min) && !isNaN(max)) {
-            if (numValue < min) return "L";
-            if (numValue > max) return "H";
-          }
-        } else if (reference.includes("<")) {
-          const max = Number.parseFloat(reference.replace("<", ""));
-          if (!isNaN(max) && numValue > max) return "H";
-        } else if (reference.includes(">")) {
-          const min = Number.parseFloat(reference.replace(">", ""));
-          if (!isNaN(min) && numValue < min) return "L";
-        }
-        return null;
-      };
-
-      const drawArrowSymbol = (doc, x, y, direction) => {
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.5);
-        if (direction === "up") {
-          doc.line(x, y, x + 1, y - 1);
-          doc.line(x + 1, y - 1, x + 2, y);
-          doc.line(x + 1, y - 1, x + 1, y + 2);
-        } else if (direction === "down") {
-          doc.line(x, y, x + 1, y + 1);
-          doc.line(x + 1, y + 1, x + 2, y);
-          doc.line(x + 1, y + 1, x + 1, y - 2);
-        }
-      };
-
-      // Start PDF generation
-      addHeaderFooter();
-      let currentYPosition = addPatientInfo(contentYStart);
-      currentYPosition += 10;
-
-      if (patientDetails.testdetails.length) {
-        isTableStarted = true;
-        currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
-        let yPos = currentYPosition;
-        yPos = drawTableHeader(yPos);
-
-        const testsByDepartment = patientDetails.testdetails.reduce((acc, test) => {
-          (acc[test.department] = acc[test.department] || []).push(test);
-          return acc;
-        }, {});
-
-        const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
-          const indexA = departmentOrder.indexOf(a);
-          const indexB = departmentOrder.indexOf(b);
-
-          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-          if (indexA !== -1) return -1;
-          if (indexB !== -1) return 1;
-          return a.localeCompare(b);
-        });
-
-        sortedDepartments.forEach((department) => {
-          const verifiedBySet = new Set();
-          testsByDepartment[department].forEach((test) => {
-            if (test.verified_by && test.verified_by.trim() !== "") {
-              verifiedBySet.add(test.verified_by);
-            }
-          });
-
-          const hasMultipleVerifiers = verifiedBySet.size > 1;
-
-          testsByDepartment[department].forEach((test, testIndex) => {
-            if (testIndex === 0) {
-              const departmentHeight = 15;
-              yPos = checkForNewPage(yPos, departmentHeight);
-
-              doc.setFont("helvetica", "bold");
-              doc.setFontSize(10);
-              const textWidth = doc.getTextWidth(department.toUpperCase());
-              const centerX = leftMargin + contentWidth / 2;
-              doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
-              doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
-              yPos += 10;
-            }
-
-            const parametersBySubtitle = {};
-
-            if (test.parameters && test.parameters.length > 0) {
-              test.parameters.forEach((param) => {
-                const subtitle = param.sub_title || "";
-                if (!parametersBySubtitle[subtitle]) {
-                  parametersBySubtitle[subtitle] = [];
+        const renderUnicodeText = (text, x, y, options = {}) => {
+            const processedText = processUnicodeText(text);
+            if (processedText.includes("µ")) {
+            const parts = processedText.split("µ");
+            let currentX = x;
+            parts.forEach((part, index) => {
+                if (index > 0) {
+                doc.setFont("helvetica", options.fontStyle || "normal");
+                doc.text("µ", currentX, y);
+                currentX += doc.getTextWidth("µ");
                 }
-                parametersBySubtitle[subtitle].push(param);
-              });
-            }
-
-            const testHeaderHeight = 20;
-            yPos = checkForNewPage(yPos, testHeaderHeight);
-
-            doc.setFontSize(10);
-
-            const testNameText = test.testname;
-            const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
-            const valueText = test.value || "";
-            const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
-            const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
-            const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
-            const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
-
-            const maxLines = Math.max(
-              testNameLines.length,
-              valueLines.length,
-              referenceLines.length,
-              methodLines.length
-            );
-            const lineHeight = 4;
-            const actualRowHeight = maxLines * lineHeight + 2;
-
-            yPos = checkForNewPage(yPos, actualRowHeight);
-
-            let xPos = leftMargin;
-
-            doc.setFont("helvetica", "bold");
-            renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
-            xPos += colWidths[0];
-
-            doc.setFont("helvetica", "normal");
-
-            doc.text(test.specimen_type || "", xPos, yPos);
-            xPos += colWidths[1];
-            xPos += colWidths[2];
-
-            const statusIndicator = test.isHigh
-              ? "H"
-              : test.isLow
-                ? "L"
-                : getHighLowStatus(valueText, test.reference_range);
-
-            if (statusIndicator) {
-              doc.setFont("helvetica", "bold");
-              if (statusIndicator === "H") {
-                doc.setTextColor(255, 0, 0);
-              } else if (statusIndicator === "L") {
-                doc.setTextColor(0, 0, 255);
-              }
-              renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
-              const valueWidth = doc.getTextWidth(valueText);
-              if (valueWidth < colWidths[3] - 5) {
-                if (statusIndicator === "H") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-                } else if (statusIndicator === "L") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
+                if (part) {
+                doc.text(part, currentX, y);
+                currentX += doc.getTextWidth(part);
                 }
-              }
-              doc.setTextColor(0, 0, 0);
-              doc.setFont("helvetica", "normal");
+            });
             } else {
-              renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
+            doc.text(processedText, x, y);
             }
-            xPos += colWidths[3];
+        };
 
-            renderUnicodeText(test.unit || "", xPos, yPos);
-            xPos += colWidths[4];
+        const drawTableHeader = (yPos) => {
+            doc.line(leftMargin, yPos, rightMargin, yPos);
+            yPos += 5;
 
-            renderWrappedText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
-            xPos += colWidths[5];
-
-            doc.setTextColor(0, 0, 0);
-            renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
-
-            yPos += actualRowHeight + 4;
-
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(0, 0, 0);
-
-            if (test.outsourced === true) {
-              doc.setFont("helvetica", "italic");
-              doc.setFontSize(8);
-              doc.text("(Outsourced)", leftMargin, yPos);
-              yPos += 4;
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            const headers = ["Test", "Specimen", "", "Result", "Units", "Reference Value", "Method"];
+            let xPos = leftMargin;
+            headers.forEach((header, index) => {
+            if (header) {
+                doc.text(header, xPos, yPos);
             }
+            xPos += colWidths[index];
+            });
 
-            if (!test.parameters || test.parameters.length === 0) {
-              if (test.comment && test.comment.trim() !== "") {
-                doc.setFont("helvetica", "italic");
-                doc.setFontSize(8);
-                const commentText = `Note: ${test.comment}`;
-                const commentHeight = renderWrappedText(
-                  doc,
-                  commentText,
-                  colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
-                  leftMargin,
-                  yPos,
-                  3.5
+            yPos += 3;
+            doc.line(leftMargin, yPos, rightMargin, yPos);
+            yPos += 5;
+            return yPos;
+        };
+
+        const wrapTextAndGetLines = (doc, text, maxWidth) => {
+            if (!text) return [];
+            return doc.splitTextToSize(text, maxWidth);
+        };
+
+        const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
+            if (!text) return 0;
+            const lines = wrapTextAndGetLines(doc, text, maxWidth);
+            lines.forEach((line, index) => {
+            doc.text(line, startX, yPos + index * lineHeight);
+            });
+            return lines.length * lineHeight;
+        };
+
+        const addSignatures = () => {
+            const pageHeight = doc.internal.pageSize.height;
+            const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
+            const signatureWidth = 35;
+            
+            if (activeConsultants.length === 0) return;
+            
+            const totalConsultants = activeConsultants.length;
+            const rightEdge = rightMargin;
+            const signatureSpacing = 60;
+            const startX = rightEdge - (totalConsultants * signatureSpacing);
+
+            activeConsultants.forEach((consultant, index) => {
+            const xPosition = startX + (index * signatureSpacing);
+            
+            if (consultant[2]) {
+                doc.addImage(
+                consultant[2],
+                "PNG",
+                xPosition,
+                signaturesY,
+                signatureWidth,
+                15
                 );
-                yPos += commentHeight + 2;
-              }
             }
+
+            const fullName = consultant[0];
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(fullName, xPosition, signaturesY + 20);
 
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
+            doc.text(consultant[1], xPosition, signaturesY + 25);
+            });
+        };
 
-            Object.keys(parametersBySubtitle).forEach((subtitle) => {
-              if (subtitle && subtitle.trim() !== "") {
-                const subtitleWithParamHeight = 25;
-                yPos = checkForNewPage(yPos, subtitleWithParamHeight);
+        const checkForNewPage = (yPos, estimatedHeight) => {
+            const pageHeight = doc.internal.pageSize.height;
+            const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
+
+            if (yPos + estimatedHeight >= footerStart) {
+            addSignatures();
+            doc.addPage();
+            pageCount++;
+            addHeaderFooter();
+            let newYPos = contentYStart;
+            newYPos = addPatientInfo(newYPos);
+            newYPos += 10;
+            if (isTableStarted) {
+                newYPos = drawTableHeader(newYPos);
+            }
+            return newYPos;
+            }
+            return yPos;
+        };
+
+        const getHighLowStatus = (value, reference) => {
+            if (!value || !reference) return null;
+            const numValue = Number.parseFloat(value);
+            if (isNaN(numValue)) return null;
+
+            if (reference.includes("-")) {
+            const [min, max] = reference.split("-").map((v) => Number.parseFloat(v));
+            if (!isNaN(min) && !isNaN(max)) {
+                if (numValue < min) return "L";
+                if (numValue > max) return "H";
+            }
+            } else if (reference.includes("<")) {
+            const max = Number.parseFloat(reference.replace("<", ""));
+            if (!isNaN(max) && numValue > max) return "H";
+            } else if (reference.includes(">")) {
+            const min = Number.parseFloat(reference.replace(">", ""));
+            if (!isNaN(min) && numValue < min) return "L";
+            }
+            return null;
+        };
+
+        const drawArrowSymbol = (doc, x, y, direction) => {
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            if (direction === "up") {
+            doc.line(x, y, x + 1, y - 1);
+            doc.line(x + 1, y - 1, x + 2, y);
+            doc.line(x + 1, y - 1, x + 1, y + 2);
+            } else if (direction === "down") {
+            doc.line(x, y, x + 1, y + 1);
+            doc.line(x + 1, y + 1, x + 2, y);
+            doc.line(x + 1, y + 1, x + 1, y - 2);
+            }
+        };
+
+        // Start PDF generation
+        addHeaderFooter();
+        let currentYPosition = addPatientInfo(contentYStart);
+        currentYPosition += 10;
+
+        if (patientDetails.testdetails.length) {
+            isTableStarted = true;
+            currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
+            let yPos = currentYPosition;
+            yPos = drawTableHeader(yPos);
+
+            const testsByDepartment = patientDetails.testdetails.reduce((acc, test) => {
+            (acc[test.department] = acc[test.department] || []).push(test);
+            return acc;
+            }, {});
+
+            const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
+            const indexA = departmentOrder.indexOf(a);
+            const indexB = departmentOrder.indexOf(b);
+
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+            });
+
+            sortedDepartments.forEach((department) => {
+            const verifiedBySet = new Set();
+            testsByDepartment[department].forEach((test) => {
+                if (test.verified_by && test.verified_by.trim() !== "") {
+                verifiedBySet.add(test.verified_by);
+                }
+            });
+
+            const hasMultipleVerifiers = verifiedBySet.size > 1;
+
+            testsByDepartment[department].forEach((test, testIndex) => {
+                if (testIndex === 0) {
+                const departmentHeight = 15;
+                yPos = checkForNewPage(yPos, departmentHeight);
 
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.text(subtitle, leftMargin, yPos);
-                yPos += 6;
-              }
+                doc.setFontSize(10);
+                const textWidth = doc.getTextWidth(department.toUpperCase());
+                const centerX = leftMargin + contentWidth / 2;
+                doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
+                doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
+                yPos += 10;
+                }
 
-              parametersBySubtitle[subtitle].forEach((currentTest) => {
+                const parametersBySubtitle = {};
+
+                if (test.parameters && test.parameters.length > 0) {
+                test.parameters.forEach((param) => {
+                    const subtitle = param.sub_title || "";
+                    if (!parametersBySubtitle[subtitle]) {
+                    parametersBySubtitle[subtitle] = [];
+                    }
+                    parametersBySubtitle[subtitle].push(param);
+                });
+                }
+
+                const testHeaderHeight = 20;
+                yPos = checkForNewPage(yPos, testHeaderHeight);
+
                 doc.setFontSize(10);
 
-                const paramNameText = currentTest.name;
-                const paramNameLines = wrapTextAndGetLines(doc, paramNameText, colWidths[0] - 2);
-                const paramValueText = currentTest.value || "";
-                const paramValueLines = wrapTextAndGetLines(doc, paramValueText, colWidths[3] - 2);
-                const paramReferenceLines = wrapTextAndGetLines(doc, currentTest.reference_range || "", colWidths[5] - 2);
-                const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
-                const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
+                const testNameText = test.testname;
+                const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
+                const valueText = test.value || "";
+                const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
+                const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
+                const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
+                const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
 
-                const paramMaxLines = Math.max(
-                  paramNameLines.length,
-                  paramValueLines.length,
-                  paramReferenceLines.length,
-                  paramMethodLines.length
+                const maxLines = Math.max(
+                testNameLines.length,
+                valueLines.length,
+                referenceLines.length,
+                methodLines.length
                 );
-                const paramLineHeight = 4;
-                const paramActualRowHeight = paramMaxLines * paramLineHeight + 2;
+                const lineHeight = 4;
+                const actualRowHeight = maxLines * lineHeight + 2;
 
-                yPos = checkForNewPage(yPos, paramActualRowHeight);
+                yPos = checkForNewPage(yPos, actualRowHeight);
 
                 let xPos = leftMargin;
 
-                doc.setFont("helvetica", "normal");
-                renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
+                doc.setFont("helvetica", "bold");
+                renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
                 xPos += colWidths[0];
 
-                doc.text(currentTest.specimen_type || "", xPos, yPos);
+                doc.setFont("helvetica", "normal");
+
+                doc.text(test.specimen_type || "", xPos, yPos);
                 xPos += colWidths[1];
                 xPos += colWidths[2];
 
-                const paramStatusIndicator = currentTest.isHigh
-                  ? "H"
-                  : currentTest.isLow
+                const statusIndicator = test.isHigh
+                ? "H"
+                : test.isLow
                     ? "L"
-                    : getHighLowStatus(paramValueText, currentTest.reference_range);
+                    : getHighLowStatus(valueText, test.reference_range);
 
-                if (paramStatusIndicator) {
-                  doc.setFont("helvetica", "bold");
-                  if (paramStatusIndicator === "H") {
+                if (statusIndicator) {
+                doc.setFont("helvetica", "bold");
+                if (statusIndicator === "H") {
                     doc.setTextColor(255, 0, 0);
-                  } else if (paramStatusIndicator === "L") {
+                } else if (statusIndicator === "L") {
                     doc.setTextColor(0, 0, 255);
-                  }
-                  renderWrappedText(doc, paramValueText, colWidths[3] - 5, xPos, yPos, paramLineHeight);
-                  const paramValueWidth = doc.getTextWidth(paramValueText);
-                  if (paramValueWidth < colWidths[3] - 5) {
-                    if (paramStatusIndicator === "H") {
-                      drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "up");
-                    } else if (paramStatusIndicator === "L") {
-                      drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "down");
+                }
+                renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
+                const valueWidth = doc.getTextWidth(valueText);
+                if (valueWidth < colWidths[3] - 5) {
+                    if (statusIndicator === "H") {
+                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
+                    } else if (statusIndicator === "L") {
+                    drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
                     }
-                  }
-                  doc.setTextColor(0, 0, 0);
-                  doc.setFont("helvetica", "normal");
+                }
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "normal");
                 } else {
-                  renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, paramLineHeight);
+                renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
                 }
                 xPos += colWidths[3];
 
-                renderUnicodeText(currentTest.unit || "", xPos, yPos);
+                renderUnicodeText(test.unit || "", xPos, yPos);
                 xPos += colWidths[4];
 
-                renderWrappedText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, paramLineHeight);
+                renderWrappedText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
                 xPos += colWidths[5];
 
                 doc.setTextColor(0, 0, 0);
-                renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, paramLineHeight);
+                renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
 
-                yPos += paramActualRowHeight;
+                yPos += actualRowHeight + 4;
 
-                if (currentTest.comment && currentTest.comment.trim() !== "") {
-                  doc.setFont("helvetica", "italic");
-                  doc.setFontSize(8);
-                  const paramCommentText = `Note: ${currentTest.comment}`;
-                  const paramCommentHeight = renderWrappedText(
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(0, 0, 0);
+
+                if (test.outsourced === true) {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                doc.text("(Outsourced)", leftMargin, yPos);
+                yPos += 4;
+                }
+
+                if (!test.parameters || test.parameters.length === 0) {
+                if (test.comment && test.comment.trim() !== "") {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const commentText = `Note: ${test.comment}`;
+                    const commentHeight = renderWrappedText(
                     doc,
-                    paramCommentText,
+                    commentText,
                     colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
                     leftMargin,
                     yPos,
                     3.5
-                  );
-                  yPos += paramCommentHeight + 2;
+                    );
+                    yPos += commentHeight + 2;
+                }
                 }
 
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
-              });
+
+                Object.keys(parametersBySubtitle).forEach((subtitle) => {
+                if (subtitle && subtitle.trim() !== "") {
+                    const subtitleWithParamHeight = 25;
+                    yPos = checkForNewPage(yPos, subtitleWithParamHeight);
+
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(9);
+                    doc.text(subtitle, leftMargin, yPos);
+                    yPos += 6;
+                }
+
+                parametersBySubtitle[subtitle].forEach((currentTest) => {
+                    doc.setFontSize(10);
+
+                    const paramNameText = currentTest.name;
+                    const paramNameLines = wrapTextAndGetLines(doc, paramNameText, colWidths[0] - 2);
+                    const paramValueText = currentTest.value || "";
+                    const paramValueLines = wrapTextAndGetLines(doc, paramValueText, colWidths[3] - 2);
+                    const paramReferenceLines = wrapTextAndGetLines(doc, currentTest.reference_range || "", colWidths[5] - 2);
+                    const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
+                    const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
+
+                    const paramMaxLines = Math.max(
+                    paramNameLines.length,
+                    paramValueLines.length,
+                    paramReferenceLines.length,
+                    paramMethodLines.length
+                    );
+                    const paramLineHeight = 4;
+                    const paramActualRowHeight = paramMaxLines * paramLineHeight + 2;
+
+                    yPos = checkForNewPage(yPos, paramActualRowHeight);
+
+                    let xPos = leftMargin;
+
+                    doc.setFont("helvetica", "normal");
+                    renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
+                    xPos += colWidths[0];
+
+                    doc.text(currentTest.specimen_type || "", xPos, yPos);
+                    xPos += colWidths[1];
+                    xPos += colWidths[2];
+
+                    const paramStatusIndicator = currentTest.isHigh
+                    ? "H"
+                    : currentTest.isLow
+                        ? "L"
+                        : getHighLowStatus(paramValueText, currentTest.reference_range);
+
+                    if (paramStatusIndicator) {
+                    doc.setFont("helvetica", "bold");
+                    if (paramStatusIndicator === "H") {
+                        doc.setTextColor(255, 0, 0);
+                    } else if (paramStatusIndicator === "L") {
+                        doc.setTextColor(0, 0, 255);
+                    }
+                    renderWrappedText(doc, paramValueText, colWidths[3] - 5, xPos, yPos, paramLineHeight);
+                    const paramValueWidth = doc.getTextWidth(paramValueText);
+                    if (paramValueWidth < colWidths[3] - 5) {
+                        if (paramStatusIndicator === "H") {
+                        drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "up");
+                        } else if (paramStatusIndicator === "L") {
+                        drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "down");
+                        }
+                    }
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont("helvetica", "normal");
+                    } else {
+                    renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, paramLineHeight);
+                    }
+                    xPos += colWidths[3];
+
+                    renderUnicodeText(currentTest.unit || "", xPos, yPos);
+                    xPos += colWidths[4];
+
+                    renderWrappedText(doc, currentTest.reference_range || "", colWidths[5] - 2, xPos, yPos, paramLineHeight);
+                    xPos += colWidths[5];
+
+                    doc.setTextColor(0, 0, 0);
+                    renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, paramLineHeight);
+
+                    yPos += paramActualRowHeight;
+
+                    if (currentTest.comment && currentTest.comment.trim() !== "") {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const paramCommentText = `Note: ${currentTest.comment}`;
+                    const paramCommentHeight = renderWrappedText(
+                        doc,
+                        paramCommentText,
+                        colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                        leftMargin,
+                        yPos,
+                        3.5
+                    );
+                    yPos += paramCommentHeight + 2;
+                    }
+
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
+                    doc.setTextColor(0, 0, 0);
+                });
+                });
+
+                if (hasMultipleVerifiers && test.verified_by && test.verified_by.trim() !== "") {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
+                yPos += 8;
+                }
             });
 
-            if (hasMultipleVerifiers && test.verified_by && test.verified_by.trim() !== "") {
-              doc.setFont("helvetica", "normal");
-              doc.setFontSize(10);
-              doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
+            if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
+                doc.text(verifiedByText, leftMargin, yPos);
+                yPos += 8;
             }
-          });
 
-          if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
-            doc.text(verifiedByText, leftMargin, yPos);
-            yPos += 8;
-          }
+            yPos += 4;
+            });
 
-          yPos += 4;
-        });
-
-        currentYPosition = yPos;
-      }
-
-      isTableStarted = false;
-
-      const ensureSpaceForFooter = (currentYPosition) => {
-        const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
-        if (currentYPosition + 10 >= footerStart) {
-          addSignatures();
-          doc.addPage();
-          pageCount++;
-          addHeaderFooter();
-          return addPatientInfo(contentYStart);
+            currentYPosition = yPos;
         }
-        return currentYPosition;
-      };
 
-      currentYPosition = ensureSpaceForFooter(currentYPosition);
+        isTableStarted = false;
 
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      const centerX = leftMargin + contentWidth / 2;
-      doc.text("**End of the Report**", centerX, currentYPosition, { align: "center" });
+        const ensureSpaceForFooter = (currentYPosition) => {
+            const pageHeight = doc.internal.pageSize.height;
+            const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
+            if (currentYPosition + 10 >= footerStart) {
+            addSignatures();
+            doc.addPage();
+            pageCount++;
+            addHeaderFooter();
+            return addPatientInfo(contentYStart);
+            }
+            return currentYPosition;
+        };
 
-      addSignatures();
+        currentYPosition = ensureSpaceForFooter(currentYPosition);
 
-      const finalPageCount = pageCount;
-      for (let i = 1; i <= finalPageCount; i++) {
-        doc.setPage(i);
-        const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 2;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
         const centerX = leftMargin + contentWidth / 2;
-        doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, { align: "center" });
-      }
+        doc.text("**End of the Report**", centerX, currentYPosition, { align: "center" });
 
-      const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      window.open(pdfUrl, "_blank");
+        addSignatures();
 
-      setLoading(false);
-      return pdfBlob;
-    } catch (error) {
-      console.error("Error while generating the PDF:", error);
-      toast.error("An unexpected error occurred while generating the PDF");
-      setLoading(false);
-      return null;
-    }
-  };
+        const finalPageCount = pageCount;
+        for (let i = 1; i <= finalPageCount; i++) {
+            doc.setPage(i);
+            const pageHeight = doc.internal.pageSize.height;
+            const pageNumberY = pageHeight - footerHeight - 2;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            const centerX = leftMargin + contentWidth / 2;
+            doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, { align: "center" });
+        }
+
+        const pdfBlob = doc.output("blob");
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, "_blank");
+
+        setLoading(false);
+        return pdfBlob;
+        } catch (error) {
+        console.error("Error while generating the PDF:", error);
+        toast.error("An unexpected error occurred while generating the PDF");
+        setLoading(false);
+        return null;
+        }
+    };
     return (
         <Container>
             <Card>
