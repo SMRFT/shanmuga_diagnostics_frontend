@@ -183,6 +183,9 @@ const B2BPatients = () => {
   const [invoices, setInvoices] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  // New state for invoice list filtering
+  const [invoiceListFromDate, setInvoiceListFromDate] = useState("");
+  const [invoiceListToDate, setInvoiceListToDate] = useState("");
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
@@ -226,9 +229,10 @@ const B2BPatients = () => {
 
     setFromDate(formattedFromDate);
     setToDate(formattedToDate);
+    setInvoiceListFromDate(formattedFromDate);
+    setInvoiceListToDate(formattedToDate);
 
-    // Fetch invoices will be triggered by the date state change in the other useEffect or call it here with params
-    fetchInvoices(formattedFromDate, formattedToDate);
+    // Initial fetch handled by the new useEffect on invoiceList dates
   }, []);
 
   useEffect(() => {
@@ -321,7 +325,16 @@ const B2BPatients = () => {
 
       const token = localStorage.getItem("access_token"); // adjust key if needed
       const branch = localStorage.getItem("selected_branch");
-      const response = await axios.get(`${Labbaseurl}get-invoices/`, {
+
+      const params = new URLSearchParams();
+      // Use passed args if available (for initial load), otherwise state
+      const start = invoiceListFromDate;
+      const end = invoiceListToDate;
+
+      if (start) params.append("from_date", start);
+      if (end) params.append("to_date", end);
+
+      const response = await axios.get(`${Labbaseurl}get-invoices/?${params.toString()}`, {
         headers: {
           Authorization: ` ${token}`,
           "Branch-Code": branch,
@@ -337,7 +350,12 @@ const B2BPatients = () => {
       setLoading((prev) => ({ ...prev, invoices: false }));
     }
   };
-
+  // Refetch invoices when date filters change
+  useEffect(() => {
+    if (invoiceListFromDate && invoiceListToDate) {
+      fetchInvoices();
+    }
+  }, [invoiceListFromDate, invoiceListToDate]);
 
   const handleSelectPatient = (patientId) => {
     setSelectedPatients((prev) =>
@@ -511,6 +529,12 @@ const B2BPatients = () => {
   };
 
   const handleUpdateInvoice = async (invoiceNumber) => {
+    // Validation for mandatory fields
+    if (!editingInvoice.paymentDate || !editingInvoice.paymentMethod) {
+      toast.error("Payment Date and Payment Method are mandatory.");
+      return;
+    }
+
     try {
       setLoading((prev) => ({ ...prev, updateInvoice: true }));
 
@@ -1312,10 +1336,21 @@ const B2BPatients = () => {
                               Invoiced
                             </Badge>
                           </Td>
+                          <Td>
+                            {lastGeneratedInvoice?.generatedDate
+                              ? new Date(
+                                lastGeneratedInvoice.generatedDate
+                              ).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
+                              : "N/A"}
+                          </Td>
                         </TableRow>
                       )) || (
                           <tr>
-                            <td colSpan={5}>
+                            <td colSpan={6}>
                               <EmptyState>
                                 <EmptyStateTitle>
                                   No patients data available
@@ -1505,6 +1540,29 @@ const B2BPatients = () => {
             </div>
           </TableHeader>
 
+          <FiltersRow style={{ marginBottom: "16px", marginTop: "16px" }}>
+            <DateFilterGroup>
+              <DateInputWrapper>
+                <StyledCalendarIcon />
+                <DateInput
+                  type="date"
+                  value={invoiceListFromDate}
+                  onChange={(e) => setInvoiceListFromDate(e.target.value)}
+                  placeholder="From Date"
+                />
+              </DateInputWrapper>
+              <DateInputWrapper>
+                <StyledCalendarIcon />
+                <DateInput
+                  type="date"
+                  value={invoiceListToDate}
+                  onChange={(e) => setInvoiceListToDate(e.target.value)}
+                  placeholder="To Date"
+                />
+              </DateInputWrapper>
+            </DateFilterGroup>
+          </FiltersRow>
+
           <SearchContainer>
             <SearchIconWrapper>
               <Search size={20} />
@@ -1523,6 +1581,7 @@ const B2BPatients = () => {
                 <tr>
                   <Th>Invoice Number</Th>
                   <Th>Clinical Name</Th>
+                  <Th>Generated Date</Th>
                   <Th>Date Range</Th>
                   <Th>Total Amount</Th>
                   <Th>Paid Amount</Th>
@@ -1550,6 +1609,16 @@ const B2BPatients = () => {
                           <div
                             style={{
                               width: "100px",
+                              height: "14px",
+                              background: "#f1f5f9",
+                              borderRadius: "4px",
+                            }}
+                          ></div>
+                        </Td>
+                        <Td>
+                          <div
+                            style={{
+                              width: "90px",
                               height: "14px",
                               background: "#f1f5f9",
                               borderRadius: "4px",
@@ -1616,6 +1685,15 @@ const B2BPatients = () => {
                         <Badge>{invoice.clinicalName || invoice.labName}</Badge>
                       </Td>
                       <Td>
+                        {invoice.generateDate
+                          ? new Date(invoice.generateDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                          : "N/A"}
+                      </Td>
+                      <Td>
                         {invoice.fromDate && invoice.toDate
                           ? `${new Date(
                             invoice.fromDate
@@ -1636,14 +1714,16 @@ const B2BPatients = () => {
                           >
                             <PencilIcon size={18} />
                           </IconButton>
-                          <IconButton
-                            onClick={() =>
-                              handleDeleteInvoice(invoice.invoiceNumber)
-                            }
-                            style={{ color: "red" }}
-                          >
-                            <Trash2 size={18} />
-                          </IconButton>
+                          {Number(invoice.paidAmount || 0) === 0 && (
+                            <IconButton
+                              onClick={() =>
+                                handleDeleteInvoice(invoice.invoiceNumber)
+                              }
+                              style={{ color: "red" }}
+                            >
+                              <Trash2 size={18} />
+                            </IconButton>
+                          )}
                           <IconButton
                             onClick={() => generatePDF(invoice)}
                             style={{ color: "green" }}
@@ -1805,7 +1885,9 @@ const B2BPatients = () => {
                 </ModalSectionTitle>
 
                 <PaymentInputRow>
-                  <PaymentLabel>Payment Date:</PaymentLabel>
+                  <PaymentLabel>
+                    Payment Date: <span style={{ color: "red" }}>*</span>
+                  </PaymentLabel>
                   <DateInput
                     type="date"
                     value={editingInvoice.paymentDate}
@@ -1819,7 +1901,9 @@ const B2BPatients = () => {
                 </PaymentInputRow>
 
                 <PaymentInputRow>
-                  <PaymentLabel>Payment Method:</PaymentLabel>
+                  <PaymentLabel>
+                    Payment Method: <span style={{ color: "red" }}>*</span>
+                  </PaymentLabel>
                   <PaymentMethodSelect
                     value={editingInvoice.paymentMethod}
                     onChange={(e) =>
@@ -1935,7 +2019,9 @@ const B2BPatients = () => {
                 $loading={loading.updateInvoice}
                 disabled={
                   !editingInvoice.newPaidAmount ||
-                  Number(editingInvoice.newPaidAmount) <= 0
+                  Number(editingInvoice.newPaidAmount) <= 0 ||
+                  !editingInvoice.paymentDate ||
+                  !editingInvoice.paymentMethod
                 }
               >
                 Save Payment
