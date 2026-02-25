@@ -54,7 +54,7 @@ const Card = styled.div`
 `;
 
 const Header = styled.div`
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  background: linear-gradient(135deg, #667eea, #764ba2);
   background-size: 200% 200%;
   animation: ${gradientAnimation} 8s ease infinite;
   padding: 2.5rem 2rem;
@@ -165,7 +165,7 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0ea5e9;
+    border-color: #667eea;
     box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
   }
 
@@ -187,7 +187,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0ea5e9;
+    border-color: #667eea;
     box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
   }
 `;
@@ -216,7 +216,7 @@ const Button = styled.button`
 `;
 
 const PrimaryButton = styled(Button)`
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  background: linear-gradient(135deg, #667eea, #764ba2); 
   color: white;
   box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
   align-self: flex-end;
@@ -285,7 +285,7 @@ const TabList = styled.div`
 const Tab = styled.button`
   padding: 12px 24px;
   border: none;
-  background: ${props => props.active ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : 'transparent'};
+  background: ${props => props.active ? 'linear-gradient(135deg, #667eea, #764ba2' : 'transparent'};
   color: ${props => props.active ? 'white' : '#64748b'};
   font-weight: 700;
   font-size: 0.9rem;
@@ -301,11 +301,11 @@ const Tab = styled.button`
     left: 0;
     right: 0;
     height: 2px;
-    background: ${props => props.active ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : 'transparent'};
+    background: ${props => props.active ? 'linear-gradient(135deg, #667eea, #764ba2' : 'transparent'};
   }
 
   &:hover:not(:disabled) {
-    background: ${props => props.active ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : '#f8fafc'};
+    background: ${props => props.active ? 'linear-gradient(135deg, #667eea, #764ba2' : '#f8fafc'};
   }
 `;
 
@@ -426,7 +426,7 @@ const LoadingSpinnerLarge = styled(LoadingSpinner)`
   height: 40px;
   border-width: 4px;
   border-color: #e2e8f0;
-  border-top-color: #0ea5e9;
+  border-top-color: #667eea;
 `;
 
 const EmptyState = styled.div`
@@ -777,7 +777,7 @@ const fetchCollectors = async () => {
             </ErrorMessage>
           )}
 
-          {dashboardData && (
+          {dashboardData?.summary && dashboardData?.tasks && (
             <>
               <SummaryGrid>
                 <StatCard
@@ -785,7 +785,7 @@ const fetchCollectors = async () => {
                   borderColor="rgba(14, 165, 233, 0.3)"
                 >
                   <StatLabel color="#0369a1">Total Assigned</StatLabel>
-                  <StatValue color="#0ea5e9">{dashboardData.summary.total_assigned}</StatValue>
+                  <StatValue color="#0ea5e9">{dashboardData?.summary?.total_assigned ?? 0}</StatValue>
                 </StatCard>
 
                 <StatCard

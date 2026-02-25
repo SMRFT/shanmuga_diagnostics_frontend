@@ -860,10 +860,8 @@ const LogisticsTaskManagement = () => {
       setSuccess('');
 
       await apiRequest(
-        `${Labbaseurl}logistics/${task_id}/accept/`,
-        'PATCH',
-        {},
-        null
+        `${Labbaseurl}logistics/accept/${task_id}/`,
+        'PATCH'
       );
 
       setSuccess('Task accepted successfully!');
@@ -907,7 +905,7 @@ const LogisticsTaskManagement = () => {
       setSuccess('');
 
       await apiRequest(
-        `${Labbaseurl}logistics/${selectedTask.task_id}/reject/`,
+        `${Labbaseurl}logistics/reject/${selectedTask.task_id}/`,
         'PATCH',
         { remarks: rejectRemarks },
         null
@@ -938,7 +936,7 @@ const LogisticsTaskManagement = () => {
       setSuccess('');
 
       await apiRequest(
-        `${Labbaseurl}logistics/${task_id}/pickup/`,
+        `${Labbaseurl}logistics/pickup/${task_id}/`,
         'PATCH',
         {},
         null
