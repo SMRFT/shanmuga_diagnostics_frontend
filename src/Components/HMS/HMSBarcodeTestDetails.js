@@ -537,6 +537,7 @@ const HMSBarcodeTestDetails = () => {
       const payload = {
         patient_id: patientId,
         patientname: selectedPatient?.patientname,
+        phone: selectedPatient?.phone,
         age: selectedPatient?.age,
         age_type: selectedPatient?.age_type || 'Y',
         gender: selectedPatient?.gender,
@@ -551,7 +552,6 @@ const HMSBarcodeTestDetails = () => {
         ipnumber: selectedPatient?.ipnumber || '',
         IPOPType: selectedPatient?.IPOPType || '',
         ref_doctor: selectedPatient?.ref_doctor || '',
-        phone: selectedPatient?.phone || '',
         source: selectedPatient?.source || 'core_hmspatientbilling',
       };
       // Save the barcode using your apiRequest method

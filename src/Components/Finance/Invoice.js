@@ -323,18 +323,14 @@ const B2BPatients = () => {
     try {
       setLoading((prev) => ({ ...prev, invoices: true }));
 
-      const token = localStorage.getItem("access_token"); // adjust key if needed
+      const token = localStorage.getItem("access_token");
       const branch = localStorage.getItem("selected_branch");
 
-      const params = new URLSearchParams();
-      // Use passed args if available (for initial load), otherwise state
-      const start = invoiceListFromDate;
-      const end = invoiceListToDate;
+      const payload = {};
+      if (invoiceListFromDate) payload.from_date = invoiceListFromDate;
+      if (invoiceListToDate) payload.to_date = invoiceListToDate;
 
-      if (start) params.append("from_date", start);
-      if (end) params.append("to_date", end);
-
-      const response = await axios.get(`${Labbaseurl}get-invoices/?${params.toString()}`, {
+      const response = await axios.post(`${Labbaseurl}get-invoices/`, payload, {
         headers: {
           Authorization: ` ${token}`,
           "Branch-Code": branch,
@@ -1714,7 +1710,7 @@ const B2BPatients = () => {
                           >
                             <PencilIcon size={18} />
                           </IconButton>
-                          {Number(invoice.paidAmount || 0) === 0 && (
+                          {/* {Number(invoice.paidAmount || 0) === 0 && (
                             <IconButton
                               onClick={() =>
                                 handleDeleteInvoice(invoice.invoiceNumber)
@@ -1723,7 +1719,7 @@ const B2BPatients = () => {
                             >
                               <Trash2 size={18} />
                             </IconButton>
-                          )}
+                          )} */}
                           <IconButton
                             onClick={() => generatePDF(invoice)}
                             style={{ color: "green" }}

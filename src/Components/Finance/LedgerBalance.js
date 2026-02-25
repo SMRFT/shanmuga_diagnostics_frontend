@@ -244,8 +244,13 @@ const EmptyState = styled.div`
 const LedgerBalance = () => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [startDate, setStartDate] = useState(new Date());
-    const [endDate, setEndDate] = useState(new Date());
+
+    // Default to the first day of the current month
+    const currentDate = new Date();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+    const [startDate, setStartDate] = useState(firstDayOfMonth);
+    const [endDate, setEndDate] = useState(currentDate);
     const [b2bList, setB2bList] = useState([]);
     const [selectedB2B, setSelectedB2B] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
@@ -268,11 +273,18 @@ const LedgerBalance = () => {
         fetchB2B();
     }, [Labbaseurl]);
 
+    const formatDate = (date) => {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const formattedStartDate = startDate.toISOString().split("T")[0];
-            const formattedEndDate = endDate.toISOString().split("T")[0];
+            const formattedStartDate = formatDate(startDate);
+            const formattedEndDate = formatDate(endDate);
 
             let url = `${Labbaseurl}b2b_ledger_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
             if (selectedB2B !== "All") {
@@ -396,7 +408,7 @@ const LedgerBalance = () => {
                             <Label>From Date</Label>
                             <Input
                                 type="date"
-                                value={startDate.toISOString().split("T")[0]}
+                                value={formatDate(startDate)}
                                 onChange={(e) => setStartDate(new Date(e.target.value))}
                             />
                         </FilterGroup>
@@ -405,7 +417,7 @@ const LedgerBalance = () => {
                             <Label>To Date</Label>
                             <Input
                                 type="date"
-                                value={endDate.toISOString().split("T")[0]}
+                                value={formatDate(endDate)}
                                 onChange={(e) => setEndDate(new Date(e.target.value))}
                             />
                         </FilterGroup>
