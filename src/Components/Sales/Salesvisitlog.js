@@ -732,7 +732,7 @@ const SalesVisitLog = () => {
 
       if (response.success || response.status === 200 || response.status === 201) {
         setMessage({ type: "success", text: "Sales Visit form submitted successfully!" });
-        setTimeout(() => { handleCloseAlert(); }, 3000);
+        setTimeout(() => { handleCloseAlert(); }, 5000);
 
         setFormData({
           username: username,
@@ -847,7 +847,8 @@ const SalesVisitLog = () => {
                             onClick={() => handleSelectResult(item)}
                             onMouseEnter={() => setSelectedIndex(index)}
                           >
-                            {item.clinicalname || item.hospitalName} ({item.address})
+                            {item.clinicalname || item.hospitalName}
+          {item.address ? ` (${item.address})` : ""}
 
                           </ResultItem>
                         ))

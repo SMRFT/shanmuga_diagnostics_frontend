@@ -796,7 +796,7 @@ const Sidebar = () => {
             </>
           )}
 
-          {role === "Sales Person" && (
+          {role === "Sales Executive" && (
             <>
               <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
                 <div style={{ display: "flex", alignItems: "center" }}>
