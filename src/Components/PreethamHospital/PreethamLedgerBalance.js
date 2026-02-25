@@ -259,19 +259,31 @@ const RecordCount = styled.span`
 const PreethamHospitalLedger = () => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [startDate, setStartDate] = useState(new Date());
-    const [endDate, setEndDate] = useState(new Date());
+
+    // Default to the first day of the current month
+    const currentDate = new Date();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+    const [startDate, setStartDate] = useState(firstDayOfMonth);
+    const [endDate, setEndDate] = useState(currentDate);
     const [searchQuery, setSearchQuery] = useState("");
     const [sortConfig, setSortConfig] = useState({ key: "date", direction: "asc" });
 
     const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
+    const formatDate = (date) => {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const from = startDate.toISOString().split("T")[0];
-            const to   = endDate.toISOString().split("T")[0];
-            const url  = `${Labbaseurl}preetham_hospital_ledger/?from_date=${from}&to_date=${to}`;
+            const from = formatDate(startDate);
+            const to = formatDate(endDate);
+            const url = `${Labbaseurl}preetham_hospital_ledger/?from_date=${from}&to_date=${to}`;
 
             const response = await apiRequest(url, "GET");
 
@@ -312,25 +324,25 @@ const PreethamHospitalLedger = () => {
 
     const filteredData = sortedData.filter(
         (item) =>
-            (item.bill_no      || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.bill_no || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
             (item.patient_name || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Totals
-    const totalAmount   = filteredData.reduce((sum, item) => sum + (item.total_amount || 0), 0);
-    const totalNet      = filteredData.reduce((sum, item) => sum + (item.net_amount   || 0), 0);
-    const totalDiscount = filteredData.reduce((sum, item) => sum + (item.discount     || 0), 0);
+    const totalAmount = filteredData.reduce((sum, item) => sum + (item.total_amount || 0), 0);
+    const totalNet = filteredData.reduce((sum, item) => sum + (item.net_amount || 0), 0);
+    const totalDiscount = filteredData.reduce((sum, item) => sum + (item.discount || 0), 0);
 
     const exportToExcel = () => {
         const ws = XLSX.utils.json_to_sheet(
             filteredData.map((item) => ({
-                Date:           item.date,
-                "Bill No":      item.bill_no,
+                Date: item.date,
+                "Bill No": item.bill_no,
                 "Patient Name": item.patient_name,
-                "B2B Name":     item.b2b_name,
+                "B2B Name": item.b2b_name,
                 "Total Amount": item.total_amount,
-                Discount:       item.discount,
-                "Net Amount":   item.net_amount,
+                Discount: item.discount,
+                "Net Amount": item.net_amount,
             }))
         );
         const wb = XLSX.utils.book_new();
@@ -394,7 +406,7 @@ const PreethamHospitalLedger = () => {
                             <Label>From Date</Label>
                             <Input
                                 type="date"
-                                value={startDate.toISOString().split("T")[0]}
+                                value={formatDate(startDate)}
                                 onChange={(e) => setStartDate(new Date(e.target.value))}
                             />
                         </FilterGroup>
@@ -403,7 +415,7 @@ const PreethamHospitalLedger = () => {
                             <Label>To Date</Label>
                             <Input
                                 type="date"
-                                value={endDate.toISOString().split("T")[0]}
+                                value={formatDate(endDate)}
                                 onChange={(e) => setEndDate(new Date(e.target.value))}
                             />
                         </FilterGroup>

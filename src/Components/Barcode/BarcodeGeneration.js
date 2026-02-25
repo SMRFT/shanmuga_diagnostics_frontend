@@ -376,6 +376,8 @@ const BarcodeGeneration = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [barcodeGenerated, setBarcodeGenerated] = useState(false);
+  const [barcodeDateTime, setBarcodeDateTime] = useState(null);
   const patientsPerPage = 15;
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
@@ -384,8 +386,7 @@ const BarcodeGeneration = () => {
     setIsLoading(true);
     try {
       const response = await apiRequest(
-        `${Labbaseurl}patients_get_barcode/?from_date=${
-          fromDate.toISOString().split("T")[0]
+        `${Labbaseurl}patients_get_barcode/?from_date=${fromDate.toISOString().split("T")[0]
         }&to_date=${toDate.toISOString().split("T")[0]}`,
         "GET"
       );
@@ -434,7 +435,7 @@ const BarcodeGeneration = () => {
         bill_no: patient.bill_no,
         is_emergency: patient.is_emergency,
         patient_history: patient.patient_history,
-        sample_collector:patient.sample_collector,
+        sample_collector: patient.sample_collector,
         selectedDate: patientDate,
         fromDate: fromDate,
         toDate: toDate,
@@ -706,8 +707,8 @@ const BarcodeGeneration = () => {
             {searchTerm || statusFilter !== "All"
               ? "No matching patients found. Try adjusting your filters."
               : isLoading
-              ? "Loading patients..."
-              : "No patients found for the selected date range."}
+                ? "Loading patients..."
+                : "No patients found for the selected date range."}
           </EmptyStateText>
         </EmptyState>
       )}

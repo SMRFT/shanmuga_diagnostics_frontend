@@ -382,6 +382,23 @@ const useToast = () => {
   };
 };
 
+// ─── Helper: get current IST date+time string ────────────────────────────────
+const getCurrentISTDateTime = () => {
+  const now = new Date();
+  // Format in IST (UTC+5:30) using Intl
+  const istFormatter = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  // Returns e.g. "23/02/2025, 10:45 am" → normalise to uppercase AM/PM
+  return istFormatter.format(now).replace(",", "").toUpperCase();
+};
+
 const BarcodeTestDetails = () => {
   const location = useLocation();
   const toast = useToast();
@@ -397,6 +414,10 @@ const BarcodeTestDetails = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [barcodeData, setBarcodeData] = useState([]);
+  // ── NEW: timestamp captured when barcode is generated ──────────────────────
+  const [barcodeGeneratedAt, setBarcodeGeneratedAt] = useState(null);
+  // ── NEW: tracks whether a barcode has been generated in this session ───────
+  const [barcodeGenerated, setBarcodeGenerated] = useState(false);
 
   const generateBarcode = () => {
     const newBarcode = String(barcodeCounter).padStart(6, "0");
@@ -430,6 +451,7 @@ const BarcodeTestDetails = () => {
     const year = date.getUTCFullYear();
     return `${day}/${month}/${year}`;
   };
+
   const handleGenerateBarcode = async () => {
     if (!selectedPatient) {
       toast.error("Patient information is missing.");
@@ -461,27 +483,31 @@ const BarcodeTestDetails = () => {
       console.log("DEBUG - Parameters:", { patientId, dateString, bill_no });
 
       // Check for existing barcode using your apiRequest method
-      existingBarcodeResult = await apiRequest(fullUrl, "GET");
+      try {
+        existingBarcodeResult = await apiRequest(fullUrl, "GET");
+        existingTests = existingBarcodeResult.testdetails || [];
 
-      if (existingBarcodeResult.success) {
-        existingTests = existingBarcodeResult.data?.testdetails || [];
         if (existingTests.length > 0) {
           existingBarcodeFound = true;
         }
-      } else if (existingBarcodeResult.status === 404) {
-        existingTests = [];
-        existingBarcodeFound = false;
+      } catch (error) {
+        // Handle 404 case - no existing barcode found
+        if (error.response && error.response.status === 404) {
+          existingTests = [];
+        } else {
+          throw error; // Re-throw other errors
+        }
       }
 
       // If barcode already exists, display the existing data
       if (existingBarcodeFound) {
-        toast.warning("Barcode already generated");
+        toast.info("Displaying existing barcode for this bill.");
 
-        // Use existing barcode data to populate the UI
+        // Extract existing barcode information
         const existingBarcode =
-          existingBarcodeResult.data.barcode || existingTests[0]?.barcode;
+          existingBarcodeResult.barcode || existingTests[0]?.barcode;
         const extraBarcode =
-          existingBarcodeResult.data.extra_barcode || existingBarcode;
+          existingBarcodeResult.extra_barcode || existingBarcode;
 
         // Update test details with existing barcode
         const updatedTestDetails = existingTests.map((test) => ({
@@ -518,8 +544,9 @@ const BarcodeTestDetails = () => {
         ];
 
         setBarcodeData(existingBarcodeData);
+        // Timestamp not captured here — this is display-only, not a new generation
 
-        return false;
+        return true; // Return true to indicate successful display of existing barcode
       }
 
       // Generate new barcode (existing logic continues here)
@@ -569,6 +596,9 @@ const BarcodeTestDetails = () => {
 
       setBarcodeData(newBarcodeData);
 
+      // ── Capture IST timestamp ────────────────────────────────────────────
+      setBarcodeGeneratedAt(getCurrentISTDateTime());
+
       // Prepare payload for saving
       const payload = {
         patient_id: patientId,
@@ -595,6 +625,8 @@ const BarcodeTestDetails = () => {
         toast.error(saveResponse.error);
         return false;
       } else if (saveResponse) {
+        // Barcode saved successfully → disable Generate, enable Regenerate
+        setBarcodeGenerated(true);
         toast.success("All barcodes saved successfully!");
         return true;
       }
@@ -608,6 +640,7 @@ const BarcodeTestDetails = () => {
 
     return false;
   };
+
   const handleReGenerateBarcode = async () => {
     if (!selectedPatient || !selectedDate || !bill_no) {
       toast.error("Patient, date, or bill number is missing.");
@@ -687,6 +720,9 @@ const BarcodeTestDetails = () => {
         ];
 
         setBarcodeData(newBarcodeData);
+
+        // ── Capture IST timestamp for regenerated barcode ────────────────
+        setBarcodeGeneratedAt(getCurrentISTDateTime());
 
         toast.success("Barcodes updated successfully!");
       } else if (
@@ -864,18 +900,14 @@ const BarcodeTestDetails = () => {
       );
 
       // Second API call - get existing barcode data
+      const barcodeQueryParams = new URLSearchParams({
+        patient_id: patientId,
+        date: dateString,
+        bill_no: bill_no,
+      }).toString();
       const barcodeResult = await apiRequest(
-        `${Labbaseurl}get-existing-barcode/`,
-        "GET",
-        null,
-        {},
-        {
-          params: {
-            patient_id: patientId,
-            date: dateString,
-            bill_no: bill_no,
-          },
-        }
+        `${Labbaseurl}get-existing-barcode/?${barcodeQueryParams}`,
+        "GET"
       );
 
       if (barcodeResult.success && barcodeResult.status === 200) {
@@ -910,9 +942,12 @@ const BarcodeTestDetails = () => {
         ];
 
         setBarcodeData(newBarcodeData);
+        // Existing barcode found on page load → disable Generate, enable Regenerate
+        setBarcodeGenerated(true);
       } else {
+        // No existing barcode → enable Generate, disable Regenerate
+        setBarcodeGenerated(false);
         console.log("No existing barcodes found");
-        // You might want to handle this case differently based on your needs
       }
     };
 
@@ -922,6 +957,13 @@ const BarcodeTestDetails = () => {
   }, [patientId, selectedDate, bill_no]);
 
   const hasBarcodes = testDetails.some((test) => test.barcode);
+
+  // ── Button state logic ─────────────────────────────────────────────────────
+  // Generate  : enabled only before barcode is generated (and not busy)
+  // Regenerate: enabled only after barcode is generated (and not busy)
+  const isBusy = isGenerating || isPrinting || isLoading;
+  const generateDisabled = isBusy || barcodeGenerated;
+  const regenerateDisabled = isBusy || !barcodeGenerated;
 
   return (
     <PageContainer>
@@ -1033,31 +1075,25 @@ const BarcodeTestDetails = () => {
           )}
 
           <ButtonsContainer>
+            {/* Generate: enabled on page load, disabled after barcode generated */}
             <PrimaryButton
               onClick={handleGenerateAndPrint}
-              disabled={isGenerating || isPrinting || isLoading}
+              disabled={generateDisabled}
             >
               <BarcodeScan size={16} />
-              {isGenerating ? "Generating..." : "Generate & Print Barcodes"}
+              {isGenerating && !barcodeGenerated ? "Generating..." : "Generate & Print Barcodes"}
             </PrimaryButton>
 
+            {/* Regenerate: disabled on page load, enabled after barcode generated */}
             <SecondaryButton
               onClick={handleReGenerateAndPrint}
-              disabled={isGenerating || isPrinting || isLoading}
+              disabled={regenerateDisabled}
             >
               <RefreshCw size={16} />
-              {isGenerating ? "Regenerating..." : "Regenerate & Print Barcodes"}
+              {isGenerating && barcodeGenerated ? "Regenerating..." : "Regenerate & Print Barcodes"}
             </SecondaryButton>
 
-            {hasBarcodes && (
-              <SecondaryButton
-                onClick={handlePrintBarcodes}
-                disabled={isPrinting || isLoading}
-              >
-                <Printer size={16} />
-                {isPrinting ? "Printing..." : "Print Barcodes"}
-              </SecondaryButton>
-            )}
+
           </ButtonsContainer>
         </>
       ) : (
@@ -1067,6 +1103,7 @@ const BarcodeTestDetails = () => {
         </EmptyState>
       )}
 
+      {/* ── Hidden print section ─────────────────────────────────────────── */}
       <PrintSection ref={printSectionRef}>
         {barcodeData.map((item, index) => (
           <BarcodeItem key={index} className="barcode-item">
@@ -1078,8 +1115,13 @@ const BarcodeTestDetails = () => {
                   ? "F"
                   : ""}
             </BarcodeText>
+            {/* ── Date + Time (IST) on barcode label ──────────────────────── */}
             <BarcodeDate className="barcode-date">
-              {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}
+              {barcodeGeneratedAt
+                ? barcodeGeneratedAt
+                : selectedPatient?.date
+                  ? formatDate(selectedPatient.date)
+                  : ""}
             </BarcodeDate>
             <BarcodeContainer className="barcode-container">
               <svg

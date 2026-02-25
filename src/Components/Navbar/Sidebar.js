@@ -943,6 +943,9 @@ const Sidebar = () => {
                 <SubLink to="/RefundAndCancellationLog" onClick={() => setIsSidebarOpen(false)}>
                   Refund And Cancellation Log
                 </SubLink>
+                <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
+                  B2B Ledger Balance
+                </SubLink>
               </DropdownContent>
 
               <SidebarNavLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
