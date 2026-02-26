@@ -124,129 +124,142 @@ const blink = keyframes`
 
 // ===== Layout components =====
 const Container = styled.div`
-  max-width: 1400px; 
-  margin: 0 auto; 
+  max-width: 1400px;
+  margin: 0 auto;
   padding: 2rem;
-  @media (max-width: 768px) { padding: 1rem; }
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
-const Card = styled.div` 
-  background-color: white; 
-  border-radius: var(--border-radius); 
-  box-shadow: var(--box-shadow); 
-  overflow: hidden; 
+const Card = styled.div`
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
 `;
 
 const Header = styled.div`
-  padding: 1.5rem; 
+  padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
-  display: flex; 
-  align-items: center; 
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  @media (max-width: 768px) { 
-    flex-direction: column; 
-    align-items: flex-start; 
-    gap: 1rem; 
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
   }
 `;
 
-const Title = styled.h1` 
-  font-size: 1.5rem; 
-  color: var(--primary-dark); 
-  font-weight: 600; 
-  margin: 0; 
+const Title = styled.h1`
+  font-size: 1.5rem;
+  color: var(--primary-dark);
+  font-weight: 600;
+  margin: 0;
 `;
 
 const FiltersContainer = styled.div`
-  display: flex; 
-  align-items: center; 
-  gap: 1rem; 
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   flex-wrap: wrap;
-  @media (max-width: 768px) { width: 100%; }
-`;
-
-const DateRangeContainer = styled.div` 
-  display: flex; 
-  align-items: center; 
-  gap: 0.5rem; 
-  flex-wrap: wrap; 
-`;
-
-const DatePickerWrapper = styled.div` 
-  display: flex; 
-  align-items: center; 
-  gap: 0.5rem; 
-`;
-
-const DatePickerLabel = styled.label` 
-  font-size: 0.875rem; 
-  color: var(--gray); 
-  display: flex; 
-  align-items: center; 
-  gap: 0.25rem; 
-  white-space: nowrap; 
-`;
-
-const SearchContainer = styled.div` 
-  position: relative; 
-  width: 300px; 
-  @media (max-width: 768px) { width: 100%; } 
-`;
-
-const SearchInput = styled.input`
-  width: 100%; 
-  padding: 0.5rem 1rem 0.5rem 2.5rem; 
-  border: 1px solid var(--gray-light); 
-  border-radius: var(--border-radius);
-  font-size: 0.875rem; 
-  transition: var(--transition);
-  &:focus { 
-    outline: none; 
-    border-color: var(--primary); 
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); 
+  @media (max-width: 768px) {
+    width: 100%;
   }
 `;
 
-const SearchIconWrapper = styled.div` 
-  position: absolute; 
-  left: 0.75rem; 
-  top: 50%; 
-  transform: translateY(-50%); 
-  color: var(--gray); 
-  pointer-events: none; 
+const DateRangeContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const DatePickerWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const DatePickerLabel = styled.label`
+  font-size: 0.875rem;
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+`;
+
+const SearchContainer = styled.div`
+  position: relative;
+  width: 300px;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  transition: var(--transition);
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+  }
+`;
+
+const SearchIconWrapper = styled.div`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray);
+  pointer-events: none;
 `;
 
 const FilterButton = styled.button`
-  display: inline-flex; 
-  align-items: center; 
-  gap: 0.5rem; 
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background-color: var(--primary); 
-  color: white; 
-  border: none; 
+  background-color: var(--primary);
+  color: white;
+  border: none;
   border-radius: var(--border-radius);
-  font-size: 0.875rem; 
-  font-weight: 500; 
-  cursor: pointer; 
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
   transition: var(--transition);
-  &:hover { background-color: var(--primary-dark); } 
-  &:focus { outline: none; box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3); }
+  &:hover {
+    background-color: var(--primary-dark);
+  }
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+  }
 `;
 
 const ClearButton = styled.button`
-  display: inline-flex; 
-  align-items: center; 
-  gap: 0.5rem; 
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background-color: var(--gray); 
-  color: white; 
-  border: none; 
+  background-color: var(--gray);
+  color: white;
+  border: none;
   border-radius: var(--border-radius);
-  font-size: 0.875rem; 
-  font-weight: 500; 
-  cursor: pointer; 
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
   transition: var(--transition);
-  &:hover { background-color: var(--dark); }
+  &:hover {
+    background-color: var(--dark);
+  }
 `;
 
 const Select = styled.select`
@@ -259,79 +272,94 @@ const Select = styled.select`
   transition: var(--transition);
   color: var(--dark);
   font-weight: 500;
-  
-  &:hover, &:focus { 
-    border-color: var(--primary); 
-    outline: none; 
+
+  &:hover,
+  &:focus {
+    border-color: var(--primary);
+    outline: none;
     box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
   }
 `;
 
 const TableContainer = styled.div`
-  overflow-x: auto; 
+  overflow-x: auto;
   max-height: 600px;
-  &::-webkit-scrollbar { width: 6px; height: 6px; }
-  &::-webkit-scrollbar-track { background: var(--gray-light); }
-  &::-webkit-scrollbar-thumb { background-color: var(--gray); border-radius: 20px; }
+  transform: rotateX(180deg);
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: var(--gray-light);
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--gray);
+    border-radius: 20px;
+  }
 `;
 
-const Table = styled.table` 
-  width: 100%; 
-  border-collapse: collapse; 
-  min-width: 1000px; 
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+  transform: rotateX(180deg);
 `;
 
 const TableHead = styled.thead`
-  background-color: var(--gray-light); 
-  position: sticky; 
-  top: 0; 
+  background-color: var(--gray-light);
+  position: sticky;
+  top: 0;
   z-index: 5;
-  th { 
-    padding: 1rem; 
-    text-align: left; 
-    font-weight: 600; 
-    color: var(--gray); 
-    font-size: 0.75rem; 
-    text-transform: uppercase; 
-    letter-spacing: 0.05em; 
-    white-space: nowrap; 
+  th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--gray);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
   }
 `;
 
 const TableBody = styled.tbody`
-  tr { 
-    border-bottom: 1px solid var(--gray-light); 
-    &:last-child { border-bottom: none; } 
-    &:hover { background-color: rgba(67, 97, 238, 0.05); } 
+  tr {
+    border-bottom: 1px solid var(--gray-light);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background-color: rgba(67, 97, 238, 0.05);
+    }
   }
-  td { 
-    padding: 1rem; 
-    vertical-align: middle; 
-    font-size: 0.875rem; 
+  td {
+    padding: 1rem;
+    vertical-align: middle;
+    font-size: 0.875rem;
   }
 `;
 
-const NoData = styled.td` 
-  text-align: center; 
-  padding: 2rem !important; 
-  color: var(--gray); 
-  font-style: italic; 
+const NoData = styled.td`
+  text-align: center;
+  padding: 2rem !important;
+  color: var(--gray);
+  font-style: italic;
 `;
 
-const StatusBadge = styled.span` 
-  display: inline-flex; 
-  align-items: center; 
-  gap: 0.25rem; 
-  padding: 0.25rem 0.5rem; 
-  border-radius: 1rem; 
-  font-size: 0.75rem; 
-  font-weight: 500; 
-  white-space: nowrap; 
+const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
 `;
 
-const WaitingBadge = styled(StatusBadge)` 
-  background-color: rgba(248, 150, 30, 0.15); 
-  color: var(--warning); 
+const WaitingBadge = styled(StatusBadge)`
+  background-color: rgba(248, 150, 30, 0.15);
+  color: var(--warning);
 `;
 
 const EmergencyBadge = styled(StatusBadge)`
@@ -359,89 +387,101 @@ const OutsourcedBadge = styled(StatusBadge)`
 `;
 
 const Button = styled.button`
-  display: inline-flex; 
-  align-items: center; 
-  justify-content: center; 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem; 
-  background-color: var(--primary); 
-  color: white; 
-  border: none; 
-  border-radius: var(--border-radius); 
-  font-size: 0.875rem; 
+  padding: 0.5rem 1rem;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
   font-weight: 500;
-  cursor: pointer; 
+  cursor: pointer;
   transition: var(--transition);
-  &:hover { background-color: var(--primary-dark); } 
-  &:focus { outline: none; box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3); }
+  &:hover {
+    background-color: var(--primary-dark);
+  }
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+  }
 `;
 
-const ViewButton = styled(Button)` 
-  padding: 0.35rem 0.75rem; 
-  background-color: var(--primary-light); 
-  &:hover { background-color: var(--primary); } 
+const ViewButton = styled(Button)`
+  padding: 0.35rem 0.75rem;
+  background-color: var(--primary-light);
+  &:hover {
+    background-color: var(--primary);
+  }
 `;
 
-const TestList = styled.ul` 
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 0.25rem; 
+const TestList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 `;
 
-const TestItem = styled.li` 
-  white-space: nowrap; 
+const TestItem = styled.li`
+  white-space: nowrap;
   font-size: 0.875rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
 
-const StatusList = styled.ul` 
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 0.5rem; 
+const StatusList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
-const PaginationContainer = styled.div` 
-  display: flex; 
-  justify-content: flex-end; 
-  align-items: center; 
-  padding: 1rem; 
-  border-top: 1px solid var(--gray-light); 
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 1rem;
+  border-top: 1px solid var(--gray-light);
 `;
 
 const PaginationButton = styled.button`
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  width: 2rem; 
-  height: 2rem; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
   border: 1px solid var(--gray-light);
-  background-color: white; 
-  border-radius: var(--border-radius); 
-  cursor: pointer; 
+  background-color: white;
+  border-radius: var(--border-radius);
+  cursor: pointer;
   transition: var(--transition);
-  &:hover { background-color: var(--gray-light); } 
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:hover {
+    background-color: var(--gray-light);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
-const PaginationInfo = styled.div` 
-  margin: 0 1rem; 
-  font-size: 0.875rem; 
-  color: var(--gray); 
+const PaginationInfo = styled.div`
+  margin: 0 1rem;
+  font-size: 0.875rem;
+  color: var(--gray);
 `;
 
 // ===== Helpers =====
 const formatYmd = (d) => {
   if (!d) return "";
-  const y = d.getFullYear(); 
-  const m = String(d.getMonth() + 1).padStart(2, "0"); 
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
@@ -460,24 +500,24 @@ function PatientList() {
   const location = useLocation();
 
   const today = useMemo(() => {
-    const d = new Date(); 
-    d.setHours(0, 0, 0, 0); 
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
     return d;
   }, []);
 
   const initialFrom = useMemo(() => {
-    try { 
-      return parseYmd(sessionStorage.getItem("patient_from")) || today; 
-    } catch { 
-      return today; 
+    try {
+      return parseYmd(sessionStorage.getItem("patient_from")) || today;
+    } catch {
+      return today;
     }
   }, [today]);
-  
+
   const initialTo = useMemo(() => {
-    try { 
-      return parseYmd(sessionStorage.getItem("patient_to")) || today; 
-    } catch { 
-      return today; 
+    try {
+      return parseYmd(sessionStorage.getItem("patient_to")) || today;
+    } catch {
+      return today;
     }
   }, [today]);
 
@@ -495,7 +535,10 @@ function PatientList() {
   // Save filter state to sessionStorage
   useEffect(() => {
     try {
-      sessionStorage.setItem("patient_from", fromDate ? formatYmd(fromDate) : "");
+      sessionStorage.setItem(
+        "patient_from",
+        fromDate ? formatYmd(fromDate) : "",
+      );
       sessionStorage.setItem("patient_to", toDate ? formatYmd(toDate) : "");
     } catch (e) {
       console.error("Failed to save to sessionStorage:", e);
@@ -510,22 +553,36 @@ function PatientList() {
     }
   }, [location.state]);
 
-  const fetchPatientData = async (fromDateParam, toDateParam, emergency = "all") => {
+  const fetchPatientData = async (
+    fromDateParam,
+    toDateParam,
+    emergency = "all",
+  ) => {
     setLoading(true);
     setError(null);
     const queryParams = new URLSearchParams();
-    if (fromDateParam) queryParams.append("from_date", fromDateParam.toLocaleDateString("en-CA"));
-    if (toDateParam) queryParams.append("to_date", toDateParam.toLocaleDateString("en-CA"));
+    if (fromDateParam)
+      queryParams.append(
+        "from_date",
+        fromDateParam.toLocaleDateString("en-CA"),
+      );
+    if (toDateParam)
+      queryParams.append("to_date", toDateParam.toLocaleDateString("en-CA"));
     if (emergency && emergency !== "all") {
       queryParams.append("emergency", emergency);
     }
     const queryString = queryParams.toString();
     const url = `${Labbaseurl}test-values/${queryString ? `?${queryString}` : ""}`;
-    
+
     try {
       const patientResponse = await apiRequest(url, "GET");
-      if (!patientResponse.success) throw new Error(patientResponse.error || "Failed to fetch patient data");
-      const patientData = Array.isArray(patientResponse.data) ? patientResponse.data : [];
+      if (!patientResponse.success)
+        throw new Error(
+          patientResponse.error || "Failed to fetch patient data",
+        );
+      const patientData = Array.isArray(patientResponse.data)
+        ? patientResponse.data
+        : [];
       setPatientList(patientData);
       setLoading(false);
     } catch (err) {
@@ -543,7 +600,7 @@ function PatientList() {
     fetchPatientData(fromDate, toDate, emergencyFilter);
     setCurrentPage(1);
   };
-  
+
   const handleClearFilter = () => {
     setFromDate(today);
     setToDate(today);
@@ -558,30 +615,33 @@ function PatientList() {
       console.error("Invalid patient data:", patient);
       return;
     }
-    
+
     const date = new Date(patient.date);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const formattedDate = `${year}-${month}-${day}`;
-    
-    navigate(`/DoctorForm?patient_id=${patient.patient_id}&date=${formattedDate}`, {
-      state: { 
-        patientHistory: patient.patient_history || "",
-        patientData: {
-          patient_id: patient.patient_id,
-          patientname: patient.patientname,
-          age: patient.age,
-          barcode: patient.barcode,
-          date: patient.date,
-          created_date: patient.created_date,
-          testdetails: patient.testdetails || [],
-          is_emergency: patient.is_emergency || false,
-          patient_history: patient.patient_history || ""
+
+    navigate(
+      `/DoctorForm?patient_id=${patient.patient_id}&date=${formattedDate}`,
+      {
+        state: {
+          patientHistory: patient.patient_history || "",
+          patientData: {
+            patient_id: patient.patient_id,
+            patientname: patient.patientname,
+            age: patient.age,
+            barcode: patient.barcode,
+            date: patient.date,
+            created_date: patient.created_date,
+            testdetails: patient.testdetails || [],
+            is_emergency: patient.is_emergency || false,
+            patient_history: patient.patient_history || "",
+          },
+          skipFetch: true,
         },
-        skipFetch: true
-      }
-    });
+      },
+    );
   };
 
   const getStatusBadge = () => (
@@ -598,11 +658,7 @@ function PatientList() {
         </EmergencyBadge>
       );
     }
-    return (
-      <NormalBadge>
-        Normal
-      </NormalBadge>
-    );
+    return <NormalBadge>Normal</NormalBadge>;
   };
 
   const safePatientList = Array.isArray(patientList) ? patientList : [];
@@ -610,21 +666,25 @@ function PatientList() {
   const groupedByBarcode = safePatientList.reduce((acc, patient) => {
     const barcode = patient.barcode;
     if (!acc[barcode]) {
-      acc[barcode] = { 
-        ...patient, 
-        testdetails: patient.testdetails ? patient.testdetails.map(test => ({
-          ...test,
-          created_date: patient.created_date
-        })) : [],
+      acc[barcode] = {
+        ...patient,
+        testdetails: patient.testdetails
+          ? patient.testdetails.map((test) => ({
+              ...test,
+              created_date: patient.created_date,
+            }))
+          : [],
         is_emergency: patient.is_emergency || false,
-        patient_history: patient.patient_history || ""
+        patient_history: patient.patient_history || "",
       };
     } else {
-      const testsWithCreatedDate = patient.testdetails ? patient.testdetails.map(test => ({
-        ...test,
-        created_date: patient.created_date
-      })) : [];
-      
+      const testsWithCreatedDate = patient.testdetails
+        ? patient.testdetails.map((test) => ({
+            ...test,
+            created_date: patient.created_date,
+          }))
+        : [];
+
       acc[barcode].testdetails = [
         ...acc[barcode].testdetails,
         ...testsWithCreatedDate,
@@ -632,40 +692,44 @@ function PatientList() {
     }
     return acc;
   }, {});
-  
+
   const uniquePatients = Object.values(groupedByBarcode);
 
   // Extract unique locations from patient list
   const uniqueLocations = useMemo(() => {
     const locations = uniquePatients
-      .map(p => p.locationId)
-      .filter(loc => loc && loc.trim() !== "");
+      .map((p) => p.locationId)
+      .filter((loc) => loc && loc.trim() !== "");
     return [...new Set(locations)].sort();
   }, [uniquePatients]);
 
   const filteredPatients = uniquePatients.filter((p) => {
-    const matchesSearch = 
+    const matchesSearch =
       p.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesLocation = locationFilter === "all" || p.locationId === locationFilter;
-    
+
+    const matchesLocation =
+      locationFilter === "all" || p.locationId === locationFilter;
+
     return matchesSearch && matchesLocation;
   });
 
   const patientsPerPage = 10;
   const indexOfLastPatient = currentPage * patientsPerPage;
   const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
-  const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
+  const currentPatients = filteredPatients.slice(
+    indexOfFirstPatient,
+    indexOfLastPatient,
+  );
   const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
 
-  const nextPage = () => { 
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1); 
+  const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-  
-  const prevPage = () => { 
-    if (currentPage > 1) setCurrentPage(currentPage - 1); 
+
+  const prevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
 
   const showClear =
@@ -679,10 +743,17 @@ function PatientList() {
       <Container>
         <GlobalStyle />
         <Card>
-          <Header><Title>Error</Title></Header>
+          <Header>
+            <Title>Error</Title>
+          </Header>
           <div style={{ padding: "2rem", textAlign: "center" }}>
             <p>Failed to load patient data: {error}</p>
-            <Button onClick={() => fetchPatientData(fromDate, toDate, emergencyFilter)} style={{ marginTop: "1rem" }}>
+            <Button
+              onClick={() =>
+                fetchPatientData(fromDate, toDate, emergencyFilter)
+              }
+              style={{ marginTop: "1rem" }}
+            >
               Retry
             </Button>
           </div>
@@ -733,8 +804,8 @@ function PatientList() {
                   dropdownMode="select"
                 />
               </DatePickerWrapper>
-              <Select 
-                value={emergencyFilter} 
+              <Select
+                value={emergencyFilter}
                 onChange={(e) => {
                   setEmergencyFilter(e.target.value);
                   setCurrentPage(1);
@@ -744,8 +815,8 @@ function PatientList() {
                 <option value="emergency">Emergency</option>
                 <option value="normal">Normal</option>
               </Select>
-              <Select 
-                value={locationFilter} 
+              <Select
+                value={locationFilter}
                 onChange={(e) => {
                   setLocationFilter(e.target.value);
                   setCurrentPage(1);
@@ -762,21 +833,21 @@ function PatientList() {
                 <Filter size={16} /> Apply Filter
               </FilterButton>
               {showClear && (
-                <ClearButton onClick={handleClearFilter}>
-                  Clear All
-                </ClearButton>
+                <ClearButton onClick={handleClearFilter}>Clear All</ClearButton>
               )}
             </DateRangeContainer>
 
             <SearchContainer>
-              <SearchIconWrapper><Search size={16} /></SearchIconWrapper>
+              <SearchIconWrapper>
+                <Search size={16} />
+              </SearchIconWrapper>
               <SearchInput
                 type="text"
                 placeholder="Search by name, ID, or barcode"
                 value={searchQuery}
-                onChange={(e) => { 
-                  setSearchQuery(e.target.value); 
-                  setCurrentPage(1); 
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
                 }}
               />
             </SearchContainer>
@@ -802,14 +873,21 @@ function PatientList() {
             <TableBody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: "2rem" }}>
+                  <td
+                    colSpan={10}
+                    style={{ textAlign: "center", padding: "2rem" }}
+                  >
                     Loading patient data...
                   </td>
                 </tr>
               ) : currentPatients.length > 0 ? (
                 currentPatients.map((patient, index) => (
                   <tr key={`${patient.barcode}-${index}`}>
-                    <td>{patient.date ? new Date(patient.date).toLocaleDateString() : "Invalid Date"}</td>
+                    <td>
+                      {patient.date
+                        ? new Date(patient.date).toLocaleDateString()
+                        : "Invalid Date"}
+                    </td>
                     <td>{patient.patient_id}</td>
                     <td>{patient.patientname}</td>
                     <td>{patient.locationId}</td>
@@ -818,29 +896,33 @@ function PatientList() {
                     <td>{getPriorityBadge(patient.is_emergency)}</td>
                     <td>
                       <TestList>
-                        {patient.testdetails && patient.testdetails.length > 0
-                          ? patient.testdetails.map((test, idx) => (
-                              <TestItem key={idx}>
-                                <span>{test.test_id} - {test.test_name}</span>
-                                {test.outsourced && (
-                                  <OutsourcedBadge>
-                                    Outsourced
-                                  </OutsourcedBadge>
-                                )}
-                              </TestItem>
-                            ))
-                          : (<TestItem>No tests available</TestItem>)
-                        }
+                        {patient.testdetails &&
+                        patient.testdetails.length > 0 ? (
+                          patient.testdetails.map((test, idx) => (
+                            <TestItem key={idx}>
+                              <span>
+                                {test.test_id} - {test.test_name}
+                              </span>
+                              {test.outsourced && (
+                                <OutsourcedBadge>Outsourced</OutsourcedBadge>
+                              )}
+                            </TestItem>
+                          ))
+                        ) : (
+                          <TestItem>No tests available</TestItem>
+                        )}
                       </TestList>
                     </td>
                     <td>
                       <StatusList>
-                        {patient.testdetails && patient.testdetails.length > 0
-                          ? patient.testdetails.map((test, idx) => (
-                              <li key={idx}>{getStatusBadge()}</li>
-                            ))
-                          : (<li>No status available</li>)
-                        }
+                        {patient.testdetails &&
+                        patient.testdetails.length > 0 ? (
+                          patient.testdetails.map((test, idx) => (
+                            <li key={idx}>{getStatusBadge()}</li>
+                          ))
+                        ) : (
+                          <li>No status available</li>
+                        )}
                       </StatusList>
                     </td>
                     <td>
@@ -869,7 +951,10 @@ function PatientList() {
             <PaginationInfo>
               Page {currentPage} of {totalPages}
             </PaginationInfo>
-            <PaginationButton onClick={nextPage} disabled={currentPage === totalPages}>
+            <PaginationButton
+              onClick={nextPage}
+              disabled={currentPage === totalPages}
+            >
               <ChevronRight size={16} />
             </PaginationButton>
           </PaginationContainer>
@@ -883,7 +968,8 @@ function PatientList() {
             borderTop: "1px solid var(--gray-light)",
           }}
         >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+          Showing {filteredPatients.length}{" "}
+          {filteredPatients.length === 1 ? "entry" : "entries"}
         </div>
       </Card>
     </Container>

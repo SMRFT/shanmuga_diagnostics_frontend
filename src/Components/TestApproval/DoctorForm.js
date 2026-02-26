@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   AlertTriangle,
   CheckCircle,
@@ -11,7 +11,6 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
-
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -185,12 +184,14 @@ const TableContainer = styled.div`
   background-color: white;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
+  transform: rotateX(180deg);
 `;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   min-width: 800px;
+  transform: rotateX(180deg);
 `;
 
 const TableHead = styled.thead`
@@ -453,16 +454,19 @@ function DoctorForm() {
     if (location.state?.patientHistory) {
       setPatientHistory(location.state.patientHistory);
     }
-    
+
     // If we have patient data passed from PatientList, use it directly
     if (location.state?.skipFetch && location.state?.patientData) {
       const patientData = location.state.patientData;
-      const processedData = [{
-        ...patientData,
-        testdetails: typeof patientData.testdetails === "string"
-          ? JSON.parse(patientData.testdetails)
-          : patientData.testdetails,
-      }];
+      const processedData = [
+        {
+          ...patientData,
+          testdetails:
+            typeof patientData.testdetails === "string"
+              ? JSON.parse(patientData.testdetails)
+              : patientData.testdetails,
+        },
+      ];
       setTestValues(processedData);
       setLoading(false);
     } else if (selectedDate && patientId) {
@@ -491,18 +495,19 @@ function DoctorForm() {
 
       const processedData = response.data.map((item) => ({
         ...item,
-        testdetails: typeof item.testdetails === "string"
-          ? JSON.parse(item.testdetails)
-          : item.testdetails,
+        testdetails:
+          typeof item.testdetails === "string"
+            ? JSON.parse(item.testdetails)
+            : item.testdetails,
       }));
 
       setTestValues(processedData);
-      
+
       // Set patient history from API response if available
       if (processedData.length > 0 && processedData[0].patient_history) {
         setPatientHistory(processedData[0].patient_history);
       }
-      
+
       setError(null);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -512,49 +517,143 @@ function DoctorForm() {
     }
   };
 
- // Update the handleTestApprove function to include approve_time
-const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
-  try {
-    const test = testValues[recordIndex];
-    const testDetail = test?.testdetails[testIndex];
-    if (!test || !testDetail) {
-      throw new Error("Test or test detail not found");
-    }
-    
-    const formatDateTime = (date) => {
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const hours = String(d.getHours()).padStart(2, "0");
-      const minutes = String(d.getMinutes()).padStart(2, "0");
-      const seconds = String(d.getSeconds()).padStart(2, "0");
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    };
-    
-    const approveTime = formatDateTime(new Date());
-    const response = await apiRequest(
-      `${Labbaseurl}test-approval/${test.barcode}/approve/`,
-      "PATCH",
-      {
-        approve: true,
-        approve_by,
-        approve_time: approveTime,
-        barcode: test.barcode,
-        created_date: testDetail.created_date,
-        test_id: testDetail.test_id,
+  // Update the handleTestApprove function to include approve_time
+  const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
+    try {
+      const test = testValues[recordIndex];
+      const testDetail = test?.testdetails[testIndex];
+      if (!test || !testDetail) {
+        throw new Error("Test or test detail not found");
       }
-    );
-    
-    if (!response.success) {
-      throw new Error(response.error || "Failed to approve test");
+
+      const formatDateTime = (date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const seconds = String(d.getSeconds()).padStart(2, "0");
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      };
+
+      const approveTime = formatDateTime(new Date());
+      const response = await apiRequest(
+        `${Labbaseurl}test-approval/${test.barcode}/approve/`,
+        "PATCH",
+        {
+          approve: true,
+          approve_by,
+          approve_time: approveTime,
+          barcode: test.barcode,
+          created_date: testDetail.created_date,
+          test_id: testDetail.test_id,
+        },
+      );
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to approve test");
+      }
+
+      if (
+        response.data.message &&
+        (response.data.message.includes("Test approved successfully") ||
+          response.data.message.includes("Test detail approved successfully"))
+      ) {
+        setTestValues((prevValues) => {
+          return prevValues.map((record, idx) => {
+            if (idx === recordIndex) {
+              return {
+                ...record,
+                testdetails: record.testdetails.map((detail) =>
+                  detail.test_id === testDetail.test_id
+                    ? {
+                        ...detail,
+                        approve: true,
+                        approve_by,
+                        approve_time: approveTime,
+                      }
+                    : detail,
+                ),
+              };
+            }
+            return record;
+          });
+        });
+
+        toast.success("Test approved successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        toast.error(
+          "Approval failed: " + (response.data.message || "Unknown error"),
+          {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Error updating data:", error);
+      toast.error("Error during approval: " + error.message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
-    
-    if (
-      response.data.message &&
-      (response.data.message.includes("Test approved successfully") ||
-        response.data.message.includes("Test detail approved successfully"))
-    ) {
+  };
+
+  // Replace the handleTestRerun function
+  const handleTestRerun = async (recordIndex, testIndex) => {
+    try {
+      const test = testValues[recordIndex];
+      const testDetail = test?.testdetails[testIndex];
+      if (!testDetail) {
+        throw new Error("Test detail not found");
+      }
+      const rerun_by = localStorage.getItem("name");
+
+      const formatDateTime = (date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const seconds = String(d.getSeconds()).padStart(2, "0");
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      };
+
+      const rerunTime = formatDateTime(new Date());
+      const response = await apiRequest(
+        `${Labbaseurl}test-rerun/${test.barcode}/rerun/`,
+        "PATCH",
+        {
+          rerun: true,
+          rerun_by,
+          rerun_time: rerunTime,
+          barcode: test.barcode,
+          created_date: testDetail.created_date,
+          test_id: testDetail.test_id,
+        },
+      );
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to initiate rerun");
+      }
+
       setTestValues((prevValues) => {
         return prevValues.map((record, idx) => {
           if (idx === recordIndex) {
@@ -564,19 +663,19 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
                 detail.test_id === testDetail.test_id
                   ? {
                       ...detail,
-                      approve: true,
-                      approve_by,
-                      approve_time: approveTime,
+                      rerun: true,
+                      rerun_by,
+                      rerun_time: rerunTime,
                     }
-                  : detail
+                  : detail,
               ),
             };
           }
           return record;
         });
       });
-      
-      toast.success("Test approved successfully!", {
+
+      toast.success("Test rerun initiated successfully!", {
         position: "top-right",
         autoClose: 2000,
         hideProgressBar: false,
@@ -584,8 +683,9 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
         pauseOnHover: true,
         draggable: true,
       });
-    } else {
-      toast.error("Approval failed: " + (response.data.message || "Unknown error"), {
+    } catch (error) {
+      console.error("Error updating data:", error);
+      toast.error("Error during rerun: " + error.message, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -594,99 +694,7 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
         draggable: true,
       });
     }
-  } catch (error) {
-    console.error("Error updating data:", error);
-    toast.error("Error during approval: " + error.message, {
-      position: "top-right",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-    });
-  }
-};
-
-// Replace the handleTestRerun function
-const handleTestRerun = async (recordIndex, testIndex) => {
-  try {
-    const test = testValues[recordIndex];
-    const testDetail = test?.testdetails[testIndex];
-    if (!testDetail) {
-      throw new Error("Test detail not found");
-    }
-    const rerun_by = localStorage.getItem("name");
-    
-    const formatDateTime = (date) => {
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const hours = String(d.getHours()).padStart(2, "0");
-      const minutes = String(d.getMinutes()).padStart(2, "0");
-      const seconds = String(d.getSeconds()).padStart(2, "0");
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    };
-    
-    const rerunTime = formatDateTime(new Date());
-    const response = await apiRequest(
-      `${Labbaseurl}test-rerun/${test.barcode}/rerun/`,
-      "PATCH",
-      {
-        rerun: true,
-        rerun_by,
-        rerun_time: rerunTime,
-        barcode: test.barcode,
-        created_date: testDetail.created_date,
-        test_id: testDetail.test_id,
-      }
-    );
-    
-    if (!response.success) {
-      throw new Error(response.error || "Failed to initiate rerun");
-    }
-    
-    setTestValues((prevValues) => {
-      return prevValues.map((record, idx) => {
-        if (idx === recordIndex) {
-          return {
-            ...record,
-            testdetails: record.testdetails.map((detail) =>
-              detail.test_id === testDetail.test_id
-                ? {
-                    ...detail,
-                    rerun: true,
-                    rerun_by,
-                    rerun_time: rerunTime,
-                  }
-                : detail
-            ),
-          };
-        }
-        return record;
-      });
-    });
-    
-    toast.success("Test rerun initiated successfully!", {
-      position: "top-right",
-      autoClose: 2000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-    });
-  } catch (error) {
-    console.error("Error updating data:", error);
-    toast.error("Error during rerun: " + error.message, {
-      position: "top-right",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-    });
-  }
-};
+  };
 
   const getStatusBadge = (value, referenceRange) => {
     if (!value || !referenceRange) return null;
@@ -728,8 +736,26 @@ const handleTestRerun = async (recordIndex, testIndex) => {
 
   const getRomanNumeral = (num) => {
     const romanNumerals = [
-      "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x",
-      "xi", "xii", "xiii", "xiv", "xv", "xvi", "xvii", "xviii", "xix", "xx",
+      "i",
+      "ii",
+      "iii",
+      "iv",
+      "v",
+      "vi",
+      "vii",
+      "viii",
+      "ix",
+      "x",
+      "xi",
+      "xii",
+      "xiii",
+      "xiv",
+      "xv",
+      "xvi",
+      "xvii",
+      "xviii",
+      "xix",
+      "xx",
     ];
     return romanNumerals[num] || (num + 1).toString();
   };
@@ -748,7 +774,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   <strong>
                     {testNumber}. {detail.test_name || "N/A"}
                     {detail.outsourced && (
-                      <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
+                      <OutsourcedBadge style={{ marginLeft: "0.5rem" }}>
                         Outsourced
                       </OutsourcedBadge>
                     )}
@@ -790,7 +816,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   </ApproveButton>
                 )}
               </td>
-            </TestHeaderRow>
+            </TestHeaderRow>,
           );
 
           const groupedParams = {};
@@ -806,11 +832,13 @@ const handleTestRerun = async (recordIndex, testIndex) => {
           Object.entries(groupedParams).forEach(([subtitle, params]) => {
             if (subtitle && subtitle !== "Other" && subtitle !== "") {
               rows.push(
-                <SubTitleRow key={`subtitle-${recordIndex}-${detailIndex}-${subtitle}`}>
+                <SubTitleRow
+                  key={`subtitle-${recordIndex}-${detailIndex}-${subtitle}`}
+                >
                   <td></td>
                   <SubTitleCell colSpan="7">{subtitle}</SubTitleCell>
                   <td></td>
-                </SubTitleRow>
+                </SubTitleRow>,
               );
             }
 
@@ -822,7 +850,8 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   <td></td>
                   <ParameterNameCell>
                     <div>
-                      {getRomanNumeral(paramCounter)}. {parameter.parameter_name || "N/A"}
+                      {getRomanNumeral(paramCounter)}.{" "}
+                      {parameter.parameter_name || "N/A"}
                       {parameter.comment && (
                         <CommentNote>
                           <CommentLabel>Note:</CommentLabel>
@@ -838,7 +867,10 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                     <ValueContainer>
                       <ValueText>{parameter.value || "N/A"}</ValueText>
                       <BadgeContainer>
-                        {getStatusBadge(parameter.value, parameter.reference_range)}
+                        {getStatusBadge(
+                          parameter.value,
+                          parameter.reference_range,
+                        )}
                         {parameter.remarks && (
                           <EditedBadge>
                             <FileText size={12} /> Edited
@@ -850,7 +882,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   <td>{parameter.unit || "N/A"}</td>
                   <td>{parameter.reference_range || "N/A"}</td>
                   <td colSpan="3"></td>
-                </ParameterRow>
+                </ParameterRow>,
               );
               paramCounter++;
             });
@@ -865,7 +897,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   <strong>
                     {testNumber}. {detail.test_name || "N/A"}
                     {detail.outsourced && (
-                      <OutsourcedBadge style={{ marginLeft: '0.5rem' }}>
+                      <OutsourcedBadge style={{ marginLeft: "0.5rem" }}>
                         Outsourced
                       </OutsourcedBadge>
                     )}
@@ -919,7 +951,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
                   </ApproveButton>
                 )}
               </td>
-            </TestHeaderRow>
+            </TestHeaderRow>,
           );
           testNumber++;
         }

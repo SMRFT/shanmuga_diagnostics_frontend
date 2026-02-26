@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -336,7 +335,9 @@ const RemarksSection = styled.div`
 
 const SubtitleSection = styled.div`
   margin-bottom: 2rem;
-  &:last-child { margin-bottom: 0; }
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const SubtitleHeader = styled.div`
@@ -390,164 +391,236 @@ const SelectIcon = styled(ChevronDown)`
   color: var(--gray);
 `;
 
-// Helper function to calculate derived values for tests with calculated parameters
-// MUST BE DEFINED OUTSIDE THE COMPONENT
-const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEdited = {}) => {
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+// Calculated (derived) field test_codes across all supported tests
+const ALL_CALCULATED_FIELDS = [
+  "TESTCODE001",
+  "TESTCODE002",
+  "TESTCODE003",
+  "TESTCODE004", // LIPID PROFILE
+  "LFT03",
+  "LFT09",
+  "LFT10", // LIVER FUNCTION TEST
+  "HBA1C02", // HbA1c
+  "INR", // PROTHROMBIN TIME - PT
+  "ACR",
+  "PCR-RATIO",
+];
+
+// Fields that should ALWAYS be editable (even when they have pre-loaded values)
+const ALWAYS_EDITABLE_FIELDS = ["PT-CNTL", "PT-ISI", "APTT-C"];
+
+// Default values to pre-fill when the API returns an empty value
+const DEFAULT_FIELD_VALUES = {
+  "PT-CNTL": "13.7",
+  "PT-ISI": "1.1",
+  "APTT-C": "25.0",
+};
+
+// ─── Derived-value calculator (defined outside component) ─────────────────────
+
+const calculateDerivedValues = (
+  testname,
+  currentValues,
+  currentTest,
+  manuallyEdited = {},
+) => {
   if (!currentTest) {
     return currentValues;
   }
 
   const newValues = { ...currentValues };
-  const allParams = Object.values(currentTest.parametersBySubtitle || {}).flat();
-  
-  // Create a map of test_code to value
+  const allParams = Object.values(
+    currentTest.parametersBySubtitle || {},
+  ).flat();
+
+  // Build a map of test_code → numeric value
   const valuesByTestCode = {};
-  allParams.forEach(param => {
+  allParams.forEach((param) => {
     const pName = param.name || param.test_name;
     const key = `${testname}_${pName}`;
     const val = parseFloat(newValues[key]) || 0;
     valuesByTestCode[param.test_code] = val;
   });
 
-  // LIPID PROFILE (test_id 498) calculations
+  // ── LIPID PROFILE (test_id 498) ──────────────────────────────────────────
   if (currentTest.test_id === 498) {
-    const cholesterol = valuesByTestCode['13'] || 0;
-    const triglycerides = valuesByTestCode['14'] || 0;
-    const hdl = valuesByTestCode['15'] || 0;
-    const ldlDirect = valuesByTestCode['18'] || 0;
+    const cholesterol = valuesByTestCode["13"] || 0;
+    const triglycerides = valuesByTestCode["14"] || 0;
+    const hdl = valuesByTestCode["15"] || 0;
+    const ldlDirect = valuesByTestCode["18"] || 0;
 
-    console.log('LIPID PROFILE - Calculating with values:', { cholesterol, triglycerides, hdl, ldlDirect });
+    console.log("LIPID PROFILE - Calculating with values:", {
+      cholesterol,
+      triglycerides,
+      hdl,
+      ldlDirect,
+    });
 
-    // Calculate TESTCODE001: NON-HDL CHOLESTEROL (Cholesterol - HDL)
-    const nonHdlParam = allParams.find(p => p.test_code === 'TESTCODE001');
+    const nonHdlParam = allParams.find((p) => p.test_code === "TESTCODE001");
     if (nonHdlParam && cholesterol && hdl) {
-      const nonHdlKey = `${testname}_${nonHdlParam.name || nonHdlParam.test_name}`;
-      if (!manuallyEdited[nonHdlKey]) {
-        const nonHdl = cholesterol - hdl;
-        newValues[nonHdlKey] = nonHdl.toFixed(2);
-        console.log(`NON-HDL: ${nonHdl.toFixed(2)}`);
-      }
+      const k = `${testname}_${nonHdlParam.name || nonHdlParam.test_name}`;
+      if (!manuallyEdited[k]) newValues[k] = (cholesterol - hdl).toFixed(2);
     }
 
-    // Calculate TESTCODE002: Cholesterol/HDL Ratio
-    const ratioParam = allParams.find(p => p.test_code === 'TESTCODE002');
+    const ratioParam = allParams.find((p) => p.test_code === "TESTCODE002");
     if (ratioParam && cholesterol && hdl) {
-      const ratioKey = `${testname}_${ratioParam.name || ratioParam.test_name}`;
-      if (!manuallyEdited[ratioKey]) {
-        const ratio = cholesterol / hdl;
-        newValues[ratioKey] = ratio.toFixed(2);
-        console.log(`Cholesterol/HDL Ratio: ${ratio.toFixed(2)}`);
-      }
+      const k = `${testname}_${ratioParam.name || ratioParam.test_name}`;
+      if (!manuallyEdited[k]) newValues[k] = (cholesterol / hdl).toFixed(2);
     }
 
-    // Calculate TESTCODE003: VLDL-Cholesterol (Triglycerides / 5)
-    const vldlParam = allParams.find(p => p.test_code === 'TESTCODE003');
+    const vldlParam = allParams.find((p) => p.test_code === "TESTCODE003");
     if (vldlParam && triglycerides) {
-      const vldlKey = `${testname}_${vldlParam.name || vldlParam.test_name}`;
-      if (!manuallyEdited[vldlKey]) {
-        const vldl = triglycerides / 5;
-        newValues[vldlKey] = vldl.toFixed(2);
-        console.log(`VLDL: ${vldl.toFixed(2)}`);
-      }
+      const k = `${testname}_${vldlParam.name || vldlParam.test_name}`;
+      if (!manuallyEdited[k]) newValues[k] = (triglycerides / 5).toFixed(2);
     }
 
-    // Calculate TESTCODE004: LDL/HDL Ratio
-    const ldlRatioParam = allParams.find(p => p.test_code === 'TESTCODE004');
+    const ldlRatioParam = allParams.find((p) => p.test_code === "TESTCODE004");
     if (ldlRatioParam && ldlDirect && hdl) {
-      const ldlRatioKey = `${testname}_${ldlRatioParam.name || ldlRatioParam.test_name}`;
-      if (!manuallyEdited[ldlRatioKey]) {
-        const ldlHdlRatio = ldlDirect / hdl;
-        newValues[ldlRatioKey] = ldlHdlRatio.toFixed(2);
-        console.log(`LDL/HDL Ratio: ${ldlHdlRatio.toFixed(2)}`);
-      }
+      const k = `${testname}_${ldlRatioParam.name || ldlRatioParam.test_name}`;
+      if (!manuallyEdited[k]) newValues[k] = (ldlDirect / hdl).toFixed(2);
     }
   }
 
-  // LIVER FUNCTION TEST (test_id 196) calculations
+  // ── LIVER FUNCTION TEST (test_id 196) ────────────────────────────────────
   if (currentTest.test_id === 196) {
-    const totalProtein = valuesByTestCode['26'] || 0;  // Total Protein
-    const albumin = valuesByTestCode['06'] || 0; // Albumin
-    const bilirubinTotal = valuesByTestCode['07'] || 0; // Bilirubin - Total
-    const bilirubinDirect = valuesByTestCode['LFT02'] || 0; // Bilirubin - Direct
+    const totalProtein = valuesByTestCode["26"] || 0;
+    const albumin = valuesByTestCode["06"] || 0;
+    const bilirubinTotal = valuesByTestCode["07"] || 0;
+    const bilirubinDirect = valuesByTestCode["LFT02"] || 0;
 
-    console.log('LIVER FUNCTION TEST - Calculating with values:', { totalProtein, albumin, bilirubinTotal, bilirubinDirect });
+    console.log("LIVER FUNCTION TEST - Calculating with values:", {
+      totalProtein,
+      albumin,
+      bilirubinTotal,
+      bilirubinDirect,
+    });
 
-    // Calculate LFT09: Globulin (Total Protein - Albumin)
-    const globulinParam = allParams.find(p => p.test_code === 'LFT09');
+    const globulinParam = allParams.find((p) => p.test_code === "LFT09");
     if (globulinParam && totalProtein && albumin) {
-      const globulinKey = `${testname}_${globulinParam.name || globulinParam.test_name}`;
-      if (!manuallyEdited[globulinKey]) {
-        const globulin = totalProtein - albumin;
-        newValues[globulinKey] = globulin.toFixed(2);
-        console.log(`Globulin: ${globulin.toFixed(2)}`);
-      }
+      const k = `${testname}_${globulinParam.name || globulinParam.test_name}`;
+      if (!manuallyEdited[k])
+        newValues[k] = (totalProtein - albumin).toFixed(2);
     }
 
-    // Calculate LFT10: A/G Ratio (Albumin / Globulin)
-    const agRatioParam = allParams.find(p => p.test_code === 'LFT10');
+    const agRatioParam = allParams.find((p) => p.test_code === "LFT10");
     if (agRatioParam && albumin && totalProtein) {
-      const agRatioKey = `${testname}_${agRatioParam.name || agRatioParam.test_name}`;
-      if (!manuallyEdited[agRatioKey]) {
-        const globulin = totalProtein - albumin;
-        if (globulin > 0) {
-          const agRatio = albumin / globulin;
-          newValues[agRatioKey] = agRatio.toFixed(2);
-          console.log(`A/G Ratio: ${agRatio.toFixed(2)}`);
-        }
+      const globulin = totalProtein - albumin;
+      if (globulin > 0) {
+        const k = `${testname}_${agRatioParam.name || agRatioParam.test_name}`;
+        if (!manuallyEdited[k]) newValues[k] = (albumin / globulin).toFixed(2);
       }
     }
 
-    // Calculate LFT03: Bilirubin - Indirect (Bilirubin Total - Bilirubin Direct)
-    const bilirubinIndirectParam = allParams.find(p => p.test_code === 'LFT03');
+    const bilirubinIndirectParam = allParams.find(
+      (p) => p.test_code === "LFT03",
+    );
     if (bilirubinIndirectParam && bilirubinTotal && bilirubinDirect) {
-      const bilirubinIndirectKey = `${testname}_${bilirubinIndirectParam.name || bilirubinIndirectParam.test_name}`;
-      if (!manuallyEdited[bilirubinIndirectKey]) {
-        const bilirubinIndirect = bilirubinTotal - bilirubinDirect;
-        newValues[bilirubinIndirectKey] = bilirubinIndirect.toFixed(2);
-        console.log(`Bilirubin - Indirect: ${bilirubinIndirect.toFixed(2)}`);
-      }
+      const k = `${testname}_${bilirubinIndirectParam.name || bilirubinIndirectParam.test_name}`;
+      if (!manuallyEdited[k])
+        newValues[k] = (bilirubinTotal - bilirubinDirect).toFixed(2);
     }
   }
 
-  // BILIRUBIN (TOTAL, DIRECT & ID) (test_id 449) calculations
+  // ── BILIRUBIN (test_id 449) ──────────────────────────────────────────────
   if (currentTest.test_id === 449) {
-    const bilirubinTotal = valuesByTestCode['07'] || 0; // Bilirubin - Total
-    const bilirubinDirect = valuesByTestCode['LFT02'] || 0; // Bilirubin - Direct
+    const bilirubinTotal = valuesByTestCode["07"] || 0;
+    const bilirubinDirect = valuesByTestCode["LFT02"] || 0;
 
-    console.log('BILIRUBIN TEST - Calculating with values:', { bilirubinTotal, bilirubinDirect });
+    console.log("BILIRUBIN TEST - Calculating with values:", {
+      bilirubinTotal,
+      bilirubinDirect,
+    });
 
-    // Calculate LFT03: Bilirubin - Indirect (Bilirubin Total - Bilirubin Direct)
-    const bilirubinIndirectParam = allParams.find(p => p.test_code === 'LFT03');
+    const bilirubinIndirectParam = allParams.find(
+      (p) => p.test_code === "LFT03",
+    );
     if (bilirubinIndirectParam && bilirubinTotal && bilirubinDirect) {
-      const bilirubinIndirectKey = `${testname}_${bilirubinIndirectParam.name || bilirubinIndirectParam.test_name}`;
-      if (!manuallyEdited[bilirubinIndirectKey]) {
-        const bilirubinIndirect = bilirubinTotal - bilirubinDirect;
-        newValues[bilirubinIndirectKey] = bilirubinIndirect.toFixed(2);
-        console.log(`Bilirubin - Indirect: ${bilirubinIndirect.toFixed(2)}`);
+      const k = `${testname}_${bilirubinIndirectParam.name || bilirubinIndirectParam.test_name}`;
+      if (!manuallyEdited[k])
+        newValues[k] = (bilirubinTotal - bilirubinDirect).toFixed(2);
+    }
+  }
+
+  // ── HbA1c (test_id 467) ──────────────────────────────────────────────────
+  if (currentTest.test_id === 467) {
+    const hba1c = valuesByTestCode["HBA1C01"] || 0;
+
+    console.log("HbA1c - Calculating with values:", { hba1c });
+
+    const eagParam = allParams.find((p) => p.test_code === "HBA1C02");
+    if (eagParam && hba1c) {
+      const k = `${testname}_${eagParam.name || eagParam.test_name}`;
+      if (!manuallyEdited[k]) {
+        const eag = hba1c * 28.7 - 46.1;
+        newValues[k] = eag.toFixed(2);
       }
     }
   }
 
-  // HbA1c (test_id 467) calculations
-  if (currentTest.test_id === 467) {
-    const hba1c = valuesByTestCode['HBA1C01'] || 0; // Glycosylated Haemoglobin (HbA1C)
+  // ── PROTHROMBIN TIME - PT (test_id 315) ──────────────────────────────────
+  // Formula: INR = (PT-TEST / PT-CNTL) ^ PT-ISI
+  if (currentTest.test_id === 315) {
+    const ptTest = valuesByTestCode["PT-TEST"] || 0;
+    const ptCntl = valuesByTestCode["PT-CNTL"] || 0;
+    const ptIsi = valuesByTestCode["PT-ISI"] || 0;
 
-    console.log('HbA1c - Calculating with values:', { hba1c });
+    console.log("PT - Calculating INR with values:", { ptTest, ptCntl, ptIsi });
 
-    // Calculate HBA1C02: Estimated Average Glucose (EAG) = (HbA1c * 28.7) - 46.1
-    const eagParam = allParams.find(p => p.test_code === 'HBA1C02');
-    if (eagParam && hba1c) {
-      const eagKey = `${testname}_${eagParam.name || eagParam.test_name}`;
-      if (!manuallyEdited[eagKey]) {
-        const eag = (hba1c * 28.7) - 46.1;
-        newValues[eagKey] = eag.toFixed(2);
-        console.log(`Estimated Average Glucose (EAG): ${eag.toFixed(2)}`);
+    const inrParam = allParams.find((p) => p.test_code === "INR");
+    if (inrParam && ptTest && ptCntl && ptIsi) {
+      const k = `${testname}_${inrParam.name || inrParam.test_name}`;
+      if (!manuallyEdited[k]) {
+        const inr = ptTest / ptCntl;
+        newValues[k] = inr.toFixed(2);
+        console.log(`INR: ${inr.toFixed(2)}`);
+      }
+    }
+  }
+
+  // ── MICROALBUMIN / CREATININE RATIO (test_id 362) ────────────────────────
+  // Formula: ACR = ((UM / 10) / UC) * 1000
+  if (currentTest.test_id === 362) {
+    const um = valuesByTestCode["UM"] || 0;
+    const uc = valuesByTestCode["UC"] || 0;
+
+    console.log("ACR - Calculating with values:", { um, uc });
+
+    const acrParam = allParams.find((p) => p.test_code === "ACR");
+    if (acrParam && um && uc) {
+      const k = `${testname}_${acrParam.name || acrParam.test_name}`;
+      if (!manuallyEdited[k]) {
+        const acr = (um / 10 / uc) * 1000;
+        newValues[k] = acr.toFixed(2);
+        console.log(`ACR: ${acr.toFixed(2)}`);
+      }
+    }
+  }
+
+  // ── PROTEIN / CREATININE RATIO (test_id 205) ─────────────────────────────
+  // Formula: PCR-RATIO = UR-PRO / UR-CREA
+  if (currentTest.test_id === 205) {
+    const urPro = valuesByTestCode["UR-PRO"] || 0;
+    const urCrea = valuesByTestCode["UR-CREA"] || 0;
+
+    console.log("PCR-RATIO - Calculating with values:", { urPro, urCrea });
+
+    const pcrParam = allParams.find((p) => p.test_code === "PCR-RATIO");
+    if (pcrParam && urPro && urCrea) {
+      const k = `${testname}_${pcrParam.name || pcrParam.test_name}`;
+      if (!manuallyEdited[k]) {
+        const pcrRatio = urPro / urCrea;
+        newValues[k] = pcrRatio.toFixed(2);
+        console.log(`PCR-RATIO: ${pcrRatio.toFixed(2)}`);
       }
     }
   }
 
   return newValues;
 };
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 function TestDetails() {
   const [testDetails, setTestDetails] = useState([]);
@@ -578,7 +651,10 @@ function TestDetails() {
   const navigate = useNavigate();
   const verified_by = localStorage.getItem("name") || "";
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-  const [manuallyEditedCalculatedFields, setManuallyEditedCalculatedFields] = useState({});
+  const [manuallyEditedCalculatedFields, setManuallyEditedCalculatedFields] =
+    useState({});
+
+  // ── Fetch ────────────────────────────────────────────────────────────────
 
   const fetchTestDetails = async (barcode, test_id = null, testName = null) => {
     try {
@@ -586,18 +662,14 @@ function TestDetails() {
       setError(null);
 
       let queryParams = `barcode=${encodeURIComponent(barcode)}`;
-      if (testId) {
-        queryParams += `&test_id=${encodeURIComponent(testId)}`;
-      }
-      if (testName) {
-        queryParams += `&test_name=${encodeURIComponent(testName)}`;
-      }
+      if (testId) queryParams += `&test_id=${encodeURIComponent(testId)}`;
+      if (testName) queryParams += `&test_name=${encodeURIComponent(testName)}`;
 
       console.log(`DEBUG: Fetching test details with query: ${queryParams}`);
 
       const response = await apiRequest(
         `${Labbaseurl}compare_test_details/?${queryParams}`,
-        "GET"
+        "GET",
       );
 
       let actualResponse;
@@ -612,7 +684,9 @@ function TestDetails() {
       }
 
       if (actualResponse.filtered_by_test) {
-        console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
+        console.log(
+          `DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`,
+        );
       }
 
       if (
@@ -620,11 +694,7 @@ function TestDetails() {
         Array.isArray(actualResponse.processed_records)
       ) {
         setProcessedRecords(actualResponse.processed_records);
-        console.log(
-          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`
-        );
       } else {
-        console.log("DEBUG: No processed records found in response");
         setProcessedRecords([]);
       }
 
@@ -638,7 +708,7 @@ function TestDetails() {
         allTests = actualResponse;
       } else {
         throw new Error(
-          "Invalid response structure: test data is not an array"
+          "Invalid response structure: test data is not an array",
         );
       }
 
@@ -648,18 +718,18 @@ function TestDetails() {
         return;
       }
 
-      const filteredTests = testName 
-        ? allTests.filter(test => test.testname === testName)
+      const filteredTests = testName
+        ? allTests.filter((test) => test.testname === testName)
         : allTests;
 
       const groupedTests = {};
 
       filteredTests.forEach((test) => {
-        const testName = test.testname;
-        if (!groupedTests[testName]) {
-          groupedTests[testName] = {
-            testname: testName,
-            originalTestname: testName,
+        const tName = test.testname;
+        if (!groupedTests[tName]) {
+          groupedTests[tName] = {
+            testname: tName,
+            originalTestname: tName,
             device_id: test.device_id,
             test_id: test.test_id,
             test_code: test.test_code,
@@ -668,7 +738,6 @@ function TestDetails() {
             specimen_type: test.specimen_type || "",
             method: test.method,
             sample_status: test.sample_status,
-            device_id: test.device_id || "",
             parametersBySubtitle: {},
           };
         }
@@ -679,11 +748,11 @@ function TestDetails() {
           test.parameter_name !== "N/A"
         ) {
           const subtitle = test.sub_title || "";
-          if (!groupedTests[testName].parametersBySubtitle[subtitle]) {
-            groupedTests[testName].parametersBySubtitle[subtitle] = [];
+          if (!groupedTests[tName].parametersBySubtitle[subtitle]) {
+            groupedTests[tName].parametersBySubtitle[subtitle] = [];
           }
 
-          groupedTests[testName].parametersBySubtitle[subtitle].push({
+          groupedTests[tName].parametersBySubtitle[subtitle].push({
             name: test.parameter_name,
             test_name: test.parameter_name,
             test_code: test.test_code,
@@ -696,12 +765,12 @@ function TestDetails() {
             processing_status: test.processing_status,
           });
         } else if (!test.parameter_name || test.parameter_name === null) {
-          groupedTests[testName].unit = test.unit;
-          groupedTests[testName].reference_range = test.reference_range;
-          groupedTests[testName].test_value = test.test_value;
-          groupedTests[testName].test_code = test.test_code;
-          groupedTests[testName].processing_status = test.processing_status;
-          groupedTests[testName].value_option = test.value_option || [];
+          groupedTests[tName].unit = test.unit;
+          groupedTests[tName].reference_range = test.reference_range;
+          groupedTests[tName].test_value = test.test_value;
+          groupedTests[tName].test_code = test.test_code;
+          groupedTests[tName].processing_status = test.processing_status;
+          groupedTests[tName].value_option = test.value_option || [];
         }
       });
 
@@ -713,14 +782,30 @@ function TestDetails() {
       let tempInitialValues = {};
 
       transformedTests.forEach((test) => {
-        if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
-          Object.values(test.parametersBySubtitle).flat().forEach((param) => {
-            const paramName = param.name || param.test_name;
-            const uniqueKey = `${test.testname}_${paramName}`;
-            const paramValue = param.value || "";
-            tempValues[uniqueKey] = paramValue;
-            tempInitialValues[uniqueKey] = paramValue;
-          });
+        if (
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
+        ) {
+          Object.values(test.parametersBySubtitle)
+            .flat()
+            .forEach((param) => {
+              const paramName = param.name || param.test_name;
+              const uniqueKey = `${test.testname}_${paramName}`;
+
+              // Use API value if present, otherwise fall back to any defined default
+              let paramValue = param.value || "";
+              if (
+                !paramValue &&
+                DEFAULT_FIELD_VALUES[param.test_code] !== undefined
+              ) {
+                paramValue = DEFAULT_FIELD_VALUES[param.test_code];
+              }
+
+              tempValues[uniqueKey] = paramValue;
+              // Store the *original* API value (not the default) so we can tell
+              // whether the user actually entered something new.
+              tempInitialValues[uniqueKey] = param.value || "";
+            });
         } else {
           const testValue = test.test_value || "";
           tempValues[test.testname] = testValue;
@@ -731,20 +816,22 @@ function TestDetails() {
 
       setEditMode(tempEditMode);
       setInitialValues(tempInitialValues);
-      
-     // Auto-calculate derived values for tests after loading from API
-console.log('Running auto-calculation for loaded data...');
-transformedTests.forEach((test) => {
-  // Calculate for LIPID PROFILE (498), LIVER FUNCTION TEST (196), BILIRUBIN (449), and HbA1c (467)
-  if ((test.test_id === 498 || test.test_id === 196 || test.test_id === 449 || test.test_id === 467) && 
-      test.parametersBySubtitle && 
-      Object.keys(test.parametersBySubtitle).length > 0) {
-    console.log(`Found test with calculations: ${test.testname} (ID: ${test.test_id})`);
-    tempValues = calculateDerivedValues(test.testname, tempValues, test);
-  }
-});
-      
-      // Update values with calculated results
+
+      // Auto-calculate derived values after loading
+      console.log("Running auto-calculation for loaded data...");
+      transformedTests.forEach((test) => {
+        if (
+          [498, 196, 449, 467, 315, 362, 205].includes(test.test_id) &&
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
+        ) {
+          console.log(
+            `Found test with calculations: ${test.testname} (ID: ${test.test_id})`,
+          );
+          tempValues = calculateDerivedValues(test.testname, tempValues, test);
+        }
+      });
+
       setValues(tempValues);
       setLoading(false);
     } catch (error) {
@@ -765,6 +852,8 @@ transformedTests.forEach((test) => {
     }
   }, [barcode, testName]);
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
+
   const handleValueChange = (testname, event) => {
     setValues((prevValues) => ({
       ...prevValues,
@@ -773,48 +862,62 @@ transformedTests.forEach((test) => {
   };
 
   const handleParameterValueChange = (testname, paramName, event) => {
-  const { value } = event.target;
-  const uniqueKey = `${testname}_${paramName}`;
+    const { value } = event.target;
+    const uniqueKey = `${testname}_${paramName}`;
 
-  setValues((prevValues) => {
-    const newValues = {
-      ...prevValues,
-      [uniqueKey]: value,
-    };
+    setValues((prevValues) => {
+      const newValues = {
+        ...prevValues,
+        [uniqueKey]: value,
+      };
 
-    // Check if this is a calculated field being manually edited
-    const currentTest = testDetails.find(t => t.testname === testname);
-    const param = Object.values(currentTest?.parametersBySubtitle || {})
-      .flat()
-      .find(p => (p.name || p.test_name) === paramName);
-    
-    // Calculated fields for both LIPID PROFILE and LIVER FUNCTION TEST
-    const calculatedFields = [
-  'TESTCODE001', 'TESTCODE002', 'TESTCODE003', 'TESTCODE004', // LIPID PROFILE
-  'LFT03', 'LFT09', 'LFT10', // LIVER FUNCTION TEST
-  'HBA1C02' // HbA1c
-];
-const isCalculatedField = calculatedFields.includes(param.test_code);
-const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
-    
-    if (isCalculatedField) {
-      // Mark this field as manually edited
-      setManuallyEditedCalculatedFields(prev => ({
-        ...prev,
-        [uniqueKey]: true
-      }));
-      // Don't auto-calculate, just return the new values
+      const currentTest = testDetails.find((t) => t.testname === testname);
+      const param = Object.values(currentTest?.parametersBySubtitle || {})
+        .flat()
+        .find((p) => (p.name || p.test_name) === paramName);
+
+      const isCalculatedField = ALL_CALCULATED_FIELDS.includes(
+        param?.test_code,
+      );
+
+      if (isCalculatedField) {
+        setManuallyEditedCalculatedFields((prev) => ({
+          ...prev,
+          [uniqueKey]: true,
+        }));
+        return newValues;
+      }
+
+      // ── KEY FIX ──────────────────────────────────────────────────────────
+      // When a source field (e.g. PT-TEST) changes, clear the manual-edit
+      // flag for all calculated fields of this test so they recalculate.
+      setManuallyEditedCalculatedFields((prev) => {
+        const updated = { ...prev };
+        const allParams = Object.values(
+          currentTest?.parametersBySubtitle || {},
+        ).flat();
+        allParams.forEach((p) => {
+          if (ALL_CALCULATED_FIELDS.includes(p.test_code)) {
+            const calcKey = `${testname}_${p.name || p.test_name}`;
+            delete updated[calcKey];
+          }
+        });
+        return updated;
+      });
+      // ─────────────────────────────────────────────────────────────────────
+
+      if ([498, 196, 449, 467, 315, 362, 205].includes(currentTest?.test_id)) {
+        return calculateDerivedValues(
+          testname,
+          newValues,
+          currentTest,
+          manuallyEditedCalculatedFields,
+        );
+      }
+
       return newValues;
-    }
-
-    // Auto-calculate for tests with calculated parameters
-if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?.test_id === 449 || currentTest?.test_id === 467) {
-  return calculateDerivedValues(testname, newValues, currentTest, manuallyEditedCalculatedFields);
-}
-    
-    return newValues;
-  });
-};
+    });
+  };
 
   const handleRemarksChange = (testname, event) => {
     setRemarks((prevRemarks) => ({
@@ -853,6 +956,8 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
     setParameterEditMode(!parameterEditMode);
   };
 
+  // ── Save-button guard ─────────────────────────────────────────────────────
+
   const isSaveButtonEnabled = () => {
     if (isSubmitting) return false;
 
@@ -860,27 +965,32 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
     let remarksRequiredForEditedFields = true;
 
     testDetails.forEach((test) => {
-      if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
+      if (
+        test.parametersBySubtitle &&
+        Object.keys(test.parametersBySubtitle).length > 0
+      ) {
         let hasEditedParameters = false;
 
-        Object.values(test.parametersBySubtitle).flat().forEach((param) => {
-          const paramName = param.name || param.test_name;
-          const uniqueKey = `${test.testname}_${paramName}`;
-          const paramValue = values[uniqueKey];
-          const initialValue = initialValues[uniqueKey];
+        Object.values(test.parametersBySubtitle)
+          .flat()
+          .forEach((param) => {
+            const paramName = param.name || param.test_name;
+            const uniqueKey = `${test.testname}_${paramName}`;
+            const paramValue = values[uniqueKey];
+            const initialValue = initialValues[uniqueKey];
 
-          if (!paramValue || paramValue.trim() === "") {
-            allValuesFilled = false;
-          }
+            if (!paramValue || paramValue.trim() === "") {
+              allValuesFilled = false;
+            }
 
-          if (
-            (!initialValue || initialValue.trim() === "") &&
-            paramValue &&
-            paramValue.trim() !== ""
-          ) {
-            hasEditedParameters = true;
-          }
-        });
+            if (
+              (!initialValue || initialValue.trim() === "") &&
+              paramValue &&
+              paramValue.trim() !== ""
+            ) {
+              hasEditedParameters = true;
+            }
+          });
 
         if (
           hasEditedParameters &&
@@ -911,14 +1021,12 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
     return allValuesFilled && remarksRequiredForEditedFields;
   };
 
+  // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (isSubmitting) {
-      return;
-    }
-
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     const validateTestValue = (value, paramName, testName) => {
@@ -935,21 +1043,24 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
           test.parametersBySubtitle &&
           Object.keys(test.parametersBySubtitle).length > 0
         ) {
-          Object.values(test.parametersBySubtitle).flat().forEach((param) => {
-            const paramName = param.name || param.test_name;
-            const uniqueKey = `${test.testname}_${paramName}`;
-            const paramValue = values[uniqueKey];
-
-            try {
-              validateTestValue(paramValue, paramName, test.testname);
-            } catch (error) {
-              validationErrors.push(error.message);
-            }
-          });
+          Object.values(test.parametersBySubtitle)
+            .flat()
+            .forEach((param) => {
+              const paramName = param.name || param.test_name;
+              const uniqueKey = `${test.testname}_${paramName}`;
+              try {
+                validateTestValue(values[uniqueKey], paramName, test.testname);
+              } catch (error) {
+                validationErrors.push(error.message);
+              }
+            });
         } else {
-          const testValue = values[test.testname];
           try {
-            validateTestValue(testValue, test.testname, test.testname);
+            validateTestValue(
+              values[test.testname],
+              test.testname,
+              test.testname,
+            );
           } catch (error) {
             validationErrors.push(error.message);
           }
@@ -959,9 +1070,7 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
       if (validationErrors.length > 0) {
         const errorMessage =
           "Please fill in all required values:\n\n" +
-          validationErrors
-            .map((error, index) => `${index + 1}. ${error}`)
-            .join("\n");
+          validationErrors.map((e, i) => `${i + 1}. ${e}`).join("\n");
         alert(errorMessage);
         setIsSubmitting(false);
         return;
@@ -973,17 +1082,19 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
           Object.keys(test.parametersBySubtitle).length > 0
         ) {
           const parameters = [];
-          Object.entries(test.parametersBySubtitle).forEach(([subtitle, params]) => {
-            params.forEach((param) => {
-              const paramName = param.name || param.test_name;
-              const uniqueKey = `${test.testname}_${paramName}`;
-              parameters.push({
-                test_code: param.test_code || "",
-                value: values[uniqueKey] || "",
-                comment: parameterComments[uniqueKey] || "",
+          Object.entries(test.parametersBySubtitle).forEach(
+            ([subtitle, params]) => {
+              params.forEach((param) => {
+                const paramName = param.name || param.test_name;
+                const uniqueKey = `${test.testname}_${paramName}`;
+                parameters.push({
+                  test_code: param.test_code || "",
+                  value: values[uniqueKey] || "",
+                  comment: parameterComments[uniqueKey] || "",
+                });
               });
-            });
-          });
+            },
+          );
 
           return {
             device_id: test.device_id,
@@ -1028,7 +1139,7 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
       const postResult = await apiRequest(
         `${Labbaseurl}test-value/save/`,
         "POST",
-        payload
+        payload,
       );
 
       if (postResult.success) {
@@ -1056,15 +1167,35 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
     const barcode = location.state?.barcode;
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
-    
-    navigate("/PatientDetails", { 
-      state: { 
+
+    navigate("/PatientDetails", {
+      state: {
         barcode: barcode,
         fromDate: stateFromDate || new Date(),
-        toDate: stateToDate || new Date()
-      } 
+        toDate: stateToDate || new Date(),
+      },
     });
   };
+
+  // ── Render helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Determine whether a parameter input should be disabled.
+   *
+   * Rules:
+   *  1. Calculated (derived) fields (INR, NON-HDL, etc.) → always editable
+   *  2. Always-editable fields (PT-CNTL, PT-ISI) → always editable
+   *  3. Everything else → disabled if the API already returned a non-empty value
+   */
+  const isParamDisabled = (param, uniqueKey) => {
+    if (ALL_CALCULATED_FIELDS.includes(param.test_code)) return false;
+    if (ALWAYS_EDITABLE_FIELDS.includes(param.test_code)) return false;
+    return !!(
+      initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== ""
+    );
+  };
+
+  // ── Loading / error states ────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -1099,6 +1230,8 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
       </Container>
     );
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Container>
@@ -1184,26 +1317,28 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
                       </FormGroup>
                       <FormGroup>
                         <Label>Method</Label>
-                        <Input
-                          type="text"
-                          value={test.method || ""}
-                          disabled
-                        />
+                        <Input type="text" value={test.method || ""} disabled />
                       </FormGroup>
                     </FormRow>
 
                     <FormRow>
                       <FormGroup>
                         <Label>
-                          Value {(!initialValues[test.testname] || initialValues[test.testname].trim() === "") && 
-                                 <span style={{ color: "red" }}>*</span>}
+                          Value{" "}
+                          {(!initialValues[test.testname] ||
+                            initialValues[test.testname].trim() === "") && (
+                            <span style={{ color: "red" }}>*</span>
+                          )}
                         </Label>
                         {test.value_option && test.value_option.length > 0 ? (
-                          (!initialValues[test.testname] || initialValues[test.testname].trim() === "") ? (
+                          !initialValues[test.testname] ||
+                          initialValues[test.testname].trim() === "" ? (
                             <SelectWrapper>
                               <Select
                                 value={values[test.testname] || ""}
-                                onChange={(e) => handleValueChange(test.testname, e)}
+                                onChange={(e) =>
+                                  handleValueChange(test.testname, e)
+                                }
                               >
                                 <option value="">Select value</option>
                                 {test.value_option.map((option, optIndex) => (
@@ -1295,120 +1430,209 @@ if (currentTest?.test_id === 498 || currentTest?.test_id === 196 || currentTest?
                       }}
                     >
                       <ParameterTitle>
-                        Parameters ({Object.values(test.parametersBySubtitle).flat().length})
+                        Parameters (
+                        {Object.values(test.parametersBySubtitle).flat().length}
+                        )
                       </ParameterTitle>
                     </div>
 
                     <FormRow style={{ marginBottom: "1.5rem" }}>
                       <FormGroup>
                         <Label>Specimen Type</Label>
-                        <Input type="text" value={test.specimen_type || ""} disabled />
+                        <Input
+                          type="text"
+                          value={test.specimen_type || ""}
+                          disabled
+                        />
                       </FormGroup>
                       <FormGroup>
                         <Label>Department</Label>
-                        <Input type="text" value={test.department || ""} disabled />
+                        <Input
+                          type="text"
+                          value={test.department || ""}
+                          disabled
+                        />
                       </FormGroup>
                       <FormGroup>
                         <Label>NABL</Label>
-                        <Input type="text" value={test.NABL ? "Yes" : "No"} disabled />
+                        <Input
+                          type="text"
+                          value={test.NABL ? "Yes" : "No"}
+                          disabled
+                        />
                       </FormGroup>
                     </FormRow>
 
-                    {Object.entries(test.parametersBySubtitle).map(([subtitle, parameters], subtitleIndex) => (
-                      <SubtitleSection key={subtitleIndex}>
-                        <SubtitleHeader>{subtitle}</SubtitleHeader>
-                        <ParameterGrid>
-                          {parameters.map((param, paramIndex) => {
-                            const paramName = param.name || param.test_name;
-                            const uniqueKey = `${test.testname}_${paramName}`;
-                            const hasValueOptions = param.value_option && param.value_option.length > 0;
-                            const isCalculatedField = ['TESTCODE001', 'TESTCODE002', 'TESTCODE003', 'TESTCODE004'].includes(param.test_code);
-                            const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
+                    {Object.entries(test.parametersBySubtitle).map(
+                      ([subtitle, parameters], subtitleIndex) => (
+                        <SubtitleSection key={subtitleIndex}>
+                          <SubtitleHeader>{subtitle}</SubtitleHeader>
+                          <ParameterGrid>
+                            {parameters.map((param, paramIndex) => {
+                              const paramName = param.name || param.test_name;
+                              const uniqueKey = `${test.testname}_${paramName}`;
+                              const hasValueOptions =
+                                param.value_option &&
+                                param.value_option.length > 0;
+                              const disabled = isParamDisabled(
+                                param,
+                                uniqueKey,
+                              );
+                              const isAlwaysEditable =
+                                ALWAYS_EDITABLE_FIELDS.includes(
+                                  param.test_code,
+                                );
 
-                            return (
-                              <ParameterCard key={paramIndex}>
-                                <FormRow>
-                                  <FormGroup>
-                                    <Label>Parameter Name</Label>
-                                    <WrappedInput
-                                      as="textarea"
-                                      value={paramName}
-                                      disabled
-                                      style={{ resize: "none" }}
-                                    />
-                                  </FormGroup>
+                              return (
+                                <ParameterCard key={paramIndex}>
+                                  <FormRow>
+                                    <FormGroup>
+                                      <Label>Parameter Name</Label>
+                                      <WrappedInput
+                                        as="textarea"
+                                        value={paramName}
+                                        disabled
+                                        style={{ resize: "none" }}
+                                      />
+                                    </FormGroup>
 
-                                  <FormGroup>
-                                    <Label>Value {!isDisabled && <span style={{ color: "red" }}>*</span>}</Label>
-                                    {hasValueOptions && !isDisabled ? (
-                                      <SelectWrapper>
-                                        <Select
-                                          value={values[uniqueKey] || ""}
-                                          onChange={(e) => handleParameterValueChange(test.testname, paramName, e)}
-                                          disabled={isDisabled}
-                                        >
-                                          <option value="">Select value</option>
-                                          {param.value_option.map((option, optIndex) => (
-                                            <option key={optIndex} value={option}>
-                                              {option}
+                                    <FormGroup>
+                                      <Label>
+                                        Value{" "}
+                                        {!disabled && (
+                                          <span style={{ color: "red" }}>
+                                            *
+                                          </span>
+                                        )}
+                                        {isAlwaysEditable && (
+                                          <span
+                                            style={{
+                                              color: "var(--secondary)",
+                                              fontSize: "0.75rem",
+                                              marginLeft: "0.4rem",
+                                            }}
+                                          >
+                                            (editable)
+                                          </span>
+                                        )}
+                                      </Label>
+                                      {hasValueOptions && !disabled ? (
+                                        <SelectWrapper>
+                                          <Select
+                                            value={values[uniqueKey] || ""}
+                                            onChange={(e) =>
+                                              handleParameterValueChange(
+                                                test.testname,
+                                                paramName,
+                                                e,
+                                              )
+                                            }
+                                          >
+                                            <option value="">
+                                              Select value
                                             </option>
-                                          ))}
-                                        </Select>
-                                        <SelectIcon size={18} />
-                                      </SelectWrapper>
-                                    ) : (
+                                            {param.value_option.map(
+                                              (option, optIndex) => (
+                                                <option
+                                                  key={optIndex}
+                                                  value={option}
+                                                >
+                                                  {option}
+                                                </option>
+                                              ),
+                                            )}
+                                          </Select>
+                                          <SelectIcon size={18} />
+                                        </SelectWrapper>
+                                      ) : (
+                                        <Input
+                                          type="text"
+                                          value={values[uniqueKey] || ""}
+                                          onChange={
+                                            !disabled
+                                              ? (e) =>
+                                                  handleParameterValueChange(
+                                                    test.testname,
+                                                    paramName,
+                                                    e,
+                                                  )
+                                              : undefined
+                                          }
+                                          disabled={disabled}
+                                          placeholder={
+                                            !disabled
+                                              ? "Enter value"
+                                              : "Value available"
+                                          }
+                                        />
+                                      )}
+                                    </FormGroup>
+
+                                    <FormGroup>
+                                      <Label>Unit</Label>
                                       <Input
                                         type="text"
-                                        value={values[uniqueKey] || ""}
-                                        onChange={!isDisabled ? (e) => handleParameterValueChange(test.testname, paramName, e) : undefined}
-                                        disabled={isDisabled}
-                                        placeholder={!isDisabled ? "Enter value" : "Value available"}
+                                        value={param.unit || ""}
+                                        disabled
                                       />
-                                    )}
-                                  </FormGroup>
+                                    </FormGroup>
 
-                                  <FormGroup>
-                                    <Label>Unit</Label>
-                                    <Input type="text" value={param.unit || ""} disabled />
-                                  </FormGroup>
+                                    <FormGroup>
+                                      <Label>Reference Range</Label>
+                                      <Input
+                                        type="text"
+                                        value={param.reference_range || ""}
+                                        disabled
+                                      />
+                                    </FormGroup>
 
-                                  <FormGroup>
-                                    <Label>Reference Range</Label>
-                                    <Input type="text" value={param.reference_range || ""} disabled />
-                                  </FormGroup>
+                                    <FormGroup>
+                                      <Label>Method</Label>
+                                      <Input
+                                        type="text"
+                                        value={param.method || ""}
+                                        disabled
+                                      />
+                                    </FormGroup>
+                                  </FormRow>
 
-                                  <FormGroup>
-                                    <Label>Method</Label>
-                                    <Input type="text" value={param.method || ""} disabled />
-                                  </FormGroup>
-                                </FormRow>
+                                  <CommentBox>
+                                    <CommentLabel>
+                                      Comments (Optional)
+                                    </CommentLabel>
+                                    <CommentTextArea
+                                      value={parameterComments[uniqueKey] || ""}
+                                      onChange={(e) =>
+                                        handleParameterCommentChange(
+                                          test.testname,
+                                          paramName,
+                                          e,
+                                        )
+                                      }
+                                      placeholder="Add any comments or observations for this parameter..."
+                                    />
+                                  </CommentBox>
+                                </ParameterCard>
+                              );
+                            })}
+                          </ParameterGrid>
+                        </SubtitleSection>
+                      ),
+                    )}
 
-                                <CommentBox>
-                                  <CommentLabel>Comments (Optional)</CommentLabel>
-                                  <CommentTextArea
-                                    value={parameterComments[uniqueKey] || ""}
-                                    onChange={(e) => handleParameterCommentChange(test.testname, paramName, e)}
-                                    placeholder="Add any comments or observations for this parameter..."
-                                  />
-                                </CommentBox>
-                              </ParameterCard>
-                            );
-                          })}
-                        </ParameterGrid>
-                      </SubtitleSection>
-                    ))}
-
-                    {Object.values(test.parametersBySubtitle).flat().some((param) => {
-                      const paramName = param.name || param.test_name;
-                      const uniqueKey = `${test.testname}_${paramName}`;
-                      const initialValue = initialValues[uniqueKey];
-                      const currentValue = values[uniqueKey];
-                      return (
-                        (!initialValue || initialValue.trim() === "") &&
-                        currentValue &&
-                        currentValue.trim() !== ""
-                      );
-                    }) && (
+                    {Object.values(test.parametersBySubtitle)
+                      .flat()
+                      .some((param) => {
+                        const paramName = param.name || param.test_name;
+                        const uniqueKey = `${test.testname}_${paramName}`;
+                        const initialValue = initialValues[uniqueKey];
+                        const currentValue = values[uniqueKey];
+                        return (
+                          (!initialValue || initialValue.trim() === "") &&
+                          currentValue &&
+                          currentValue.trim() !== ""
+                        );
+                      }) && (
                       <RemarksSection>
                         <FormGroup>
                           <Label>
