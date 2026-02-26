@@ -89,6 +89,7 @@ import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
 import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 import LogisticsTracking from "./Components/Logistics/LogisticsTracking";
 import PreethamHospitalLedger from "./Components/PreethamHospital/PreethamLedgerBalance";
+import WorkList from "./Components/Test/WorkList";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -204,6 +205,7 @@ function App() {
       "/TestEdit": "Test Edit",
       "/PatientDetails": "Patient Details",
       "/TestDetails": "Test Details",
+      "/WorkList": "Work List",
       "/MBPatientDetails": "Microbiology Patient Details",
       "/MBTestDetails": "Microbiology Test Details",
       "/OutSourceDetails": "Outsource Details",
@@ -336,7 +338,10 @@ function App() {
         <ContentWrapper>
           <Routes>
             {/* Define all routes here */}
-            <Route path="/AppointmentBooking" element={<AppointmentBooking />} />
+            <Route
+              path="/AppointmentBooking"
+              element={<AppointmentBooking />}
+            />
             <Route path="/PatientForm" element={<PatientForm />} />
             <Route path="/PatientBilling" element={<PatientBilling />} />
             <Route path="/PaymentDashboard" element={<PaymentDashboard />} />
@@ -346,11 +351,17 @@ function App() {
 
             {/* Barcode */}
             <Route path="/BarcodeGeneration" element={<BarcodeGeneration />} />
-            <Route path="/BarcodeTestDetails" element={<BarcodeTestDetails />} />
+            <Route
+              path="/BarcodeTestDetails"
+              element={<BarcodeTestDetails />}
+            />
 
             {/* Sample Status */}
             <Route path="/SampleStatus" element={<SampleStatus />} />
-            <Route path="/SampleStatusUpdate" element={<SampleStatusUpdate />} />
+            <Route
+              path="/SampleStatusUpdate"
+              element={<SampleStatusUpdate />}
+            />
 
             {/* Test Edit */}
             <Route path="/TestEdit" element={<TestEdit />} />
@@ -358,6 +369,7 @@ function App() {
             {/* Test Values */}
             <Route path="/PatientDetails" element={<PatientDetails />} />
             <Route path="/TestDetails" element={<TestDetails />} />
+            <Route path="/WorkList" element={<WorkList />} />
             <Route path="/MBPatientDetails" element={<MBPatientDetails />} />
             <Route path="/MBTestDetails" element={<MBTestDetails />} />
             <Route path="/OutSourceDetails" element={<OutSourceDetails />} />
@@ -369,12 +381,18 @@ function App() {
             <Route path="/LedgerBalance" element={<LedgerBalance />} />
             <Route path="/Refund" element={<Refund />} />
             <Route path="/Cancellation" element={<Cancellation />} />
-            <Route path="/RefundAndCancellationLog" element={<RefundAndCancellationLog />} />
+            <Route
+              path="/RefundAndCancellationLog"
+              element={<RefundAndCancellationLog />}
+            />
 
             {/* Lab */}
             <Route path="/RejectedSamples" element={<RejectedSamples />} />
             <Route path="/OutsourcedSamples" element={<OutsourcedSamples />} />
-            <Route path="/HomeCollectionReport" element={<HomeCollectionReport />} />
+            <Route
+              path="/HomeCollectionReport"
+              element={<HomeCollectionReport />}
+            />
 
             {/* Test Approval */}
             <Route path="/PatientList" element={<PatientList />} />
@@ -386,8 +404,14 @@ function App() {
             <Route path="/SalesVisit" element={<SalesVisitLog />} />
             <Route path="/SalesDashboard" element={<SalesDashboard />} />
             <Route path="/SalesDetailsEdit" element={<SalesDetailsEdit />} />
-            <Route path="/SalesVisitLogReport" element={<SalesVisitLogReport />} />
-            <Route path="/SalesindividualReport" element={<SalesindividualReport />} />
+            <Route
+              path="/SalesVisitLogReport"
+              element={<SalesVisitLogReport />}
+            />
+            <Route
+              path="/SalesindividualReport"
+              element={<SalesindividualReport />}
+            />
 
             <Route path="/B2B" element={<B2B />} />
             <Route path="/B2BApproval" element={<B2BApproval />} />
@@ -403,17 +427,32 @@ function App() {
             <Route path="/CommunicationLogs" element={<CommunicationLogs />} />
 
             {/* Franchise Report */}
-            <Route path="/FranchiseBatchApproval" element={<FranchiseBatchApproval />} />
-            <Route path="/CorporateBatchApproval" element={<CorporateBatchApproval />} />
+            <Route
+              path="/FranchiseBatchApproval"
+              element={<FranchiseBatchApproval />}
+            />
+            <Route
+              path="/CorporateBatchApproval"
+              element={<CorporateBatchApproval />}
+            />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
-            <Route path="/FranchiseTestSorting" element={<FranchiseTestSorting />} />
-            <Route path="/FranchiseMBTestSorting" element={<FranchiseMBTestSorting />} />
+            <Route
+              path="/FranchiseTestSorting"
+              element={<FranchiseTestSorting />}
+            />
+            <Route
+              path="/FranchiseMBTestSorting"
+              element={<FranchiseMBTestSorting />}
+            />
 
             {/* Corporate Report */}
             <Route path="/CorporateOverview" element={<CorporateOverview />} />
             <Route path="/CHCReport" element={<CHCReport />} />
             <Route path="/CHCApproval" element={<CHCApproval />} />
-            <Route path="/CorporateTestSorting" element={<CorporateTestSorting />} />
+            <Route
+              path="/CorporateTestSorting"
+              element={<CorporateTestSorting />}
+            />
 
             {/* MIS */}
             <Route path="/MIS" element={<MIS />} />
@@ -422,30 +461,59 @@ function App() {
             <Route path="/FranchiseMIS" element={<FranchiseMIS />} />
 
             {/* Logistics */}
-            <Route path="/LogisticsTaskAssign" element={<LogisticsTaskAssign />} />
-            <Route path="/LogisticsTaskManagement" element={<LogisticsTaskManagement />} />
-            <Route path="/LogisticsDashboard" element={<LogisticsDashboard />} />
+            <Route
+              path="/LogisticsTaskAssign"
+              element={<LogisticsTaskAssign />}
+            />
+            <Route
+              path="/LogisticsTaskManagement"
+              element={<LogisticsTaskManagement />}
+            />
+            <Route
+              path="/LogisticsDashboard"
+              element={<LogisticsDashboard />}
+            />
             <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
             <Route path="/LogisticsTracking" element={<LogisticsTracking />} />
 
             {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling />} />
             <Route path="/Hmssamplestatus" element={<Hmssamplestatus />} />
-            <Route path="/HmsSampleStatusUpdate" element={<HmsSampleStatusUpdate />} />
-            <Route path="/HMSBarcodeGeneration" element={<HMSBarcodeGeneration />} />
-            <Route path="/HMSBarcodeTestDetails" element={<HMSBarcodeTestDetails />} />
+            <Route
+              path="/HmsSampleStatusUpdate"
+              element={<HmsSampleStatusUpdate />}
+            />
+            <Route
+              path="/HMSBarcodeGeneration"
+              element={<HMSBarcodeGeneration />}
+            />
+            <Route
+              path="/HMSBarcodeTestDetails"
+              element={<HMSBarcodeTestDetails />}
+            />
             <Route path="/HmsTestDetails" element={<HmsTestDetails />} />
 
             {/* HMS Report */}
             <Route path="/HMSTestSorting" element={<HMSTestSorting />} />
             <Route path="/HMSMBTestSorting" element={<HMSMBTestSorting />} />
-            <Route path="/HMSPatientOverview" element={<HMSPatientOverview />} />
-            <Route path="/PatientOverallReport" element={<PatientOverallReport />} />
+            <Route
+              path="/HMSPatientOverview"
+              element={<HMSPatientOverview />}
+            />
+            <Route
+              path="/PatientOverallReport"
+              element={<PatientOverallReport />}
+            />
 
             <Route path="/PreethamDashboard" element={<PreethamDashboard />} />
-            <Route path="/PreethamPatientOverview" element={<PreethamPatientOverview />} />
-            <Route path="/PreethamHospitalLedger" element={<PreethamHospitalLedger />} />
-
+            <Route
+              path="/PreethamPatientOverview"
+              element={<PreethamPatientOverview />}
+            />
+            <Route
+              path="/PreethamHospitalLedger"
+              element={<PreethamHospitalLedger />}
+            />
           </Routes>
         </ContentWrapper>
       )}

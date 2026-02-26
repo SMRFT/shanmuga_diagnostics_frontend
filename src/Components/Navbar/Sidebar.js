@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import styled, { keyframes, css } from "styled-components"
-import { NavLink } from "react-router-dom"
+import { useState, useEffect } from "react";
+import styled, { keyframes, css } from "styled-components";
+import { NavLink } from "react-router-dom";
 import {
   FaUser,
   FaBars,
@@ -18,32 +18,32 @@ import {
   FaFileAlt,
   FaSignOutAlt,
   FaDollarSign,
-  FaUserCircle
-} from "react-icons/fa"
-import { PiTestTubeDuotone } from "react-icons/pi"
-import { GrOverview } from "react-icons/gr"
-import { TbReport } from "react-icons/tb"
-import { FaClinicMedical } from "react-icons/fa"
-import { FaMapMarkerAlt } from "react-icons/fa"
-import { DollarSign } from "lucide-react"
+  FaUserCircle,
+} from "react-icons/fa";
+import { PiTestTubeDuotone } from "react-icons/pi";
+import { GrOverview } from "react-icons/gr";
+import { TbReport } from "react-icons/tb";
+import { FaClinicMedical } from "react-icons/fa";
+import { FaMapMarkerAlt } from "react-icons/fa";
+import { DollarSign } from "lucide-react";
 
 const slideIn = keyframes`
  from { transform: translateX(-20px); opacity: 0; }
  to { transform: translateX(0); opacity: 1; }
-`
+`;
 
 const gradientAnimation = keyframes`
  0% { background-position: 0% 50%; }
  50% { background-position: 100% 50%; }
  100% { background-position: 0% 50%; }
-`
+`;
 
 const glassEffect = css`
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-`
+`;
 
 const SidebarContainer = styled.div`
   background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
@@ -57,7 +57,8 @@ const SidebarContainer = styled.div`
   left: 0;
   overflow-y: auto;
   z-index: 1000;
-  transform: ${({ isOpen }) => (isOpen ? "translateX(0)" : "translateX(-100%)")};
+  transform: ${({ isOpen }) =>
+    isOpen ? "translateX(0)" : "translateX(-100%)"};
   transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -80,13 +81,13 @@ const SidebarContainer = styled.div`
   @media (min-width: 769px) {
     transform: translateX(0);
   }
-`
+`;
 
 const SignOutWrapper = styled.div`
   margin-top: auto;
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-`
+`;
 
 const LogoContainer = styled.div`
   padding: 24px 20px;
@@ -102,7 +103,7 @@ const LogoContainer = styled.div`
     margin: 0;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-`
+`;
 
 const UserInfoContainer = styled.div`
   ${glassEffect}
@@ -113,7 +114,7 @@ const UserInfoContainer = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 10px;
-`
+`;
 
 const UserAvatar = styled.div`
   width: 60px;
@@ -126,12 +127,12 @@ const UserAvatar = styled.div`
   font-size: 28px;
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.3);
-`
+`;
 
 const UserDetails = styled.div`
   text-align: center;
   width: 100%;
-`
+`;
 
 const UserName = styled.div`
   font-size: 16px;
@@ -139,21 +140,20 @@ const UserName = styled.div`
   color: white;
   margin-bottom: 4px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-`
+`;
 
 const UserRole = styled.div`
   font-size: 12px;
   color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
   margin-bottom: 4px;
-`
+`;
 
 const EmployeeId = styled.div`
   font-size: 11px;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 400;
-`
-
+`;
 
 const SidebarToggle = styled.button`
   display: none;
@@ -179,11 +179,11 @@ const SidebarToggle = styled.button`
     align-items: center;
     justify-content: center;
   }
-`
+`;
 
 const SidebarContent = styled.div`
   padding: 0 15px 20px;
-`
+`;
 
 const SectionDivider = styled.div`
   margin: 15px 0;
@@ -194,7 +194,7 @@ const SectionDivider = styled.div`
     rgba(255, 255, 255, 0.5),
     transparent
   );
-`
+`;
 
 const SidebarNavLink = styled(NavLink)`
   color: white;
@@ -235,7 +235,7 @@ const SidebarNavLink = styled(NavLink)`
     font-weight: 600;
     transform: translateX(5px);
   }
-`
+`;
 
 const DropdownHeader = styled.div`
   color: white;
@@ -261,7 +261,7 @@ const DropdownHeader = styled.div`
       ${glassEffect}
       transform: translateX(5px);
     `}
-`
+`;
 
 const DropdownContent = styled.div`
   overflow: hidden;
@@ -272,7 +272,7 @@ const DropdownContent = styled.div`
   & > * {
     animation: ${slideIn} 0.3s ease forwards;
   }
-`
+`;
 
 const SubLink = styled(NavLink)`
   color: white;
@@ -307,7 +307,7 @@ const SubLink = styled(NavLink)`
     background: rgba(255, 255, 255, 0.15);
     font-weight: 600;
   }
-`
+`;
 
 const IconWrapper = styled.span`
   margin-right: 12px;
@@ -315,18 +315,18 @@ const IconWrapper = styled.span`
   align-items: center;
   justify-content: center;
   font-size: 18px;
-`
+`;
 
 const ChevronIcon = styled(FaChevronDown)`
   transition: transform 0.3s ease;
   transform: ${(props) => (props.isOpen ? "rotate(180deg)" : "rotate(0)")};
-`
+`;
 
 const Sidebar = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [role, setRole] = useState("")
-  const [name, setName] = useState("")
-  const [employeeId, setEmployeeId] = useState("")
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [role, setRole] = useState("");
+  const [name, setName] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
 
   const [dropdowns, setDropdowns] = useState({
     patientDetails: false,
@@ -339,37 +339,37 @@ const Sidebar = () => {
     financeDetails: false,
     misDetails: false,
     b2bDetails: false,
-  })
+  });
 
   const toggleDropdown = (dropdown) => {
     setDropdowns({
       ...dropdowns,
       [dropdown]: !dropdowns[dropdown],
-    })
-  }
+    });
+  };
 
   useEffect(() => {
-    const userRole = localStorage.getItem("role")
-    const userName = localStorage.getItem("name")
-    const userEmployeeId = localStorage.getItem("employee_id") || localStorage.getItem("employeeId")
+    const userRole = localStorage.getItem("role");
+    const userName = localStorage.getItem("name");
+    const userEmployeeId =
+      localStorage.getItem("employee_id") || localStorage.getItem("employeeId");
 
-    setRole(userRole || "")
-    setName(userName || "User")
-    setEmployeeId(userEmployeeId || "N/A")
-  }, [])
-
+    setRole(userRole || "");
+    setName(userName || "User");
+    setEmployeeId(userEmployeeId || "N/A");
+  }, []);
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   return (
     <>
-      <SidebarToggle onClick={toggleSidebar}>{isSidebarOpen ? <FaTimes /> : <FaBars />}</SidebarToggle>
+      <SidebarToggle onClick={toggleSidebar}>
+        {isSidebarOpen ? <FaTimes /> : <FaBars />}
+      </SidebarToggle>
 
       <SidebarContainer isOpen={isSidebarOpen}>
-
-
         <LogoContainer>
           <h1>Shanmuga</h1>
           <h1>Diagnostics</h1>
@@ -386,7 +386,10 @@ const Sidebar = () => {
         <SidebarContent>
           {role === "Sample Collector" && (
             <>
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaUser />
@@ -397,10 +400,16 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/AppointmentBooking" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/AppointmentBooking"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Appointment Booking
                 </SubLink>
-                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientForm"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Registration
                 </SubLink>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
@@ -408,7 +417,10 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
@@ -419,15 +431,24 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Billing
                 </SubLink>
-                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PrintBill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Overview
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.barcodeDetails}
+                onClick={() => toggleDropdown("barcodeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaBarcode />
@@ -438,12 +459,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.barcodeDetails}>
-                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/BarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Barcode Generation
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.sampleDetails}
+                onClick={() => toggleDropdown("sampleDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaVial />
@@ -454,12 +481,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.sampleDetails}>
-                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SampleStatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Sample Collection
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.logisticsDetails}
+                onClick={() => toggleDropdown("logisticsDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaWpforms />
@@ -470,7 +503,10 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
-                <SubLink to="/LogisticsTaskManagement" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTaskManagement"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Approval
                 </SubLink>
               </DropdownContent>
@@ -482,7 +518,10 @@ const Sidebar = () => {
                 B2B Master
               </SidebarNavLink>
 
-              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -493,7 +532,10 @@ const Sidebar = () => {
 
           {role === "Lab Receptionist" && (
             <>
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaUser />
@@ -504,10 +546,16 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Billing
                 </SubLink>
-                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PrintBill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Overview
                 </SubLink>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
@@ -515,26 +563,38 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <SidebarNavLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PatientTAT"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <DollarSign />
                 </IconWrapper>
                 Patient Summary
               </SidebarNavLink>
-              <SidebarNavLink to="/PaymentDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PaymentDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <DollarSign />
                 </IconWrapper>
                 Payment Dashboard
               </SidebarNavLink>
-              <SidebarNavLink to="/RegisterDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/RegisterDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Billing Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/HMSPatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -545,7 +605,10 @@ const Sidebar = () => {
 
           {role === "Lab Technician" && (
             <>
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
@@ -556,12 +619,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HmsBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Billing
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.barcodeDetails}
+                onClick={() => toggleDropdown("barcodeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaBarcode />
@@ -572,12 +641,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.barcodeDetails}>
-                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HMSBarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Barcode Generation
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.sampleDetails}
+                onClick={() => toggleDropdown("sampleDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <PiTestTubeDuotone />
@@ -588,24 +663,42 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.sampleDetails}>
-                <SubLink to="/SampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SampleStatusUpdate"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Sample Accessioning and Distribution
                 </SubLink>
-                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Hmssamplestatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Sample Collection
                 </SubLink>
-                <SubLink to="/HmsSampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HmsSampleStatusUpdate"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Sample Accessioning and Distribution
                 </SubLink>
-                <SubLink to="/CorporateBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CorporateBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Corporate Batch Approval and Distribution
                 </SubLink>
-                <SubLink to="/FranchiseBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/FranchiseBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Franchise Batch Approval and Distribution
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.reportDetails}
+                onClick={() => toggleDropdown("reportDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaFileAlt />
@@ -616,35 +709,59 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.reportDetails}>
-                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Generation
                 </SubLink>
-                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/OutSourceDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   O/S Report Generation
                 </SubLink>
-                <SubLink to="/MBPatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/MBPatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   M/B Report Generation
                 </SubLink>
-                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Edit
+                </SubLink>
+                <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
+                  Work List
                 </SubLink>
               </DropdownContent>
 
-              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/TestEdit"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <FaEdit />
                 </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
-              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/HMSPatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/ShanmugaMIS" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/ShanmugaMIS"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -655,7 +772,10 @@ const Sidebar = () => {
 
           {role === "Doctor" && (
             <>
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaUser />
@@ -666,12 +786,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientForm"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Registration
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
@@ -682,18 +808,30 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Billing
                 </SubLink>
-                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HmsBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Billing
                 </SubLink>
-                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PrintBill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Overview
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.barcodeDetails}
+                onClick={() => toggleDropdown("barcodeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaBarcode />
@@ -704,15 +842,24 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.barcodeDetails}>
-                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/BarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Barcode Generation
                 </SubLink>
-                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HMSBarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Barcode Generation
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.sampleDetails}
+                onClick={() => toggleDropdown("sampleDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <PiTestTubeDuotone />
@@ -723,21 +870,36 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.sampleDetails}>
-                <SubLink to="/SampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SampleStatusUpdate"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Sample Accessioning and Distribution
                 </SubLink>
-                <SubLink to="/HmsSampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HmsSampleStatusUpdate"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Sample Accessioning and Distribution
                 </SubLink>
-                <SubLink to="/CorporateBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CorporateBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Corporate Batch Approval
                 </SubLink>
-                <SubLink to="/FranchiseBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/FranchiseBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Franchise Batch Approval
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.reportDetails}
+                onClick={() => toggleDropdown("reportDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaFileAlt />
@@ -748,46 +910,75 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.reportDetails}>
-                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Generation
                 </SubLink>
-                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/OutSourceDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   O/S Report Generation
                 </SubLink>
-                <SubLink to="/MBPatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/MBPatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   M/B Report Generation
                 </SubLink>
-                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Authorization
                 </SubLink>
-                <SubLink to="/MBPatientList" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/MBPatientList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   M/B Report Authorization
+                </SubLink>
+                <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
+                  Work List
                 </SubLink>
               </DropdownContent>
 
-              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/HMSPatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/TestEdit"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
-              <SidebarNavLink to="/Testcount" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/Testcount"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Test Count
               </SidebarNavLink>
 
-
-              <SidebarNavLink to="/ShanmugaMIS" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/ShanmugaMIS"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -798,7 +989,10 @@ const Sidebar = () => {
 
           {role === "Sales Executive" && (
             <>
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaUser />
@@ -809,10 +1003,16 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/AppointmentBooking" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/AppointmentBooking"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Appointment Booking
                 </SubLink>
-                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientForm"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Registration
                 </SubLink>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
@@ -820,7 +1020,10 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
@@ -831,18 +1034,30 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Billing
                 </SubLink>
-                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HmsBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Billing
                 </SubLink>
-                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PrintBill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Overview
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.barcodeDetails}
+                onClick={() => toggleDropdown("barcodeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaBarcode />
@@ -853,15 +1068,24 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.barcodeDetails}>
-                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/BarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Barcode Generation
                 </SubLink>
-                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HMSBarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Barcode Generation
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.sampleDetails}
+                onClick={() => toggleDropdown("sampleDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaVial />
@@ -872,15 +1096,24 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.sampleDetails}>
-                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SampleStatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Sample Collection
                 </SubLink>
-                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Hmssamplestatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Sample Collection
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.salesDetails} onClick={() => toggleDropdown("salesDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.salesDetails}
+                onClick={() => toggleDropdown("salesDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <TbReport />
@@ -891,10 +1124,16 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.salesDetails}>
-                <SubLink to="/SalesVisit" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SalesVisit"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Sales Visit Form
                 </SubLink>
-                <SubLink to="/SalesindividualReport" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SalesindividualReport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Sales Report
                 </SubLink>
               </DropdownContent>
@@ -906,7 +1145,10 @@ const Sidebar = () => {
                 B2B Master
               </SidebarNavLink>
 
-              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/HMSPatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -917,7 +1159,10 @@ const Sidebar = () => {
 
           {role === "Accounts" && (
             <>
-              <DropdownHeader isOpen={dropdowns.financeDetails} onClick={() => toggleDropdown("financeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.financeDetails}
+                onClick={() => toggleDropdown("financeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaFileInvoiceDollar />
@@ -931,24 +1176,39 @@ const Sidebar = () => {
                 <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
                   Invoice
                 </SubLink>
-                <SubLink to="/CashTally" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CashTally"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Cash Tally
                 </SubLink>
                 <SubLink to="/Refund" onClick={() => setIsSidebarOpen(false)}>
                   Refund
                 </SubLink>
-                <SubLink to="/Cancellation" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Cancellation"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Cancellation
                 </SubLink>
-                <SubLink to="/RefundAndCancellationLog" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/RefundAndCancellationLog"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Refund And Cancellation Log
                 </SubLink>
-                <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LedgerBalance"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   B2B Ledger Balance
                 </SubLink>
               </DropdownContent>
 
-              <SidebarNavLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PatientTAT"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -959,21 +1219,30 @@ const Sidebar = () => {
 
           {role === "Admin" && (
             <>
-              <SidebarNavLink to="/MDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/MDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <FaChartPie />
                 </IconWrapper>
                 Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/RegisterDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/RegisterDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Billing Dashboard
               </SidebarNavLink>
 
-              <DropdownHeader isOpen={dropdowns.b2bDetails} onClick={() => toggleDropdown("b2bDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.b2bDetails}
+                onClick={() => toggleDropdown("b2bDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaClinicMedical />
@@ -987,19 +1256,31 @@ const Sidebar = () => {
                 <SubLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
                   B2B
                 </SubLink>
-                <SubLink to="/B2BReport" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/B2BReport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   B2B Report
                 </SubLink>
-                <SubLink to="/B2BApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/B2BApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   B2B Approval
                 </SubLink>
-                <SubLink to="/B2BPackage" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/B2BPackage"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   B2B Package
                 </SubLink>
               </DropdownContent>
 
               <SectionDivider />
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaUser />
@@ -1010,7 +1291,10 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientForm"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Registration
                 </SubLink>
               </DropdownContent>
@@ -1029,18 +1313,30 @@ const Sidebar = () => {
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
                   Bill Estimate
                 </SubLink>
-                <SubLink to="/PatientBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Billing
                 </SubLink>
-                <SubLink to="/HmsBilling" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HmsBilling"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Billing
                 </SubLink>
-                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PrintBill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Overview
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.barcodeDetails}
+                onClick={() => toggleDropdown("barcodeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaBarcode />
@@ -1051,15 +1347,24 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.barcodeDetails}>
-                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/BarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Barcode Generation
                 </SubLink>
-                <SubLink to="/HMSBarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HMSBarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Barcode Generation
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.sampleDetails}
+                onClick={() => toggleDropdown("sampleDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <PiTestTubeDuotone />
@@ -1070,28 +1375,48 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.sampleDetails}>
-                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SampleStatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Sample Collection
                 </SubLink>
-                <SubLink to="/Hmssamplestatus" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Hmssamplestatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Sample Collection
                 </SubLink>
-                <SubLink to="/SampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SampleStatusUpdate"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Sample Accessioning and Distribution
                 </SubLink>
-                <SubLink to="/HmsSampleStatusUpdate" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HmsSampleStatusUpdate"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   HMS Sample Accessioning and Distribution
                 </SubLink>
-                <SubLink to="/CorporateBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CorporateBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Corporate Batch Approval
                 </SubLink>
-                <SubLink to="/FranchiseBatchApproval" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/FranchiseBatchApproval"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Franchise Batch Approval
                 </SubLink>
-
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.reportDetails}
+                onClick={() => toggleDropdown("reportDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaFileAlt />
@@ -1102,24 +1427,45 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.reportDetails}>
-                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Generation
                 </SubLink>
-                <SubLink to="/OutSourceDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/OutSourceDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   O/S Report Generation
                 </SubLink>
-                <SubLink to="/MBPatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/MBPatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   M/B Report Generation
                 </SubLink>
-                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Authorization
                 </SubLink>
-                <SubLink to="/MBPatientList" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/MBPatientList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   M/B Report Authorization
+                </SubLink>
+                <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
+                  Work List
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.logisticsDetails}
+                onClick={() => toggleDropdown("logisticsDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaWpforms />
@@ -1130,21 +1476,36 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
-                <SubLink to="/LogisticsTaskAssign" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTaskAssign"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Task Assigning
                 </SubLink>
-                <SubLink to="/LogisticsTaskManagement" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTaskManagement"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Approval
                 </SubLink>
-                <SubLink to="/LogisticsDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsDashboard"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Dashboard
                 </SubLink>
-                <SubLink to="/LogisticsTracking" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTracking"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Tracking
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.salesDetails} onClick={() => toggleDropdown("salesDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.salesDetails}
+                onClick={() => toggleDropdown("salesDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <TbReport />
@@ -1155,18 +1516,30 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.salesDetails}>
-                <SubLink to="/SalesVisit" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SalesVisit"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Sales Visit Form
                 </SubLink>
-                <SubLink to="/SalesVisitLogReport" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SalesVisitLogReport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Sales Visit Report
                 </SubLink>
-                <SubLink to="/SalesDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SalesDashboard"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Sales Visit Dashboard
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.financeDetails} onClick={() => toggleDropdown("financeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.financeDetails}
+                onClick={() => toggleDropdown("financeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaFileInvoiceDollar />
@@ -1180,42 +1553,58 @@ const Sidebar = () => {
                 <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
                   Invoice
                 </SubLink>
-                <SubLink to="/CashTally" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CashTally"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Cash Tally
                 </SubLink>
                 <SubLink to="/Refund" onClick={() => setIsSidebarOpen(false)}>
                   Refund
                 </SubLink>
-                <SubLink to="/Cancellation" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Cancellation"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Cancellation
                 </SubLink>
               </DropdownContent>
 
               <SectionDivider />
 
-              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/HMSPatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
-              <SidebarNavLink to="/CHCReport" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/CHCReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Corporate Report Approval
               </SidebarNavLink>
 
-              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/TestEdit"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
-
-
-              <DropdownHeader isOpen={dropdowns.misDetails} onClick={() => toggleDropdown("misDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.misDetails}
+                onClick={() => toggleDropdown("misDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <GrOverview />
@@ -1225,22 +1614,40 @@ const Sidebar = () => {
                 <ChevronIcon isOpen={dropdowns.misDetails} />
               </DropdownHeader>
               <DropdownContent isOpen={dropdowns.misDetails}>
-                <SubLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientTAT"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Summary
                 </SubLink>
-                <SubLink to="/ShanmugaMIS" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/ShanmugaMIS"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Overall TAT
                 </SubLink>
-                <SubLink to="/LogisticsTAT" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTAT"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics TAT
                 </SubLink>
-                <SubLink to="/CommunicationLogs" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CommunicationLogs"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Communication Logs
                 </SubLink>
-                <SubLink to="/Testcount" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Testcount"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Test Count
                 </SubLink>
-                <SubLink to="/OutsourcedSamples" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/OutsourcedSamples"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Outsourced Samples
                 </SubLink>
                 <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
@@ -1255,21 +1662,30 @@ const Sidebar = () => {
 
           {role === "Diagnostics General Manager" && (
             <>
-              <SidebarNavLink to="/MDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/MDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <FaChartPie />
                 </IconWrapper>
                 Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/RegisterDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/RegisterDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Billing Dashboard
               </SidebarNavLink>
 
-              <DropdownHeader isOpen={dropdowns.b2bDetails} onClick={() => toggleDropdown("b2bDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.b2bDetails}
+                onClick={() => toggleDropdown("b2bDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaClinicMedical />
@@ -1283,7 +1699,10 @@ const Sidebar = () => {
                 <SubLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
                   B2B
                 </SubLink>
-                <SubLink to="/B2BReport" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/B2BReport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   B2B Report
                 </SubLink>
                 <SubLink
@@ -1296,7 +1715,10 @@ const Sidebar = () => {
 
               <SectionDivider />
 
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.patientDetails}
+                onClick={() => toggleDropdown("patientDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaUser />
@@ -1307,10 +1729,16 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.patientDetails}>
-                <SubLink to="/AppointmentBooking" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/AppointmentBooking"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Appointment Booking
                 </SubLink>
-                <SubLink to="/PatientForm" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientForm"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Registration
                 </SubLink>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
@@ -1318,7 +1746,10 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.billingDetails} onClick={() => toggleDropdown("billingDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.billingDetails}
+                onClick={() => toggleDropdown("billingDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
@@ -1329,12 +1760,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.billingDetails}>
-                <SubLink to="/PrintBill" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PrintBill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Overview
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.barcodeDetails} onClick={() => toggleDropdown("barcodeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.barcodeDetails}
+                onClick={() => toggleDropdown("barcodeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaBarcode />
@@ -1345,12 +1782,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.barcodeDetails}>
-                <SubLink to="/BarcodeGeneration" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/BarcodeGeneration"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Barcode Generation
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.sampleDetails} onClick={() => toggleDropdown("sampleDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.sampleDetails}
+                onClick={() => toggleDropdown("sampleDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaVial />
@@ -1361,12 +1804,18 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.sampleDetails}>
-                <SubLink to="/SampleStatus" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SampleStatus"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Diagnostics Sample Collection
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.logisticsDetails} onClick={() => toggleDropdown("logisticsDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.logisticsDetails}
+                onClick={() => toggleDropdown("logisticsDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaWpforms />
@@ -1377,18 +1826,30 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
-                <SubLink to="/LogisticsTaskAssign" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTaskAssign"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Task Assigning
                 </SubLink>
-                <SubLink to="/LogisticsDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsDashboard"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Dashboard
                 </SubLink>
-                <SubLink to="/LogisticsTracking" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTracking"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics Tracking
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.salesDetails} onClick={() => toggleDropdown("salesDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.salesDetails}
+                onClick={() => toggleDropdown("salesDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <TbReport />
@@ -1399,16 +1860,24 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.salesDetails}>
-                <SubLink to="/SalesVisitLogReport" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SalesVisitLogReport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Sales Visit Report
                 </SubLink>
-                <SubLink to="/SalesDashboard" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/SalesDashboard"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Sales Visit Dashboard
                 </SubLink>
-
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.financeDetails} onClick={() => toggleDropdown("financeDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.financeDetails}
+                onClick={() => toggleDropdown("financeDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaFileInvoiceDollar />
@@ -1422,34 +1891,49 @@ const Sidebar = () => {
                 <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
                   Invoice
                 </SubLink>
-                <SubLink to="/CashTally" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CashTally"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Cash Tally
                 </SubLink>
                 <SubLink to="/Refund" onClick={() => setIsSidebarOpen(false)}>
                   Refund
                 </SubLink>
-                <SubLink to="/Cancellation" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Cancellation"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Cancellation
                 </SubLink>
               </DropdownContent>
 
               <SectionDivider />
 
-              <SidebarNavLink to="/PatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/TestEdit" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/TestEdit"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
-              <DropdownHeader isOpen={dropdowns.misDetails} onClick={() => toggleDropdown("misDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.misDetails}
+                onClick={() => toggleDropdown("misDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <GrOverview />
@@ -1459,31 +1943,55 @@ const Sidebar = () => {
                 <ChevronIcon isOpen={dropdowns.misDetails} />
               </DropdownHeader>
               <DropdownContent isOpen={dropdowns.misDetails}>
-                <SubLink to="/PatientTAT" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientTAT"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Patient Summary
                 </SubLink>
-                <SubLink to="/Testcount" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/Testcount"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Test Count
                 </SubLink>
-                <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LedgerBalance"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   B2B Ledger Balance
                 </SubLink>
                 <SubLink to="/MIS" onClick={() => setIsSidebarOpen(false)}>
                   Overall TAT
                 </SubLink>
-                <SubLink to="/LogisticsTAT" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LogisticsTAT"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Logistics TAT
                 </SubLink>
-                <SubLink to="/CommunicationLogs" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/CommunicationLogs"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Communication Logs
                 </SubLink>
-                <SubLink to="/OutsourcedSamples" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/OutsourcedSamples"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Outsourced Samples
                 </SubLink>
-                <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HomeCollectionReport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Home Collection Report
                 </SubLink>
-                <SubLink to="/RejectedSamples" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/RejectedSamples"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Rejected Samples
                 </SubLink>
               </DropdownContent>
@@ -1492,7 +2000,10 @@ const Sidebar = () => {
 
           {role === "CEO" && (
             <>
-              <DropdownHeader isOpen={dropdowns.b2bDetails} onClick={() => toggleDropdown("b2bDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.b2bDetails}
+                onClick={() => toggleDropdown("b2bDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaClinicMedical />
@@ -1511,7 +2022,10 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.reportDetails} onClick={() => toggleDropdown("reportDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.reportDetails}
+                onClick={() => toggleDropdown("reportDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaFileAlt />
@@ -1522,29 +2036,44 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.reportDetails}>
-                <SubLink to="/PatientDetails" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientDetails"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Generation
                 </SubLink>
-                <SubLink to="/PatientList" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/PatientList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Report Authorization
                 </SubLink>
               </DropdownContent>
 
-              <SidebarNavLink to="/HMSPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/HMSPatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/CHCReport" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/CHCReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
                 Corporate Report Approval
               </SidebarNavLink>
 
-              <SidebarNavLink to="/ShanmugaMIS" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/ShanmugaMIS"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -1555,7 +2084,10 @@ const Sidebar = () => {
 
           {role === "HR" && (
             <>
-              <SidebarNavLink to="/LogisticsTracking" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/LogisticsTracking"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <FaMapMarkerAlt />
                 </IconWrapper>
@@ -1565,14 +2097,20 @@ const Sidebar = () => {
           )}
           {role === "PH" && (
             <>
-              <SidebarNavLink to="/PreethamDashboard" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PreethamDashboard"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <FaChartPie />
                 </IconWrapper>
                 Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/Estimate"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <FaDollarSign />
                 </IconWrapper>
@@ -1585,7 +2123,10 @@ const Sidebar = () => {
                 Report Dashboard
               </SidebarNavLink>
 
-              <SidebarNavLink to="/PreethamHospitalLedger" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PreethamHospitalLedger"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
@@ -1598,8 +2139,8 @@ const Sidebar = () => {
           <SidebarNavLink
             to="#"
             onClick={() => {
-              setIsSidebarOpen(false)
-              window.location.href = "/Secure"
+              setIsSidebarOpen(false);
+              window.location.href = "/Secure";
             }}
           >
             <IconWrapper>
@@ -1610,9 +2151,7 @@ const Sidebar = () => {
         </SignOutWrapper>
       </SidebarContainer>
     </>
-  )
-}
+  );
+};
 
-
-export default Sidebar
-
+export default Sidebar;
