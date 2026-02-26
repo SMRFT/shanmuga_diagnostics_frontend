@@ -570,15 +570,15 @@ const TATLabel = styled.div`
 // Add this helper function before the PatientOverview component
 const formatTimeRemaining = (seconds) => {
   if (seconds === null || seconds === undefined) return null;
-  
+
   const absSeconds = Math.abs(seconds);
   const days = Math.floor(absSeconds / 86400);
   const hours = Math.floor((absSeconds % 86400) / 3600);
   const minutes = Math.floor((absSeconds % 3600) / 60);
   const secs = Math.floor(absSeconds % 60);
-  
+
   let parts = [];
-  
+
   if (days > 0) {
     parts.push(`${days}D`);
   }
@@ -589,7 +589,7 @@ const formatTimeRemaining = (seconds) => {
     parts.push(`${minutes}M`);
   }
   parts.push(`${secs}S`);
-  
+
   return parts.join(':');
 };
 
@@ -750,190 +750,190 @@ const PatientOverview = () => {
     status === "Approved" ||
     status === "Partially Approved" ||
     status === "Partially Dispatched" ||
-    status === "Dispatched";     
+    status === "Dispatched";
 
   // Add this helper function after the `isSortingEnabled` function (around line 665):
-const isMBTestSortingEnabled = (patient) => {
-  // Check if patient has Microbiology department and its status is Approved
-  if (!patient.department_statuses) return false;
-  
-  const microbiologyStatus = patient.department_statuses['Microbiology'];
-  return microbiologyStatus === 'Approved' || microbiologyStatus === 'Dispatched';
-};
+  const isMBTestSortingEnabled = (patient) => {
+    // Check if patient has Microbiology department and its status is Approved
+    if (!patient.department_statuses) return false;
+
+    const microbiologyStatus = patient.department_statuses['Microbiology'];
+    return microbiologyStatus === 'Approved' || microbiologyStatus === 'Dispatched';
+  };
 
 
-const TestStatusModal = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const TestStatusModal = () => {
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Update current time every second for live countdown
-  useEffect(() => {
-    if (!isTestStatusModalOpen) return;
+    // Update current time every second for live countdown
+    useEffect(() => {
+      if (!isTestStatusModalOpen) return;
 
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+      const timer = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
 
-    return () => clearInterval(timer);
-  }, [isTestStatusModalOpen]);
+      return () => clearInterval(timer);
+    }, [isTestStatusModalOpen]);
 
-  if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
+    if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
 
-  const testStatuses = selectedPatientForStatus.test_statuses || [];
+    const testStatuses = selectedPatientForStatus.test_statuses || [];
 
-  const calculateLiveSecondsLeft = (test) => {
-    if (test.tat_status === 'completed') {
-      // For completed tests, return the static value
+    const calculateLiveSecondsLeft = (test) => {
+      if (test.tat_status === 'completed') {
+        // For completed tests, return the static value
+        return test.seconds_left;
+      }
+
+      if (test.tat_status === 'pending' && test.tat_deadline) {
+        // Calculate live countdown
+        const deadline = new Date(test.tat_deadline);
+        const secondsLeft = Math.floor((deadline - currentTime) / 1000);
+        return secondsLeft;
+      }
+
       return test.seconds_left;
-    }
-    
-    if (test.tat_status === 'pending' && test.tat_deadline) {
-      // Calculate live countdown
-      const deadline = new Date(test.tat_deadline);
-      const secondsLeft = Math.floor((deadline - currentTime) / 1000);
-      return secondsLeft;
-    }
-    
-    return test.seconds_left;
-  };
-
-  const formatTATDisplay = (test) => {
-    if (!test.tat_time) return null;
-    
-    const liveSecondsLeft = calculateLiveSecondsLeft(test);
-    
-    if (test.tat_status === 'completed') {
-      // Test is completed
-      const timeStr = formatTimeRemaining(liveSecondsLeft);
-      if (liveSecondsLeft >= 0) {
-        return {
-          label: 'Completed',
-          time: `${timeStr} early`,
-          isOverdue: false
-        };
-      } else {
-        return {
-          label: 'Completed',
-          time: `${timeStr} late`,
-          isOverdue: true
-        };
-      }
-    } else if (test.tat_status === 'pending') {
-      // Test is still pending
-      const timeStr = formatTimeRemaining(liveSecondsLeft);
-      if (liveSecondsLeft > 0) {
-        return {
-          label: 'Time Left',
-          time: timeStr,
-          isOverdue: false
-        };
-      } else {
-        return {
-          label: 'Overdue',
-          time: timeStr,
-          isOverdue: true
-        };
-      }
-    }
-    
-    return {
-      label: 'TAT',
-      time: test.tat_time,
-      isOverdue: false
     };
-  };
 
-  return (
-    <ModalOverlay onClick={() => setIsTestStatusModalOpen(false)}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>
-          <ModalTitle>
-            Test Status - {selectedPatientForStatus.patient_name}
-          </ModalTitle>
-          <CloseButton onClick={() => setIsTestStatusModalOpen(false)}>
-            <X size={24} />
-          </CloseButton>
-        </ModalHeader>
+    const formatTATDisplay = (test) => {
+      if (!test.tat_time) return null;
 
-        <TestStatusList>
-          {testStatuses.length > 0 ? (
-            testStatuses.map((test, index) => {
-              const tatDisplay = formatTATDisplay(test);
-              const liveSecondsLeft = calculateLiveSecondsLeft(test);
-              
-              return (
-                <TestStatusItem 
-                  key={index} 
-                  highlight={test.status === 'Approved' || test.status === 'Dispatched'}
-                >
-                  <div style={{ flex: 1 }}>
-                    <TestNameText>{test.test_name}</TestNameText>
-                    {test.sample_collected_time && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
-                        Collected: {format(new Date(test.sample_collected_time), "dd MMM yy, HH:mm:ss")}
-                      </div>
-                    )}
-                    {test.approve_time && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
-                        Approved: {format(new Date(test.approve_time), "dd MMM yy, HH:mm:ss")}
-                      </div>
-                    )}
-                  </div>
-                  <StatusBadgeContainer style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                    <Badge color={getBadgeColor(test.status)}>
-                      {test.status}
-                    </Badge>
-                    {tatDisplay && (
-                      <TATIndicator secondsLeft={liveSecondsLeft}>
-                        <div style={{ textAlign: 'center' }}>
-                          <TATLabel>{tatDisplay.label}</TATLabel>
-                          <TATText>{tatDisplay.time}</TATText>
+      const liveSecondsLeft = calculateLiveSecondsLeft(test);
+
+      if (test.tat_status === 'completed') {
+        // Test is completed
+        const timeStr = formatTimeRemaining(liveSecondsLeft);
+        if (liveSecondsLeft >= 0) {
+          return {
+            label: 'Completed',
+            time: `${timeStr} early`,
+            isOverdue: false
+          };
+        } else {
+          return {
+            label: 'Completed',
+            time: `${timeStr} late`,
+            isOverdue: true
+          };
+        }
+      } else if (test.tat_status === 'pending') {
+        // Test is still pending
+        const timeStr = formatTimeRemaining(liveSecondsLeft);
+        if (liveSecondsLeft > 0) {
+          return {
+            label: 'Time Left',
+            time: timeStr,
+            isOverdue: false
+          };
+        } else {
+          return {
+            label: 'Overdue',
+            time: timeStr,
+            isOverdue: true
+          };
+        }
+      }
+
+      return {
+        label: 'TAT',
+        time: test.tat_time,
+        isOverdue: false
+      };
+    };
+
+    return (
+      <ModalOverlay onClick={() => setIsTestStatusModalOpen(false)}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>
+              Test Status - {selectedPatientForStatus.patient_name}
+            </ModalTitle>
+            <CloseButton onClick={() => setIsTestStatusModalOpen(false)}>
+              <X size={24} />
+            </CloseButton>
+          </ModalHeader>
+
+          <TestStatusList>
+            {testStatuses.length > 0 ? (
+              testStatuses.map((test, index) => {
+                const tatDisplay = formatTATDisplay(test);
+                const liveSecondsLeft = calculateLiveSecondsLeft(test);
+
+                return (
+                  <TestStatusItem
+                    key={index}
+                    highlight={test.status === 'Approved' || test.status === 'Dispatched'}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <TestNameText>{test.test_name}</TestNameText>
+                      {test.sample_collected_time && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
+                          Collected: {format(new Date(test.sample_collected_time), "dd MMM yy, HH:mm:ss")}
                         </div>
-                      </TATIndicator>
-                    )}
-                  </StatusBadgeContainer>
-                </TestStatusItem>
-              );
-            })
-          ) : (
-            <NoData>No test status information available</NoData>
-          )}
-        </TestStatusList>
-      </ModalContent>
-    </ModalOverlay>
-  );
-};
+                      )}
+                      {test.approve_time && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
+                          Approved: {format(new Date(test.approve_time), "dd MMM yy, HH:mm:ss")}
+                        </div>
+                      )}
+                    </div>
+                    <StatusBadgeContainer style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                      <Badge color={getBadgeColor(test.status)}>
+                        {test.status}
+                      </Badge>
+                      {tatDisplay && (
+                        <TATIndicator secondsLeft={liveSecondsLeft}>
+                          <div style={{ textAlign: 'center' }}>
+                            <TATLabel>{tatDisplay.label}</TATLabel>
+                            <TATText>{tatDisplay.time}</TATText>
+                          </div>
+                        </TATIndicator>
+                      )}
+                    </StatusBadgeContainer>
+                  </TestStatusItem>
+                );
+              })
+            ) : (
+              <NoData>No test status information available</NoData>
+            )}
+          </TestStatusList>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
 
   // Filter patients based on multiple criteria
   useEffect(() => {
-  const startOfDay = new Date(startDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(endDate);
-  endOfDay.setHours(23, 59, 59, 999);
-  const filtered = patients.filter((patient) => {
-    const patientDate = new Date(patient.date);
-    const patientStatus = statuses[patient.patient_id]?.status || '';
-    
-    // Department filter logic
-    const matchesDepartment = !departmentFilter || 
-      (patient.department && patient.department.split(',').some(dept => 
-        dept.trim() === departmentFilter
-      ));
-    
-    return (
-      patientDate >= startOfDay &&
-      patientDate <= endOfDay &&
-      (!branch || patient.b2b === branch) &&
-      (!B2B || patient.b2b === B2B) &&
-      (!refBy || patient.refby === refBy) &&
-      (!patientId || patient.patient_id.includes(patientId)) &&
-      (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
-      (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
-      (!statusFilter || patientStatus === statusFilter) &&
-      matchesDepartment // Add this line
-    );
-  });
-  setFilteredPatients(filtered);
-}, [startDate, endDate, patients, branch, B2B, refBy, patientId, barcode, patientName, statusFilter, departmentFilter, statuses]); // Add departmentFilter to dependencies
+    const startOfDay = new Date(startDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    const filtered = patients.filter((patient) => {
+      const patientDate = new Date(patient.date);
+      const patientStatus = statuses[patient.patient_id]?.status || '';
+
+      // Department filter logic
+      const matchesDepartment = !departmentFilter ||
+        (patient.department && patient.department.split(',').some(dept =>
+          dept.trim() === departmentFilter
+        ));
+
+      return (
+        patientDate >= startOfDay &&
+        patientDate <= endOfDay &&
+        (!branch || patient.b2b === branch) &&
+        (!B2B || patient.b2b === B2B) &&
+        (!refBy || patient.refby === refBy) &&
+        (!patientId || patient.patient_id.includes(patientId)) &&
+        (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
+        (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
+        (!statusFilter || patientStatus === statusFilter) &&
+        matchesDepartment // Add this line
+      );
+    });
+    setFilteredPatients(filtered);
+  }, [startDate, endDate, patients, branch, B2B, refBy, patientId, barcode, patientName, statusFilter, departmentFilter, statuses]); // Add departmentFilter to dependencies
   // Update the clearFilters function to reset the status filter
   const clearFilters = () => {
     setStartDate(new Date());
@@ -949,7 +949,7 @@ const TestStatusModal = () => {
     setFilteredPatients(patients);
   };
 
-  
+
   const handleWhatsAppShare = async (patient, withLetterpad = true) => {
     if (!patient || !patient.phone) {
       toast.error("Patient phone number is missing");
@@ -1057,7 +1057,7 @@ const TestStatusModal = () => {
     }
   };
 
- const handlePrint = async (patient, withLetterpad = true) => {
+  const handlePrint = async (patient, withLetterpad = true) => {
     try {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
@@ -1073,11 +1073,11 @@ const TestStatusModal = () => {
       }
 
       console.log("API Response:", response.data);
-      
+
       // Extract patient data and signatures from the new response structure
       let patientDetails;
       let signaturesData = [];
-      
+
       if (response.data.patient_data && response.data.signatures) {
         // New structure with signatures
         patientDetails = response.data.patient_data;
@@ -1143,20 +1143,20 @@ const TestStatusModal = () => {
 
       // Build consultants array dynamically from signatures data
       const consultants = [];
-      
+
       // Initialize with empty slots
       consultants[0] = null; // Microbiologist
       consultants[1] = null; // Pathologist
       consultants[2] = null; // Biochemist
-      
+
       // Fill in the consultants based on signatures data
       signaturesData.forEach((sig) => {
         const mapping = designationMapping[sig.designation];
         if (mapping) {
-          const signatureImage = sig.signatureBase64 
-            ? `data:image/png;base64,${sig.signatureBase64}` 
+          const signatureImage = sig.signatureBase64
+            ? `data:image/png;base64,${sig.signatureBase64}`
             : null;
-          
+
           consultants[mapping.position] = [
             sig.employeeName,
             mapping.title,
@@ -1164,7 +1164,7 @@ const TestStatusModal = () => {
           ];
         }
       });
-      
+
       // Filter out null entries (positions without signatures)
       const activeConsultants = consultants.filter(c => c !== null);
 
@@ -1241,12 +1241,12 @@ const TestStatusModal = () => {
           label: "Received On",
           value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
         },
-         ...(patientDetails.testdetails[0].dispatch_time && 
-      patientDetails.testdetails[0].dispatch_time !== "null" ? [{
-    label: "Released On",
-    value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
-  }] : []),
-        
+        ...(patientDetails.testdetails[0].dispatch_time &&
+          patientDetails.testdetails[0].dispatch_time !== "null" ? [{
+            label: "Released On",
+            value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
+          }] : []),
+
         { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
@@ -1261,65 +1261,65 @@ const TestStatusModal = () => {
       let isTableStarted = false;
 
       const addPatientInfo = (yPos) => {
-  const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-  const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-  const centerPoint = (leftMargin + rightMargin) / 2;
-  const leftLabelX = leftMargin;
-  const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-  const leftValueX = leftColonX + 3;
-  const rightLabelX = centerPoint + 28;
-  const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-  const rightValueX = rightColonX + 1;
+        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+        const centerPoint = (leftMargin + rightMargin) / 2;
+        const leftLabelX = leftMargin;
+        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+        const leftValueX = leftColonX + 3;
+        const rightLabelX = centerPoint + 28;
+        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+        const rightValueX = rightColonX + 1;
 
-  doc.setFontSize(10);
-  let patientInfoY = yPos;
+        doc.setFontSize(10);
+        let patientInfoY = yPos;
 
-  // FIX: Use the maximum length of both arrays
-  const maxLength = Math.max(leftDetails.length, rightDetails.length);
+        // FIX: Use the maximum length of both arrays
+        const maxLength = Math.max(leftDetails.length, rightDetails.length);
 
-  for (let i = 0; i < maxLength; i++) {
-    const left = leftDetails[i];
-    const right = rightDetails[i];
+        for (let i = 0; i < maxLength; i++) {
+          const left = leftDetails[i];
+          const right = rightDetails[i];
 
-    // Handle left side (only if exists)
-    if (left) {
-      doc.setFont("helvetica", "bold");
-      doc.text(left.label, leftLabelX, patientInfoY);
-      doc.text(":", leftColonX, patientInfoY);
-      doc.setFont("helvetica", "normal");
+          // Handle left side (only if exists)
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, leftLabelX, patientInfoY);
+            doc.text(":", leftColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
 
-      const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-      const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+            const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+            const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
 
-      leftValueLines.forEach((line, lineIndex) => {
-        doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
-      });
+            leftValueLines.forEach((line, lineIndex) => {
+              doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
+            });
 
-      var leftRowHeight = leftValueLines.length * 4;
-    } else {
-      var leftRowHeight = 5; // Default height when no left detail
-    }
+            var leftRowHeight = leftValueLines.length * 4;
+          } else {
+            var leftRowHeight = 5; // Default height when no left detail
+          }
 
-    // Handle right side (only if exists)
-    if (right) {
-      doc.setFont("helvetica", "bold");
-      doc.text(right.label, rightLabelX, patientInfoY);
-      doc.text(":", rightColonX, patientInfoY);
-      doc.setFont("helvetica", "normal");
-      doc.text(right.value, rightValueX, patientInfoY);
+          // Handle right side (only if exists)
+          if (right) {
+            doc.setFont("helvetica", "bold");
+            doc.text(right.label, rightLabelX, patientInfoY);
+            doc.text(":", rightColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
+            doc.text(right.value, rightValueX, patientInfoY);
 
-      if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-        doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
-          patientInfoY + 4, 25, 10);
-      }
-    }
+            if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
+              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
+                patientInfoY + 4, 25, 10);
+            }
+          }
 
-    // Move to next row
-    patientInfoY += Math.max(leftRowHeight, 5);
-  }
+          // Move to next row
+          patientInfoY += Math.max(leftRowHeight, 5);
+        }
 
-  return patientInfoY;
-};
+        return patientInfoY;
+      };
 
       const addHeaderFooter = () => {
         if (withLetterpad) {
@@ -1392,54 +1392,54 @@ const TestStatusModal = () => {
       };
 
       // UPDATED: addSignatures function
-  
-const addSignatures = () => {
-  const pageHeight = doc.internal.pageSize.height;
-  const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
-  const signatureWidth = 35;
-  
-  // Only show signatures if we have active consultants
-  if (activeConsultants.length === 0) return;
-  
-  // Calculate spacing based on number of active consultants
-  const totalConsultants = activeConsultants.length;
-  
-  // Calculate starting position from RIGHT side
-  const rightEdge = rightMargin;
-  const signatureSpacing = 60; // Fixed spacing between signatures
-  
-  // Start from right edge and work backwards
-  const startX = rightEdge - (totalConsultants * signatureSpacing);
 
-  activeConsultants.forEach((consultant, index) => {
-    // Position from the calculated start point, moving right
-    const xPosition = startX + (index * signatureSpacing);
-    
-    // Display signature image if available
-    if (consultant[2]) {
-      doc.addImage(
-        consultant[2],
-        "PNG",
-        xPosition,
-        signaturesY,
-        signatureWidth,
-        15
-      );
-    }
+      const addSignatures = () => {
+        const pageHeight = doc.internal.pageSize.height;
+        const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
+        const signatureWidth = 35;
 
-    // Display full name with credentials
-    const fullName = consultant[0];
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(fullName, xPosition, signaturesY + 20);
+        // Only show signatures if we have active consultants
+        if (activeConsultants.length === 0) return;
 
-    // Display title (Consultant position)
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(consultant[1], xPosition, signaturesY + 25);
-  });
-};
+        // Calculate spacing based on number of active consultants
+        const totalConsultants = activeConsultants.length;
+
+        // Calculate starting position from RIGHT side
+        const rightEdge = rightMargin;
+        const signatureSpacing = 60; // Fixed spacing between signatures
+
+        // Start from right edge and work backwards
+        const startX = rightEdge - (totalConsultants * signatureSpacing);
+
+        activeConsultants.forEach((consultant, index) => {
+          // Position from the calculated start point, moving right
+          const xPosition = startX + (index * signatureSpacing);
+
+          // Display signature image if available
+          if (consultant[2]) {
+            doc.addImage(
+              consultant[2],
+              "PNG",
+              xPosition,
+              signaturesY,
+              signatureWidth,
+              15
+            );
+          }
+
+          // Display full name with credentials
+          const fullName = consultant[0];
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(fullName, xPosition, signaturesY + 20);
+
+          // Display title (Consultant position)
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.text(consultant[1], xPosition, signaturesY + 25);
+        });
+      };
 
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
@@ -1932,59 +1932,59 @@ const addSignatures = () => {
       case "Dispatched":
         return "#155724"; // Dark Forest Green
       case "Partially Dispatched":
-        return "#617c68"; 
+        return "#617c68";
       default:
         return "#dc3545"; // Red for unknown/error
     }
   };
 
   const getDepartmentStatus = (patient) => {
-  if (!patient.department) return [];
-  
-  const departments = patient.department.split(',').map(d => d.trim());
-  const departmentStatuses = patient.department_statuses || {};
-  
-  return departments.map(dept => {
-    const backendStatus = departmentStatuses[dept] || 'Pending';
-    let status = backendStatus;
-    let color = '#dc3545';
-    let isPending = true;
-    
-    switch(backendStatus) {
-      case 'Dispatched':
-        color = '#155724';
-        isPending = false;
-        break;
-      case 'Approved':
-        color = '#28a745';
-        isPending = false;
-        break;
-      case 'Tested':
-        color = '#d63384';
-        isPending = false;
-        break;
-      case 'Received':
-        color = '#17a2b8';
-        isPending = false;
-        break;
-      case 'Collected':
-        color = '#0d6efd';
-        isPending = false;
-        break;
-      case 'In Progress':
-        color = '#ffc107';
-        isPending = false;
-        status = 'In Progress';
-        break;
-      default:
-        color = '#dc3545';
-        isPending = true;
-        status = 'Pending';
-    }
-    
-    return { department: dept, status, color, isPending };
-  });
-};
+    if (!patient.department) return [];
+
+    const departments = patient.department.split(',').map(d => d.trim());
+    const departmentStatuses = patient.department_statuses || {};
+
+    return departments.map(dept => {
+      const backendStatus = departmentStatuses[dept] || 'Pending';
+      let status = backendStatus;
+      let color = '#dc3545';
+      let isPending = true;
+
+      switch (backendStatus) {
+        case 'Dispatched':
+          color = '#155724';
+          isPending = false;
+          break;
+        case 'Approved':
+          color = '#28a745';
+          isPending = false;
+          break;
+        case 'Tested':
+          color = '#d63384';
+          isPending = false;
+          break;
+        case 'Received':
+          color = '#17a2b8';
+          isPending = false;
+          break;
+        case 'Collected':
+          color = '#0d6efd';
+          isPending = false;
+          break;
+        case 'In Progress':
+          color = '#ffc107';
+          isPending = false;
+          status = 'In Progress';
+          break;
+        default:
+          color = '#dc3545';
+          isPending = true;
+          status = 'Pending';
+      }
+
+      return { department: dept, status, color, isPending };
+    });
+  };
 
   return (
     <Container>
@@ -2023,7 +2023,7 @@ const addSignatures = () => {
 
         <FiltersContainer>
           <FilterRow>
-           
+
             <FilterGroup>
               <FilterLabel>Start Date</FilterLabel>
               <FilterInput
@@ -2121,28 +2121,28 @@ const addSignatures = () => {
               </FilterSelect>
             </FilterGroup>
             <FilterGroup>
-  <FilterLabel>Department</FilterLabel>
-  <FilterSelect
-    value={departmentFilter}
-    onChange={(e) => setDepartmentFilter(e.target.value)}
-  >
-    <option value="">All Departments</option>
-    <option value="Haematology">Haematology</option>
-    <option value="Coagulation">Coagulation</option>
-    <option value="Biochemistry">Biochemistry</option>
-    <option value="Immunology">Immunology</option>
-    <option value="Immunoassay">Immunoassay</option>
-    <option value="Serology">Serology</option>
-    <option value="Clinical Pathology">Clinical Pathology</option>
-    <option value="Clinical Chemistry">Clinical Chemistry</option>
-    <option value="Cytology">Cytology</option>
-    <option value="Genetics">Genetics</option>
-    <option value="Histopathology">Histopathology</option>
-    <option value="Immunohistochemistry">Immunohistochemistry</option>
-    <option value="Microbiology">Microbiology</option>
-    <option value="Molecular Biology">Molecular Biology</option>
-  </FilterSelect>
-</FilterGroup>
+              <FilterLabel>Department</FilterLabel>
+              <FilterSelect
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+              >
+                <option value="">All Departments</option>
+                <option value="Haematology">Haematology</option>
+                <option value="Coagulation">Coagulation</option>
+                <option value="Biochemistry">Biochemistry</option>
+                <option value="Immunology">Immunology</option>
+                <option value="Immunoassay">Immunoassay</option>
+                <option value="Serology">Serology</option>
+                <option value="Clinical Pathology">Clinical Pathology</option>
+                <option value="Clinical Chemistry">Clinical Chemistry</option>
+                <option value="Cytology">Cytology</option>
+                <option value="Genetics">Genetics</option>
+                <option value="Histopathology">Histopathology</option>
+                <option value="Immunohistochemistry">Immunohistochemistry</option>
+                <option value="Microbiology">Microbiology</option>
+                <option value="Molecular Biology">Molecular Biology</option>
+              </FilterSelect>
+            </FilterGroup>
           </FilterRow>
 
           <ButtonContainer>
@@ -2228,39 +2228,39 @@ const addSignatures = () => {
                       <td>{patient.refby || "N/A"}</td>
                       <td>{patient.b2b || "N/A"}</td>
                       <td>
-  <DepartmentCell>
-    {getDepartmentStatus(patient).map((deptInfo, idx) => (
-      <DepartmentRow key={idx}>
-        <span style={{ whiteSpace: 'nowrap' }}>{deptInfo.department}</span>
-        <DepartmentBadge 
-          color={deptInfo.color}
-          isPending={deptInfo.isPending}
-        >
-          {deptInfo.status}
-        </DepartmentBadge>
-      </DepartmentRow>
-    ))}
-  </DepartmentCell>
-</td>
+                        <DepartmentCell>
+                          {getDepartmentStatus(patient).map((deptInfo, idx) => (
+                            <DepartmentRow key={idx}>
+                              <span style={{ whiteSpace: 'nowrap' }}>{deptInfo.department}</span>
+                              <DepartmentBadge
+                                color={deptInfo.color}
+                                isPending={deptInfo.isPending}
+                              >
+                                {deptInfo.status}
+                              </DepartmentBadge>
+                            </DepartmentRow>
+                          ))}
+                        </DepartmentCell>
+                      </td>
                       <td>
-  <StatusBadgeContainer>
-    <Badge color={badgeColor}>{status}</Badge>
-    <ActionButton
-      onClick={() => {
-        setSelectedPatientForStatus(patient);
-        setIsTestStatusModalOpen(true);
-      }}
-      title="View Test Details"
-      style={{ 
-        width: '1.75rem', 
-        height: '1.75rem',
-        marginLeft: '0.5rem'
-      }}
-    >
-      <Eye size={14} />
-    </ActionButton>
-  </StatusBadgeContainer>
-</td>
+                        <StatusBadgeContainer>
+                          <Badge color={badgeColor}>{status}</Badge>
+                          <ActionButton
+                            onClick={() => {
+                              setSelectedPatientForStatus(patient);
+                              setIsTestStatusModalOpen(true);
+                            }}
+                            title="View Test Details"
+                            style={{
+                              width: '1.75rem',
+                              height: '1.75rem',
+                              marginLeft: '0.5rem'
+                            }}
+                          >
+                            <Eye size={14} />
+                          </ActionButton>
+                        </StatusBadgeContainer>
+                      </td>
                       <td>
                         <CreditAmount onClick={() => openModal(patient)}>
                           {patient.credit_amount || "0"}
@@ -2269,12 +2269,12 @@ const addSignatures = () => {
                       <td>
                         <ActionContainer>
                           <ActionButton
-  onClick={() => openMBTestModal(patient)}
-  title={isMBSortingEnabledFlag ? "Sort M/B Tests" : "Microbiology not approved"}
-  disabled={!isMBSortingEnabledFlag}
->
-  <List size={16} />
-</ActionButton>
+                            onClick={() => openMBTestModal(patient)}
+                            title={isMBSortingEnabledFlag ? "Sort M/B Tests" : "Microbiology not approved"}
+                            disabled={!isMBSortingEnabledFlag}
+                          >
+                            <List size={16} />
+                          </ActionButton>
                           <ActionButton
                             onClick={() => openTestModal(patient)}
                             title="Sort Tests"

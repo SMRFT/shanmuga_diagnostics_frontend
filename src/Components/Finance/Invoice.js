@@ -394,20 +394,22 @@ const B2BPatients = () => {
   const calculateProportionalCredits = (patients, totalPaid, totalCredit) => {
     const proportionalCredits = [];
     let remainingPaid = Number(totalPaid);
-    const totalCreditNum = Number(totalCredit);
+
+    // Use the sum of actual patient credits as the base for proportion
+    const sumOriginalCredits = patients.reduce((sum, p) => sum + Number(p.credit_amount), 0);
 
     patients.forEach((patient, index) => {
       const patientCredit = Number(patient.credit_amount);
-      const proportion = patientCredit / totalCreditNum;
+      const proportion = sumOriginalCredits > 0 ? (patientCredit / sumOriginalCredits) : 0;
 
       if (index === patients.length - 1) {
         proportionalCredits.push({
           ...patient,
           proportionalCredit: Math.max(0, remainingPaid).toFixed(2),
-          proportion: ((remainingPaid / patientCredit) * 100).toFixed(1),
+          proportion: (proportion * 100).toFixed(1),
         });
       } else {
-        const proportionalAmount = totalPaid * proportion;
+        const proportionalAmount = Number(totalPaid) * proportion;
         proportionalCredits.push({
           ...patient,
           proportionalCredit: proportionalAmount.toFixed(2),
