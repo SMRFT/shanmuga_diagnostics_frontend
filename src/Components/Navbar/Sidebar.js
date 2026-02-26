@@ -1015,17 +1015,17 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.patientDetails} onClick={() => toggleDropdown("patientDetails")}>
+              <DropdownHeader isOpen={dropdowns.BillingDetails} onClick={() => toggleDropdown("BillingDetails")}>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
                   </IconWrapper>
                   Billing
                 </div>
-                <ChevronIcon isOpen={dropdowns.patientDetails} />
+                <ChevronIcon isOpen={dropdowns.BillingDetails} />
               </DropdownHeader>
 
-              <DropdownContent isOpen={dropdowns.patientDetails}>
+              <DropdownContent isOpen={dropdowns.BillingDetails}>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
                   Bill Estimate
                 </SubLink>
@@ -1242,6 +1242,9 @@ const Sidebar = () => {
                 </SubLink>
                 <SubLink to="/OutsourcedSamples" onClick={() => setIsSidebarOpen(false)}>
                   Outsourced Samples
+                </SubLink>
+                <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
+                  Ledger Balance
                 </SubLink>
                 <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
                   Home Collection Report
@@ -1575,7 +1578,6 @@ const Sidebar = () => {
                 </IconWrapper>
                 Bill Estimate
               </SidebarNavLink>
-
               <SidebarNavLink to="/PreethamPatientOverview" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
