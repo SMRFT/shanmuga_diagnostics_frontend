@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react"
 import styled from "styled-components"
+import { toast, ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 import { Calendar, Users, FileText, Search, RefreshCw, Download } from "lucide-react"
 import apiRequest from "../Auth/apiRequest"
 
@@ -149,7 +151,7 @@ const Button = styled.button`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
   
@@ -164,7 +166,7 @@ const StatCard = styled.div`
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
@@ -268,6 +270,7 @@ const Table = styled.table`
 
 const Th = styled.th`
   text-align: left;
+  white-space: nowrap;
   padding: 1rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -278,6 +281,7 @@ const Th = styled.th`
 
 const Td = styled.td`
   padding: 1rem 1.5rem;
+  white-space: nowrap;
   font-size: 0.875rem;
   color: #1a1a1a;
   border-bottom: 1px solid #e2e8f0;
@@ -326,21 +330,29 @@ const PatientDashboard = () => {
   // Mock API URL - replace with your actual API endpoint
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
+    const getCurrentDate = () => new Date().toISOString().split("T")[0]
+
+    const [dateFilters, setDateFilters] = useState({
+    fromDate: getCurrentDate(),
+    toDate:   getCurrentDate(),
+  })
+
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0]
-    setStartDate(today)
-    setEndDate(today)
-    fetchData(today, today)
+    if (dateFilters.fromDate && dateFilters.toDate) fetchData()
   }, [])
 
-  const fetchData = async (start, end) => {
+  useEffect(() => {
+    if (dateFilters.fromDate && dateFilters.toDate) fetchData()
+  }, [dateFilters])
+
+  const fetchData = async () => {
+    if (!dateFilters.fromDate || !dateFilters.toDate) { toast.warning("Please select both dates"); return }
     setLoading(true)
     try {
       // Replace this with your actual API call
-      const response = await apiRequest(`${Labbaseurl}patients_by_date/`, "POST", {
-        start_date: start,
-        end_date: end,
-      })
+      const response = await apiRequest(
+        `${Labbaseurl}patients_by_date/?start_date=${dateFilters.fromDate}&end_date=${dateFilters.toDate}`, "GET"
+      )
       const data = response.data
 
       // Handle the API response structure
@@ -425,8 +437,8 @@ const PatientDashboard = () => {
               <DateLabel>Start Date</DateLabel>
               <DateInput
                 type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                value={dateFilters.fromDate}
+                onChange={(e)=>setDateFilters(p=>({...p,fromDate:e.target.value}))} 
               />
             </DateInputGroup>
 
@@ -434,8 +446,8 @@ const PatientDashboard = () => {
               <DateLabel>End Date</DateLabel>
               <DateInput
                 type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                value={dateFilters.toDate}
+                onChange={(e)=>setDateFilters(p=>({...p,fromDate:e.target.value}))} 
               />
             </DateInputGroup>
 
