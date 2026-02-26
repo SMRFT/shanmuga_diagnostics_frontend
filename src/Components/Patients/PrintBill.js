@@ -525,22 +525,22 @@ const PrintBill = () => {
       ? numberToWords(patient.netAmount) + " rupees only"
       : "";
 
-    const formatDateTimeUTC = (isoString) => {
-      if (!isoString) return "NIL";
+   const formatDateTimeUTC = (isoString) => {
+  if (!isoString) return "NIL";
 
-      const dateObj = new Date(isoString); // 🔥 DO NOT replace anything
+  const dateObj = new Date(isoString);
 
-      return dateObj.toLocaleString("en-IN", {
-        year: "numeric",
-        month: "long",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZone: "Asia/Kolkata",
-        hour12: true,
-      }).replace(/am|pm/gi, (match) => match.toUpperCase());
-    };
+  return dateObj.toLocaleString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "UTC",   // 🔥 Force UTC display
+  }).replace(/am|pm/gi, (m) => m.toUpperCase());
+};
 
     // ── CHANGE 1: Emergency / Normal label in print ──
     const emergencyLabel = patient.is_emergency

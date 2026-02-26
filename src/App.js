@@ -154,8 +154,6 @@ function App() {
     }
   };
 
-
-
   // Check token and navigate based on role
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
@@ -462,5 +460,3 @@ export default function AppWrapper() {
     </Router>
   );
 }
-
-
