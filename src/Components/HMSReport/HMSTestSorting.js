@@ -159,9 +159,9 @@ const TestName = styled.span`
   font-size: 15px;
   color: #333;
   font-weight: ${(props) => (props.selected ? "600" : "400")};
-  
+
   .nabl-asterisk {
-    color: #DB9BB9;
+    color: #db9bb9;
     font-weight: bold;
     margin-left: 4px;
   }
@@ -172,7 +172,7 @@ const DispatchButton = styled.button`
   align-items: center;
   justify-content: center;
   padding: 6px 12px;
-  background-color: ${props => props.dispatched ? '#28A745' : '#DB9BB9'};
+  background-color: ${(props) => (props.dispatched ? "#28A745" : "#DB9BB9")};
   color: white;
   border: none;
   border-radius: 6px;
@@ -184,7 +184,7 @@ const DispatchButton = styled.button`
   margin-left: 10px;
 
   &:hover {
-    background-color: ${props => props.dispatched ? '#218838' : '#c985a7'};
+    background-color: ${(props) => (props.dispatched ? "#218838" : "#c985a7")};
     transform: translateY(-2px);
   }
 
@@ -331,8 +331,12 @@ const LoadingSpinner = styled.div`
   animation: spin 1s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -364,31 +368,32 @@ const HMSTestSorting = ({ patient, onClose }) => {
           "GET",
           null,
           {},
-          {}
+          {},
         );
 
         if (response.success) {
           if (response.data[patient.barcode]) {
-            const testDetails = response.data[patient.barcode].testdetails || [];
+            const testDetails =
+              response.data[patient.barcode].testdetails || [];
             const sortedTests = testDetails.sort((a, b) => {
               const numA = parseInt(a.test_name.match(/\d+/)?.[0]) || 0;
               const numB = parseInt(b.test_name.match(/\d+/)?.[0]) || 0;
               return numA - numB;
             });
-            
+
             const testsWithDispatch = sortedTests.map((test) => ({
               test_id: test.test_id,
               test_name: test.test_name,
               NABL: test.NABL || false,
               dispatched: test.dispatch || false,
-              created_date: test.created_date  // Changed from test.dispatched to test.dispatch
+              created_date: test.created_date, // Changed from test.dispatched to test.dispatch
             }));
-            
+
             setTests(testsWithDispatch);
-            
+
             // Initialize dispatched tests set
             const dispatchedSet = new Set();
-            testsWithDispatch.forEach(test => {
+            testsWithDispatch.forEach((test) => {
               if (test.dispatched) {
                 dispatchedSet.add(test.test_id);
               }
@@ -399,7 +404,11 @@ const HMSTestSorting = ({ patient, onClose }) => {
             setTests([]);
           }
         } else {
-          console.error("Error fetching tests:", response.error, response.status);
+          console.error(
+            "Error fetching tests:",
+            response.error,
+            response.status,
+          );
           toast.error("Failed to load tests");
         }
       } catch (error) {
@@ -416,34 +425,36 @@ const HMSTestSorting = ({ patient, onClose }) => {
 
   const handleDispatchTest = async (test, e) => {
     e.stopPropagation(); // Prevent test selection when clicking dispatch
-    
+
     try {
       const response = await apiRequest(
         `${Labbaseurl}update_dispatch_status/${patient.barcode}/`,
         "PATCH",
         {
           test_id: test.test_id,
-          created_date: test.created_date  // Send the created_date to target specific document
+          created_date: test.created_date, // Send the created_date to target specific document
         },
         {
           "Content-Type": "application/json",
-        }
+        },
       );
 
       if (response.success) {
         toast.success(`Test "${test.test_name}" dispatched successfully!`);
-        
+
         // Update the dispatched tests set
-        setDispatchedTests(prev => {
+        setDispatchedTests((prev) => {
           const newSet = new Set(prev);
           newSet.add(test.test_id);
           return newSet;
         });
-        
+
         // Update the tests array
-        setTests(prev => prev.map(t => 
-          t.test_id === test.test_id ? { ...t, dispatched: true } : t
-        ));
+        setTests((prev) =>
+          prev.map((t) =>
+            t.test_id === test.test_id ? { ...t, dispatched: true } : t,
+          ),
+        );
       } else {
         toast.error(`Failed to dispatch test: ${response.error}`);
       }
@@ -481,7 +492,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}get_hms_patient_test_details/?barcode=${patient.barcode}`,
-        "GET"
+        "GET",
       );
 
       if (!response.success) {
@@ -491,11 +502,11 @@ const HMSTestSorting = ({ patient, onClose }) => {
       }
 
       console.log("API Response:", response.data);
-      
+
       // Extract patient data and signatures from the new response structure
       let patientDetails;
       let signaturesData = [];
-      
+
       if (response.data.patient_data && response.data.signatures) {
         // New structure with signatures
         patientDetails = response.data.patient_data;
@@ -509,7 +520,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
         patientDetails = {
           ...patientDetails[0],
           testdetails: patientDetails.flatMap(
-            (record) => record.testdetails || []
+            (record) => record.testdetails || [],
           ),
         };
       }
@@ -521,7 +532,9 @@ const HMSTestSorting = ({ patient, onClose }) => {
       // Filter tests by test_id
       const orderedTests = selectedTests
         .map((selectedTest) =>
-          patientDetails.testdetails.find((t) => t.test_id === selectedTest.test_id)
+          patientDetails.testdetails.find(
+            (t) => t.test_id === selectedTest.test_id,
+          ),
         )
         .filter((test) => test);
 
@@ -561,7 +574,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
           (match, hex) => {
             const char = String.fromCharCode(parseInt(hex, 16));
             return unicodeMap[char] || char;
-          }
+          },
         );
         Object.keys(unicodeMap).forEach((unicode) => {
           const regex = new RegExp(unicode, "g");
@@ -578,37 +591,37 @@ const HMSTestSorting = ({ patient, onClose }) => {
 
       // CORRECTED: Map designation codes to consultant positions
       const designationMapping = {
-        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
-        "DESIG100": { position: 1, title: "Consultant Pathologist" },
-        "DESIG099": { position: 2, title: "Consultant Biochemist" },
+        DESIG101: { position: 0, title: "Consultant Microbiologist" },
+        DESIG100: { position: 1, title: "Consultant Pathologist" },
+        DESIG099: { position: 2, title: "Consultant Biochemist" },
       };
 
       // Build consultants array dynamically from signatures data
       const consultants = [];
-      
+
       // Initialize with empty slots
       consultants[0] = null; // Microbiologist
       consultants[1] = null; // Pathologist
       consultants[2] = null; // Biochemist
-      
+
       // Fill in the consultants based on signatures data
       signaturesData.forEach((sig) => {
         const mapping = designationMapping[sig.designation];
         if (mapping) {
-          const signatureImage = sig.signatureBase64 
-            ? `data:image/png;base64,${sig.signatureBase64}` 
+          const signatureImage = sig.signatureBase64
+            ? `data:image/png;base64,${sig.signatureBase64}`
             : null;
-          
+
           consultants[mapping.position] = [
             sig.employeeName,
             mapping.title,
-            signatureImage
+            signatureImage,
           ];
         }
       });
-      
+
       // Filter out null entries (positions without signatures)
-      const activeConsultants = consultants.filter(c => c !== null);
+      const activeConsultants = consultants.filter((c) => c !== null);
 
       console.log("Active Consultants:", activeConsultants);
 
@@ -626,7 +639,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
         "Histopathology",
         "Immunohistochemistry",
         "Microbiology",
-        "Molecular Biology"
+        "Molecular Biology",
       ];
 
       const patientRefNo =
@@ -677,6 +690,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
           value: `${patientDetails.age || ""} ${patientDetails.age_type || ""}/ ${patientDetails.gender || ""}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
+        { label: "Phone", value: patientDetails.phone || "N/A" },
       ];
 
       const rightDetails = [
@@ -685,7 +699,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
           value:
             format(
               new Date(patientDetails.testdetails[0].samplecollected_time),
-              "dd MMM yy / HH:mm"
+              "dd MMM yy / HH:mm",
             ) || "N/A",
         },
         {
@@ -693,23 +707,33 @@ const HMSTestSorting = ({ patient, onClose }) => {
           value:
             format(
               new Date(patientDetails.testdetails[0].received_time),
-              "dd MMM yy / HH:mm"
+              "dd MMM yy / HH:mm",
             ) || "N/A",
         },
-         ...(patientDetails.testdetails[0].dispatch_time && 
-      patientDetails.testdetails[0].dispatch_time !== "null" ? [{
-    label: "Released On",
-    value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
-  }] : []),
-                
-                { label: "Reported Date", value: format(new Date(), "dd MMM yy / HH:mm") },
+        ...(patientDetails.testdetails[0].dispatch_time &&
+        patientDetails.testdetails[0].dispatch_time !== "null"
+          ? [
+              {
+                label: "Released On",
+                value: format(
+                  new Date(patientDetails.testdetails[0].dispatch_time),
+                  "dd MMM yy / HH:mm",
+                ),
+              },
+            ]
+          : []),
+
+        {
+          label: "Reported Date",
+          value: format(new Date(), "dd MMM yy / HH:mm"),
+        },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
 
       const calculateMaxLabelWidth = (details) => {
         const tempDoc = new jsPDF();
         return Math.max(
-          ...details.map((item) => tempDoc.getTextWidth(item.label))
+          ...details.map((item) => tempDoc.getTextWidth(item.label)),
         );
       };
 
@@ -718,65 +742,79 @@ const HMSTestSorting = ({ patient, onClose }) => {
       let isTableStarted = false;
 
       const addPatientInfo = (yPos) => {
-  const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-  const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-  const centerPoint = (leftMargin + rightMargin) / 2;
-  const leftLabelX = leftMargin;
-  const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-  const leftValueX = leftColonX + 3;
-  const rightLabelX = centerPoint + 28;
-  const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-  const rightValueX = rightColonX + 1;
+        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+        const centerPoint = (leftMargin + rightMargin) / 2;
+        const leftLabelX = leftMargin;
+        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+        const leftValueX = leftColonX + 3;
+        const rightLabelX = centerPoint + 28;
+        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+        const rightValueX = rightColonX + 1;
 
-  doc.setFontSize(10);
-  let patientInfoY = yPos;
+        doc.setFontSize(10);
+        let patientInfoY = yPos;
 
-  // FIX: Use the maximum length of both arrays
-  const maxLength = Math.max(leftDetails.length, rightDetails.length);
+        // FIX: Use the maximum length of both arrays
+        const maxLength = Math.max(leftDetails.length, rightDetails.length);
 
-  for (let i = 0; i < maxLength; i++) {
-    const left = leftDetails[i];
-    const right = rightDetails[i];
+        for (let i = 0; i < maxLength; i++) {
+          const left = leftDetails[i];
+          const right = rightDetails[i];
 
-    // Handle left side (only if exists)
-    if (left) {
-      doc.setFont("helvetica", "bold");
-      doc.text(left.label, leftLabelX, patientInfoY);
-      doc.text(":", leftColonX, patientInfoY);
-      doc.setFont("helvetica", "normal");
+          // Handle left side (only if exists)
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, leftLabelX, patientInfoY);
+            doc.text(":", leftColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
 
-      const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-      const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+            const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+            const leftValueLines = wrapTextAndGetLines(
+              doc,
+              left.value,
+              maxLeftValueWidth,
+            );
 
-      leftValueLines.forEach((line, lineIndex) => {
-        doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
-      });
+            leftValueLines.forEach((line, lineIndex) => {
+              doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
+            });
 
-      var leftRowHeight = leftValueLines.length * 4;
-    } else {
-      var leftRowHeight = 5; // Default height when no left detail
-    }
+            var leftRowHeight = leftValueLines.length * 4;
+          } else {
+            var leftRowHeight = 5; // Default height when no left detail
+          }
 
-    // Handle right side (only if exists)
-    if (right) {
-      doc.setFont("helvetica", "bold");
-      doc.text(right.label, rightLabelX, patientInfoY);
-      doc.text(":", rightColonX, patientInfoY);
-      doc.setFont("helvetica", "normal");
-      doc.text(right.value, rightValueX, patientInfoY);
+          // Handle right side (only if exists)
+          if (right) {
+            doc.setFont("helvetica", "bold");
+            doc.text(right.label, rightLabelX, patientInfoY);
+            doc.text(":", rightColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
+            doc.text(right.value, rightValueX, patientInfoY);
 
-      if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-        doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
-          patientInfoY + 4, 25, 10);
-      }
-    }
+            if (
+              right.label === "Patient Ref.No" &&
+              patientRefNoNumber !== "N/A" &&
+              barcodeImage
+            ) {
+              doc.addImage(
+                barcodeImage,
+                "PNG",
+                rightValueX + doc.getTextWidth(right.value) - 21,
+                patientInfoY + 4,
+                25,
+                10,
+              );
+            }
+          }
 
-    // Move to next row
-    patientInfoY += Math.max(leftRowHeight, 5);
-  }
+          // Move to next row
+          patientInfoY += Math.max(leftRowHeight, 5);
+        }
 
-  return patientInfoY;
-};
+        return patientInfoY;
+      };
 
       const addHeaderFooter = () => {
         if (withLetterpad) {
@@ -786,7 +824,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
             0,
             10,
             doc.internal.pageSize.width,
-            headerHeight
+            headerHeight,
           );
           const footerY = doc.internal.pageSize.height - footerHeight;
           doc.addImage(
@@ -795,7 +833,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
             0,
             footerY,
             doc.internal.pageSize.width,
-            footerHeight
+            footerHeight,
           );
         } else {
           doc.setFontSize(8);
@@ -859,7 +897,14 @@ const HMSTestSorting = ({ patient, onClose }) => {
         return doc.splitTextToSize(text, maxWidth);
       };
 
-      const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
+      const renderWrappedText = (
+        doc,
+        text,
+        maxWidth,
+        startX,
+        yPos,
+        lineHeight = 4,
+      ) => {
         if (!text) return 0;
         const lines = wrapTextAndGetLines(doc, text, maxWidth);
         lines.forEach((line, index) => {
@@ -873,24 +918,24 @@ const HMSTestSorting = ({ patient, onClose }) => {
         const pageHeight = doc.internal.pageSize.height;
         const signaturesY = pageHeight - footerHeight - signatureHeight - 2; // CHANGED from 5 to 2
         const signatureWidth = 35;
-        
+
         // Only show signatures if we have active consultants
         if (activeConsultants.length === 0) return;
-        
+
         // Calculate spacing based on number of active consultants
         const totalConsultants = activeConsultants.length;
-        
+
         // Calculate starting position from RIGHT side
         const rightEdge = rightMargin;
         const signatureSpacing = 60; // Fixed spacing between signatures
-        
+
         // Start from right edge and work backwards
-        const startX = rightEdge - (totalConsultants * signatureSpacing);
+        const startX = rightEdge - totalConsultants * signatureSpacing;
 
         activeConsultants.forEach((consultant, index) => {
           // Position from the calculated start point, moving right
-          const xPosition = startX + (index * signatureSpacing);
-          
+          const xPosition = startX + index * signatureSpacing;
+
           // Display signature image if available
           if (consultant[2]) {
             doc.addImage(
@@ -899,13 +944,13 @@ const HMSTestSorting = ({ patient, onClose }) => {
               xPosition,
               signaturesY,
               signatureWidth,
-              15
+              15,
             );
           }
 
           // Display full name with credentials
           const fullName = consultant[0];
-          
+
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
           doc.text(fullName, xPosition, signaturesY + 20);
@@ -997,17 +1042,19 @@ const HMSTestSorting = ({ patient, onClose }) => {
         }, {});
 
         // Sort departments according to the specified order
-        const sortedDepartments = Object.keys(testsByDepartment).sort((a, b) => {
-          const indexA = departmentOrder.indexOf(a);
-          const indexB = departmentOrder.indexOf(b);
+        const sortedDepartments = Object.keys(testsByDepartment).sort(
+          (a, b) => {
+            const indexA = departmentOrder.indexOf(a);
+            const indexB = departmentOrder.indexOf(b);
 
-          if (indexA !== -1 && indexB !== -1) {
-            return indexA - indexB;
-          }
-          if (indexA !== -1) return -1;
-          if (indexB !== -1) return 1;
-          return a.localeCompare(b);
-        });
+            if (indexA !== -1 && indexB !== -1) {
+              return indexA - indexB;
+            }
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+          },
+        );
 
         sortedDepartments.forEach((department) => {
           // Collect all verified_by values in this department
@@ -1031,8 +1078,15 @@ const HMSTestSorting = ({ patient, onClose }) => {
               doc.setFontSize(10);
               const textWidth = doc.getTextWidth(department.toUpperCase());
               const centerX = leftMargin + contentWidth / 2;
-              doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
-              doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
+              doc.text(department.toUpperCase(), centerX, yPos, {
+                align: "center",
+              });
+              doc.line(
+                centerX - textWidth / 2,
+                yPos + 2,
+                centerX + textWidth / 2,
+                yPos + 2,
+              );
               yPos += 10;
             }
 
@@ -1058,22 +1112,40 @@ const HMSTestSorting = ({ patient, onClose }) => {
 
             // Calculate all text wrapping FIRST to get accurate height
             const testNameText = test.testname;
-            const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
+            const testNameLines = wrapTextAndGetLines(
+              doc,
+              testNameText,
+              colWidths[0] - 2,
+            );
 
             const valueText = test.value || "";
-            const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
+            const valueLines = wrapTextAndGetLines(
+              doc,
+              valueText,
+              colWidths[3] - 2,
+            );
 
-            const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
+            const referenceLines = wrapTextAndGetLines(
+              doc,
+              test.reference_range || "",
+              colWidths[5] - 2,
+            );
 
-            const methodText = (test.method || "").replace(/\bMethod\b/i, "").trim();
-            const methodLines = wrapTextAndGetLines(doc, methodText, colWidths[6] - 2);
+            const methodText = (test.method || "")
+              .replace(/\bMethod\b/i, "")
+              .trim();
+            const methodLines = wrapTextAndGetLines(
+              doc,
+              methodText,
+              colWidths[6] - 2,
+            );
 
             // Calculate actual row height
             const maxLines = Math.max(
               testNameLines.length,
               valueLines.length,
               referenceLines.length,
-              methodLines.length
+              methodLines.length,
             );
             const lineHeight = 4;
             const actualRowHeight = maxLines * lineHeight + 2;
@@ -1086,7 +1158,14 @@ const HMSTestSorting = ({ patient, onClose }) => {
 
             // Test Name
             doc.setFont("helvetica", "bold");
-            renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
+            renderWrappedText(
+              doc,
+              testNameText,
+              colWidths[0] - 2,
+              xPos,
+              yPos,
+              lineHeight,
+            );
             xPos += colWidths[0];
 
             doc.setFont("helvetica", "normal");
@@ -1112,7 +1191,14 @@ const HMSTestSorting = ({ patient, onClose }) => {
               } else if (statusIndicator === "L") {
                 doc.setTextColor(0, 0, 255);
               }
-              renderWrappedText(doc, valueText, colWidths[3] - 5, xPos, yPos, lineHeight);
+              renderWrappedText(
+                doc,
+                valueText,
+                colWidths[3] - 5,
+                xPos,
+                yPos,
+                lineHeight,
+              );
               const valueWidth = doc.getTextWidth(valueText);
               if (valueWidth < colWidths[3] - 5) {
                 if (statusIndicator === "H") {
@@ -1124,7 +1210,14 @@ const HMSTestSorting = ({ patient, onClose }) => {
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
-              renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
+              renderWrappedText(
+                doc,
+                valueText,
+                colWidths[3] - 2,
+                xPos,
+                yPos,
+                lineHeight,
+              );
             }
             xPos += colWidths[3];
 
@@ -1133,12 +1226,26 @@ const HMSTestSorting = ({ patient, onClose }) => {
             xPos += colWidths[4];
 
             // Reference Range
-            renderWrappedText(doc, test.reference_range || "", colWidths[5] - 2, xPos, yPos, lineHeight);
+            renderWrappedText(
+              doc,
+              test.reference_range || "",
+              colWidths[5] - 2,
+              xPos,
+              yPos,
+              lineHeight,
+            );
             xPos += colWidths[5];
 
             // Method
             doc.setTextColor(0, 0, 0);
-            renderWrappedText(doc, methodText, colWidths[6] - 2, xPos, yPos, lineHeight);
+            renderWrappedText(
+              doc,
+              methodText,
+              colWidths[6] - 2,
+              xPos,
+              yPos,
+              lineHeight,
+            );
 
             // Move Y position by actual row height
             yPos += actualRowHeight + 4;
@@ -1166,7 +1273,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
                   colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
                   leftMargin,
                   yPos,
-                  3.5
+                  3.5,
                 );
                 yPos += commentHeight + 2;
               }
@@ -1196,29 +1303,44 @@ const HMSTestSorting = ({ patient, onClose }) => {
                 doc.setFontSize(10);
 
                 const paramNameText = currentTest.name;
-                const paramNameLines = wrapTextAndGetLines(doc, paramNameText, colWidths[0] - 2);
+                const paramNameLines = wrapTextAndGetLines(
+                  doc,
+                  paramNameText,
+                  colWidths[0] - 2,
+                );
 
                 const paramValueText = currentTest.value || "";
-                const paramValueLines = wrapTextAndGetLines(doc, paramValueText, colWidths[3] - 2);
+                const paramValueLines = wrapTextAndGetLines(
+                  doc,
+                  paramValueText,
+                  colWidths[3] - 2,
+                );
 
                 const paramReferenceLines = wrapTextAndGetLines(
                   doc,
                   currentTest.reference_range || "",
-                  colWidths[5] - 2
+                  colWidths[5] - 2,
                 );
 
-                const paramMethodText = (currentTest.method || "").replace(/\bMethod\b/i, "").trim();
-                const paramMethodLines = wrapTextAndGetLines(doc, paramMethodText, colWidths[6] - 2);
+                const paramMethodText = (currentTest.method || "")
+                  .replace(/\bMethod\b/i, "")
+                  .trim();
+                const paramMethodLines = wrapTextAndGetLines(
+                  doc,
+                  paramMethodText,
+                  colWidths[6] - 2,
+                );
 
                 // Calculate actual row height
                 const paramMaxLines = Math.max(
                   paramNameLines.length,
                   paramValueLines.length,
                   paramReferenceLines.length,
-                  paramMethodLines.length
+                  paramMethodLines.length,
                 );
                 const paramLineHeight = 4;
-                const paramActualRowHeight = paramMaxLines * paramLineHeight + 2;
+                const paramActualRowHeight =
+                  paramMaxLines * paramLineHeight + 2;
 
                 // Check for new page
                 yPos = checkForNewPage(yPos, paramActualRowHeight);
@@ -1228,7 +1350,14 @@ const HMSTestSorting = ({ patient, onClose }) => {
 
                 // Parameter name
                 doc.setFont("helvetica", "normal");
-                renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
+                renderWrappedText(
+                  doc,
+                  paramNameText,
+                  colWidths[0] - 2,
+                  xPos,
+                  yPos,
+                  paramLineHeight,
+                );
                 xPos += colWidths[0];
 
                 // Specimen Type
@@ -1243,7 +1372,10 @@ const HMSTestSorting = ({ patient, onClose }) => {
                   ? "H"
                   : currentTest.isLow
                     ? "L"
-                    : getHighLowStatus(paramValueText, currentTest.reference_range);
+                    : getHighLowStatus(
+                        paramValueText,
+                        currentTest.reference_range,
+                      );
 
                 if (paramStatusIndicator) {
                   doc.setFont("helvetica", "bold");
@@ -1252,19 +1384,43 @@ const HMSTestSorting = ({ patient, onClose }) => {
                   } else if (paramStatusIndicator === "L") {
                     doc.setTextColor(0, 0, 255);
                   }
-                  renderWrappedText(doc, paramValueText, colWidths[3] - 5, xPos, yPos, paramLineHeight);
+                  renderWrappedText(
+                    doc,
+                    paramValueText,
+                    colWidths[3] - 5,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
                   const paramValueWidth = doc.getTextWidth(paramValueText);
                   if (paramValueWidth < colWidths[3] - 5) {
                     if (paramStatusIndicator === "H") {
-                      drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "up");
+                      drawArrowSymbol(
+                        doc,
+                        xPos + paramValueWidth + 2,
+                        yPos - 1,
+                        "up",
+                      );
                     } else if (paramStatusIndicator === "L") {
-                      drawArrowSymbol(doc, xPos + paramValueWidth + 2, yPos - 1, "down");
+                      drawArrowSymbol(
+                        doc,
+                        xPos + paramValueWidth + 2,
+                        yPos - 1,
+                        "down",
+                      );
                     }
                   }
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
-                  renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, paramLineHeight);
+                  renderWrappedText(
+                    doc,
+                    paramValueText,
+                    colWidths[3] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
                 }
                 xPos += colWidths[3];
 
@@ -1279,13 +1435,20 @@ const HMSTestSorting = ({ patient, onClose }) => {
                   colWidths[5] - 2,
                   xPos,
                   yPos,
-                  paramLineHeight
+                  paramLineHeight,
                 );
                 xPos += colWidths[5];
 
                 // Method
                 doc.setTextColor(0, 0, 0);
-                renderWrappedText(doc, paramMethodText, colWidths[6] - 2, xPos, yPos, paramLineHeight);
+                renderWrappedText(
+                  doc,
+                  paramMethodText,
+                  colWidths[6] - 2,
+                  xPos,
+                  yPos,
+                  paramLineHeight,
+                );
 
                 // Move Y position
                 yPos += paramActualRowHeight;
@@ -1298,10 +1461,14 @@ const HMSTestSorting = ({ patient, onClose }) => {
                   const paramCommentHeight = renderWrappedText(
                     doc,
                     paramCommentText,
-                    colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
+                    colWidths[0] +
+                      colWidths[1] +
+                      colWidths[2] +
+                      colWidths[3] -
+                      2,
                     leftMargin,
                     yPos,
-                    3.5
+                    3.5,
                   );
                   yPos += paramCommentHeight + 2;
                 }
@@ -1314,7 +1481,11 @@ const HMSTestSorting = ({ patient, onClose }) => {
             });
 
             // Display "Verified by" under each test if multiple verifiers in department
-            if (hasMultipleVerifiers && test.verified_by && test.verified_by.trim() !== "") {
+            if (
+              hasMultipleVerifiers &&
+              test.verified_by &&
+              test.verified_by.trim() !== ""
+            ) {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
               doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
@@ -1390,7 +1561,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
     }
   };
   const filteredTests = tests.filter((test) =>
-    test.test_name.toLowerCase().includes(searchTerm.toLowerCase())
+    test.test_name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -1441,7 +1612,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
           ) : (
             filteredTests.map((test) => {
               const isSelected = selectedTests.some(
-                (t) => t.test_id === test.test_id
+                (t) => t.test_id === test.test_id,
               );
               const isDispatched = dispatchedTests.has(test.test_id);
 
@@ -1463,7 +1634,9 @@ const HMSTestSorting = ({ patient, onClose }) => {
                     dispatched={isDispatched}
                     onClick={(e) => handleDispatchTest(test, e)}
                     disabled={isDispatched}
-                    title={isDispatched ? "Already Dispatched" : "Dispatch Test"}
+                    title={
+                      isDispatched ? "Already Dispatched" : "Dispatch Test"
+                    }
                   >
                     <Flag size={14} />
                     {isDispatched ? "Dispatched" : "Dispatch"}

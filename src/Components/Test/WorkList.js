@@ -445,7 +445,10 @@ const ReportModal = ({
   const patient = Array.isArray(patient_data) ? patient_data[0] : patient_data;
   if (!patient) return null;
 
-  const tests = patient.testdetails || [];
+  // Merge testdetails from ALL patient_data entries (API returns one entry per test)
+  const tests = Array.isArray(patient_data)
+    ? patient_data.flatMap((p) => p.testdetails || [])
+    : patient.testdetails || [];
 
   const testsByDept = tests.reduce((acc, t) => {
     const dept = t.department || "Other";
