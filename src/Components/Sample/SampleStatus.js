@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components";
-import { Calendar, Search, Check, X, AlertCircle, CheckCircle } from 'lucide-react';
+import styled, {
+  createGlobalStyle,
+  ThemeProvider,
+  keyframes,
+  css,
+} from "styled-components";
+import {
+  Calendar,
+  Search,
+  Check,
+  X,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
 const blink = keyframes`
@@ -341,10 +353,10 @@ const Button = styled.button`
         props.success
           ? props.theme.colors.success
           : props.primary
-          ? props.theme.colors.primary
-          : props.secondary
-          ? "white"
-          : "initial"};
+            ? props.theme.colors.primary
+            : props.secondary
+              ? "white"
+              : "initial"};
     }
   }
 `;
@@ -464,18 +476,17 @@ const EmptyStateText = styled.p`
   max-width: 24rem;
 `;
 
-
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
     currentMonth.getMonth() + 1,
-    0
+    0,
   ).getDate();
   const firstDayOfMonth = new Date(
     currentMonth.getFullYear(),
     currentMonth.getMonth(),
-    1
+    1,
   ).getDay();
 
   const days = [];
@@ -488,13 +499,13 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
 
   const prevMonth = () => {
     setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1),
     );
   };
 
   const nextMonth = () => {
     setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1),
     );
   };
 
@@ -545,7 +556,8 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
 };
 
 const SampleStatus = () => {
-  const storedName = typeof window !== 'undefined' ? localStorage.getItem("name") : null;
+  const storedName =
+    typeof window !== "undefined" ? localStorage.getItem("name") : null;
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [showFromDatePicker, setShowFromDatePicker] = useState(false);
@@ -581,19 +593,19 @@ const SampleStatus = () => {
       try {
         const localFromDate = new Date(fromDate);
         localFromDate.setMinutes(
-          localFromDate.getMinutes() - localFromDate.getTimezoneOffset()
+          localFromDate.getMinutes() - localFromDate.getTimezoneOffset(),
         );
         const formattedFromDate = localFromDate.toISOString().split("T")[0];
 
         const localToDate = new Date(toDate);
         localToDate.setMinutes(
-          localToDate.getMinutes() - localToDate.getTimezoneOffset()
+          localToDate.getMinutes() - localToDate.getTimezoneOffset(),
         );
         const formattedToDate = localToDate.toISOString().split("T")[0];
 
         const result = await apiRequest(
           `${Labbaseurl}sample_patient/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
-          "GET"
+          "GET",
         );
 
         if (result.success) {
@@ -618,8 +630,8 @@ const SampleStatus = () => {
   const handleStatusChange = (testId, status) => {
     setCurrentPatientTests((prevTests) =>
       prevTests.map((test) =>
-        test.test_id === testId ? { ...test, status } : test
-      )
+        test.test_id === testId ? { ...test, status } : test,
+      ),
     );
   };
 
@@ -627,7 +639,7 @@ const SampleStatus = () => {
     const isCurrentlySelected = selectedTests.includes(testId);
     if (isCurrentlySelected) {
       setSelectedTests((prevSelected) =>
-        prevSelected.filter((id) => id !== testId)
+        prevSelected.filter((id) => id !== testId),
       );
       handleStatusChange(testId, "Pending");
     } else {
@@ -641,7 +653,7 @@ const SampleStatus = () => {
     try {
       const patient = patients.find(
         (p) =>
-          p.patient_id === selectedPatientId && p.barcode === selectedBarcode
+          p.patient_id === selectedPatientId && p.barcode === selectedBarcode,
       );
       if (!patient) {
         setError("Patient not found for the selected barcode");
@@ -660,7 +672,7 @@ const SampleStatus = () => {
 
       const checkResult = await apiRequest(
         `${Labbaseurl}check_sample_status/${patient.barcode}/`,
-        "GET"
+        "GET",
       );
 
       const dataExists = checkResult.success && checkResult.data?.exists;
@@ -682,29 +694,30 @@ const SampleStatus = () => {
         const patchData = {
           patient_id: patient.patient_id,
           barcode: patient.barcode,
-          testdetails: currentPatientTests.map((test) => {
-            const isSelected = selectedTests.includes(test.test_id);
-            const status = isSelected ? "Sample Collected" : "Pending";
-
-            return {
-              test_id: test.test_id,
-              samplestatus: status,
-              samplecollected_time:
-                status === "Sample Collected" ? currentTime : null,
-              collectd_by: status === "Sample Collected" ? storedName : null,
-            };
-          }),
+          testdetails: currentPatientTests
+            .filter(
+              (test) =>
+                patient.testdetails.some((t) => t.test_id === test.test_id), // ← Only tests from API response
+            )
+            .map((test) => {
+              const isSelected = selectedTests.includes(test.test_id);
+              return {
+                test_id: test.test_id,
+                samplestatus: isSelected ? "Sample Collected" : "Pending",
+                samplecollected_time: isSelected ? currentTime : null,
+                collectd_by: isSelected ? storedName : null,
+              };
+            }),
         };
-
         const result = await apiRequest(
           `${Labbaseurl}sample_statusupdate/${patient.barcode}/`,
           "PATCH",
-          patchData
+          patchData,
         );
 
         if (result.success) {
           setSuccessMessage(
-            result.data?.message || "Sample status updated successfully"
+            result.data?.message || "Sample status updated successfully",
           );
           setError(null);
           setIsSaved(true);
@@ -725,30 +738,32 @@ const SampleStatus = () => {
           patient_id: patient.patient_id,
           barcode: patient.barcode,
           date: formattedDate1,
-          testdetails: currentPatientTests.map((test) => {
-            const isSelected = selectedTests.includes(test.test_id);
-            const status = isSelected ? "Sample Collected" : "Pending";
-
-            return {
-              test_id: test.test_id,
-              samplecollector: patient.sample_collector || "N/A",
-              samplestatus: status,
-              samplecollected_time:
-                status === "Sample Collected" ? currentTime : null,
-              received_time: null,
-              rejected_time: null,
-              collectd_by: status === "Sample Collected" ? storedName : null,
-              received_by: null,
-              rejected_by: null,
-              remarks: null,
-            };
-          }),
+          testdetails: currentPatientTests
+            .filter(
+              (test) =>
+                patient.testdetails.some((t) => t.test_id === test.test_id), // ← Only tests from API response
+            )
+            .map((test) => {
+              const isSelected = selectedTests.includes(test.test_id);
+              return {
+                test_id: test.test_id,
+                samplecollector: patient.sample_collector || "N/A",
+                samplestatus: isSelected ? "Sample Collected" : "Pending",
+                samplecollected_time: isSelected ? currentTime : null,
+                received_time: null,
+                rejected_time: null,
+                collectd_by: isSelected ? storedName : null,
+                received_by: null,
+                rejected_by: null,
+                remarks: null,
+              };
+            }),
         };
 
         const result = await apiRequest(
           `${Labbaseurl}sample_status/`,
           "POST",
-          formattedData
+          formattedData,
         );
 
         if (result.success) {
@@ -756,7 +771,7 @@ const SampleStatus = () => {
             result.data?.message ||
               `All test data saved successfully for ${
                 patient.patientname || "patient"
-              }`
+              }`,
           );
           setError(null);
           setIsSaved(true);
@@ -802,19 +817,19 @@ const SampleStatus = () => {
 
   const selectAllTests = () => {
     const allSelected = currentPatientTests.every((test) =>
-      selectedTests.includes(test.test_id)
+      selectedTests.includes(test.test_id),
     );
 
     if (allSelected) {
       setSelectedTests([]);
       setCurrentPatientTests((prevTests) =>
-        prevTests.map((test) => ({ ...test, status: "Pending" }))
+        prevTests.map((test) => ({ ...test, status: "Pending" })),
       );
     } else {
       const allTestIds = currentPatientTests.map((test) => test.test_id);
       setSelectedTests(allTestIds);
       setCurrentPatientTests((prevTests) =>
-        prevTests.map((test) => ({ ...test, status: "Sample Collected" }))
+        prevTests.map((test) => ({ ...test, status: "Sample Collected" })),
       );
     }
   };
@@ -829,7 +844,7 @@ const SampleStatus = () => {
 
     try {
       const patient = patients.find(
-        (p) => p.patient_id === patientId && p.barcode === barcode
+        (p) => p.patient_id === patientId && p.barcode === barcode,
       );
 
       if (!patient || !patient.testdetails) {
@@ -849,7 +864,7 @@ const SampleStatus = () => {
         testname: test.testname || test.test_name || "N/A",
         samplecollector: patient.sample_collector || "N/A",
       }));
-      
+
       setCurrentPatientTests(allTests);
     } catch (err) {
       console.error("Error in openModal:", err);
@@ -870,34 +885,34 @@ const SampleStatus = () => {
     setIsSaved(false);
   };
 
-  const filteredPatients = (patients || [])
-    .filter((patient) => {
-      const matchesSearch =
-        patient.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.segment.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.B2B.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.barcode.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredPatients = (patients || []).filter((patient) => {
+    const matchesSearch =
+      patient.patientname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.segment.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.B2B.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.barcode.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "All" ||
-        (statusFilter === "Emergency" && patient.is_emergency) ||
-        (statusFilter === "Normal" && !patient.is_emergency);
+    const matchesStatus =
+      statusFilter === "All" ||
+      (statusFilter === "Emergency" && patient.is_emergency) ||
+      (statusFilter === "Normal" && !patient.is_emergency);
 
-      return matchesSearch && matchesStatus;
-    });
+    return matchesSearch && matchesStatus;
+  });
 
   const getCurrentPatient = () => {
     return patients.find(
-      (p) => p.patient_id === selectedPatientId && p.barcode === selectedBarcode
+      (p) =>
+        p.patient_id === selectedPatientId && p.barcode === selectedBarcode,
     );
   };
 
   const getPaymentMode = () => {
     const patient = getCurrentPatient();
     if (!patient || !patient.payment_method) return "N/A";
-    
-    if (typeof patient.payment_method === 'string') {
+
+    if (typeof patient.payment_method === "string") {
       try {
         const parsed = JSON.parse(patient.payment_method);
         return parsed.paymentmethod || "N/A";
@@ -905,7 +920,7 @@ const SampleStatus = () => {
         return "N/A";
       }
     }
-    
+
     return patient.payment_method.paymentmethod || "N/A";
   };
 
@@ -983,11 +998,16 @@ const SampleStatus = () => {
               />
             </SearchContainer>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
               <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
                 Status Filter:
               </label>
-              <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
                 <option value="All">All</option>
                 <option value="Emergency">Emergency</option>
                 <option value="Normal">Normal</option>
@@ -1075,19 +1095,19 @@ const SampleStatus = () => {
                 </EmptyState>
               )}
             </>
-            
           )}
           <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: theme.colors.textLight,
-            fontSize: "0.875rem",
-            borderTop: `1px solid ${theme.colors.border}`,
-          }}
-        >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+            style={{
+              padding: "1rem 1.5rem",
+              textAlign: "right",
+              color: theme.colors.textLight,
+              fontSize: "0.875rem",
+              borderTop: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            Showing {filteredPatients.length}{" "}
+            {filteredPatients.length === 1 ? "entry" : "entries"}
+          </div>
         </Card>
 
         {showModal && selectedPatientId && selectedBarcode && (
@@ -1119,12 +1139,14 @@ const SampleStatus = () => {
               {getCurrentPatient() && (
                 <div>
                   <div style={{ marginBottom: "1rem" }}>
-                    <strong>Patient ID:</strong> {getCurrentPatient().patient_id} |{" "}
-                    <strong>Barcode:</strong> {getCurrentPatient().barcode} |{" "}
-                    <strong>Age:</strong> {getCurrentPatient().age} |{" "}
-                    <strong>Gender:</strong> {getCurrentPatient().gender || "N/A"} |{" "}
+                    <strong>Patient ID:</strong>{" "}
+                    {getCurrentPatient().patient_id} | <strong>Barcode:</strong>{" "}
+                    {getCurrentPatient().barcode} | <strong>Age:</strong>{" "}
+                    {getCurrentPatient().age} | <strong>Gender:</strong>{" "}
+                    {getCurrentPatient().gender || "N/A"} |{" "}
                     <strong>Current Date & Time:</strong> {currentDateTime} |{" "}
-                    <strong>Processing Location:</strong> {getCurrentPatient()?.branch|| "N/A"} |{" "}
+                    <strong>Processing Location:</strong>{" "}
+                    {getCurrentPatient()?.branch || "N/A"} |{" "}
                     <strong>Technician Name:</strong> {storedName || "N/A"} |{" "}
                     <strong>Payment Mode:</strong> {getPaymentMode()}
                   </div>
@@ -1142,7 +1164,7 @@ const SampleStatus = () => {
                               checked={
                                 currentPatientTests.length > 0 &&
                                 currentPatientTests.every((test) =>
-                                  selectedTests.includes(test.test_id)
+                                  selectedTests.includes(test.test_id),
                                 )
                               }
                               onChange={selectAllTests}
@@ -1156,7 +1178,11 @@ const SampleStatus = () => {
                         {currentPatientTests.map((test) => (
                           <Tr key={test.test_id}>
                             <Td>{test.testname}</Td>
-                            <Td>{test.container || test.collection_container || "N/A"}</Td>
+                            <Td>
+                              {test.container ||
+                                test.collection_container ||
+                                "N/A"}
+                            </Td>
                             <Td>{test.department || "N/A"}</Td>
                             <Td>
                               <Select
@@ -1164,7 +1190,7 @@ const SampleStatus = () => {
                                 onChange={(e) =>
                                   handleStatusChange(
                                     test.test_id,
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 disabled={isSaving || isSaved}
@@ -1177,12 +1203,8 @@ const SampleStatus = () => {
                             </Td>
                             <Td>
                               <Checkbox
-                                checked={selectedTests.includes(
-                                  test.test_id
-                                )}
-                                onChange={() =>
-                                  toggleSelectTest(test.test_id)
-                                }
+                                checked={selectedTests.includes(test.test_id)}
+                                onChange={() => toggleSelectTest(test.test_id)}
                                 disabled={isSaving || isSaved}
                               />
                             </Td>
