@@ -1430,7 +1430,7 @@ const PatientOverview = () => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 10,
+                rightValueX + doc.getTextWidth(right.value) - 18,
                 patientInfoY + 4,
                 25,
                 10,
