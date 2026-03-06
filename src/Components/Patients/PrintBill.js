@@ -66,12 +66,14 @@ const FilterSection = styled.div`
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   margin-bottom: 25px;
   border: 1px solid #e2e8f0;
+  position: relative;   /* ✅ add this */
+  z-index: 10;          /* ✅ add this — keeps filter section above table */
 
   @media (max-width: 480px) {
     padding: 14px;
     margin-bottom: 14px;
   }
-`;
+`
 
 const FilterHeader = styled.div`
   display: flex;
@@ -103,7 +105,22 @@ const FilterGrid = styled.div`
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+
+  label { font-size: 13px; font-weight: 500; color: #374151; }
+
+  select, input[type="date"], input[type="text"], input[type="number"] {
+    padding: 10px 13px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    &:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+  }
 `;
 
 const Label = styled.label`
@@ -136,7 +153,12 @@ const DatePickerWrapper = styled.div`
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
-`;
+
+  /* ✅ Fix: ensure the calendar popup renders above the sticky table header */
+  .react-datepicker-popper {
+    z-index: 9999 !important;
+  }
+`
 
 const SearchContainer = styled.div`
   position: relative;
@@ -245,9 +267,8 @@ const Table = styled.table`
     letter-spacing: 0.5px;
     position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: 1;   /* ✅ keep this at 1 — the datepicker popper at 9999 will always win */
   }
-
   tbody tr {
     transition: background 0.2s;
 
@@ -504,22 +525,22 @@ const PrintBill = () => {
       ? numberToWords(patient.netAmount) + " rupees only"
       : "";
 
-    const formatDateTimeUTC = (isoString) => {
-      if (!isoString) return "NIL";
+   const formatDateTimeUTC = (isoString) => {
+  if (!isoString) return "NIL";
 
-      const dateObj = new Date(isoString); // 🔥 DO NOT replace anything
+  const dateObj = new Date(isoString);
 
-      return dateObj.toLocaleString("en-IN", {
-        year: "numeric",
-        month: "long",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZone: "Asia/Kolkata",
-        hour12: true,
-      }).replace(/am|pm/gi, (match) => match.toUpperCase());
-    };
+  return dateObj.toLocaleString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "UTC",   // 🔥 Force UTC display
+  }).replace(/am|pm/gi, (m) => m.toUpperCase());
+};
 
     // ── CHANGE 1: Emergency / Normal label in print ──
     const emergencyLabel = patient.is_emergency
@@ -710,7 +731,6 @@ const PrintBill = () => {
               Search Patients
             </Label>
             <SearchContainer>
-              <Search size={18} />
               <input
                 type="text"
                 placeholder="Search by Patient ID, Name, or Lab ID..."

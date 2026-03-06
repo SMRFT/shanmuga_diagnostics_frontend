@@ -10,14 +10,14 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 const REDIRECT_URL = process.env.REACT_APP_LOGIN_REDIRECT_URL;
 
 console.log("=== LAB INDEX.JS DEBUG ===");
-console.log("REDIRECT_URL:", REDIRECT_URL);
+// console.log("REDIRECT_URL:", REDIRECT_URL);
 
 // --- Function to set token for local development ---
 function setforlocaldev() {
   const dev_token =
     "";
   console.log("🔧 Development token is empty - will redirect to login");
-  const selectedBranch = "SHB001";
+  const selectedBranch = "SHB005";
   localStorage.setItem("selected_branch", selectedBranch);
   return dev_token;
 }
@@ -26,11 +26,11 @@ function setforlocaldev() {
 function redirectToLogin() {
   if (REDIRECT_URL) {
     console.log("🔄 Redirecting to login URL:", REDIRECT_URL);
-    window.location.href = REDIRECT_URL;
+    // window.location.href = REDIRECT_URL;
   } else {
     console.error("❌ REDIRECT_URL not configured");
     // Even if REDIRECT_URL is not configured, don't show error - just redirect to a fallback
-    window.location.href = "https://shinova.in/login";
+    // window.location.href = "https://shinova.in/login";
   }
 }
 
@@ -70,8 +70,8 @@ function getUserRole(allowedActions) {
     return "Diagnostics General Manager";
   } else if (allowedActions.includes("SD-R-DOC")) {
     return "Doctor";
-  } else if (allowedActions.includes("SD-R-SP")) {
-    return "Sales Person";
+  } else if (allowedActions.includes("SD-R-SE")) {
+    return "Sales Executive";
   } else if (allowedActions.includes("SD-R-ACT")) {
     return "Accounts";
   } else if (allowedActions.includes("SD-R-CEO")) {

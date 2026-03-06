@@ -10,7 +10,6 @@ import {
   faCalendarWeek,
   faCalendarAlt,
   faUser,
-  faImage,
 } from "@fortawesome/free-solid-svg-icons";
 
 // Styled Components
@@ -259,6 +258,7 @@ const SalesVisitLogReport = () => {
   const [totalVisits, setTotalVisits] = useState(0);
   const [salespersonVisits, setSalespersonVisits] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const [filter, setFilter] = useState({
     fromDate: getCurrentDate(),
@@ -276,72 +276,68 @@ const SalesVisitLogReport = () => {
     }
   }, [filter]);
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      const url = `${Labbaseurl}salesexecutive_report/`;
+const fetchLogs = async () => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      const params = {
-        fromDate: filter.fromDate,
-        toDate: filter.toDate,
-      };
+    // Format dates (optional — if backend expects YYYY-MM-DD)
+    const fromDate = filter.fromDate;
+    const toDate = filter.toDate;
 
-      if (filter.salesPerson) {
-        params.salesExecutive = filter.salesPerson;
-      }
+    let url = `${Labbaseurl}salesexecutive_report/?fromDate=${fromDate}&toDate=${toDate}`;
 
-      const response = await apiRequest(url, "POST", params);
-
-      if (response.success && Array.isArray(response.data)) {
-        setLogs(response.data);
-        updateVisitCounts(response.data);
-      } else {
-        console.error("Invalid response format or API error:", response);
-        setLogs([]);
-        updateVisitCounts([]);
-      }
-    } catch (error) {
-      console.error("Error fetching logs:", error);
-    } finally {
-      setLoading(false);
+    if (filter.salesPerson) {
+      url += `&salesExecutive=${filter.salesPerson}`;
     }
-  };
 
+    const response = await apiRequest(url, "GET");
 
+    const data = response?.data || [];
 
-  const fetchSalesMapping = async () => {
-    try {
-      const url = `${Labbaseurl}get_sales_executives/`;
-      const response = await apiRequest(url, "GET"); // ✅ use apiRequest
+    setLogs(Array.isArray(data) ? data : []);
+    updateVisitCounts(Array.isArray(data) ? data : []);
 
-      if (response.success && Array.isArray(response.data)) {
-        const salesMappingArray = [
-          { id: 0, name: "All" },
-          ...response.data.map((person, index) => ({
-            id: index + 1,
-            name: person.employeeName,
-            employeeId: person.employeeId,
-          })),
-        ];
+  } catch (error) {
+    console.error("Error fetching logs:", error);
+    setLogs([]);
+    updateVisitCounts([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-        setSalesMapping(salesMappingArray);
-      } else {
-        console.error("Failed to fetch sales executives:", response);
-      }
-    } catch (error) {
-      console.error("Error fetching salesMapping:", error);
-    }
-  };
+const fetchSalesMapping = async () => {
+  try {
+    const url = `${Labbaseurl}get_sales_executives/`;
+    const response = await apiRequest(url, "GET");
 
+    // ✅ Safely extract array — handle multiple response shapes
+    const rawData = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.data?.data)
+      ? response.data.data
+      : Array.isArray(response)
+      ? response
+      : [];
 
+    const salesMappingArray = [
+      { id: 0, name: "All" },
+      ...rawData.map((person, index) => ({
+        id: index + 1,
+        name: person.employeeName,
+        employeeId: person.employeeId,
+      })),
+    ];
+
+    setSalesMapping(salesMappingArray);
+  } catch (error) {
+    console.error("Error fetching salesMapping:", error);
+    setSalesMapping([{ id: 0, name: "All" }]); // ✅ Always show at least "All"
+  }
+};
 
   const updateVisitCounts = (data) => {
-    if (!Array.isArray(data)) {
-      setSalespersonVisits([]);
-      setTotalVisits(0);
-      return;
-    }
-
     const visitCounts = {};
     let total = 0;
 
@@ -383,7 +379,6 @@ const SalesVisitLogReport = () => {
         "Location",
         "Visits",
         "Comments",
-        "Image Link",
       ],
       ...logs.map((log) => [
         escapeCSV(formatDate(log.date)),
@@ -396,7 +391,6 @@ const SalesVisitLogReport = () => {
         escapeCSV(log.location || "N/A"),
         escapeCSV(log.noOfVisits || 0),
         escapeCSV(log.comments || "No comments"),
-        escapeCSV(log.visit_image_id ? `${Labbaseurl}serve_sales_image/${log.visit_image_id}/` : "N/A"),
       ]),
     ];
 
@@ -446,7 +440,7 @@ const SalesVisitLogReport = () => {
             <FontAwesomeIcon icon={faUser} />
             SalesExecutive:
           </FilterLabel>
-          <Select
+         <Select
             value={filter.salesPerson}
             onChange={(e) => handleFilterChange("salesPerson", e.target.value)}
           >
@@ -478,13 +472,12 @@ const SalesVisitLogReport = () => {
             <th>Location</th>
             <th>Visits</th>
             <th>Comments</th>
-            <th>Image</th>
           </tr>
         </TableHead>
         <TableBody>
           {loading ? (
             <EmptyRow>
-              <td colSpan={11}>Loading data...</td>
+              <td colSpan={10}>Loading data...</td>
             </EmptyRow>
           ) : logs.length > 0 ? (
             logs.map((log, index) => (
@@ -499,26 +492,11 @@ const SalesVisitLogReport = () => {
                 <td>{log.location || "N/A"}</td>
                 <td>{log.noOfVisits || 0}</td>
                 <td>{log.comments || "No comments"}</td>
-                <td>
-                  {log.visit_image_id ? (
-                    <a
-                      href={`${Labbaseurl}serve_sales_image/${log.visit_image_id}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: "#4299e1", display: "flex", justifyContent: "center" }}
-                      title="View Image"
-                    >
-                      <FontAwesomeIcon icon={faImage} />
-                    </a>
-                  ) : (
-                    <span style={{ color: "#a0aec0", display: "block", textAlign: "center" }}>-</span>
-                  )}
-                </td>
               </tr>
             ))
           ) : (
             <EmptyRow>
-              <td colSpan={11}>No data available for the selected filters.</td>
+              <td colSpan={10}>No data available for the selected filters.</td>
             </EmptyRow>
           )}
         </TableBody>

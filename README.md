@@ -1,70 +1,38 @@
-# Getting Started with Create React App
+# Shanmuga Diagnostics LIS Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project is the React frontend for the Laboratory Information System (LIS) developed for Shanmuga Diagnostics.
 
-## Available Scripts
+## Project Overview
 
-In the project directory, you can run:
+The Shanmuga Diagnostics LIS frontend handles patient management, barcode generation, lab testing, finance, billing, and invoicing operations. It is designed to provide staff with a fast, modern, and reliable interface to handle daily operations efficiently.
+
+## Core Features
+*   **Patient Registration & Overview:** Interface for registering new patients, viewing current statuses, and managing appointments.
+*   **Finances & Invoicing (B2B/B2C):** Tools for managing billing and tracking invoice payments including proportional credit tracking and history tracking.
+*   **Barcode Printing:** Print and manage barcodes directly from the browser for patient test samples.
+*   **Reports & Results:** Generate, edit, and print test result reports in PDF format.
+*   **Real-time status updates:** Real-time visibility into test statuses across the lab.
+
+## Technical Stack
+*   **Framework:** React hooks & functional components
+*   **Styling:** Styled Components with modern Glassmorphism UI capabilities
+*   **State Management:** React Context / Local hooks
+*   **Network:** Axios for REST API interaction
+*   **PDF Generation:** jsPDF and jspdf-autotable
+*   **UI Elements:** Lucide React icons, SweetAlert2 for notifications, and React-Toastify
+
+## Scripts
 
 ### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Runs the app in development mode on `http://localhost:3000`.
 
 ### `npm run build`
+Builds the app for production to the `build` folder. It minifies React and optimizes performance.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Configuration
+Requires `.env` file to configure the backend API endpoint (`REACT_APP_BACKEND_LAB_BASE_URL`).
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Recent Updates
+*   **Invoice Proportion Allocation:** Updated proportional patient credit calculation to exactly distribute pending payments properly across patients.
+*   **Glassmorphism UI Upgrade:** Modernized screens including login, registration, and patient forms with a unified visual language.
+*   **Pharmacy Billing:** Implemented pharmacy inventory search and integrated medical bills on patient invoice reports.

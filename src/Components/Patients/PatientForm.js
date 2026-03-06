@@ -618,7 +618,7 @@ const SearchableInputWrapper = styled.div`
 const SearchableInput = styled.input`
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #e1e8ff;
+  border: 2px solid ${(props) => (props.$hasError ? "#ef4444" : "#e1e8ff")};
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
   font-size: 14px;
@@ -627,8 +627,8 @@ const SearchableInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: ${(props) => (props.$hasError ? "#ef4444" : "#667eea")};
+    box-shadow: 0 0 0 3px ${(props) => (props.$hasError ? "rgba(239,68,68,0.1)" : "rgba(102, 126, 234, 0.1)")};
   }
   
   &:disabled {
@@ -647,6 +647,13 @@ const SearchableInput = styled.input`
     padding: 8px 10px;
     font-size: 12px;
   }
+`
+
+const FieldHint = styled.span`
+  font-size: 11px;
+  color: ${(props) => (props.$error ? "#ef4444" : "#999")};
+  margin-top: 4px;
+  display: block;
 `
 
 const SearchableDropdown = styled.div`
@@ -1123,13 +1130,20 @@ const PatientForm = () => {
   const [appointmentPatients, setAppointmentPatients] = useState([])
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false)
 
-  // Use patientSelectionSource to track the origin of patient data
-  const [patientSelectionSource, setPatientSelectionSource] = useState(null) // 'search', 'appointment', or null
+  const [patientSelectionSource, setPatientSelectionSource] = useState(null)
 
   const [refBySearchValue, setRefBySearchValue] = useState("")
   const [showRefByDropdown, setShowRefByDropdown] = useState(false)
   const [clinicalSearchValue, setClinicalSearchValue] = useState("")
   const [showClinicalDropdown, setShowClinicalDropdown] = useState(false)
+
+  // ---- Dropdown selection tracking flags ----
+  const [isRefBySelectedFromDropdown, setIsRefBySelectedFromDropdown] = useState(false)
+  const [isClinicalSelectedFromDropdown, setIsClinicalSelectedFromDropdown] = useState(false)
+
+  // ---- Inline error hints shown after a failed submit attempt ----
+  const [refByError, setRefByError] = useState(false)
+  const [clinicalError, setClinicalError] = useState(false)
 
   const [formData, setFormData] = useState({
     patient_id: "",
@@ -1173,9 +1187,13 @@ const PatientForm = () => {
   const [searchValue, setSearchValue] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFormValid, setIsFormValid] = useState(false)
-  // Removed isExistingPatient as it's now covered by patientSelectionSource
-  const [isExistingPatient, setIsExistingPatient] = useState(false) // Keep for disabling fields, but logic relies on source
+  const [isExistingPatient, setIsExistingPatient] = useState(false)
 
+  // -----------------------------------------------------------------------
+  // Form validation — does NOT include dropdown-selection checks so the
+  // submit button stays enabled regardless of whether the user typed or
+  // selected from the dropdown. Dropdown validation happens at submit time.
+  // -----------------------------------------------------------------------
   useEffect(() => {
     const basicFieldsValid = formData.patientname.trim() !== "" && formData.age !== ""
     const refByValid = formData.refby.trim() !== ""
@@ -1314,6 +1332,8 @@ const PatientForm = () => {
         email: "",
       }))
       setClinicalSearchValue("")
+      setIsClinicalSelectedFromDropdown(false)
+      setClinicalError(false)
     }
   }
 
@@ -1340,12 +1360,17 @@ const PatientForm = () => {
     }))
   }
 
+  // -----------------------------------------------------------------------
+  // Clinical Name handlers
+  // -----------------------------------------------------------------------
   const handleClinicalNameSearch = (e) => {
     const value = e.target.value
     setClinicalSearchValue(value)
     setShowClinicalDropdown(true)
+    // User is typing — clear the "selected from dropdown" flag and any error
+    setIsClinicalSelectedFromDropdown(false)
+    setClinicalError(false)
 
-    // Set the B2B field to the typed value
     setFormData((prev) => ({
       ...prev,
       B2B: value,
@@ -1354,6 +1379,8 @@ const PatientForm = () => {
 
   const handleClinicalNameSelect = (clinical) => {
     setClinicalSearchValue(clinical.clinicalname)
+    setIsClinicalSelectedFromDropdown(true) // ✅ properly selected
+    setClinicalError(false)
     setFormData((prev) => ({
       ...prev,
       B2B: clinical.clinicalname,
@@ -1365,12 +1392,17 @@ const PatientForm = () => {
     setShowClinicalDropdown(false)
   }
 
+  // -----------------------------------------------------------------------
+  // Ref By handlers
+  // -----------------------------------------------------------------------
   const handleRefBySearch = (e) => {
     const value = e.target.value
     setRefBySearchValue(value)
     setShowRefByDropdown(true)
+    // User is typing — clear the "selected from dropdown" flag and any error
+    setIsRefBySelectedFromDropdown(false)
+    setRefByError(false)
 
-    // Set the refby field to the typed value
     setFormData((prev) => ({
       ...prev,
       refby: value,
@@ -1379,6 +1411,8 @@ const PatientForm = () => {
 
   const handleRefBySelect = (refby) => {
     setRefBySearchValue(refby.name)
+    setIsRefBySelectedFromDropdown(true) // ✅ properly selected
+    setRefByError(false)
     setFormData((prev) => ({
       ...prev,
       refby: refby.name,
@@ -1402,18 +1436,16 @@ const PatientForm = () => {
 
   const handleSearchChange = (e) => {
     const input = e.target.value
-
     const numericInput = input.replace(/\D/g, "")
-
     setSearchValue(numericInput)
 
     if (numericInput.length === 10) {
       searchPatientByPhone(numericInput)
     } else if (numericInput.length === 0) {
-      setIsExistingPatient(false) // Mark as not existing when search is cleared
+      setIsExistingPatient(false)
       setShowPatientModal(false)
       setMultiplePatients([])
-      setPatientSelectionSource(null) // Reset selection source
+      setPatientSelectionSource(null)
       generateNewPatientId()
       setFormData((prev) => ({
         ...prev,
@@ -1428,10 +1460,10 @@ const PatientForm = () => {
       }))
       setPrescriptionFile(null)
     } else if (numericInput.length < 10) {
-      setIsExistingPatient(false) // Mark as not existing if search is partial
+      setIsExistingPatient(false)
       setShowPatientModal(false)
       setMultiplePatients([])
-      setPatientSelectionSource(null) // Reset selection source
+      setPatientSelectionSource(null)
     }
   }
 
@@ -1453,11 +1485,11 @@ const PatientForm = () => {
         if (patients.length > 1) {
           setMultiplePatients(patients)
           setShowPatientModal(true)
-          setIsExistingPatient(false) // Not yet an existing patient until selected
-          setPatientSelectionSource(null) // No source yet
+          setIsExistingPatient(false)
+          setPatientSelectionSource(null)
           toast.info(`Found ${patients.length} patients with this phone number. Please select one.`)
         } else if (patients.length === 1) {
-          loadPatientData(patients[0], "search") // Pass source as 'search'
+          loadPatientData(patients[0], "search")
           setShowPatientModal(false)
           toast.success("Patient found! Details loaded (read-only).")
         } else {
@@ -1468,10 +1500,10 @@ const PatientForm = () => {
       }
     } catch (error) {
       console.error("Error fetching patient details:", error)
-      setIsExistingPatient(false) // Ensure it's marked as not existing if search fails
+      setIsExistingPatient(false)
       setShowPatientModal(false)
       setMultiplePatients([])
-      setPatientSelectionSource(null) // Reset selection source
+      setPatientSelectionSource(null)
       generateNewPatientId()
     }
   }
@@ -1548,14 +1580,13 @@ const PatientForm = () => {
       setIsEmergencyEnabled(false)
     }
 
-    setIsExistingPatient(true) // Mark as existing when data is loaded
+    setIsExistingPatient(true)
     setShowPatientModal(false)
-
-    setPatientSelectionSource(source) // Set the source of the loaded data
+    setPatientSelectionSource(source)
   }
 
   const handlePatientSelect = (patient) => {
-    loadPatientData(patient, "search") // Patient selected from search results
+    loadPatientData(patient, "search")
     toast.success("Patient details loaded (read-only). Ready for billing.")
   }
 
@@ -1610,10 +1641,33 @@ const PatientForm = () => {
     return errors
   }
 
+  // -----------------------------------------------------------------------
+  // Submit handler — dropdown-selection validation happens here so the
+  // button is always clickable and users get a clear toast message.
+  // -----------------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (isSubmitting) return
 
+    let hasDropdownError = false
+
+    // Validate Ref By — must be chosen from dropdown, not just typed
+    if (formData.refby.trim() && !isRefBySelectedFromDropdown) {
+      toast.error("Please select Ref By from the dropdown list")
+      setRefByError(true)
+      hasDropdownError = true
+    }
+
+    // Validate Clinical Name — must be chosen from dropdown when B2B is enabled
+    if (isB2BEnabled && formData.B2B.trim() && !isClinicalSelectedFromDropdown) {
+      toast.error("Please select Clinical Name from the dropdown list")
+      setClinicalError(true)
+      hasDropdownError = true
+    }
+
+    if (hasDropdownError) return
+
+    // Standard field validation
     const validationErrors = validateRequiredFields()
     if (validationErrors.length > 0) {
       validationErrors.forEach((error) => toast.error(error))
@@ -1667,10 +1721,7 @@ const PatientForm = () => {
         patient_history: patientHistory,
       }
 
-      // If from search (revisit): only create bill
-      // If from appointment or new patient: create both patient and bill
       if (patientSelectionSource === "search") {
-        // Revisit patient - only create bill
         const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData)
         if (billResult && billResult.success) {
           toast.success(`Bill created successfully for revisit patient!`)
@@ -1679,16 +1730,13 @@ const PatientForm = () => {
           toast.error("Failed to create bill. Please try again.")
         }
       } else {
-        // Appointment or new patient - create both patient and bill
         try {
-          // Send patient data as JSON (correctly handles address object)
           const patientResult = await apiRequest(`${Labbaseurl}create_patient/`, "POST", baseData)
 
           if (patientResult && patientResult.success) {
             let billPayload = billData
             let headers = {}
 
-            // If prescription file exists, use FormData for create_bill
             if (prescriptionFile) {
               const billFormData = new FormData()
 
@@ -1696,7 +1744,6 @@ const PatientForm = () => {
                 const value = billData[key]
                 if (value === null || value === undefined) return
 
-                // Stringify complex objects/arrays for backend parsing
                 if (typeof value === "object" && !(value instanceof Date) && key !== "date") {
                   billFormData.append(key, JSON.stringify(value))
                 } else {
@@ -1705,9 +1752,7 @@ const PatientForm = () => {
               })
 
               billFormData.append("prescription_file", prescriptionFile)
-
               billPayload = billFormData
-              // Unset Content-Type to let browser set boundary for multipart
               headers = { "Content-Type": undefined }
             }
 
@@ -1744,9 +1789,14 @@ const PatientForm = () => {
     setShowPatientModal(false)
     setMultiplePatients([])
     setPrescriptionFile(null)
-    setPatientSelectionSource(null) // Reset selection source
-    setRefBySearchValue("") // Reset RefBy search
-    setClinicalSearchValue("") // Reset clinical search
+    setPatientSelectionSource(null)
+    setRefBySearchValue("")
+    setClinicalSearchValue("")
+    // Reset dropdown flags and errors
+    setIsRefBySelectedFromDropdown(false)
+    setIsClinicalSelectedFromDropdown(false)
+    setRefByError(false)
+    setClinicalError(false)
 
     setFormData({
       patient_id: "",
@@ -1817,10 +1867,7 @@ const PatientForm = () => {
       const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
       const todayAppointments = appointments.filter((appointment) => {
-        if (!appointment.appointment_date) {
-          return false
-        }
-
+        if (!appointment.appointment_date) return false
         const appointmentDateStr = appointment.appointment_date.split("T")[0].split(" ")[0]
         return appointmentDateStr === todayDate
       })
@@ -1844,7 +1891,7 @@ const PatientForm = () => {
 
   const handleAppointmentSelect = (appointment) => {
     const patientData = {
-      patient_id: formData.patient_id || "", // Keep existing patient_id if it's a new bill for an existing patient
+      patient_id: formData.patient_id || "",
       patientname: appointment.patient_name || "",
       age: appointment.age || "",
       age_type: appointment.age_type || "Years",
@@ -1856,14 +1903,12 @@ const PatientForm = () => {
       emergency: appointment.emergency || false,
     }
 
-    loadPatientData(patientData, "appointment") // Patient selected from appointment
+    loadPatientData(patientData, "appointment")
     setShowAppointmentModal(false)
     toast.success("Appointment patient loaded successfully. Fields are editable.")
   }
 
   const shouldDisableField = () => {
-    // Disable fields if data was loaded from a search result (existing patient)
-    // But allow editing if it was from an appointment or a newly created patient
     return patientSelectionSource === "search" && isExistingPatient
   }
 
@@ -1981,9 +2026,9 @@ const PatientForm = () => {
                           <span className="value">
                             {appointment.appointment_date
                               ? new Date(appointment.appointment_date).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                               : "N/A"}
                           </span>
                         </div>
@@ -2065,6 +2110,8 @@ const PatientForm = () => {
                 <label>Lab ID</label>
                 <input type="text" name="lab_id" value={formData.lab_id} onChange={handleChange} readOnly />
               </FormGroup>
+
+              {/* ---- Ref By with dropdown-selection enforcement ---- */}
               <FieldWithButton>
                 <FormGroup className="field-input">
                   <label>
@@ -2077,8 +2124,9 @@ const PatientForm = () => {
                       onChange={handleRefBySearch}
                       onFocus={() => setShowRefByDropdown(true)}
                       onBlur={() => setTimeout(() => setShowRefByDropdown(false), 200)}
-                      placeholder="Type to search or select"
+                      placeholder="Type to search, then select"
                       required
+                      $hasError={refByError}
                     />
                     {showRefByDropdown && (
                       <SearchableDropdown>
@@ -2100,11 +2148,18 @@ const PatientForm = () => {
                       </SearchableDropdown>
                     )}
                   </SearchableInputWrapper>
+                  {refByError && (
+                    <FieldHint $error>⚠ Please select from the dropdown list</FieldHint>
+                  )}
+                  {!refByError && refBySearchValue && !isRefBySelectedFromDropdown && (
+                    <FieldHint>Type and select an option from the list</FieldHint>
+                  )}
                 </FormGroup>
                 <button type="button" onClick={() => setShowRefByFormForm(true)} title="Add new Refby">
                   <FaPlus />
                 </button>
               </FieldWithButton>
+
               <FormGroup>
                 <label>
                   Branch<RequiredIndicator>*</RequiredIndicator>
@@ -2128,6 +2183,7 @@ const PatientForm = () => {
                 </div>
               </ToggleContainer>
 
+              {/* ---- Clinical Name with dropdown-selection enforcement ---- */}
               <FormGroup>
                 <label>Clinical Name{isB2BEnabled && <RequiredIndicator>*</RequiredIndicator>}</label>
                 <SearchableInputWrapper>
@@ -2137,9 +2193,10 @@ const PatientForm = () => {
                     onChange={handleClinicalNameSearch}
                     onFocus={() => isB2BEnabled && setShowClinicalDropdown(true)}
                     onBlur={() => setTimeout(() => setShowClinicalDropdown(false), 200)}
-                    placeholder="Type to search or select"
+                    placeholder="Type to search, then select"
                     disabled={!isB2BEnabled}
                     required={isB2BEnabled}
+                    $hasError={clinicalError}
                   />
                   {showClinicalDropdown && isB2BEnabled && (
                     <SearchableDropdown>
@@ -2161,6 +2218,12 @@ const PatientForm = () => {
                     </SearchableDropdown>
                   )}
                 </SearchableInputWrapper>
+                {clinicalError && (
+                  <FieldHint $error>⚠ Please select from the dropdown list</FieldHint>
+                )}
+                {!clinicalError && clinicalSearchValue && isB2BEnabled && !isClinicalSelectedFromDropdown && (
+                  <FieldHint>Type and select an option from the list</FieldHint>
+                )}
               </FormGroup>
 
               <FormGroup>
@@ -2410,7 +2473,8 @@ const PatientForm = () => {
           </Fieldset>
 
           <ButtonContainer>
-            <SubmitButton type="submit" disabled={!isFormValid || isSubmitting}>
+            {/* Button is only disabled while submitting — NOT for dropdown validation */}
+            <SubmitButton type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <SpinnerIcon />
