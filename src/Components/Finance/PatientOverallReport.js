@@ -2,7 +2,17 @@ import React, { useState, useEffect } from "react";
 import apiRequest from "../Auth/apiRequest";
 import axios from "axios";
 import styled, { keyframes, css } from "styled-components";
-import { Save, Edit2, CreditCard, User, FileText, IndianRupee, Calendar, CheckCircle, Clock } from "lucide-react";
+import {
+  Save,
+  Edit2,
+  CreditCard,
+  User,
+  FileText,
+  IndianRupee,
+  Calendar,
+  CheckCircle,
+  Clock,
+} from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -55,7 +65,6 @@ const SectionTitle = styled.h5`
   display: flex;
   align-items: center;
   gap: 8px;
-  
   svg {
     color: #6366f1;
   }
@@ -166,28 +175,31 @@ const ActionButton = styled.button`
   transition: all 0.2s ease;
   height: 42px;
   white-space: nowrap;
-  
-  ${props => props.primary ? css`
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
 
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
-      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-    }
-  ` : css`
-    background: white;
-    color: #475569;
-    border: 1px solid #e2e8f0;
+  ${(props) =>
+    props.primary
+      ? css`
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
 
-    &:hover {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      color: #1e293b;
-    }
-  `}
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+          }
+        `
+      : css`
+          background: white;
+          color: #475569;
+          border: 1px solid #e2e8f0;
+
+          &:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+          }
+        `}
 
   &:active {
     transform: translateY(0);
@@ -237,259 +249,303 @@ const Badge = styled.span`
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  background: ${props => props.bg || '#f1f5f9'};
-  color: ${props => props.color || '#64748b'};
+  background: ${(props) => props.bg || "#f1f5f9"};
+  color: ${(props) => props.color || "#64748b"};
 `;
 
 const PatientOverallReport = ({ patient_id, date }) => {
-    const [patientData, setPatientData] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [creditAmount, setCreditAmount] = useState("");
-    const [amountPaid, setAmountPaid] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("Cash");
-    const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+  const [patientData, setPatientData] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [amountPaid, setAmountPaid] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-    useEffect(() => {
-        if (patient_id && date) {
-            const fetchReport = async () => {
-                const result = await apiRequest(`${Labbaseurl}overall_report/?patient_id=${patient_id}&selected_date=${date}`, "GET");
-                if (result.success) {
-                    const patientRecord = result.data.find(item => item.patient_id === patient_id);
-                    if (patientRecord) {
-                        setPatientData(patientRecord);
-                        setCreditAmount(patientRecord.credit_amount || "0");
-                    } else {
-                        setPatientData(null);
-                    }
-                } else {
-                    console.error("Error fetching data:", result.error);
-                }
-            };
-            fetchReport();
+  useEffect(() => {
+    if (patient_id && date) {
+      const fetchReport = async () => {
+        const result = await apiRequest(
+          `${Labbaseurl}overall_report/?patient_id=${patient_id}&selected_date=${date}`,
+          "GET",
+        );
+        if (result.success) {
+          const patientRecord = result.data.find(
+            (item) => item.patient_id === patient_id,
+          );
+          if (patientRecord) {
+            setPatientData(patientRecord);
+            setCreditAmount(patientRecord.credit_amount || "0");
+          } else {
+            setPatientData(null);
+          }
+        } else {
+          console.error("Error fetching data:", result.error);
         }
-    }, [patient_id, date]);
+      };
+      fetchReport();
+    }
+  }, [patient_id, date]);
 
-    const handleEdit = () => {
-        setIsEditing(true);
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    const updatedCreditAmount =
+      parseFloat(creditAmount) - parseFloat(amountPaid || 0);
+    const newPaymentEntry = {
+      paid_date: new Date().toISOString().split("T")[0], // Store as YYYY-MM-DD
+      amount_paid: parseFloat(amountPaid || 0),
+      remaining_amount: updatedCreditAmount.toString(),
+      payment_method: paymentMethod,
     };
 
-    const handleSave = () => {
-        const updatedCreditAmount = parseFloat(creditAmount) - parseFloat(amountPaid || 0);
-        const newPaymentEntry = {
-            paid_date: new Date().toISOString().split("T")[0], // Store as YYYY-MM-DD
-            amount_paid: parseFloat(amountPaid || 0),
-            remaining_amount: updatedCreditAmount.toString(),
-            payment_method: paymentMethod
-        };
+    const payload = {
+      bill_no: patientData.bill_no,
+      credit_amount: updatedCreditAmount.toString(),
+      amount_paid: parseFloat(amountPaid || 0),
+      paid_date: newPaymentEntry.paid_date,
+      payment_method: paymentMethod,
+    };
 
-        const payload = {
-            bill_no: patientData.bill_no,
+    const updateCredit = async () => {
+      if (patientData && patientData.bill_no) {
+        const result = await apiRequest(
+          `${Labbaseurl}credit_amount/`,
+          "PATCH",
+          payload,
+        );
+        if (result.success) {
+          // Update state immediately to reflect the new payment in the history table
+          setPatientData((prevData) => ({
+            ...prevData,
             credit_amount: updatedCreditAmount.toString(),
-            amount_paid: parseFloat(amountPaid || 0),
-            paid_date: newPaymentEntry.paid_date,
-            payment_method: paymentMethod
-        };
+            credit_details: [
+              ...(prevData.credit_details || []),
+              newPaymentEntry,
+            ], // Append new entry
+          }));
 
-        const updateCredit = async () => {
-            if (patientData && patientData.bill_no) {
-                const result = await apiRequest(`${Labbaseurl}credit_amount/`, "PATCH", payload);
-                if (result.success) {
-                    // Update state immediately to reflect the new payment in the history table
-                    setPatientData((prevData) => ({
-                        ...prevData,
-                        credit_amount: updatedCreditAmount.toString(),
-                        credit_details: [...(prevData.credit_details || []), newPaymentEntry] // Append new entry
-                    }));
-
-                    setCreditAmount(updatedCreditAmount.toString());
-                    setAmountPaid("");
-                    setIsEditing(false);
-                    toast.success("Credit amount updated successfully!", { autoClose: 3000 });
-                } else {
-                    console.error("Error updating credit amount:", result.error);
-                    toast.error("Failed to update credit amount.");
-                }
-            } else {
-                toast.error("Bill number not found for this patient.");
-            }
-        };
-        updateCredit();
+          setCreditAmount(updatedCreditAmount.toString());
+          setAmountPaid("");
+          setIsEditing(false);
+          toast.success("Credit amount updated successfully!", {
+            autoClose: 3000,
+          });
+        } else {
+          console.error("Error updating credit amount:", result.error);
+          toast.error("Failed to update credit amount.");
+        }
+      } else {
+        toast.error("Bill number not found for this patient.");
+      }
     };
+    updateCredit();
+  };
 
-    return (
-        <PageContainer>
-            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-            <ReportCard>
-                {patientData ? (
-                    <>
-                        <Header>
-                            <FileText size={24} color="#6366f1" />
-                            <h2>Credit Amount Management</h2>
-                        </Header>
+  return (
+    <PageContainer>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+      />
+      <ReportCard>
+        {patientData ? (
+          <>
+            <Header>
+              <FileText size={24} color="#6366f1" />
+              <h2>Credit Amount Management</h2>
+            </Header>
 
-                        {/* Patient Info Section */}
-                        <FormGroup>
-                            <InputGroup>
-                                <Label>Patient Name</Label>
-                                <InputWrapper>
-                                    <IconWrapper>
-                                        <User size={18} />
-                                    </IconWrapper>
-                                    <StyledInput
-                                        type="text"
-                                        value={patientData.patient_name}
-                                        disabled
-                                    />
-                                </InputWrapper>
-                            </InputGroup>
-                            <InputGroup>
-                                <Label>Total Bill Amount</Label>
-                                <InputWrapper>
-                                    <IconWrapper>
-                                        <IndianRupee size={18} />
-                                    </IconWrapper>
-                                    <StyledInput
-                                        type="text"
-                                        value={patientData.total_amount}
-                                        disabled
-                                    />
-                                </InputWrapper>
-                            </InputGroup>
-                        </FormGroup>
+            {/* Patient Info Section */}
+            <FormGroup>
+              <InputGroup>
+                <Label>Patient Name</Label>
+                <InputWrapper>
+                  <IconWrapper>
+                    <User size={18} />
+                  </IconWrapper>
+                  <StyledInput
+                    type="text"
+                    value={patientData.patient_name}
+                    disabled
+                  />
+                </InputWrapper>
+              </InputGroup>
+              <InputGroup>
+                <Label>Total Bill Amount</Label>
+                <InputWrapper>
+                  <IconWrapper>
+                    <IndianRupee size={18} />
+                  </IconWrapper>
+                  <StyledInput
+                    type="text"
+                    value={patientData.total_amount}
+                    disabled
+                  />
+                </InputWrapper>
+              </InputGroup>
+            </FormGroup>
 
-                        <SectionTitle>
-                            <CreditCard size={18} /> Credit Details
-                        </SectionTitle>
+            <SectionTitle>
+              <CreditCard size={18} /> Credit Details
+            </SectionTitle>
 
-                        <FormGroup style={{ alignItems: "end" }}>
-                            <InputGroup>
-                                <Label>Current Credit Amount</Label>
-                                <InputWrapper>
-                                    <IconWrapper>
-                                        <IndianRupee size={18} />
-                                    </IconWrapper>
-                                    <StyledInput
-                                        type="text"
-                                        value={creditAmount}
-                                        disabled={true}
-                                        style={{ color: '#ef4444', fontWeight: 'bold' }}
-                                    />
-                                </InputWrapper>
-                            </InputGroup>
+            <FormGroup style={{ alignItems: "end" }}>
+              <InputGroup>
+                <Label>Current Credit Amount</Label>
+                <InputWrapper>
+                  <IconWrapper>
+                    <IndianRupee size={18} />
+                  </IconWrapper>
+                  <StyledInput
+                    type="text"
+                    value={creditAmount}
+                    disabled={true}
+                    style={{ color: "#ef4444", fontWeight: "bold" }}
+                  />
+                </InputWrapper>
+              </InputGroup>
 
-                            {!isEditing && parseFloat(creditAmount) > 0 && (
-                                <ActionButton onClick={handleEdit}>
-                                    <Edit2 size={16} /> Update Credit
-                                </ActionButton>
-                            )}
-                        </FormGroup>
+              {!isEditing && parseFloat(creditAmount) > 0 && (
+                <ActionButton onClick={handleEdit}>
+                  <Edit2 size={16} /> Update Credit
+                </ActionButton>
+              )}
+            </FormGroup>
 
-                        {isEditing && (
-                            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                                <FormGroup>
-                                    <InputGroup>
-                                        <Label>Amount Paid</Label>
-                                        <InputWrapper>
-                                            <IconWrapper>
-                                                <IndianRupee size={18} />
-                                            </IconWrapper>
-                                            <StyledInput
-                                                type="number"
-                                                placeholder="Enter amount paid"
-                                                value={amountPaid}
-                                                onChange={(e) => setAmountPaid(e.target.value)}
-                                                autoFocus
-                                            />
-                                        </InputWrapper>
-                                    </InputGroup>
-                                    <InputGroup>
-                                        <Label>Payment Method</Label>
-                                        <InputWrapper>
-                                            <IconWrapper>
-                                                <CreditCard size={18} />
-                                            </IconWrapper>
-                                            <StyledSelect
-                                                value={paymentMethod}
-                                                onChange={(e) => setPaymentMethod(e.target.value)}
-                                            >
-                                                <option value="Cash">Cash</option>
-                                                <option value="UPI">UPI</option>
-                                                <option value="NEFT">NEFT</option>
-                                                <option value="Cheque">Cheque</option>
-                                            </StyledSelect>
-                                        </InputWrapper>
-                                    </InputGroup>
-                                </FormGroup>
+            {isEditing && (
+              <div
+                style={{
+                  background: "#f8fafc",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: "20px",
+                }}
+              >
+                <FormGroup>
+                  <InputGroup>
+                    <Label>Amount Paid</Label>
+                    <InputWrapper>
+                      <IconWrapper>
+                        <IndianRupee size={18} />
+                      </IconWrapper>
+                      <StyledInput
+                        type="number"
+                        placeholder="Enter amount paid"
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(e.target.value)}
+                        autoFocus
+                      />
+                    </InputWrapper>
+                  </InputGroup>
+                  <InputGroup>
+                    <Label>Payment Method</Label>
+                    <InputWrapper>
+                      <IconWrapper>
+                        <CreditCard size={18} />
+                      </IconWrapper>
+                      <StyledSelect
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="NEFT">NEFT</option>
+                        <option value="Cheque">Cheque</option>
+                      </StyledSelect>
+                    </InputWrapper>
+                  </InputGroup>
+                </FormGroup>
 
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                                    <ActionButton onClick={() => setIsEditing(false)}>
-                                        Cancel
-                                    </ActionButton>
-                                    <ActionButton primary onClick={handleSave}>
-                                        <Save size={16} /> Save Transaction
-                                    </ActionButton>
-                                </div>
-                            </div>
-                        )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "10px",
+                  }}
+                >
+                  <ActionButton onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </ActionButton>
+                  <ActionButton primary onClick={handleSave}>
+                    <Save size={16} /> Save Transaction
+                  </ActionButton>
+                </div>
+              </div>
+            )}
 
-                        {/* Payment History Table */}
-                        {patientData.credit_details && patientData.credit_details.length > 0 && (
-                            <>
-                                <SectionTitle>
-                                    <Clock size={18} /> Payment History
-                                </SectionTitle>
-                                <TableContainer>
-                                    <StyledTable>
-                                        <thead>
-                                            <tr>
-                                                <Th>Date</Th>
-                                                <Th>Amount Paid</Th>
-                                                <Th>Remaining</Th>
-                                                <Th>Method</Th>
-                                                <Th>Status</Th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {patientData.credit_details.map((detail, index) => (
-                                                <tr key={index}>
-                                                    <Td>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <Calendar size={14} color="#64748b" />
-                                                            {new Date(detail.paid_date).toLocaleDateString()}
-                                                        </div>
-                                                    </Td>
-                                                    <Td style={{ fontWeight: 600, color: '#059669' }}>
-                                                        ₹{parseInt(detail.amount_paid)}
-                                                    </Td>
-                                                    <Td style={{ fontWeight: 600, color: '#ef4444' }}>
-                                                        ₹{parseInt(detail.remaining_amount)}
-                                                    </Td>
-                                                    <Td>
-                                                        <Badge bg="#e0e7ff" color="#4338ca">
-                                                            {detail.payment_method || "N/A"}
-                                                        </Badge>
-                                                    </Td>
-                                                    <Td>
-                                                        <Badge bg="#dcfce7" color="#166534">
-                                                            <CheckCircle size={12} /> Paid
-                                                        </Badge>
-                                                    </Td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </StyledTable>
-                                </TableContainer>
-                            </>
-                        )}
-                    </>
-                ) : (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                        <p>Select a patient and date to view credit details.</p>
-                    </div>
-                )}
-            </ReportCard>
-        </PageContainer>
-    );
+            {/* Payment History Table */}
+            {patientData.credit_details &&
+              patientData.credit_details.length > 0 && (
+                <>
+                  <SectionTitle>
+                    <Clock size={18} /> Payment History
+                  </SectionTitle>
+                  <TableContainer>
+                    <StyledTable>
+                      <thead>
+                        <tr>
+                          <Th>Date</Th>
+                          <Th>Amount Paid</Th>
+                          <Th>Remaining</Th>
+                          <Th>Method</Th>
+                          <Th>Status</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {patientData.credit_details.map((detail, index) => (
+                          <tr key={index}>
+                            <Td>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                }}
+                              >
+                                <Calendar size={14} color="#64748b" />
+                                {new Date(
+                                  detail.paid_date,
+                                ).toLocaleDateString()}
+                              </div>
+                            </Td>
+                            <Td style={{ fontWeight: 600, color: "#059669" }}>
+                              ₹{parseInt(detail.amount_paid)}
+                            </Td>
+                            <Td style={{ fontWeight: 600, color: "#ef4444" }}>
+                              ₹{parseInt(detail.remaining_amount)}
+                            </Td>
+                            <Td>
+                              <Badge bg="#e0e7ff" color="#4338ca">
+                                {detail.payment_method || "N/A"}
+                              </Badge>
+                            </Td>
+                            <Td>
+                              <Badge bg="#dcfce7" color="#166534">
+                                <CheckCircle size={12} /> Paid
+                              </Badge>
+                            </Td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </StyledTable>
+                  </TableContainer>
+                </>
+              )}
+          </>
+        ) : (
+          <div
+            style={{ padding: "40px", textAlign: "center", color: "#64748b" }}
+          >
+            <p>Select a patient and date to view credit details.</p>
+          </div>
+        )}
+      </ReportCard>
+    </PageContainer>
+  );
 };
 
 export default PatientOverallReport;

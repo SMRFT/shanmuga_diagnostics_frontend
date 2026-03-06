@@ -281,7 +281,6 @@ const LoadingContainer = styled.div`
   gap: 10px;
 `;
 
-/* 2×3 grid container for multiple files */
 const FilesGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -309,23 +308,6 @@ const FileImage = styled.img`
   max-width: 100%;
   height: auto;
   display: block;
-`;
-
-const FilePreviewContainer = styled.div`
-  margin-top: 10px;
-  padding: 15px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-`;
-
-const FilePreviewTitle = styled.h4`
-  font-size: 14px;
-  font-weight: 600;
-  color: #555;
-  margin: 0 0 10px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #db9bb9;
 `;
 
 const TestReportCard = styled.div`
@@ -434,24 +416,75 @@ const LoadPdfButton = styled.button`
   }
 `;
 
+// ─── Ophthalmology table styled components ────────────────────────────────────
+
+const OphthalTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+`;
+
+const OphthalThead = styled.thead`
+  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+`;
+
+const OphthalTh = styled.th`
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  border-bottom: 1px solid #e8e8e8;
+  text-align: center;
+  &:first-child {
+    text-align: left;
+  }
+`;
+
+const OphthalTd = styled.td`
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #222;
+  border-bottom: 1px solid #f2f2f2;
+  text-align: center;
+  &:first-child {
+    text-align: left;
+    font-weight: 600;
+    color: #444;
+  }
+`;
+
+const OphthalNote = styled.div`
+  margin-top: 8px;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+`;
+
+const OphthalNoteLabel = styled.span`
+  font-weight: 700;
+  color: #444;
+  margin-right: 8px;
+`;
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   const [chcTests, setChcTests] = useState([]);
   const [chcInvestigationStatus, setChcInvestigationStatus] = useState(null);
   const [labApprovalStatus, setLabApprovalStatus] = useState(null);
-  // Vitals & patient_history come from get_investigation_status (core_investigation)
   const [vitalsFromInvestigation, setVitalsFromInvestigation] = useState({});
   const [patientHistoryFromInvestigation, setPatientHistoryFromInvestigation] =
     useState("");
-  // previewChcTests: guaranteed-fresh copy used inside the preview modal
+  // ophthalmology from get_investigation_status → ophthalmology_exam
+  const [ophthalmologyExam, setOphthalmologyExam] = useState(null);
   const [previewChcTests, setPreviewChcTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [patientDetails, setPatientDetails] = useState(null);
-  // investigationFiles: { testId: [fileData, ...] }
   const [investigationFiles, setInvestigationFiles] = useState({});
-  // pdfImages: { "testId_fileIdx_pageIdx" or "testId_fileIdx": [dataUrl,...] }
   const [pdfImages, setPdfImages] = useState({});
   const [conversionLoading, setConversionLoading] = useState({});
   const [impression, setImpression] = useState("Reports within Normal Limits.");
@@ -470,7 +503,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     fetchInvestigationStatus();
   }, [patient.barcode]);
 
-  // ── Fetch per-test CHC status from get_investigation_status ──────────────
+  // ── Fetch per-test CHC status ─────────────────────────────────────────────
   const fetchInvestigationStatus = async () => {
     try {
       setLoading(true);
@@ -486,6 +519,15 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         setLabApprovalStatus(result.data.lab_approval);
         setVitalsFromInvestigation(result.data.vitals || {});
         setPatientHistoryFromInvestigation(result.data.patient_history || "");
+        // Store ophthalmology_exam if present and non-empty
+        const ophthal = result.data.ophthalmology_exam;
+        if (
+          ophthal &&
+          typeof ophthal === "object" &&
+          Object.keys(ophthal).length > 0
+        ) {
+          setOphthalmologyExam(ophthal);
+        }
       } else {
         console.error("Error fetching investigation status:", result.error);
         alert("Failed to fetch investigation status: " + result.error);
@@ -523,9 +565,8 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       const cleanBase64 = base64Data.replace(/^data:.*?;base64,/, "");
       const binaryString = atob(cleanBase64);
       const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
+      for (let i = 0; i < binaryString.length; i++)
         bytes[i] = binaryString.charCodeAt(i);
-      }
       const loadingTask = pdfjsLib.getDocument({
         data: bytes,
         verbosity: pdfjsLib.VerbosityLevel.ERRORS,
@@ -559,25 +600,30 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     try {
       setLoading(true);
 
-      // 1. Re-fetch fresh investigation status (avoids stale chcTests closure)
-      //    This gives us the latest files[] list per test directly from core_investigation
       const statusResult = await apiRequest(
         `${Labbaseurl}get_investigation_status/?barcode=${patient.barcode}`,
         "GET",
       );
-      let freshChcTests = chcTests; // fallback to state
+      let freshChcTests = chcTests;
       if (statusResult.success) {
         freshChcTests = statusResult.data.chc_tests || [];
-        // Also refresh state in case anything changed
         setChcTests(freshChcTests);
         setPreviewChcTests(freshChcTests);
         setVitalsFromInvestigation(statusResult.data.vitals || {});
         setPatientHistoryFromInvestigation(
           statusResult.data.patient_history || "",
         );
+        // Refresh ophthalmology too
+        const ophthal = statusResult.data.ophthalmology_exam;
+        if (
+          ophthal &&
+          typeof ophthal === "object" &&
+          Object.keys(ophthal).length > 0
+        ) {
+          setOphthalmologyExam(ophthal);
+        }
       }
 
-      // 2. Fetch patient/lab report data
       const result = await apiRequest(
         `${Labbaseurl}corporate_health_report/?barcode=${patient.barcode}`,
         "GET",
@@ -589,8 +635,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       const patientData = result.data.patient_data || result.data;
       setPatientDetails(patientData);
 
-      // 3. Fetch all files using freshChcTests (not stale state)
-      //    Each test.files is an array of GridFS ObjectId strings
       const files = {};
       await Promise.all(
         freshChcTests.map(async (test) => {
@@ -598,7 +642,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
           if (fileIds.length === 0) return;
           const fetched = await Promise.all(
             fileIds.map((fileId) => {
-              // fileId may be a plain string or an object like { "$oid": "..." }
               const id =
                 typeof fileId === "object" && fileId.$oid
                   ? fileId.$oid
@@ -714,11 +757,10 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     return null;
   };
 
-  // ── Summary counts ────────────────────────────────────────────────────────
   const pendingCount = chcTests.filter((t) => t.status !== "approved").length;
   const approvedCount = chcTests.filter((t) => t.status === "approved").length;
 
-  // ── Render a single file cell (image or PDF page) ─────────────────────────
+  // ── Render a single file cell ─────────────────────────────────────────────
   const renderSingleFileCell = (file, cacheKey, label) => {
     if (!file || !file.data) return null;
     const contentType = file.contentType || "";
@@ -747,7 +789,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
           </div>
         );
       }
-      // For PDF: show all pages stacked inside this cell
       return (
         <div>
           {images.map((imgSrc, pageIdx) => (
@@ -765,28 +806,24 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         </div>
       );
     }
-
-    // Image
     return (
       <FileImage src={`data:${contentType};base64,${file.data}`} alt={label} />
     );
   };
 
-  // ── Render files for one CHC test (1 file → full width; 2+ → 2-col grid capped at 3 rows) ──
+  // ── Render files for one CHC test ─────────────────────────────────────────
   const renderTestFiles = (testId, testName) => {
     const files = investigationFiles[testId];
     if (!files || files.length === 0) return null;
 
     if (files.length === 1) {
-      const cacheKey = `${testId}_0`;
       return (
         <div style={{ marginTop: 8 }}>
-          {renderSingleFileCell(files[0], cacheKey, testName)}
+          {renderSingleFileCell(files[0], `${testId}_0`, testName)}
         </div>
       );
     }
 
-    // 2+ files → 2-column grid (up to 6 shown, i.e. 3 rows × 2 cols)
     const maxShow = 6;
     const shown = files.slice(0, maxShow);
     return (
@@ -812,6 +849,67 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
           );
         })}
       </FilesGrid>
+    );
+  };
+
+  // ── Ophthalmology preview sub-component ──────────────────────────────────
+  // Accepts the ophthalmology_exam object from the API:
+  // { distance, nearVision, colourVision, ocularmovement, complaints, remarks }
+  const OphthalmologyPreview = ({ exam }) => {
+    if (!exam || Object.keys(exam).length === 0) {
+      return (
+        <InfoValue style={{ color: "#888" }}>
+          No ophthalmology data recorded.
+        </InfoValue>
+      );
+    }
+
+    const getEyes = (key) => {
+      const obj = exam[key] || {};
+      return { right: obj.right || "—", left: obj.left || "—" };
+    };
+
+    const rows = [
+      { label: "Distant Vision", data: getEyes("distance") },
+      { label: "Near Vision", data: getEyes("nearVision") },
+      { label: "Colour Vision", data: getEyes("colourVision") },
+      { label: "Ocular Movement", data: getEyes("ocularmovement") },
+    ];
+
+    return (
+      <div>
+        <OphthalTable>
+          <OphthalThead>
+            <tr>
+              <OphthalTh>Test</OphthalTh>
+              <OphthalTh>Right Eye</OphthalTh>
+              <OphthalTh>Left Eye</OphthalTh>
+            </tr>
+          </OphthalThead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label}>
+                <OphthalTd>{row.label}</OphthalTd>
+                <OphthalTd>{row.data.right}</OphthalTd>
+                <OphthalTd>{row.data.left}</OphthalTd>
+              </tr>
+            ))}
+          </tbody>
+        </OphthalTable>
+
+        {/* Patient Complaints */}
+        <OphthalNote>
+          <OphthalNoteLabel>Patient Complaints:</OphthalNoteLabel>
+          {exam.complaints?.trim() || "Nil"}
+        </OphthalNote>
+
+        {/* Remarks */}
+        <OphthalNote>
+          <OphthalNoteLabel>Remarks:</OphthalNoteLabel>
+          {exam.remarks?.trim() ||
+            "Both Eyes: Normal Vision. Review after 6 months or 1 year."}
+        </OphthalNote>
+      </div>
     );
   };
 
@@ -947,47 +1045,39 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     );
   };
 
-  // ── Build vitals rows robustly (handles both key naming conventions) ───────
+  // ── Build vitals rows ─────────────────────────────────────────────────────
   const buildVitalsRows = (vitals) => {
     if (!vitals) return [];
     const rows = [];
-    // height: stored as height_cm or height
     const height = vitals.height_cm || vitals.height;
-    if (height && String(height).trim() && String(height).trim() !== "0") {
+    if (height && String(height).trim() && String(height).trim() !== "0")
       rows.push({ param: "Height", value: `${height} cms`, range: "" });
-    }
-    // weight: stored as weight_kg or weight
     const weight = vitals.weight_kg || vitals.weight;
-    if (weight && String(weight).trim() && String(weight).trim() !== "0") {
+    if (weight && String(weight).trim() && String(weight).trim() !== "0")
       rows.push({ param: "Weight", value: `${weight} kgs`, range: "" });
-    }
     if (
       vitals.bmi &&
       String(vitals.bmi).trim() &&
       String(vitals.bmi).trim() !== "0"
-    ) {
+    )
       rows.push({
         param: "BMI",
         value: `${vitals.bmi} kg/m²`,
         range: "18.5 – 24.9",
       });
-    }
-    if (vitals.blood_pressure && String(vitals.blood_pressure).trim()) {
+    if (vitals.blood_pressure && String(vitals.blood_pressure).trim())
       rows.push({
         param: "Blood Pressure",
         value: `${vitals.blood_pressure} mmHg`,
         range: "120/80",
       });
-    }
-    // pulse: stored as pulse or spo2 (legacy)
     const pulse = vitals.pulse || vitals.spo2;
-    if (pulse && String(pulse).trim() && String(pulse).trim() !== "0") {
+    if (pulse && String(pulse).trim() && String(pulse).trim() !== "0")
       rows.push({
         param: "Pulse Rate",
         value: `${pulse} bpm`,
         range: "60 – 100",
       });
-    }
     return rows;
   };
 
@@ -996,7 +1086,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   // ═══════════════════════════════════════════════════════════════════════════
   if (showPreview) {
     const vitalsRows = buildVitalsRows(
-      // Prefer vitals fetched from core_investigation via get_investigation_status
       Object.keys(vitalsFromInvestigation).length > 0
         ? vitalsFromInvestigation
         : patientDetails?.vitals,
@@ -1135,7 +1224,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                       </InfoValue>
                     </InfoRow>
                   )}
-                  {/* Also show notes from previewChcTests (from core_investigation.test_results) */}
                   {previewChcTests.filter((t) => t.notes && t.notes.trim())
                     .length > 0 && (
                     <>
@@ -1164,7 +1252,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                         ))}
                     </>
                   )}
-                  {/* If nothing at all */}
                   {!patientDetails.investigation_notes?.ecg_notes &&
                     !patientDetails.investigation_notes?.pft_notes &&
                     !patientDetails.investigation_notes?.xray_notes &&
@@ -1177,15 +1264,20 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     )}
                 </ReportSection>
 
-                {/* ── 5. Test Reports (report text + files per test) ─────── */}
+                {/* ── 5. Ophthalmology ───────────────────────────────────── */}
+                <ReportSection>
+                  <SectionTitle>5. Ophthalmology</SectionTitle>
+                  <OphthalmologyPreview exam={ophthalmologyExam} />
+                </ReportSection>
+
+                {/* ── 6. Test Reports (report text + files per test) ─────── */}
                 {previewChcTests.length > 0 && (
                   <ReportSection>
-                    <SectionTitle>5. Test Reports &amp; Files</SectionTitle>
+                    <SectionTitle>6. Test Reports &amp; Files</SectionTitle>
                     {previewChcTests.map((test) => {
                       const hasReport = test.report && test.report.trim();
                       const hasFiles =
-                        investigationFiles[test.test_id] &&
-                        investigationFiles[test.test_id].length > 0;
+                        investigationFiles[test.test_id]?.length > 0;
                       if (!hasReport && !hasFiles) {
                         return (
                           <TestReportCard key={test.test_id}>
@@ -1272,20 +1364,19 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                   </ReportSection>
                 )}
 
-                {/* ── 6. Lab Investigations ──────────────────────────────── */}
-                {patientDetails.testdetails &&
-                  patientDetails.testdetails.length > 0 && (
-                    <ReportSection>
-                      <SectionTitle>6. Lab Investigations</SectionTitle>
-                      <LabInvestigationsPreview
-                        tests={patientDetails.testdetails}
-                      />
-                    </ReportSection>
-                  )}
+                {/* ── 7. Lab Investigations ──────────────────────────────── */}
+                {patientDetails.testdetails?.length > 0 && (
+                  <ReportSection>
+                    <SectionTitle>7. Lab Investigations</SectionTitle>
+                    <LabInvestigationsPreview
+                      tests={patientDetails.testdetails}
+                    />
+                  </ReportSection>
+                )}
 
-                {/* ── 7. Clinical Assessment ────────────────────────────── */}
+                {/* ── 8. Clinical Assessment ────────────────────────────── */}
                 <ReportSection>
-                  <SectionTitle>7. Clinical Assessment</SectionTitle>
+                  <SectionTitle>8. Clinical Assessment</SectionTitle>
                   <InputGroup>
                     <InputLabel>Impression</InputLabel>
                     <TextArea
@@ -1343,7 +1434,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         ) : (
           <>
             <StatusList>
-              {/* CHC Tests */}
               {chcTests.length > 0 ? (
                 <>
                   <CHCTestSectionTitle>CHC Investigations</CHCTestSectionTitle>
@@ -1437,7 +1527,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                 </StatusItem>
               )}
 
-              {/* Lab Approval */}
               <CHCTestSectionTitle style={{ marginTop: 16 }}>
                 Lab Approval
               </CHCTestSectionTitle>
