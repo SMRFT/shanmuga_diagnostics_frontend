@@ -1308,9 +1308,19 @@ const PatientOverview = () => {
             doc.setFont("helvetica", "normal");
             doc.text(right.value, rightValueX, patientInfoY);
 
-            if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-              doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
-                patientInfoY + 4, 25, 10);
+            if (
+              right.label === "Patient Ref.No" &&
+              patientRefNoNumber !== "N/A" &&
+              barcodeImage
+            ) {
+              doc.addImage(
+                barcodeImage,
+                "PNG",
+                rightValueX + doc.getTextWidth(right.value) - 10,
+                patientInfoY + 4,
+                25,
+                10,
+              );
             }
           }
 
