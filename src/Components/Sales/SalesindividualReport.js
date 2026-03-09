@@ -13,7 +13,6 @@ import {
   Filter,
   Loader2,
   User,
-  Image,
 } from "lucide-react";
 
 const SalesindividualReport = () => {
@@ -30,31 +29,31 @@ const SalesindividualReport = () => {
     if (storedName) setSalesMapping(storedName);
   }, []);
 
-  // :white_check_mark: Fetch sales data using apiRequest
-  useEffect(() => {
-    if (selectedDate && salesMapping) {
-      setIsLoading(true);
-      setError(null);
+        // :white_check_mark: Fetch sales data using apiRequest
+      useEffect(() => {
+        if (selectedDate && salesMapping) {
+          setIsLoading(true);
+          setError(null);
 
-      const formattedDate = filterByMonth
-        ? selectedDate.toISOString().slice(0, 7)
-        : selectedDate.toISOString().split("T")[0];
+          const formattedDate = filterByMonth
+            ? selectedDate.toISOString().slice(0, 7)
+            : selectedDate.toISOString().split("T")[0];
 
-      const url = `${Labbaseurl}getsalesindividual/?salesMapping=${salesMapping}&date=${formattedDate}`;
+          const url = `${Labbaseurl}getsalesindividual/?salesMapping=${salesMapping}&date=${formattedDate}`;
 
-      apiRequest(url, "GET")
-        .then((response) => {
-          const data = response?.data || [];
-          setSalesData(Array.isArray(data) ? data : []);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching data:", error);
-          setError("Failed to fetch data. Please try again.");
-          setIsLoading(false);
-        });
-    }
-  }, [selectedDate, salesMapping, filterByMonth, Labbaseurl]);
+          apiRequest(url, "GET")
+            .then((response) => {
+              const data = response?.data || [];
+              setSalesData(Array.isArray(data) ? data : []);
+              setIsLoading(false);
+            })
+            .catch((error) => {
+              console.error("Error fetching data:", error);
+              setError("Failed to fetch data. Please try again.");
+              setIsLoading(false);
+            });
+        }
+      }, [selectedDate, salesMapping, filterByMonth, Labbaseurl]);
 
 
   const csvHeaders = [
@@ -69,7 +68,6 @@ const SalesindividualReport = () => {
     { label: "No. of Visits", key: "noOfVisits" },
     { label: "Comments", key: "comments" },
     { label: "Type", key: "type" },
-    { label: "Image", key: "image" },
   ];
 
   return (
@@ -165,12 +163,7 @@ const SalesindividualReport = () => {
               <ActionBar>
                 <ResultCount>{salesData.length} records found</ResultCount>
                 <StyledCSVLink
-                  data={salesData.map((item) => ({
-                    ...item,
-                    image: item.visit_image_id
-                      ? `${Labbaseurl}serve_sales_image/${item.visit_image_id}/`
-                      : "N/A",
-                  }))}
+                  data={salesData}
                   headers={csvHeaders}
                   filename="SalesReport.csv"
                 >
@@ -194,30 +187,7 @@ const SalesindividualReport = () => {
                     {salesData.map((row, index) => (
                       <TableRow key={index} delay={index * 0.03}>
                         {csvHeaders.map((header) => (
-                          <Td key={header.key}>
-                            {header.key === "image" ? (
-                              row.visit_image_id ? (
-                                <a
-                                  href={`${Labbaseurl}serve_sales_image/${row.visit_image_id}/`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    color: "#4a6cf7",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                    textDecoration: "none",
-                                  }}
-                                >
-                                  <Image size={16} /> View
-                                </a>
-                              ) : (
-                                "N/A"
-                              )
-                            ) : (
-                              row[header.key]
-                            )}
-                          </Td>
+                          <Td key={header.key}>{row[header.key]}</Td>
                         ))}
                       </TableRow>
                     ))}
