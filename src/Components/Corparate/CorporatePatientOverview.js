@@ -1082,7 +1082,7 @@ const CorporatePatientOverview = () => {
             ) || "N/A",
         },
         {
-          label: "Reported Date",
+          label: "Printed Date",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },

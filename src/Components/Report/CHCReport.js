@@ -1563,7 +1563,7 @@ if (ophthalTest?.report?.trim()) {
           [
             "Age/Gender",
             `${patientDetails.age || "N/A"} / ${patientDetails.gender || "N/A"}`,
-            "Reported Date",
+            "Printed Date",
             safeFormatDate(
               firstTest?.approve_time,
               "dd MMM yy / HH:mm",

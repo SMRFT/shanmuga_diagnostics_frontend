@@ -157,6 +157,31 @@ const CrossIcon = () => (
   </svg>
 )
 
+const TickIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+    <circle cx="6" cy="6" r="6" fill="#38a169" />
+    <path
+      d="M3.5 6l1.8 1.8 3.2-3.6"
+      stroke="white"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const CrossIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+    <circle cx="6" cy="6" r="6" fill="#e53e3e" />
+    <path
+      d="M4 4l4 4M8 4l-4 4"
+      stroke="white"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 const ModalFooter = styled.div`
   display: flex;
   justify-content: space-between;
@@ -955,6 +980,8 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
     const displayLabel = label || entry.label
 
+  // ── Preview modal ─────────────────────────────────────────────────────────
+  if (showPreview) {
     return (
       <FilePreviewContainer key={testId}>
         <FilePreviewTitle>{displayLabel}</FilePreviewTitle>
