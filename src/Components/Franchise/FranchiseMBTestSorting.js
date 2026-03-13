@@ -159,9 +159,9 @@ const TestName = styled.span`
   font-size: 15px;
   color: #333;
   font-weight: ${(props) => (props.selected ? "600" : "400")};
-  
+
   .nabl-asterisk {
-    color: #DB9BB9;
+    color: #db9bb9;
     font-weight: bold;
     margin-left: 4px;
   }
@@ -172,7 +172,7 @@ const DispatchButton = styled.button`
   align-items: center;
   justify-content: center;
   padding: 6px 12px;
-  background-color: ${props => props.dispatched ? '#28A745' : '#DB9BB9'};
+  background-color: ${(props) => (props.dispatched ? "#28A745" : "#DB9BB9")};
   color: white;
   border: none;
   border-radius: 6px;
@@ -184,7 +184,7 @@ const DispatchButton = styled.button`
   margin-left: 10px;
 
   &:hover {
-    background-color: ${props => props.dispatched ? '#218838' : '#c985a7'};
+    background-color: ${(props) => (props.dispatched ? "#218838" : "#c985a7")};
     transform: translateY(-2px);
   }
 
@@ -331,8 +331,12 @@ const LoadingSpinner = styled.div`
   animation: spin 1s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -364,31 +368,32 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           "GET",
           null,
           {},
-          {}
+          {},
         );
 
         if (response.success) {
           if (response.data[patient.barcode]) {
-            const testDetails = response.data[patient.barcode].testdetails || [];
+            const testDetails =
+              response.data[patient.barcode].testdetails || [];
             const sortedTests = testDetails.sort((a, b) => {
               const numA = parseInt(a.test_name.match(/\d+/)?.[0]) || 0;
               const numB = parseInt(b.test_name.match(/\d+/)?.[0]) || 0;
               return numA - numB;
             });
-            
+
             const testsWithDispatch = sortedTests.map((test) => ({
               test_id: test.test_id,
               testname: test.test_name,
               NABL: test.NABL || false,
               dispatched: test.dispatch || false,
-              created_date: test.created_date  // Changed from test.dispatched to test.dispatch
+              created_date: test.created_date, // Changed from test.dispatched to test.dispatch
             }));
-            
+
             setTests(testsWithDispatch);
-            
+
             // Initialize dispatched tests set
             const dispatchedSet = new Set();
-            testsWithDispatch.forEach(test => {
+            testsWithDispatch.forEach((test) => {
               if (test.dispatched) {
                 dispatchedSet.add(test.test_id);
               }
@@ -399,7 +404,11 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             setTests([]);
           }
         } else {
-          console.error("Error fetching tests:", response.error, response.status);
+          console.error(
+            "Error fetching tests:",
+            response.error,
+            response.status,
+          );
           toast.error("Failed to load tests");
         }
       } catch (error) {
@@ -416,34 +425,36 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
 
   const handleDispatchTest = async (test, e) => {
     e.stopPropagation(); // Prevent test selection when clicking dispatch
-    
+
     try {
       const response = await apiRequest(
         `${Labbaseurl}mb_update_dispatch_status/${patient.barcode}/`,
         "PATCH",
         {
           test_id: test.test_id,
-          created_date: test.created_date  // Send the created_date to target specific document
+          created_date: test.created_date, // Send the created_date to target specific document
         },
         {
           "Content-Type": "application/json",
-        }
+        },
       );
 
       if (response.success) {
         toast.success(`Test "${test.testname}" dispatched successfully!`);
-        
+
         // Update the dispatched tests set
-        setDispatchedTests(prev => {
+        setDispatchedTests((prev) => {
           const newSet = new Set(prev);
           newSet.add(test.test_id);
           return newSet;
         });
-        
+
         // Update the tests array
-        setTests(prev => prev.map(t => 
-          t.test_id === test.test_id ? { ...t, dispatched: true } : t
-        ));
+        setTests((prev) =>
+          prev.map((t) =>
+            t.test_id === test.test_id ? { ...t, dispatched: true } : t,
+          ),
+        );
       } else {
         toast.error(`Failed to dispatch test: ${response.error}`);
       }
@@ -481,7 +492,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}franchise_mb_get_patient_test_details/?barcode=${patient.barcode}`,
-        "GET"
+        "GET",
       );
 
       if (!response.success) {
@@ -491,11 +502,11 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       }
 
       console.log("API Response:", response.data);
-      
+
       // Extract patient data and signatures from the new response structure
       let patientDetails;
       let signaturesData = [];
-      
+
       if (response.data.patient_data && response.data.signatures) {
         // New structure with signatures
         patientDetails = response.data.patient_data;
@@ -509,7 +520,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
         patientDetails = {
           ...patientDetails[0],
           testdetails: patientDetails.flatMap(
-            (record) => record.testdetails || []
+            (record) => record.testdetails || [],
           ),
         };
       }
@@ -521,7 +532,9 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       // Filter tests by test_id
       const orderedTests = selectedTests
         .map((selectedTest) =>
-          patientDetails.testdetails.find((t) => t.test_id === selectedTest.test_id)
+          patientDetails.testdetails.find(
+            (t) => t.test_id === selectedTest.test_id,
+          ),
         )
         .filter((test) => test);
 
@@ -540,35 +553,35 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       // CORRECTED: Map designation codes to consultant positions
       // Note: Adjust designation codes based on your actual data
       const designationMapping = {
-        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
-        "DESIG100": { position: 1, title: "Consultant Pathologist" },
-        "DESIG099": { position: 2, title: "Consultant Biochemist" },
+        DESIG101: { position: 0, title: "Consultant Microbiologist" },
+        DESIG100: { position: 1, title: "Consultant Pathologist" },
+        DESIG099: { position: 2, title: "Consultant Biochemist" },
       };
 
       // Build consultants array dynamically from signatures data
       const consultants = [];
-      
+
       // Initialize with empty slot for Microbiologist
       consultants[0] = null;
-      
+
       // Fill in the consultants based on signatures data
       signaturesData.forEach((sig) => {
         const mapping = designationMapping[sig.designation];
         if (mapping) {
-          const signatureImage = sig.signatureBase64 
-            ? `data:image/png;base64,${sig.signatureBase64}` 
+          const signatureImage = sig.signatureBase64
+            ? `data:image/png;base64,${sig.signatureBase64}`
             : null;
-          
+
           consultants[mapping.position] = [
             sig.employeeName,
             mapping.title,
-            signatureImage
+            signatureImage,
           ];
         }
       });
-      
+
       // Filter out null entries (positions without signatures)
-      const activeConsultants = consultants.filter(c => c !== null);
+      const activeConsultants = consultants.filter((c) => c !== null);
 
       console.log("Active Consultants:", activeConsultants);
 
@@ -601,9 +614,9 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
 
       // Column widths for Microbiology
       const microbiologyColWidths = [
-        contentWidth * 0.50,  // Antimicrobial
-        contentWidth * 0.25,  // Result
-        contentWidth * 0.25,  // Zone of Inhibition (mm)
+        contentWidth * 0.5, // Antimicrobial
+        contentWidth * 0.25, // Result
+        contentWidth * 0.25, // Zone of Inhibition (mm)
       ];
 
       const leftDetails = [
@@ -614,8 +627,9 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${patientDetails.gender || "N/A"
-            }`,
+          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${
+            patientDetails.gender || "N/A"
+          }`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "N/A" },
@@ -628,7 +642,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           value:
             format(
               new Date(patientDetails.testdetails[0].samplecollected_time),
-              "dd MMM yy / HH:mm"
+              "dd MMM yy / HH:mm",
             ) || "N/A",
         },
         {
@@ -636,16 +650,23 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           value:
             format(
               new Date(patientDetails.testdetails[0].received_time),
-              "dd MMM yy / HH:mm"
+              "dd MMM yy / HH:mm",
             ) || "N/A",
         },
-         ...(patientDetails.testdetails[0].dispatch_time && 
-      patientDetails.testdetails[0].dispatch_time !== "null" ? [{
-    label: "Released On",
-    value: format(new Date(patientDetails.testdetails[0].dispatch_time), "dd MMM yy / HH:mm"),
-  }] : []),
+        ...(patientDetails.testdetails[0].dispatch_time &&
+        patientDetails.testdetails[0].dispatch_time !== "null"
+          ? [
+              {
+                label: "Released On",
+                value: format(
+                  new Date(patientDetails.testdetails[0].dispatch_time),
+                  "dd MMM yy / HH:mm",
+                ),
+              },
+            ]
+          : []),
         {
-          label: "Reported Date",
+          label: "Printed Date",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -654,7 +675,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       const calculateMaxLabelWidth = (details) => {
         const tempDoc = new jsPDF();
         return Math.max(
-          ...details.map((item) => tempDoc.getTextWidth(item.label))
+          ...details.map((item) => tempDoc.getTextWidth(item.label)),
         );
       };
 
@@ -663,65 +684,79 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       let isTableStarted = false;
 
       const addPatientInfo = (yPos) => {
-  const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-  const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-  const centerPoint = (leftMargin + rightMargin) / 2;
-  const leftLabelX = leftMargin;
-  const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-  const leftValueX = leftColonX + 3;
-  const rightLabelX = centerPoint + 28;
-  const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-  const rightValueX = rightColonX + 1;
+        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+        const centerPoint = (leftMargin + rightMargin) / 2;
+        const leftLabelX = leftMargin;
+        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+        const leftValueX = leftColonX + 3;
+        const rightLabelX = centerPoint + 28;
+        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+        const rightValueX = rightColonX + 1;
 
-  doc.setFontSize(10);
-  let patientInfoY = yPos;
+        doc.setFontSize(10);
+        let patientInfoY = yPos;
 
-  // FIX: Use the maximum length of both arrays
-  const maxLength = Math.max(leftDetails.length, rightDetails.length);
+        // FIX: Use the maximum length of both arrays
+        const maxLength = Math.max(leftDetails.length, rightDetails.length);
 
-  for (let i = 0; i < maxLength; i++) {
-    const left = leftDetails[i];
-    const right = rightDetails[i];
+        for (let i = 0; i < maxLength; i++) {
+          const left = leftDetails[i];
+          const right = rightDetails[i];
 
-    // Handle left side (only if exists)
-    if (left) {
-      doc.setFont("helvetica", "bold");
-      doc.text(left.label, leftLabelX, patientInfoY);
-      doc.text(":", leftColonX, patientInfoY);
-      doc.setFont("helvetica", "normal");
+          // Handle left side (only if exists)
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, leftLabelX, patientInfoY);
+            doc.text(":", leftColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
 
-      const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-      const leftValueLines = wrapTextAndGetLines(doc, left.value, maxLeftValueWidth);
+            const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+            const leftValueLines = wrapTextAndGetLines(
+              doc,
+              left.value,
+              maxLeftValueWidth,
+            );
 
-      leftValueLines.forEach((line, lineIndex) => {
-        doc.text(line, leftValueX, patientInfoY + (lineIndex * 4));
-      });
+            leftValueLines.forEach((line, lineIndex) => {
+              doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
+            });
 
-      var leftRowHeight = leftValueLines.length * 4;
-    } else {
-      var leftRowHeight = 5; // Default height when no left detail
-    }
+            var leftRowHeight = leftValueLines.length * 4;
+          } else {
+            var leftRowHeight = 5; // Default height when no left detail
+          }
 
-    // Handle right side (only if exists)
-    if (right) {
-      doc.setFont("helvetica", "bold");
-      doc.text(right.label, rightLabelX, patientInfoY);
-      doc.text(":", rightColonX, patientInfoY);
-      doc.setFont("helvetica", "normal");
-      doc.text(right.value, rightValueX, patientInfoY);
+          // Handle right side (only if exists)
+          if (right) {
+            doc.setFont("helvetica", "bold");
+            doc.text(right.label, rightLabelX, patientInfoY);
+            doc.text(":", rightColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
+            doc.text(right.value, rightValueX, patientInfoY);
 
-      if (right.label === "Patient Ref.No" && patientRefNoNumber !== "N/A" && barcodeImage) {
-        doc.addImage(barcodeImage, "PNG", rightValueX + doc.getTextWidth(right.value) - 18,
-          patientInfoY + 4, 25, 10);
-      }
-    }
+            if (
+              right.label === "Patient Ref.No" &&
+              patientRefNoNumber !== "N/A" &&
+              barcodeImage
+            ) {
+              doc.addImage(
+                barcodeImage,
+                "PNG",
+                rightValueX + doc.getTextWidth(right.value) - 18,
+                patientInfoY + 4,
+                25,
+                10,
+              );
+            }
+          }
 
-    // Move to next row
-    patientInfoY += Math.max(leftRowHeight, 5);
-  }
+          // Move to next row
+          patientInfoY += Math.max(leftRowHeight, 5);
+        }
 
-  return patientInfoY;
-};
+        return patientInfoY;
+      };
 
       const addHeaderFooter = () => {
         if (withLetterpad) {
@@ -731,7 +766,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             0,
             10,
             doc.internal.pageSize.width,
-            headerHeight
+            headerHeight,
           );
           const footerY = doc.internal.pageSize.height - footerHeight;
           doc.addImage(
@@ -740,7 +775,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             0,
             footerY,
             doc.internal.pageSize.width,
-            footerHeight
+            footerHeight,
           );
         } else {
           doc.setFontSize(8);
@@ -755,26 +790,22 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
         // Top border of table
         doc.setDrawColor(0, 0, 0); // Black color
         doc.line(leftMargin, yPos, rightMargin, yPos);
-        
+
         // Left border
         doc.line(leftMargin, yPos, leftMargin, yPos + 13);
-        
+
         // Right border
         doc.line(rightMargin, yPos, rightMargin, yPos + 13);
-        
+
         yPos += 5;
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        
-        const headers = [
-          "Antimicrobial",
-          "Result",
-          "Zone of Inhibition (mm)",
-        ];
-        
+
+        const headers = ["Antimicrobial", "Result", "Zone of Inhibition (mm)"];
+
         const headerPadding = 2; // Left padding for first column
         let xPos = leftMargin + headerPadding;
-        
+
         headers.forEach((header, index) => {
           if (index === 0) {
             // First column with padding
@@ -790,7 +821,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             xPos += microbiologyColWidths[index];
           }
         });
-        
+
         yPos += 3;
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 7;
@@ -802,7 +833,14 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
         return doc.splitTextToSize(text, maxWidth);
       };
 
-      const renderWrappedText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
+      const renderWrappedText = (
+        doc,
+        text,
+        maxWidth,
+        startX,
+        yPos,
+        lineHeight = 4,
+      ) => {
         if (!text) return 0;
         const lines = wrapTextAndGetLines(doc, text, maxWidth);
         lines.forEach((line, index) => {
@@ -815,24 +853,24 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
         const pageHeight = doc.internal.pageSize.height;
         const signaturesY = pageHeight - footerHeight - signatureHeight - 10;
         const signatureWidth = 35;
-        
+
         // Only show signatures if we have active consultants
         if (activeConsultants.length === 0) return;
-        
+
         // Calculate spacing based on number of active consultants
         const totalConsultants = activeConsultants.length;
-        
+
         // Calculate starting position from RIGHT side
         const rightEdge = rightMargin;
         const signatureSpacing = 60; // Fixed spacing between signatures
-        
+
         // Start from right edge and work backwards
-        const startX = rightEdge - (totalConsultants * signatureSpacing);
+        const startX = rightEdge - totalConsultants * signatureSpacing;
 
         activeConsultants.forEach((consultant, index) => {
           // Position from the calculated start point, moving right
-          const xPosition = startX + (index * signatureSpacing);
-          
+          const xPosition = startX + index * signatureSpacing;
+
           // Display signature image if available
           if (consultant[2]) {
             doc.addImage(
@@ -841,13 +879,13 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
               xPosition,
               signaturesY,
               signatureWidth,
-              15
+              15,
             );
           }
 
           // Display full name with credentials
           const fullName = consultant[0];
-          
+
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
           doc.text(fullName, xPosition, signaturesY + 18);
@@ -859,7 +897,11 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
         });
       };
 
-      const checkForNewPage = (yPos, estimatedHeight, shouldDrawTableHeader = false) => {
+      const checkForNewPage = (
+        yPos,
+        estimatedHeight,
+        shouldDrawTableHeader = false,
+      ) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
 
@@ -906,7 +948,12 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           const departmentTextWidth = doc.getTextWidth(departmentText);
           const centerX = leftMargin + contentWidth / 2;
           doc.text(departmentText, centerX, yPos, { align: "center" });
-          doc.line(centerX - departmentTextWidth / 2, yPos + 2, centerX + departmentTextWidth / 2, yPos + 2);
+          doc.line(
+            centerX - departmentTextWidth / 2,
+            yPos + 2,
+            centerX + departmentTextWidth / 2,
+            yPos + 2,
+          );
           yPos += 8;
 
           // Display Test Name (bold)
@@ -919,11 +966,13 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           const testLabels = [
             "Specimen Type",
             "Colony Count",
-            test.is_AG_title ? "Sputum for AFB" : "Organism Isolated"
+            test.is_AG_title ? "Sputum for AFB" : "Organism Isolated",
           ];
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
-          const maxLabelWidth = Math.max(...testLabels.map(label => doc.getTextWidth(label)));
+          const maxLabelWidth = Math.max(
+            ...testLabels.map((label) => doc.getTextWidth(label)),
+          );
           const colonX = leftMargin + maxLabelWidth + 2;
           const valueX = colonX + 3;
 
@@ -952,7 +1001,9 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
             // Check is_AG_title to determine the label
-            const remarksLabel = test.is_AG_title ? "Sputum for AFB" : "Organism Isolated";
+            const remarksLabel = test.is_AG_title
+              ? "Sputum for AFB"
+              : "Organism Isolated";
             doc.text(remarksLabel, leftMargin, yPos);
             doc.text(":", colonX, yPos);
             doc.setFont("helvetica", "normal");
@@ -969,8 +1020,10 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             yPos = drawMicrobiologyTableHeader(yPos);
 
             // Render parameters
-            const validParameters = test.parameters.filter(param => param.result !== "Nil");
-            
+            const validParameters = test.parameters.filter(
+              (param) => param.result !== "Nil",
+            );
+
             validParameters.forEach((param, paramIndex) => {
               const paramHeight = 11;
               // Pass true to indicate we need table header if page breaks
@@ -991,7 +1044,13 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
 
               // Antimicrobial (test_name) - with padding
               const antimicrobialText = param.test_name || "";
-              renderWrappedText(doc, antimicrobialText, microbiologyColWidths[0] - paramPadding - 2, xPos, yPos);
+              renderWrappedText(
+                doc,
+                antimicrobialText,
+                microbiologyColWidths[0] - paramPadding - 2,
+                xPos,
+                yPos,
+              );
               xPos = leftMargin + microbiologyColWidths[0]; // Reset to column boundary
 
               // Result - make bold if zone value exists
@@ -1027,7 +1086,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
                 doc.setLineDash([]); // Reset to solid line
                 doc.setDrawColor(0, 0, 0); // Reset to black
               }
-              
+
               yPos += 5;
 
               // Add comment for parameter if exists
@@ -1041,7 +1100,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
                   contentWidth - 2,
                   leftMargin,
                   yPos,
-                  3.5
+                  3.5,
                 );
                 yPos += paramCommentHeight + 2;
               }
@@ -1057,7 +1116,11 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           }
 
           // Add comment for main test (if no parameters and comment exists)
-          if ((!test.parameters || test.parameters.length === 0) && test.comment && test.comment.trim() !== "") {
+          if (
+            (!test.parameters || test.parameters.length === 0) &&
+            test.comment &&
+            test.comment.trim() !== ""
+          ) {
             doc.setFont("helvetica", "italic");
             doc.setFontSize(8);
             const commentText = `Note: ${test.comment}`;
@@ -1067,7 +1130,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
               contentWidth - 2,
               leftMargin,
               yPos,
-              3.5
+              3.5,
             );
             yPos += commentHeight + 2;
           }
@@ -1142,7 +1205,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
   };
 
   const filteredTests = tests.filter((test) =>
-    test.testname.toLowerCase().includes(searchTerm.toLowerCase())
+    test.testname.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -1193,7 +1256,7 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           ) : (
             filteredTests.map((test) => {
               const isSelected = selectedTests.some(
-                (t) => t.test_id === test.test_id
+                (t) => t.test_id === test.test_id,
               );
               const isDispatched = dispatchedTests.has(test.test_id);
 
@@ -1215,7 +1278,9 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
                     dispatched={isDispatched}
                     onClick={(e) => handleDispatchTest(test, e)}
                     disabled={isDispatched}
-                    title={isDispatched ? "Already Dispatched" : "Dispatch Test"}
+                    title={
+                      isDispatched ? "Already Dispatched" : "Dispatch Test"
+                    }
                   >
                     <Flag size={14} />
                     {isDispatched ? "Dispatched" : "Dispatch"}

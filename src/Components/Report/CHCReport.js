@@ -517,23 +517,20 @@ const CHCReport = () => {
   };
 
   // ─── PDF utilities ────────────────────────────────────────────────────────
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
   const convertPdfToImages = async (base64Data) => {
     try {
-      const cleanBase64 = base64Data.replace(/^data:.*?;base64,/, "");
+      const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "").trim();
       const binaryString = atob(cleanBase64);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++)
         bytes[i] = binaryString.charCodeAt(i);
-      const loadingTask = pdfjsLib.getDocument({
-        data: bytes,
-        verbosity: pdfjsLib.VerbosityLevel.ERRORS,
-        cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
-        cMapPacked: true,
-      });
+
+      // No cMapUrl / verbosity — avoids CDN version mismatch errors
+      const loadingTask = pdfjsLib.getDocument({ data: bytes });
       const pdf = await loadingTask.promise;
+
       const images = [];
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
@@ -652,6 +649,35 @@ const CHCReport = () => {
         merged.investigation_notes = existingNotes;
     }
 
+    // Extract ophthalmology from CHCT001 in chc_tests
+    const ophthalTest = chcTests.find(
+      (t) =>
+        t.test_id === "CHCT001" ||
+        (t.testname || "").toLowerCase().includes("eye") ||
+        (t.testname || "").toLowerCase().includes("ophthal"),
+    );
+    if (ophthalTest?.report?.trim()) {
+      try {
+        const parsed = JSON.parse(ophthalTest.report);
+        if (
+          parsed &&
+          (parsed.distance || parsed.nearVision || parsed.colourVision)
+        ) {
+          merged.chc_ophthalmology = {
+            distance: parsed.distance || {},
+            nearVision: parsed.nearVision || {},
+            colourVision: parsed.colourVision || {},
+            ocularmovement: parsed.ocularmovement || {},
+            complaints: ophthalTest.notes?.trim() || parsed.complaints || "",
+            remarks: parsed.remarks || "",
+          };
+        }
+      } catch (e) {
+        // report is plain text, not JSON — leave chc_ophthalmology unset
+        // addOphthalmologyReport will fall back to patientDetails.ophthalmology
+      }
+    }
+
     return merged;
   };
 
@@ -737,7 +763,7 @@ const CHCReport = () => {
           value: safeFormatDate(new Date().toISOString(), "dd/MM/yyyy"),
         },
         {
-          label: "Reported Date",
+          label: "Approved Date",
           value: safeFormatDate(
             patientDetails.final_assessment?.approved_date,
             "dd/MM/yyyy",
@@ -984,7 +1010,9 @@ const CHCReport = () => {
           const obj = chcOphthal[chcKey] || {};
           return { right: obj.right || "N/A", left: obj.left || "N/A" };
         }
-        const obj = legacyOphthal?.visual_acuity?.[legacyKey] || {};
+        // legacyOphthal = patientDetails.ophthalmology from corporate_health_report
+        // keys are at the top level, not nested under visual_acuity
+        const obj = legacyOphthal?.[legacyKey] || {};
         return { right: obj.right || "N/A", left: obj.left || "N/A" };
       };
 
@@ -1535,7 +1563,7 @@ const CHCReport = () => {
           [
             "Age/Gender",
             `${patientDetails.age || "N/A"} / ${patientDetails.gender || "N/A"}`,
-            "Reported Date",
+            "Printed Date",
             safeFormatDate(
               firstTest?.approve_time,
               "dd MMM yy / HH:mm",
@@ -2001,14 +2029,6 @@ const CHCReport = () => {
       );
       if (invResult.success && invResult.data) {
         patientDetails = mergeInvestigationData(patientDetails, invResult.data);
-
-        // Extract CHC ophthalmology stored as investigation[CHCT001]
-        if (
-          invResult.data.ophthalmology_exam &&
-          Object.keys(invResult.data.ophthalmology_exam).length > 0
-        ) {
-          patientDetails.chc_ophthalmology = invResult.data.ophthalmology_exam;
-        }
       }
 
       // 3. Fetch investigation files from chc_tests
@@ -2180,13 +2200,6 @@ const CHCReport = () => {
               patientDetails,
               invResult.data,
             );
-            if (
-              invResult.data.ophthalmology_exam &&
-              Object.keys(invResult.data.ophthalmology_exam).length > 0
-            ) {
-              patientDetails.chc_ophthalmology =
-                invResult.data.ophthalmology_exam;
-            }
           }
 
           // Fetch investigation files

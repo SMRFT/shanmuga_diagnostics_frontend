@@ -6,8 +6,6 @@ import { X, Eye, Save, Loader } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 import * as pdfjsLib from "pdfjs-dist";
 
-// ─── Styled Components ────────────────────────────────────────────────────────
-
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -56,13 +54,16 @@ const StatusList = styled.div`
   overflow-y: auto;
   margin: 10px 0;
   padding-right: 10px;
+
   &::-webkit-scrollbar {
     width: 6px;
   }
+
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 10px;
   }
+
   &::-webkit-scrollbar-thumb {
     background: #db9bb9;
     border-radius: 10px;
@@ -74,11 +75,12 @@ const StatusItem = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #eaeaea;
   border-radius: 10px;
   margin: 8px 0;
   transition: all 0.2s;
+
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
@@ -87,29 +89,84 @@ const StatusItem = styled.div`
 const StatusInfo = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   flex: 1;
 `;
 
-const StatusBadge = styled.span`
+const StatusBadgeBase = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-weight: 600;
   font-size: 12px;
-  color: ${(p) => (p.$high ? "#b91c1c" : p.$low ? "#1e3a8a" : "#555")};
+  padding: 4px 12px;
+  border-radius: 12px;
 `;
 
-const ApprovalBadge = styled.span`
+const ApprovedBadge = styled(StatusBadgeBase)`
+  color: #276749;
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+`;
+
+const PendingBadge = styled(StatusBadgeBase)`
+  color: #c53030;
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+`;
+
+const StatusLabel = styled.span`
+  font-weight: 600;
+  color: #333;
+  min-width: 140px;
+`;
+
+const IndicatorsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const IndicatorChip = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
-  background-color: ${(p) => (p.$approved ? "#dcfce7" : "#fef3c7")};
-  color: ${(p) => (p.$approved ? "#166534" : "#92400e")};
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: ${(props) => (props.$ok ? "#f0fff4" : "#fff5f5")};
+  color: ${(props) => (props.$ok ? "#276749" : "#c53030")};
+  border: 1px solid ${(props) => (props.$ok ? "#9ae6b4" : "#feb2b2")};
+  white-space: nowrap;
 `;
+
+const TickIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+    <circle cx="6" cy="6" r="6" fill="#38a169" />
+    <path
+      d="M3.5 6l1.8 1.8 3.2-3.6"
+      stroke="white"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const CrossIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+    <circle cx="6" cy="6" r="6" fill="#e53e3e" />
+    <path
+      d="M4 4l4 4M8 4l-4 4"
+      stroke="white"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 
 const ModalFooter = styled.div`
   display: flex;
@@ -132,27 +189,36 @@ const Button = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   border: none;
-  ${(p) =>
-    p.$primary &&
+
+  ${(props) =>
+    props.$primary &&
     `
     background-color: #DB9BB9;
     color: white;
-    &:hover:not(:disabled) { background-color: #c985a7; transform: translateY(-2px); }
+    
+    &:hover:not(:disabled) {
+      background-color: #c985a7;
+      transform: translateY(-2px);
+    }
   `}
-  ${(p) =>
-    p.$secondary &&
+
+  ${(props) =>
+    props.$secondary &&
     `
     background-color: #f5f5f5;
     color: #333;
-    &:hover:not(:disabled) { background-color: #e9e9e9; transform: translateY(-2px); }
+    
+    &:hover:not(:disabled) {
+      background-color: #e9e9e9;
+      transform: translateY(-2px);
+    }
   `}
+  
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
 `;
-
-// ─── Preview Modal Styled Components ─────────────────────────────────────────
 
 const PreviewModalContent = styled.div`
   background: white;
@@ -171,17 +237,24 @@ const PreviewScrollContainer = styled.div`
   overflow-y: auto;
   padding: 40px;
   background: #fafafa;
+
   &::-webkit-scrollbar {
     width: 12px;
   }
+
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 10px;
     margin: 10px 0;
   }
+
   &::-webkit-scrollbar-thumb {
     background: #db9bb9;
     border-radius: 10px;
+
+    &:hover {
+      background: #c985a7;
+    }
   }
 `;
 
@@ -237,11 +310,6 @@ const InfoValue = styled.span`
   white-space: pre-wrap;
 `;
 
-const StatusLabel = styled.span`
-  font-weight: 600;
-  color: #333;
-`;
-
 const InputGroup = styled.div`
   margin: 15px 0;
 `;
@@ -264,6 +332,7 @@ const TextArea = styled.textarea`
   resize: vertical;
   min-height: 80px;
   box-sizing: border-box;
+
   &:focus {
     outline: none;
     border-color: #db9bb9;
@@ -281,60 +350,26 @@ const LoadingContainer = styled.div`
   gap: 10px;
 `;
 
-const FilesGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 12px;
-`;
-
-const FileGridCell = styled.div`
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
+const FilePreviewContainer = styled.div`
+  margin-top: 10px;
+  padding: 15px;
   background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
 `;
 
-const FileGridCellLabel = styled.div`
-  font-size: 11px;
+const FilePreviewTitle = styled.h4`
+  font-size: 14px;
   font-weight: 600;
-  color: #888;
-  padding: 6px 10px;
-  background: #f0f0f0;
-  border-bottom: 1px solid #e0e0e0;
+  color: #555;
+  margin: 0 0 10px 0;
 `;
 
 const FileImage = styled.img`
   max-width: 100%;
   height: auto;
-  display: block;
-`;
-
-const TestReportCard = styled.div`
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 20px;
-`;
-
-const TestReportCardHeader = styled.div`
-  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e8e8e8;
-`;
-
-const TestReportCardTitle = styled.h4`
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: #333;
-`;
-
-const TestReportCardBody = styled.div`
-  padding: 16px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 const LabTable = styled.table`
@@ -372,6 +407,7 @@ const DeptHeading = styled.h4`
   margin: 16px 0 8px;
   text-align: center;
   position: relative;
+
   &::after {
     content: "";
     display: block;
@@ -389,121 +425,67 @@ const SubTitle = styled.div`
   margin: 8px 0 4px;
 `;
 
-const CHCTestSectionTitle = styled.div`
-  font-size: 13px;
+const StatusBadgeHl = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-weight: 600;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 12px 0 6px 0;
-  padding-bottom: 4px;
-  border-bottom: 1px dashed #e0e0e0;
+  font-size: 12px;
+  color: ${(props) =>
+    props.$high ? "#b91c1c" : props.$low ? "#1e3a8a" : "#555"};
 `;
 
-const LoadPdfButton = styled.button`
-  width: 100%;
-  padding: 12px;
-  background-color: #db9bb9;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  margin-top: 8px;
-  &:hover {
-    background-color: #c985a7;
-  }
-`;
-
-// ─── Ophthalmology table styled components ────────────────────────────────────
-
-const OphthalTable = styled.table`
+const OphthalmologyTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 16px;
+  border: 1px solid #eaeaea;
+  margin: 15px 0;
 `;
 
-const OphthalThead = styled.thead`
-  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
-`;
-
-const OphthalTh = styled.th`
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #333;
-  border-bottom: 1px solid #e8e8e8;
+const OphthalmologyTh = styled.th`
+  padding: 10px;
+  background: #faf5f8;
+  border: 1px solid #eaeaea;
   text-align: center;
-  &:first-child {
-    text-align: left;
-  }
+  font-weight: 600;
+  font-size: 14px;
 `;
 
-const OphthalTd = styled.td`
-  padding: 10px 14px;
-  font-size: 14px;
-  color: #222;
-  border-bottom: 1px solid #f2f2f2;
+const OphthalmologyTd = styled.td`
+  padding: 10px;
+  border: 1px solid #eaeaea;
   text-align: center;
-  &:first-child {
-    text-align: left;
-    font-weight: 600;
-    color: #444;
-  }
-`;
-
-const OphthalNote = styled.div`
-  margin-top: 8px;
   font-size: 14px;
-  color: #333;
-  line-height: 1.6;
 `;
-
-const OphthalNoteLabel = styled.span`
-  font-weight: 700;
-  color: #444;
-  margin-right: 8px;
-`;
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
+  // ── State ────────────────────────────────────────────────────────────────
   const [chcTests, setChcTests] = useState([]);
-  const [chcInvestigationStatus, setChcInvestigationStatus] = useState(null);
-  const [labApprovalStatus, setLabApprovalStatus] = useState(null);
-  const [vitalsFromInvestigation, setVitalsFromInvestigation] = useState({});
-  const [patientHistoryFromInvestigation, setPatientHistoryFromInvestigation] =
-    useState("");
-  // ophthalmology from get_investigation_status → ophthalmology_exam
-  const [ophthalmologyExam, setOphthalmologyExam] = useState(null);
-  const [previewChcTests, setPreviewChcTests] = useState([]);
+  const [labApprovalStatus, setlabApprovalStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [patientDetails, setPatientDetails] = useState(null);
   const [investigationFiles, setInvestigationFiles] = useState({});
+  const [chcInvestigationFiles, setChcInvestigationFiles] = useState({});
   const [pdfImages, setPdfImages] = useState({});
   const [conversionLoading, setConversionLoading] = useState({});
   const [impression, setImpression] = useState("Reports within Normal Limits.");
   const [remarks, setRemarks] = useState(
     "The above candidate was examined and found Medically Fit for the Job.",
   );
-
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    // Dynamically resolve the worker URL from the installed pdfjs-dist version
+    // This avoids any CDN version mismatch
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
   }, []);
 
   useEffect(() => {
     fetchInvestigationStatus();
   }, [patient.barcode]);
 
-  // ── Fetch per-test CHC status ─────────────────────────────────────────────
+  // ── Fetch investigation status (uses chc_tests from API) ─────────────────
   const fetchInvestigationStatus = async () => {
     try {
       setLoading(true);
@@ -513,21 +495,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       );
       if (result.success) {
         setChcTests(result.data.chc_tests || []);
-        setChcInvestigationStatus(
-          result.data.chc_investigation_status || "pending",
-        );
-        setLabApprovalStatus(result.data.lab_approval);
-        setVitalsFromInvestigation(result.data.vitals || {});
-        setPatientHistoryFromInvestigation(result.data.patient_history || "");
-        // Store ophthalmology_exam if present and non-empty
-        const ophthal = result.data.ophthalmology_exam;
-        if (
-          ophthal &&
-          typeof ophthal === "object" &&
-          Object.keys(ophthal).length > 0
-        ) {
-          setOphthalmologyExam(ophthal);
-        }
+        setlabApprovalStatus(result.data.lab_approval || null);
       } else {
         console.error("Error fetching investigation status:", result.error);
         alert("Failed to fetch investigation status: " + result.error);
@@ -539,7 +507,16 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     }
   };
 
-  // ── Fetch a single file by gridFS file_id ─────────────────────────────────
+  // ── All approved check ────────────────────────────────────────────────────
+  const allApproved = () => {
+    if (chcTests.length === 0) return false;
+    const allChcApproved = chcTests.every(
+      (t) => t.status?.toLowerCase() === "approved",
+    );
+    return allChcApproved && labApprovalStatus === "approved";
+  };
+
+  // ── File helpers ─────────────────────────────────────────────────────────
   const fetchInvestigationFile = async (fileId) => {
     if (!fileId) return null;
     try {
@@ -547,7 +524,10 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         `${Labbaseurl}get_investigation_file/?file_id=${fileId}`,
         "GET",
       );
-      if (!result.success) return null;
+      if (!result.success) {
+        console.error(`Failed to fetch file ${fileId}:`, result.error);
+        return null;
+      }
       return {
         data: result.data.data,
         contentType: result.data.contentType,
@@ -559,21 +539,29 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     }
   };
 
-  // ── Convert a base64 PDF to an array of PNG dataURLs ─────────────────────
-  const convertPdfToImages = async (base64Data, cacheKey) => {
+  const convertPdfToImages = async (base64Data, fileKey) => {
     try {
-      const cleanBase64 = base64Data.replace(/^data:.*?;base64,/, "");
+      console.log("Starting PDF conversion for key:", fileKey);
+
+      // Strip any data-URI prefix, keep raw base64
+      const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "").trim();
+
+      // Decode base64 → Uint8Array
       const binaryString = atob(cleanBase64);
       const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++)
+      for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
+      }
+      console.log("PDF bytes length:", bytes.length);
+
       const loadingTask = pdfjsLib.getDocument({
         data: bytes,
-        verbosity: pdfjsLib.VerbosityLevel.ERRORS,
-        cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
-        cMapPacked: true,
+        // No cMapUrl needed for most medical PDFs; omitting avoids version mismatch errors
       });
+
       const pdf = await loadingTask.promise;
+      console.log("PDF loaded, pages:", pdf.numPages);
+
       const images = [];
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
@@ -584,91 +572,167 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         canvas.width = viewport.width;
         await page.render({ canvasContext: context, viewport }).promise;
         images.push(canvas.toDataURL("image/png"));
+        console.log(`Rendered page ${pageNum}/${pdf.numPages}`);
       }
-      setPdfImages((prev) => ({ ...prev, [cacheKey]: images }));
+
+      setPdfImages((prev) => ({ ...prev, [fileKey]: images }));
+      console.log("PDF conversion done, images:", images.length);
       return images;
     } catch (error) {
-      console.error("Error converting PDF to images:", error);
+      console.error("PDF conversion error for key", fileKey, ":", error);
+      // Mark as failed so UI can show error instead of spinner
+      setPdfImages((prev) => ({ ...prev, [fileKey]: ["ERROR"] }));
       return [];
     } finally {
-      setConversionLoading((prev) => ({ ...prev, [cacheKey]: false }));
+      setConversionLoading((prev) => ({ ...prev, [fileKey]: false }));
     }
   };
 
-  // ── Fetch patient details AND all investigation files ─────────────────────
+  // ── Fetch full patient details for preview ────────────────────────────────
   const fetchPatientDetails = async () => {
     try {
       setLoading(true);
 
-      const statusResult = await apiRequest(
-        `${Labbaseurl}get_investigation_status/?barcode=${patient.barcode}`,
-        "GET",
-      );
-      let freshChcTests = chcTests;
-      if (statusResult.success) {
-        freshChcTests = statusResult.data.chc_tests || [];
-        setChcTests(freshChcTests);
-        setPreviewChcTests(freshChcTests);
-        setVitalsFromInvestigation(statusResult.data.vitals || {});
-        setPatientHistoryFromInvestigation(
-          statusResult.data.patient_history || "",
-        );
-        // Refresh ophthalmology too
-        const ophthal = statusResult.data.ophthalmology_exam;
-        if (
-          ophthal &&
-          typeof ophthal === "object" &&
-          Object.keys(ophthal).length > 0
-        ) {
-          setOphthalmologyExam(ophthal);
-        }
-      }
-
+      // ── Step 1: corporate_health_report ──────────────────────────────────
       const result = await apiRequest(
         `${Labbaseurl}corporate_health_report/?barcode=${patient.barcode}`,
         "GET",
       );
+
+      console.log("corporate_health_report raw result:", result);
+
       if (!result.success) {
-        alert("Failed to fetch patient details: " + result.error);
+        console.error("Error fetching patient details:", result.error);
+        alert(
+          "Failed to fetch patient details: " +
+            (result.error || "Unknown error"),
+        );
         return;
       }
-      const patientData = result.data.patient_data || result.data;
-      setPatientDetails(patientData);
 
-      const files = {};
+      // The backend returns { patient_data: {...}, signatures: [...] }
+      // but apiRequest may wrap it under result.data
+      let details = null;
+      const raw = result.data;
+
+      if (raw?.patient_data) {
+        details = raw.patient_data; // normal shape
+      } else if (raw?.patientname || raw?.patient_id) {
+        details = raw; // already unwrapped
+      } else if (raw?.data?.patient_data) {
+        details = raw.data.patient_data; // double-wrapped
+      } else {
+        details = raw;
+      }
+
+      console.log("Resolved patientDetails:", details);
+      setPatientDetails(details);
+
+      // ── Step 2: get_investigation_status — merge vitals / history ────────
+      const invResult = await apiRequest(
+        `${Labbaseurl}get_investigation_status/?barcode=${patient.barcode}`,
+        "GET",
+      );
+      console.log("get_investigation_status result:", invResult);
+
+      if (invResult.success && invResult.data) {
+        const inv = invResult.data;
+
+        setPatientDetails((prev) => {
+          const merged = { ...prev };
+
+          // Vitals
+          if (
+            (!merged.vitals || Object.keys(merged.vitals).length === 0) &&
+            inv.vitals &&
+            Object.keys(inv.vitals).length > 0
+          ) {
+            merged.vitals = inv.vitals;
+          }
+
+          // Patient history
+          if (
+            !merged.medical_history &&
+            inv.patient_history &&
+            inv.patient_history.trim()
+          ) {
+            merged.medical_history = { patient_history: inv.patient_history };
+          }
+
+          // Ophthalmology — try from chc_tests CHCT001 notes if main ophthalmology missing
+          if (!merged.ophthalmology) {
+            const ophthalTest = (inv.chc_tests || []).find(
+              (t) => t.test_id === "CHCT001",
+            );
+            if (ophthalTest && ophthalTest.notes) {
+              merged.ophthalmology = {
+                remarks: ophthalTest.notes,
+                patient_complaints: "",
+                visual_acuity: null,
+              };
+            }
+          }
+
+          return merged;
+        });
+      }
+
+      // ── Step 3: Fetch investigation files from chc_tests ────────────────
+      // chc_tests[].files[] contains the GridFS file IDs for each test
+      const chcTests = invResult?.data?.chc_tests || [];
+      const chcFilesMap = {}; // { test_id: { label, files: [{ data, contentType, filename }] } }
+
+      // Also collect old-style investigation_file_ids (ecg_file, pft_file etc.)
+      const oldFileIds = details?.investigation_file_ids || {};
+
+      // Fetch all CHC test files in parallel + store report/notes for each test
       await Promise.all(
-        freshChcTests.map(async (test) => {
-          const fileIds = test.files || [];
-          if (fileIds.length === 0) return;
-          const fetched = await Promise.all(
-            fileIds.map((fileId) => {
-              const id =
-                typeof fileId === "object" && fileId.$oid
-                  ? fileId.$oid
-                  : String(fileId);
-              return fetchInvestigationFile(id);
-            }),
-          );
-          files[test.test_id] = fetched.filter(Boolean);
+        chcTests.map(async (test) => {
+          const hasFiles = test.files && test.files.length > 0;
+          const hasReport = !!(test.report && test.report.trim());
+          const hasNotes = !!(test.notes && test.notes.trim());
+
+          // Include test if it has files OR report/notes to display
+          if (!hasFiles && !hasReport && !hasNotes) return;
+
+          let validFiles = [];
+          if (hasFiles) {
+            const fetched = await Promise.all(
+              test.files.map((fileId) => fetchInvestigationFile(fileId)),
+            );
+            validFiles = fetched.filter(Boolean);
+          }
+
+          chcFilesMap[test.test_id] = {
+            label: test.testname,
+            report: test.report || "",
+            notes: test.notes || "",
+            files: validFiles,
+          };
         }),
       );
-      setInvestigationFiles(files);
+
+      // Fetch old-style files (backward compat)
+      const oldFiles = {};
+      await Promise.all(
+        Object.entries(oldFileIds).map(async ([key, fileId]) => {
+          if (fileId) {
+            const fileData = await fetchInvestigationFile(fileId);
+            if (fileData) oldFiles[key] = fileData;
+          }
+        }),
+      );
+
+      setInvestigationFiles(oldFiles); // legacy keyed files
+      setChcInvestigationFiles(chcFilesMap); // new test-keyed files
+      console.log("CHC files fetched:", Object.keys(chcFilesMap));
+      console.log("Old files fetched:", Object.keys(oldFiles));
     } catch (error) {
       console.error("Error fetching patient details:", error);
+      alert("Error loading preview: " + error.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  // ── allApproved gate ──────────────────────────────────────────────────────
-  const allApproved = () => {
-    const allChcApproved =
-      chcTests.length > 0
-        ? chcTests.every(
-            (t) => (t.has_file || t.has_report) && t.status === "approved",
-          )
-        : chcInvestigationStatus === "approved";
-    return allChcApproved && labApprovalStatus === "approved";
   };
 
   const handlePreview = async () => {
@@ -692,7 +756,9 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       if (result.success) {
         alert("Approval saved successfully!");
         setShowPreview(false);
-        if (typeof onApprovalSaved === "function") await onApprovalSaved();
+        if (typeof onApprovalSaved === "function") {
+          await onApprovalSaved();
+        }
         onClose();
       } else {
         alert("Error saving approval: " + result.error);
@@ -703,11 +769,14 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     }
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Utilities ─────────────────────────────────────────────────────────────
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const processUnicodeText = (text) => {
@@ -728,7 +797,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       "÷": "/",
     };
     let processed = text.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
-      const ch = String.fromCharCode(parseInt(hex, 16));
+      const ch = String.fromCharCode(Number.parseInt(hex, 16));
       return unicodeMap[ch] || ch;
     });
     Object.keys(unicodeMap).forEach((k) => {
@@ -739,181 +808,25 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
   const getHighLowStatus = (value, reference) => {
     if (!value || !reference) return null;
-    const numValue = parseFloat(value);
+    const numValue = Number.parseFloat(value);
     if (isNaN(numValue)) return null;
     if (reference.includes("-")) {
-      const [min, max] = reference.split("-").map((v) => parseFloat(v));
+      const [min, max] = reference.split("-").map((v) => Number.parseFloat(v));
       if (!isNaN(min) && !isNaN(max)) {
         if (numValue < min) return "L";
         if (numValue > max) return "H";
       }
     } else if (reference.includes("<")) {
-      const max = parseFloat(reference.replace("<", ""));
+      const max = Number.parseFloat(reference.replace("<", ""));
       if (!isNaN(max) && numValue > max) return "H";
     } else if (reference.includes(">")) {
-      const min = parseFloat(reference.replace(">", ""));
+      const min = Number.parseFloat(reference.replace(">", ""));
       if (!isNaN(min) && numValue < min) return "L";
     }
     return null;
   };
 
-  const pendingCount = chcTests.filter((t) => t.status !== "approved").length;
-  const approvedCount = chcTests.filter((t) => t.status === "approved").length;
-
-  // ── Render a single file cell ─────────────────────────────────────────────
-  const renderSingleFileCell = (file, cacheKey, label) => {
-    if (!file || !file.data) return null;
-    const contentType = file.contentType || "";
-    const filename = (file.filename || "").toLowerCase();
-    const isPDF = contentType.includes("pdf") || filename.endsWith(".pdf");
-    const images = pdfImages[cacheKey] || [];
-    const isConverting = conversionLoading[cacheKey];
-
-    if (isPDF) {
-      if (images.length === 0 && !isConverting) {
-        return (
-          <LoadPdfButton
-            onClick={() => {
-              setConversionLoading((prev) => ({ ...prev, [cacheKey]: true }));
-              convertPdfToImages(file.data, cacheKey);
-            }}
-          >
-            Load PDF: {label}
-          </LoadPdfButton>
-        );
-      }
-      if (isConverting) {
-        return (
-          <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
-            Converting PDF…
-          </div>
-        );
-      }
-      return (
-        <div>
-          {images.map((imgSrc, pageIdx) => (
-            <div key={pageIdx}>
-              {images.length > 1 && (
-                <div
-                  style={{ fontSize: 11, color: "#888", padding: "4px 8px" }}
-                >
-                  Page {pageIdx + 1}/{images.length}
-                </div>
-              )}
-              <FileImage src={imgSrc} alt={`${label} p${pageIdx + 1}`} />
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return (
-      <FileImage src={`data:${contentType};base64,${file.data}`} alt={label} />
-    );
-  };
-
-  // ── Render files for one CHC test ─────────────────────────────────────────
-  const renderTestFiles = (testId, testName) => {
-    const files = investigationFiles[testId];
-    if (!files || files.length === 0) return null;
-
-    if (files.length === 1) {
-      return (
-        <div style={{ marginTop: 8 }}>
-          {renderSingleFileCell(files[0], `${testId}_0`, testName)}
-        </div>
-      );
-    }
-
-    const maxShow = 6;
-    const shown = files.slice(0, maxShow);
-    return (
-      <FilesGrid>
-        {shown.map((file, idx) => {
-          const cacheKey = `${testId}_${idx}`;
-          return (
-            <FileGridCell key={cacheKey}>
-              <FileGridCellLabel>
-                File {idx + 1}
-                {files.length > maxShow && idx === maxShow - 1
-                  ? ` (+${files.length - maxShow} more)`
-                  : ""}
-              </FileGridCellLabel>
-              <div style={{ padding: 8 }}>
-                {renderSingleFileCell(
-                  file,
-                  cacheKey,
-                  `${testName} #${idx + 1}`,
-                )}
-              </div>
-            </FileGridCell>
-          );
-        })}
-      </FilesGrid>
-    );
-  };
-
-  // ── Ophthalmology preview sub-component ──────────────────────────────────
-  // Accepts the ophthalmology_exam object from the API:
-  // { distance, nearVision, colourVision, ocularmovement, complaints, remarks }
-  const OphthalmologyPreview = ({ exam }) => {
-    if (!exam || Object.keys(exam).length === 0) {
-      return (
-        <InfoValue style={{ color: "#888" }}>
-          No ophthalmology data recorded.
-        </InfoValue>
-      );
-    }
-
-    const getEyes = (key) => {
-      const obj = exam[key] || {};
-      return { right: obj.right || "—", left: obj.left || "—" };
-    };
-
-    const rows = [
-      { label: "Distant Vision", data: getEyes("distance") },
-      { label: "Near Vision", data: getEyes("nearVision") },
-      { label: "Colour Vision", data: getEyes("colourVision") },
-      { label: "Ocular Movement", data: getEyes("ocularmovement") },
-    ];
-
-    return (
-      <div>
-        <OphthalTable>
-          <OphthalThead>
-            <tr>
-              <OphthalTh>Test</OphthalTh>
-              <OphthalTh>Right Eye</OphthalTh>
-              <OphthalTh>Left Eye</OphthalTh>
-            </tr>
-          </OphthalThead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.label}>
-                <OphthalTd>{row.label}</OphthalTd>
-                <OphthalTd>{row.data.right}</OphthalTd>
-                <OphthalTd>{row.data.left}</OphthalTd>
-              </tr>
-            ))}
-          </tbody>
-        </OphthalTable>
-
-        {/* Patient Complaints */}
-        <OphthalNote>
-          <OphthalNoteLabel>Patient Complaints:</OphthalNoteLabel>
-          {exam.complaints?.trim() || "Nil"}
-        </OphthalNote>
-
-        {/* Remarks */}
-        <OphthalNote>
-          <OphthalNoteLabel>Remarks:</OphthalNoteLabel>
-          {exam.remarks?.trim() ||
-            "Both Eyes: Normal Vision. Review after 6 months or 1 year."}
-        </OphthalNote>
-      </div>
-    );
-  };
-
-  // ── Lab Investigations sub-component ──────────────────────────────────────
+  // ── Sub-components ────────────────────────────────────────────────────────
   const LabInvestigationsPreview = ({ tests = [] }) => {
     const labTests = tests.filter(
       (t) =>
@@ -968,10 +881,10 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                         <LabTd>
                           <span>{test.value || ""}</span>
                           {status === "H" && (
-                            <StatusBadge $high> ▲ H</StatusBadge>
+                            <StatusBadgeHl $high> ▲ H</StatusBadgeHl>
                           )}
                           {status === "L" && (
-                            <StatusBadge $low> ▼ L</StatusBadge>
+                            <StatusBadgeHl $low> ▼ L</StatusBadgeHl>
                           )}
                         </LabTd>
                         <LabTd>{processUnicodeText(test.unit || "")}</LabTd>
@@ -1013,10 +926,13 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                                     <LabTd>
                                       <span>{p.value || ""}</span>
                                       {pStatus === "H" && (
-                                        <StatusBadge $high> ▲ H</StatusBadge>
+                                        <StatusBadgeHl $high>
+                                          {" "}
+                                          ▲ H
+                                        </StatusBadgeHl>
                                       )}
                                       {pStatus === "L" && (
-                                        <StatusBadge $low> ▼ L</StatusBadge>
+                                        <StatusBadgeHl $low> ▼ L</StatusBadgeHl>
                                       )}
                                     </LabTd>
                                     <LabTd>
@@ -1045,52 +961,431 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     );
   };
 
-  // ── Build vitals rows ─────────────────────────────────────────────────────
-  const buildVitalsRows = (vitals) => {
-    if (!vitals) return [];
-    const rows = [];
-    const height = vitals.height_cm || vitals.height;
-    if (height && String(height).trim() && String(height).trim() !== "0")
-      rows.push({ param: "Height", value: `${height} cms`, range: "" });
-    const weight = vitals.weight_kg || vitals.weight;
-    if (weight && String(weight).trim() && String(weight).trim() !== "0")
-      rows.push({ param: "Weight", value: `${weight} kgs`, range: "" });
-    if (
-      vitals.bmi &&
-      String(vitals.bmi).trim() &&
-      String(vitals.bmi).trim() !== "0"
-    )
-      rows.push({
-        param: "BMI",
-        value: `${vitals.bmi} kg/m²`,
-        range: "18.5 – 24.9",
-      });
-    if (vitals.blood_pressure && String(vitals.blood_pressure).trim())
-      rows.push({
-        param: "Blood Pressure",
-        value: `${vitals.blood_pressure} mmHg`,
-        range: "120/80",
-      });
-    const pulse = vitals.pulse || vitals.spo2;
-    if (pulse && String(pulse).trim() && String(pulse).trim() !== "0")
-      rows.push({
-        param: "Pulse Rate",
-        value: `${pulse} bpm`,
-        range: "60 – 100",
-      });
-    return rows;
+  const renderFilePreview = (fileKey, label) => {
+    const file = investigationFiles[fileKey];
+    if (!file) return null;
+
+    const contentType = (file.contentType || "").toLowerCase();
+    const filename = (file.filename || "").toLowerCase();
+    const rawData = file.data || "";
+
+    const isPDF =
+      contentType.includes("pdf") ||
+      filename.endsWith(".pdf") ||
+      rawData.startsWith("JVBER");
+
+    const imgMime = contentType.startsWith("image/")
+      ? contentType
+      : filename.endsWith(".png")
+        ? "image/png"
+        : "image/jpeg";
+
+    const images = pdfImages[fileKey] || [];
+    const isConverting = conversionLoading[fileKey];
+    const hasError = images[0] === "ERROR";
+
+    return (
+      <FilePreviewContainer key={fileKey}>
+        <FilePreviewTitle>{label}</FilePreviewTitle>
+        {isPDF ? (
+          <>
+            {images.length === 0 && !isConverting && (
+              <button
+                onClick={() => {
+                  setConversionLoading((prev) => ({
+                    ...prev,
+                    [fileKey]: true,
+                  }));
+                  convertPdfToImages(rawData, fileKey);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: "#DB9BB9",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                📄 Load PDF Preview
+              </button>
+            )}
+            {isConverting && (
+              <div
+                style={{
+                  padding: 20,
+                  textAlign: "center",
+                  background: "#f8f4f7",
+                  borderRadius: 6,
+                  color: "#888",
+                  fontSize: 14,
+                }}
+              >
+                ⏳ Converting PDF to images…
+              </div>
+            )}
+            {hasError && !isConverting && (
+              <div
+                style={{
+                  padding: 16,
+                  background: "#fff5f5",
+                  border: "1px solid #feb2b2",
+                  borderRadius: 6,
+                  color: "#c53030",
+                  fontSize: 13,
+                }}
+              >
+                ⚠️ Failed to render PDF.
+                <button
+                  onClick={() => {
+                    setPdfImages((prev) => {
+                      const n = { ...prev };
+                      delete n[fileKey];
+                      return n;
+                    });
+                    setConversionLoading((prev) => ({
+                      ...prev,
+                      [fileKey]: true,
+                    }));
+                    convertPdfToImages(rawData, fileKey);
+                  }}
+                  style={{
+                    marginLeft: 10,
+                    padding: "4px 10px",
+                    cursor: "pointer",
+                    background: "#DB9BB9",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 4,
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {!hasError &&
+              images.length > 0 &&
+              !isConverting &&
+              images.map((img, idx) => (
+                <div key={idx} style={{ marginBottom: 12 }}>
+                  {images.length > 1 && (
+                    <div
+                      style={{ fontSize: 11, color: "#888", marginBottom: 4 }}
+                    >
+                      Page {idx + 1} / {images.length}
+                    </div>
+                  )}
+                  <FileImage src={img} alt={`${label} page ${idx + 1}`} />
+                </div>
+              ))}
+          </>
+        ) : rawData ? (
+          <FileImage
+            src={
+              rawData.startsWith("data:")
+                ? rawData
+                : `data:${imgMime};base64,${rawData}`
+            }
+            alt={label}
+          />
+        ) : (
+          <div style={{ color: "#888", fontSize: 13 }}>
+            No file data available
+          </div>
+        )}
+      </FilePreviewContainer>
+    );
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PREVIEW MODAL
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (showPreview) {
-    const vitalsRows = buildVitalsRows(
-      Object.keys(vitalsFromInvestigation).length > 0
-        ? vitalsFromInvestigation
-        : patientDetails?.vitals,
-    );
+  // ── Render CHC test files (multiple files per test) ─────────────────────
+  const renderChcTestFiles = (testId, label) => {
+    const entry = chcInvestigationFiles[testId];
+    if (!entry) return null;
+    // Show if there's report/notes OR files
+    if (!entry.files?.length && !entry.report && !entry.notes) return null;
 
+    const displayLabel = label || entry.label;
+
+    return (
+      <FilePreviewContainer key={testId}>
+        <FilePreviewTitle>{displayLabel}</FilePreviewTitle>
+
+        {/* ── Report text (shown BEFORE images) ──────────────────────── */}
+        {entry.report?.trim() && (
+          <div
+            style={{
+              background: "#f8f9ff",
+              border: "1px solid #dde3ff",
+              borderRadius: 8,
+              padding: "14px 16px",
+              marginBottom: 14,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#4361ee",
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              Report
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                color: "#222",
+                lineHeight: 1.7,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {entry.report}
+            </div>
+          </div>
+        )}
+
+        {/* ── Notes / Impression (shown BEFORE images) ───────────────── */}
+        {entry.notes?.trim() && (
+          <div
+            style={{
+              background: "#f6fff8",
+              border: "1px solid #c6f6d5",
+              borderRadius: 8,
+              padding: "14px 16px",
+              marginBottom: 14,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#276749",
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              Impression / Notes
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                color: "#222",
+                lineHeight: 1.7,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {entry.notes}
+            </div>
+          </div>
+        )}
+
+        {/* ── No files message ───────────────────────────────────────── */}
+        {(!entry.files || entry.files.length === 0) && (
+          <div style={{ fontSize: 13, color: "#888", fontStyle: "italic" }}>
+            No image files attached.
+          </div>
+        )}
+
+        {/* ── File images / PDFs ─────────────────────────────────────── */}
+        {entry.files &&
+          entry.files.map((file, fileIdx) => {
+            if (!file) return null;
+
+            const contentType = (file.contentType || "").toLowerCase();
+            const filename = (file.filename || "").toLowerCase();
+            const rawData = file.data || "";
+
+            // ── Detect file type ──────────────────────────────────────────────
+            // Backend returns raw base64 with no data: prefix.
+            // Detect PDF by content-type OR filename OR magic bytes in base64.
+            const isPDF =
+              contentType.includes("pdf") ||
+              filename.endsWith(".pdf") ||
+              rawData.startsWith("JVBER"); // base64 of %PDF-
+
+            // For images, detect type: default to jpeg if unknown
+            const imgMime = contentType.startsWith("image/")
+              ? contentType
+              : filename.endsWith(".png")
+                ? "image/png"
+                : filename.endsWith(".gif")
+                  ? "image/gif"
+                  : "image/jpeg";
+
+            const fileKey = `${testId}_${fileIdx}`;
+            const pdfImgList = pdfImages[fileKey] || [];
+            const isConverting = conversionLoading[fileKey];
+            const hasError = pdfImgList[0] === "ERROR";
+
+            return (
+              <div
+                key={fileIdx}
+                style={{
+                  marginBottom: fileIdx < entry.files.length - 1 ? 20 : 0,
+                }}
+              >
+                {entry.files.length > 1 && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#888",
+                      marginBottom: 6,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    File {fileIdx + 1} of {entry.files.length}
+                    {file.filename ? ` — ${file.filename}` : ""}
+                  </div>
+                )}
+
+                {isPDF ? (
+                  <>
+                    {/* Not yet triggered */}
+                    {pdfImgList.length === 0 && !isConverting && (
+                      <button
+                        onClick={() => {
+                          setConversionLoading((prev) => ({
+                            ...prev,
+                            [fileKey]: true,
+                          }));
+                          convertPdfToImages(rawData, fileKey);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          backgroundColor: "#DB9BB9",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        📄 Load PDF Preview
+                      </button>
+                    )}
+
+                    {/* Converting spinner */}
+                    {isConverting && (
+                      <div
+                        style={{
+                          padding: 20,
+                          textAlign: "center",
+                          background: "#f8f4f7",
+                          borderRadius: 6,
+                          color: "#888",
+                          fontSize: 14,
+                        }}
+                      >
+                        ⏳ Converting PDF to images…
+                      </div>
+                    )}
+
+                    {/* Error state */}
+                    {hasError && !isConverting && (
+                      <div
+                        style={{
+                          padding: 16,
+                          background: "#fff5f5",
+                          border: "1px solid #feb2b2",
+                          borderRadius: 6,
+                          color: "#c53030",
+                          fontSize: 13,
+                        }}
+                      >
+                        ⚠️ Failed to render PDF. Check console for details.
+                        <button
+                          onClick={() => {
+                            setPdfImages((prev) => {
+                              const n = { ...prev };
+                              delete n[fileKey];
+                              return n;
+                            });
+                            setConversionLoading((prev) => ({
+                              ...prev,
+                              [fileKey]: true,
+                            }));
+                            convertPdfToImages(rawData, fileKey);
+                          }}
+                          style={{
+                            marginLeft: 10,
+                            padding: "4px 10px",
+                            cursor: "pointer",
+                            background: "#DB9BB9",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 4,
+                          }}
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Rendered pages */}
+                    {!hasError && pdfImgList.length > 0 && !isConverting && (
+                      <div>
+                        {pdfImgList.map((img, pgIdx) => (
+                          <div key={pgIdx} style={{ marginBottom: 12 }}>
+                            {pdfImgList.length > 1 && (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: "#888",
+                                  marginBottom: 4,
+                                }}
+                              >
+                                Page {pgIdx + 1} / {pdfImgList.length}
+                              </div>
+                            )}
+                            <FileImage
+                              src={img}
+                              alt={`${label || entry.label} page ${pgIdx + 1}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : /* Image file — construct proper data URI */
+                rawData ? (
+                  <FileImage
+                    src={
+                      rawData.startsWith("data:")
+                        ? rawData
+                        : `data:${imgMime};base64,${rawData}`
+                    }
+                    alt={`${label || entry.label} file ${fileIdx + 1}`}
+                    onError={(e) => {
+                      console.error("Image load error for", fileKey, e);
+                      e.target.style.display = "none";
+                      e.target.insertAdjacentHTML(
+                        "afterend",
+                        "<div style='color:#c53030;font-size:13px'>⚠️ Image failed to load</div>",
+                      );
+                    }}
+                  />
+                ) : (
+                  <div style={{ color: "#888", fontSize: 13 }}>
+                    No file data available
+                  </div>
+                )}
+              </div>
+            );
+          })}
+      </FilePreviewContainer>
+    );
+  };
+
+  // ── Preview modal ─────────────────────────────────────────────────────────
+  if (showPreview) {
     return (
       <ModalOverlay>
         <PreviewModalContent>
@@ -1105,13 +1400,13 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
             {loading ? (
               <LoadingContainer>
                 <Loader size={32} />
-                <span>Loading report and files…</span>
+                <span>Loading report and files...</span>
               </LoadingContainer>
             ) : patientDetails ? (
               <>
-                {/* ── 1. Patient Information ─────────────────────────────── */}
+                {/* Patient Info */}
                 <ReportSection>
-                  <SectionTitle>1. Patient Information</SectionTitle>
+                  <SectionTitle>Patient Information</SectionTitle>
                   <InfoRow>
                     <InfoLabel>Name:</InfoLabel>
                     <InfoValue>{patientDetails.patientname || "N/A"}</InfoValue>
@@ -1148,241 +1443,346 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                   )}
                 </ReportSection>
 
-                {/* ── 2. Medical History ─────────────────────────────────── */}
-                <ReportSection>
-                  <SectionTitle>2. Medical History</SectionTitle>
-                  <InfoValue style={{ lineHeight: 1.8, fontSize: 15 }}>
-                    {patientHistoryFromInvestigation ||
-                      patientDetails.medical_history?.patient_history ||
-                      "Nil Significant"}
-                  </InfoValue>
-                </ReportSection>
+                {/* Vitals — backend may use height_cm/weight_kg OR height/weight */}
+                {patientDetails.vitals &&
+                  Object.keys(patientDetails.vitals).length > 0 &&
+                  (() => {
+                    const v = patientDetails.vitals;
+                    const height = v.height || v.height_cm || "N/A";
+                    const weight = v.weight || v.weight_kg || "N/A";
+                    const bmi = v.bmi || "N/A";
+                    const bp = v.blood_pressure || "N/A";
+                    const pulse = v.spo2 || v.pulse || "N/A";
+                    return (
+                      <ReportSection>
+                        <SectionTitle>Vitals</SectionTitle>
+                        <LabTable>
+                          <LabThead>
+                            <tr>
+                              <LabTh>Parameter</LabTh>
+                              <LabTh>Reading</LabTh>
+                              <LabTh>Normal Range</LabTh>
+                            </tr>
+                          </LabThead>
+                          <tbody>
+                            <tr>
+                              <LabTd>Height</LabTd>
+                              <LabTd>{height} cms</LabTd>
+                              <LabTd></LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>Weight</LabTd>
+                              <LabTd>{weight} kgs</LabTd>
+                              <LabTd></LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>BMI</LabTd>
+                              <LabTd>{bmi} kg/m²</LabTd>
+                              <LabTd>18.5 - 24.9</LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>Blood Pressure</LabTd>
+                              <LabTd>{bp} mmHg</LabTd>
+                              <LabTd>120/80</LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>Pulse Rate</LabTd>
+                              <LabTd>{pulse} bpm</LabTd>
+                              <LabTd>60 - 100</LabTd>
+                            </tr>
+                          </tbody>
+                        </LabTable>
+                      </ReportSection>
+                    );
+                  })()}
 
-                {/* ── 3. Vitals ──────────────────────────────────────────── */}
-                <ReportSection>
-                  <SectionTitle>3. Vitals</SectionTitle>
-                  {vitalsRows.length > 0 ? (
-                    <LabTable>
-                      <LabThead>
-                        <tr>
-                          <LabTh>Parameter</LabTh>
-                          <LabTh>Reading</LabTh>
-                          <LabTh>Normal Range</LabTh>
-                        </tr>
-                      </LabThead>
-                      <tbody>
-                        {vitalsRows.map((row) => (
-                          <tr key={row.param}>
-                            <LabTd style={{ fontWeight: 600 }}>
-                              {row.param}
-                            </LabTd>
-                            <LabTd>{row.value}</LabTd>
-                            <LabTd style={{ color: "#888" }}>{row.range}</LabTd>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </LabTable>
-                  ) : (
-                    <InfoValue style={{ color: "#888" }}>
-                      No vitals recorded.
-                    </InfoValue>
-                  )}
-                </ReportSection>
-
-                {/* ── 4. Miscellaneous Investigations ───────────────────── */}
-                <ReportSection>
-                  <SectionTitle>4. Miscellaneous Investigations</SectionTitle>
-                  {patientDetails.investigation_notes?.ecg_notes && (
-                    <InfoRow>
-                      <InfoLabel>E.C.G:</InfoLabel>
-                      <InfoValue>
-                        {patientDetails.investigation_notes.ecg_notes}
-                      </InfoValue>
-                    </InfoRow>
-                  )}
-                  {patientDetails.investigation_notes?.pft_notes && (
-                    <InfoRow>
-                      <InfoLabel>Spirometry / PFT:</InfoLabel>
-                      <InfoValue>
-                        {patientDetails.investigation_notes.pft_notes}
-                      </InfoValue>
-                    </InfoRow>
-                  )}
-                  {patientDetails.investigation_notes?.xray_notes && (
-                    <InfoRow>
-                      <InfoLabel>X-Ray:</InfoLabel>
-                      <InfoValue>
-                        {patientDetails.investigation_notes.xray_notes}
-                      </InfoValue>
-                    </InfoRow>
-                  )}
-                  {patientDetails.investigation_notes?.audiometry_notes && (
-                    <InfoRow>
-                      <InfoLabel>Audiometry:</InfoLabel>
-                      <InfoValue>
-                        {patientDetails.investigation_notes.audiometry_notes}
-                      </InfoValue>
-                    </InfoRow>
-                  )}
-                  {previewChcTests.filter((t) => t.notes && t.notes.trim())
-                    .length > 0 && (
-                    <>
-                      <div
-                        style={{
-                          marginTop: 16,
-                          marginBottom: 8,
-                          fontWeight: 600,
-                          color: "#555",
-                          fontSize: 13,
-                          borderTop: "1px dashed #e0e0e0",
-                          paddingTop: 12,
-                        }}
-                      >
-                        CHC Test Notes:
-                      </div>
-                      {previewChcTests
-                        .filter((t) => t.notes && t.notes.trim())
-                        .map((test) => (
-                          <InfoRow key={test.test_id}>
-                            <InfoLabel style={{ minWidth: 160 }}>
-                              {test.testname}:
-                            </InfoLabel>
-                            <InfoValue>{test.notes}</InfoValue>
-                          </InfoRow>
-                        ))}
-                    </>
-                  )}
-                  {!patientDetails.investigation_notes?.ecg_notes &&
-                    !patientDetails.investigation_notes?.pft_notes &&
-                    !patientDetails.investigation_notes?.xray_notes &&
-                    !patientDetails.investigation_notes?.audiometry_notes &&
-                    previewChcTests.filter((t) => t.notes && t.notes.trim())
-                      .length === 0 && (
-                      <InfoValue style={{ color: "#888" }}>
-                        No miscellaneous investigation notes available.
-                      </InfoValue>
-                    )}
-                </ReportSection>
-
-                {/* ── 5. Ophthalmology ───────────────────────────────────── */}
-                <ReportSection>
-                  <SectionTitle>5. Ophthalmology</SectionTitle>
-                  <OphthalmologyPreview exam={ophthalmologyExam} />
-                </ReportSection>
-
-                {/* ── 6. Test Reports (report text + files per test) ─────── */}
-                {previewChcTests.length > 0 && (
+                {/* Medical History */}
+                {patientDetails.medical_history && (
                   <ReportSection>
-                    <SectionTitle>6. Test Reports &amp; Files</SectionTitle>
-                    {previewChcTests.map((test) => {
-                      const hasReport = test.report && test.report.trim();
-                      const hasFiles =
-                        investigationFiles[test.test_id]?.length > 0;
-                      if (!hasReport && !hasFiles) {
-                        return (
-                          <TestReportCard key={test.test_id}>
-                            <TestReportCardHeader>
-                              <TestReportCardTitle>
-                                {test.testname}
-                              </TestReportCardTitle>
-                              <ApprovalBadge $approved={false}>
-                                No Data
-                              </ApprovalBadge>
-                            </TestReportCardHeader>
-                          </TestReportCard>
-                        );
-                      }
-                      return (
-                        <TestReportCard key={test.test_id}>
-                          <TestReportCardHeader>
-                            <TestReportCardTitle>
-                              {test.testname}
-                            </TestReportCardTitle>
-                            <ApprovalBadge
-                              $approved={test.status === "approved"}
-                            >
-                              {test.status === "approved"
-                                ? "Approved"
-                                : "Pending"}
-                            </ApprovalBadge>
-                          </TestReportCardHeader>
-                          <TestReportCardBody>
-                            {hasReport && (
-                              <div style={{ marginBottom: hasFiles ? 16 : 0 }}>
-                                <div
-                                  style={{
-                                    fontWeight: 600,
-                                    color: "#555",
-                                    marginBottom: 8,
-                                    fontSize: 13,
-                                  }}
-                                >
-                                  Report:
-                                </div>
-                                <div
-                                  style={{
-                                    lineHeight: 1.9,
-                                    fontSize: 14,
-                                    color: "#222",
-                                  }}
-                                >
-                                  {test.report
-                                    .replace(/\\n/g, "\n")
-                                    .split(/(?<=\.)\s+/)
-                                    .map((s) => s.trim())
-                                    .filter((s) => s.length > 0)
-                                    .map((sentence, i) => (
-                                      <div key={i} style={{ marginBottom: 4 }}>
-                                        {sentence.endsWith(".")
-                                          ? sentence
-                                          : `${sentence}.`}
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-                            {hasFiles && (
-                              <div>
-                                <div
-                                  style={{
-                                    fontWeight: 600,
-                                    color: "#555",
-                                    marginBottom: 6,
-                                    fontSize: 13,
-                                  }}
-                                >
-                                  Files (
-                                  {investigationFiles[test.test_id].length}):
-                                </div>
-                                {renderTestFiles(test.test_id, test.testname)}
-                              </div>
-                            )}
-                          </TestReportCardBody>
-                        </TestReportCard>
-                      );
-                    })}
+                    <SectionTitle>Medical History</SectionTitle>
+                    <InfoValue>
+                      {patientDetails.medical_history.patient_history ||
+                        "Nil Significant"}
+                    </InfoValue>
                   </ReportSection>
                 )}
 
-                {/* ── 7. Lab Investigations ──────────────────────────────── */}
+                {/* Miscellaneous Investigations */}
+                {patientDetails.investigation_notes &&
+                  Object.keys(patientDetails.investigation_notes).length >
+                    0 && (
+                    <ReportSection>
+                      <SectionTitle>Miscellaneous Investigations</SectionTitle>
+                      {patientDetails.investigation_notes.ecg_notes && (
+                        <InfoRow>
+                          <InfoLabel>E.C.G:</InfoLabel>
+                          <InfoValue>
+                            {patientDetails.investigation_notes.ecg_notes}
+                          </InfoValue>
+                        </InfoRow>
+                      )}
+                      {patientDetails.investigation_notes.pft_notes && (
+                        <InfoRow>
+                          <InfoLabel>Spirometry:</InfoLabel>
+                          <InfoValue>
+                            {patientDetails.investigation_notes.pft_notes}
+                          </InfoValue>
+                        </InfoRow>
+                      )}
+                      {patientDetails.investigation_notes.xray_notes && (
+                        <InfoRow>
+                          <InfoLabel>X-Ray:</InfoLabel>
+                          <InfoValue>
+                            {patientDetails.investigation_notes.xray_notes}
+                          </InfoValue>
+                        </InfoRow>
+                      )}
+                      {patientDetails.investigation_notes.audiometry_notes && (
+                        <InfoRow>
+                          <InfoLabel>Audiometry:</InfoLabel>
+                          <InfoValue>
+                            {
+                              patientDetails.investigation_notes
+                                .audiometry_notes
+                            }
+                          </InfoValue>
+                        </InfoRow>
+                      )}
+                    </ReportSection>
+                  )}
+
+                {/* X-Ray Report */}
+                {patientDetails.investigation_notes?.xray_report &&
+                  patientDetails.investigation_notes.xray_report.trim() && (
+                    <ReportSection>
+                      <SectionTitle>X-Ray Chest PA View</SectionTitle>
+                      <InfoValue
+                        style={{ whiteSpace: "pre-line", lineHeight: "1.8" }}
+                      >
+                        {(() => {
+                          let text =
+                            patientDetails.investigation_notes.xray_report;
+                          text = text.replace(/\\n/g, "\n");
+                          return text
+                            .split("\n")
+                            .map((l) => l.trim())
+                            .filter((l) => l.length > 0)
+                            .join("\n");
+                        })()}
+                      </InfoValue>
+                      <div
+                        style={{
+                          marginTop: "25px",
+                          paddingTop: "15px",
+                          borderTop: "1px solid #e0e0e0",
+                        }}
+                      >
+                        <InfoLabel
+                          style={{
+                            display: "block",
+                            marginBottom: "10px",
+                            fontSize: "15px",
+                          }}
+                        >
+                          IMPRESSION:
+                        </InfoLabel>
+                        <InfoValue style={{ fontSize: "14px" }}>
+                          {patientDetails.investigation_notes.xray_notes ||
+                            "No significant finding in the lungs or mediastinum."}
+                        </InfoValue>
+                      </div>
+                    </ReportSection>
+                  )}
+
+                {/* Investigation Files */}
+                {/* Investigation Files — from chc_tests[].files (primary)
+                     and legacy investigation_file_ids (fallback) */}
+                {(Object.keys(chcInvestigationFiles).length > 0 ||
+                  Object.keys(investigationFiles).length > 0) && (
+                  <ReportSection>
+                    <SectionTitle>Investigation Reports & Files</SectionTitle>
+
+                    {/* New: render each CHC test's files grouped by test */}
+                    {Object.keys(chcInvestigationFiles).length > 0 ? (
+                      Object.entries(chcInvestigationFiles).map(
+                        ([testId, entry]) =>
+                          renderChcTestFiles(testId, entry.label),
+                      )
+                    ) : (
+                      /* Fallback: old-style single-file-per-key */
+                      <>
+                        {renderFilePreview("xrayfilm_file", "X-Ray Film")}
+                        {renderFilePreview("ecg_file", "ECG Report")}
+                        {renderFilePreview(
+                          "pft_file",
+                          "Pulmonary Function Test (PFT)",
+                        )}
+                        {renderFilePreview(
+                          "audiometric_file",
+                          "Audiometry Report",
+                        )}
+                      </>
+                    )}
+                  </ReportSection>
+                )}
+
+                {/* Ophthalmology — handles both CHC (distance/nearVision/colourVision keys)
+                     and legacy (visual_acuity nested) structures */}
+                {(() => {
+                  const oph = patientDetails.ophthalmology;
+                  if (!oph) return null;
+
+                  // CHC shape: { distance:{right,left}, nearVision:{right,left}, colourVision:{right,left}, ocularmovement:{right,left}, complaints, remarks }
+                  // Legacy shape: { visual_acuity:{ distance, near_vision, color_vision, ocularmovement }, patient_complaints, remarks }
+                  const isCHC =
+                    oph.distance || oph.nearVision || oph.colourVision;
+
+                  const rows = [];
+                  if (isCHC) {
+                    if (oph.distance)
+                      rows.push({
+                        label: "Distant Vision",
+                        r: oph.distance.right,
+                        l: oph.distance.left,
+                      });
+                    if (oph.nearVision)
+                      rows.push({
+                        label: "Near Vision",
+                        r: oph.nearVision.right,
+                        l: oph.nearVision.left,
+                      });
+                    if (oph.colourVision)
+                      rows.push({
+                        label: "Colour Vision",
+                        r: oph.colourVision.right,
+                        l: oph.colourVision.left,
+                      });
+                    if (oph.ocularmovement)
+                      rows.push({
+                        label: "Ocular Movement",
+                        r: oph.ocularmovement.right,
+                        l: oph.ocularmovement.left,
+                      });
+                  } else if (oph.visual_acuity) {
+                    const va = oph.visual_acuity;
+                    if (va.distance)
+                      rows.push({
+                        label: "Distant Vision",
+                        r: va.distance.right,
+                        l: va.distance.left,
+                      });
+                    if (va.near_vision)
+                      rows.push({
+                        label: "Near Vision",
+                        r: va.near_vision.right,
+                        l: va.near_vision.left,
+                      });
+                    if (va.color_vision)
+                      rows.push({
+                        label: "Colour Vision",
+                        r: va.color_vision.right,
+                        l: va.color_vision.left,
+                      });
+                    if (va.ocularmovement)
+                      rows.push({
+                        label: "Ocular Movement",
+                        r: va.ocularmovement.right,
+                        l: va.ocularmovement.left,
+                      });
+                  }
+
+                  const complaints =
+                    oph.complaints || oph.patient_complaints || "";
+                  const remarks = oph.remarks || "";
+
+                  return (
+                    <ReportSection>
+                      <SectionTitle>Ophthalmology Report</SectionTitle>
+
+                      {rows.length > 0 && (
+                        <OphthalmologyTable>
+                          <thead>
+                            <tr>
+                              <OphthalmologyTh>Test</OphthalmologyTh>
+                              <OphthalmologyTh>Right Eye</OphthalmologyTh>
+                              <OphthalmologyTh>Left Eye</OphthalmologyTh>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((row) => (
+                              <tr key={row.label}>
+                                <OphthalmologyTd style={{ fontWeight: 600 }}>
+                                  {row.label}
+                                </OphthalmologyTd>
+                                <OphthalmologyTd>
+                                  {row.r || "N/A"}
+                                </OphthalmologyTd>
+                                <OphthalmologyTd>
+                                  {row.l || "N/A"}
+                                </OphthalmologyTd>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </OphthalmologyTable>
+                      )}
+
+                      {complaints?.trim() && (
+                        <div style={{ marginTop: "20px" }}>
+                          <InfoLabel
+                            style={{ display: "block", marginBottom: "8px" }}
+                          >
+                            Patient Complaints:
+                          </InfoLabel>
+                          <InfoValue>{complaints}</InfoValue>
+                        </div>
+                      )}
+
+                      <div style={{ marginTop: "15px" }}>
+                        <InfoLabel
+                          style={{ display: "block", marginBottom: "8px" }}
+                        >
+                          Remarks:
+                        </InfoLabel>
+                        <InfoValue>
+                          {remarks?.trim() ||
+                            "Both Eyes: Normal Vision. Review after 6 months or 1 year."}
+                        </InfoValue>
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: "15px",
+                          fontSize: "12px",
+                          fontStyle: "italic",
+                          color: "#666",
+                        }}
+                      >
+                        This spectacle prescription is valid for correction,
+                        only for three months from the date of consultation.
+                      </div>
+                    </ReportSection>
+                  );
+                })()}
+
+                {/* Lab Investigations */}
                 {patientDetails.testdetails?.length > 0 && (
                   <ReportSection>
-                    <SectionTitle>7. Lab Investigations</SectionTitle>
+                    <SectionTitle>Lab Investigations</SectionTitle>
                     <LabInvestigationsPreview
                       tests={patientDetails.testdetails}
                     />
                   </ReportSection>
                 )}
 
-                {/* ── 8. Clinical Assessment ────────────────────────────── */}
+                {/* Clinical Assessment */}
                 <ReportSection>
-                  <SectionTitle>8. Clinical Assessment</SectionTitle>
+                  <SectionTitle>Clinical Assessment</SectionTitle>
                   <InputGroup>
                     <InputLabel>Impression</InputLabel>
                     <TextArea
                       value={impression}
                       onChange={(e) => setImpression(e.target.value)}
-                      placeholder="Enter impression…"
+                      placeholder="Enter impression..."
                     />
                   </InputGroup>
                   <InputGroup>
@@ -1390,7 +1790,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     <TextArea
                       value={remarks}
                       onChange={(e) => setRemarks(e.target.value)}
-                      placeholder="Enter remarks…"
+                      placeholder="Enter remarks..."
                     />
                   </InputGroup>
                 </ReportSection>
@@ -1413,14 +1813,12 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STATUS MODAL (default view)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ── Main modal ────────────────────────────────────────────────────────────
   return (
     <ModalOverlay>
       <ModalContent>
         <ModalHeader>
-          <Title>Investigation Status</Title>
+          <Title>Investigation & Approval Status</Title>
           <Button $secondary onClick={onClose}>
             <X size={16} />
           </Button>
@@ -1429,114 +1827,62 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         {loading ? (
           <LoadingContainer>
             <Loader size={32} />
-            <span>Loading status…</span>
+            <span>Loading status...</span>
           </LoadingContainer>
         ) : (
           <>
             <StatusList>
+              {/* CHC Tests from API response */}
               {chcTests.length > 0 ? (
-                <>
-                  <CHCTestSectionTitle>CHC Investigations</CHCTestSectionTitle>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "4px 16px",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "#999",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    <span>Test</span>
-                    <div style={{ display: "flex", gap: 48 }}>
-                      <span>Collection</span>
-                      <span>Approval</span>
-                    </div>
-                  </div>
-                  {chcTests.map((test) => {
-                    const collected = test.has_file || test.has_report;
-                    const approved = test.status === "approved";
-                    return (
-                      <StatusItem key={test.test_id}>
-                        <StatusInfo>
-                          <StatusLabel>
-                            {test.testname || test.test_id}
-                          </StatusLabel>
-                        </StatusInfo>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 12,
-                            alignItems: "center",
-                          }}
-                        >
-                          <ApprovalBadge $approved={collected}>
-                            {collected ? "Collected" : "Pending"}
-                          </ApprovalBadge>
-                          <ApprovalBadge $approved={approved}>
-                            {approved ? "Approved" : "Pending"}
-                          </ApprovalBadge>
-                        </div>
-                      </StatusItem>
-                    );
-                  })}
-                  <div
-                    style={{
-                      marginTop: 8,
-                      padding: "8px 12px",
-                      background: "#f9f9f9",
-                      borderRadius: 8,
-                      fontSize: 13,
-                      color: "#555",
-                      display: "flex",
-                      gap: 16,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <span>
-                      📋 Collected:{" "}
-                      <strong>
-                        {
-                          chcTests.filter((t) => t.has_file || t.has_report)
-                            .length
-                        }
-                      </strong>{" "}
-                      / {chcTests.length}
-                    </span>
-                    <span>
-                      ✅ Approved: <strong>{approvedCount}</strong>
-                    </span>
-                    <span>
-                      ⏳ Pending:{" "}
-                      <strong
-                        style={{ color: pendingCount > 0 ? "#b45309" : "#555" }}
-                      >
-                        {pendingCount}
-                      </strong>
-                    </span>
-                  </div>
-                </>
+                chcTests.map((test) => {
+                  const isApproved = test.status?.toLowerCase() === "approved";
+                  const hasReport = !!test.has_report;
+                  const hasFile = !!test.has_file;
+                  const hasNotes = !!(test.notes && test.notes.trim());
+                  return (
+                    <StatusItem key={test.test_id}>
+                      <StatusInfo>
+                        <StatusLabel>{test.testname}</StatusLabel>
+                        <IndicatorsRow>
+                          <IndicatorChip $ok={hasReport}>
+                            {hasReport ? <TickIcon /> : <CrossIcon />} Report
+                          </IndicatorChip>
+                          <IndicatorChip $ok={hasFile}>
+                            {hasFile ? <TickIcon /> : <CrossIcon />} File
+                          </IndicatorChip>
+                          <IndicatorChip $ok={hasNotes}>
+                            {hasNotes ? <TickIcon /> : <CrossIcon />} Notes
+                          </IndicatorChip>
+                          {isApproved ? (
+                            <ApprovedBadge>✓ Approved</ApprovedBadge>
+                          ) : (
+                            <PendingBadge>⏳ Pending</PendingBadge>
+                          )}
+                        </IndicatorsRow>
+                      </StatusInfo>
+                    </StatusItem>
+                  );
+                })
               ) : (
                 <StatusItem>
                   <StatusInfo>
-                    <StatusLabel>CHC Investigations</StatusLabel>
-                    <StatusBadge>No billed CHC tests found</StatusBadge>
+                    <StatusLabel style={{ color: "#999", fontStyle: "italic" }}>
+                      No CHC tests found
+                    </StatusLabel>
                   </StatusInfo>
                 </StatusItem>
               )}
 
-              <CHCTestSectionTitle style={{ marginTop: 16 }}>
-                Lab Approval
-              </CHCTestSectionTitle>
+              {/* Lab Investigations */}
               <StatusItem>
                 <StatusInfo>
                   <StatusLabel>Lab Investigations</StatusLabel>
+                  {labApprovalStatus === "approved" ? (
+                    <ApprovedBadge>✓ Approved</ApprovedBadge>
+                  ) : (
+                    <PendingBadge>⏳ Pending</PendingBadge>
+                  )}
                 </StatusInfo>
-                <ApprovalBadge $approved={labApprovalStatus === "approved"}>
-                  {labApprovalStatus === "approved" ? "Approved" : "Pending"}
-                </ApprovalBadge>
               </StatusItem>
             </StatusList>
 
