@@ -1,102 +1,73 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
-import { ArrowLeft, Save, Edit, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
-// Global styles
 const GlobalStyle = createGlobalStyle`
   :root {
-    --primary: #4361ee;
-    --primary-light: #4895ef;
-    --secondary: #3f37c9;
-    --success: #4cc9f0;
-    --danger: #f72585;
-    --warning: #f8961e;
-    --info: #90e0ef;
-    --light: #f8f9fa;
-    --dark: #212529;
-    --gray: #6c757d;
-    --gray-light: #e9ecef;
-    --border-radius: 8px;
-    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --transition: all 0.3s ease;
+    --primary: #4361ee; --primary-light: #4895ef; --secondary: #3f37c9;
+    --success: #4cc9f0; --danger: #f72585; --warning: #f8961e;
+    --info: #90e0ef; --light: #f8f9fa; --dark: #212529;
+    --gray: #6c757d; --gray-light: #e9ecef;
+    --border-radius: 8px; --box-shadow: 0 4px 6px rgba(0,0,0,0.1); --transition: all 0.3s ease;
   }
- 
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
- 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: #f5f7fb;
-    color: var(--dark);
-    line-height: 1.5;
+    background-color: #f5f7fb; color: var(--dark); line-height: 1.5;
   }
 `;
 
-// Styled components
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-
   @media (max-width: 768px) {
     padding: 1rem;
   }
 `;
-
 const Header = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 2rem;
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
 `;
-
 const Title = styled.h1`
   font-size: 1.75rem;
   color: var(--dark);
   font-weight: 600;
-
   @media (max-width: 768px) {
     font-size: 1.5rem;
   }
 `;
-
-const PatientInfo = styled.div`
+const PatientInfoBar = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
-
+  flex-wrap: wrap;
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
   }
 `;
-
 const InfoItem = styled.div`
   background-color: white;
   padding: 0.75rem 1rem;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-
   span {
     font-weight: 600;
     margin-right: 0.5rem;
   }
 `;
-
 const Button = styled.button`
   display: flex;
   align-items: center;
@@ -110,66 +81,39 @@ const Button = styled.button`
   cursor: pointer;
   font-weight: 500;
   transition: var(--transition);
-
   &:hover {
     background-color: var(--primary-light);
   }
-
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
   }
-
   &:disabled {
     background-color: var(--gray-light);
     color: var(--gray);
     cursor: not-allowed;
     opacity: 0.6;
-
-    &:hover {
-      background-color: var(--gray-light);
-    }
   }
 `;
-
 const BackButton = styled(Button)`
   background-color: var(--light);
   color: var(--dark);
-
   &:hover {
     background-color: var(--gray-light);
   }
 `;
-
 const SaveButton = styled(Button)`
   background-color: var(--success);
-
   &:hover {
     background-color: var(--info);
   }
-
   &:disabled {
     background-color: var(--gray-light);
     color: var(--gray);
     cursor: not-allowed;
     opacity: 0.6;
-
-    &:hover {
-      background-color: var(--gray-light);
-    }
   }
 `;
-
-const EditButton = styled(Button)`
-  background-color: var(--secondary);
-  padding: 0.35rem 0.75rem;
-  font-size: 0.875rem;
-
-  &:hover {
-    background-color: var(--primary);
-  }
-`;
-
 const NoData = styled.div`
   display: flex;
   align-items: center;
@@ -181,20 +125,17 @@ const NoData = styled.div`
   font-size: 1.125rem;
   color: var(--gray);
 `;
-
 const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
 `;
-
 const TestCard = styled.div`
   background-color: white;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   overflow: hidden;
 `;
-
 const TestHeader = styled.div`
   background-color: var(--primary);
   color: white;
@@ -202,53 +143,44 @@ const TestHeader = styled.div`
   font-weight: 600;
   font-size: 1.125rem;
 `;
-
 const TestContent = styled.div`
   padding: 1rem;
 `;
-
 const FormRow = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
-
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 `;
-
 const Label = styled.label`
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--gray);
 `;
-
 const Input = styled.input`
   padding: 0.75rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   font-size: 1rem;
   transition: var(--transition);
-
   &:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
   }
-
   &:disabled {
     background-color: var(--gray-light);
     cursor: not-allowed;
   }
 `;
-
 const WrappedInput = styled(Input)`
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -257,13 +189,7 @@ const WrappedInput = styled(Input)`
   height: auto;
   resize: none;
   line-height: 1.2;
-
-  &:disabled {
-    background-color: var(--gray-light);
-    cursor: not-allowed;
-  }
 `;
-
 const TextArea = styled.textarea`
   padding: 0.75rem;
   border: 1px solid var(--gray-light);
@@ -272,14 +198,12 @@ const TextArea = styled.textarea`
   transition: var(--transition);
   min-height: 100px;
   resize: vertical;
-
   &:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
   }
 `;
-
 const CommentBox = styled.div`
   margin-top: 1rem;
   padding: 1rem;
@@ -287,59 +211,70 @@ const CommentBox = styled.div`
   border-radius: var(--border-radius);
   border: 1px solid var(--gray-light);
 `;
-
 const CommentLabel = styled(Label)`
   color: var(--secondary);
   font-weight: 600;
   margin-bottom: 0.5rem;
   display: block;
 `;
-
+// Critical comment textarea gets a red border hint
 const CommentTextArea = styled(TextArea)`
   min-height: 5px;
-  min-width: 1000px;
+  min-width: 100%;
   background-color: white;
+  ${(props) =>
+    props.isCritical &&
+    `
+    border-color: var(--danger);
+    background-color: #fff5f5;
+  `}
 `;
-
+const CriticalBadge = styled.span`
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  margin-left: 0.5rem;
+  background-color: #fff0f0;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  vertical-align: middle;
+`;
 const ParameterSection = styled.div`
   margin-top: 1.5rem;
   border-top: 1px solid var(--gray-light);
   padding-top: 1.5rem;
 `;
-
 const ParameterTitle = styled.h3`
   font-size: 1.125rem;
   font-weight: 500;
   margin-bottom: 1rem;
   color: var(--secondary);
 `;
-
 const ParameterCard = styled.div`
   background-color: var(--light);
   border-radius: var(--border-radius);
   padding: 1rem;
   margin-bottom: 1rem;
 `;
-
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   margin-top: 2rem;
 `;
-
 const RemarksSection = styled.div`
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--gray-light);
 `;
-
 const SubtitleSection = styled.div`
   margin-bottom: 2rem;
   &:last-child {
     margin-bottom: 0;
   }
 `;
-
 const SubtitleHeader = styled.div`
   background: linear-gradient(135deg, var(--secondary), var(--primary));
   color: white;
@@ -350,18 +285,15 @@ const SubtitleHeader = styled.div`
   margin-bottom: 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
-
 const ParameterGrid = styled.div`
   display: grid;
   gap: 1rem;
 `;
-
 const SelectWrapper = styled.div`
   position: relative;
   display: flex;
   align-items: center;
 `;
-
 const Select = styled.select`
   width: 100%;
   padding: 0.75rem;
@@ -383,7 +315,6 @@ const Select = styled.select`
     cursor: not-allowed;
   }
 `;
-
 const SelectIcon = styled(ChevronDown)`
   position: absolute;
   right: 0.75rem;
@@ -393,32 +324,59 @@ const SelectIcon = styled(ChevronDown)`
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-// Calculated (derived) field test_codes across all supported tests
 const ALL_CALCULATED_FIELDS = [
   "TESTCODE001",
   "TESTCODE002",
   "TESTCODE003",
-  "TESTCODE004", // LIPID PROFILE
+  "TESTCODE004",
   "LFT03",
   "LFT09",
-  "LFT10", // LIVER FUNCTION TEST
-  "HBA1C02", // HbA1c
-  "INR", // PROTHROMBIN TIME - PT
+  "LFT10",
+  "HBA1C02",
+  "INR",
   "ACR",
   "PCR-RATIO",
 ];
 
-// Fields that should ALWAYS be editable (even when they have pre-loaded values)
 const ALWAYS_EDITABLE_FIELDS = ["PT-CNTL", "PT-ISI", "APTT-C"];
 
-// Default values to pre-fill when the API returns an empty value
 const DEFAULT_FIELD_VALUES = {
   "PT-CNTL": "13.7",
   "PT-ISI": "1.1",
   "APTT-C": "25.0",
 };
 
-// ─── Derived-value calculator (defined outside component) ─────────────────────
+// ─── Critical range checker ───────────────────────────────────────────────────
+/**
+ * Parses the `low` and `high` fields from the test definition.
+ * Format examples:
+ *   low: "<5"   → critical if value < 5
+ *   high: ">100" → critical if value > 100
+ * Returns true if the numeric value is outside the critical range.
+ */
+const isCriticalValue = (value, low, high) => {
+  const num = parseFloat(value);
+  if (isNaN(num) || (!low && !high)) return false;
+
+  let tooLow = false;
+  let tooHigh = false;
+
+  if (low) {
+    // low field: e.g. "<5" means critical LOW if value < 5
+    const lowNum = parseFloat(low.replace(/[^0-9.-]/g, ""));
+    if (!isNaN(lowNum) && num < lowNum) tooLow = true;
+  }
+
+  if (high) {
+    // high field: e.g. ">100" means critical HIGH if value > 100
+    const highNum = parseFloat(high.replace(/[^0-9.-]/g, ""));
+    if (!isNaN(highNum) && num > highNum) tooHigh = true;
+  }
+
+  return tooLow || tooHigh;
+};
+
+// ─── Derived-value calculator ────────────────────────────────────────────────
 
 const calculateDerivedValues = (
   testname,
@@ -426,16 +384,12 @@ const calculateDerivedValues = (
   currentTest,
   manuallyEdited = {},
 ) => {
-  if (!currentTest) {
-    return currentValues;
-  }
-
+  if (!currentTest) return currentValues;
   const newValues = { ...currentValues };
   const allParams = Object.values(
     currentTest.parametersBySubtitle || {},
   ).flat();
 
-  // Build a map of test_code → numeric value
   const valuesByTestCode = {};
   allParams.forEach((param) => {
     const pName = param.name || param.test_name;
@@ -444,38 +398,26 @@ const calculateDerivedValues = (
     valuesByTestCode[param.test_code] = val;
   });
 
-  // ── LIPID PROFILE (test_id 498) ──────────────────────────────────────────
   if (currentTest.test_id === 498) {
     const cholesterol = valuesByTestCode["13"] || 0;
     const triglycerides = valuesByTestCode["14"] || 0;
     const hdl = valuesByTestCode["15"] || 0;
     const ldlDirect = valuesByTestCode["18"] || 0;
-
-    console.log("LIPID PROFILE - Calculating with values:", {
-      cholesterol,
-      triglycerides,
-      hdl,
-      ldlDirect,
-    });
-
     const nonHdlParam = allParams.find((p) => p.test_code === "TESTCODE001");
     if (nonHdlParam && cholesterol && hdl) {
       const k = `${testname}_${nonHdlParam.name || nonHdlParam.test_name}`;
       if (!manuallyEdited[k]) newValues[k] = (cholesterol - hdl).toFixed(2);
     }
-
     const ratioParam = allParams.find((p) => p.test_code === "TESTCODE002");
     if (ratioParam && cholesterol && hdl) {
       const k = `${testname}_${ratioParam.name || ratioParam.test_name}`;
       if (!manuallyEdited[k]) newValues[k] = (cholesterol / hdl).toFixed(2);
     }
-
     const vldlParam = allParams.find((p) => p.test_code === "TESTCODE003");
     if (vldlParam && triglycerides) {
       const k = `${testname}_${vldlParam.name || vldlParam.test_name}`;
       if (!manuallyEdited[k]) newValues[k] = (triglycerides / 5).toFixed(2);
     }
-
     const ldlRatioParam = allParams.find((p) => p.test_code === "TESTCODE004");
     if (ldlRatioParam && ldlDirect && hdl) {
       const k = `${testname}_${ldlRatioParam.name || ldlRatioParam.test_name}`;
@@ -483,27 +425,17 @@ const calculateDerivedValues = (
     }
   }
 
-  // ── LIVER FUNCTION TEST (test_id 196) ────────────────────────────────────
   if (currentTest.test_id === 196) {
     const totalProtein = valuesByTestCode["26"] || 0;
     const albumin = valuesByTestCode["06"] || 0;
     const bilirubinTotal = valuesByTestCode["07"] || 0;
     const bilirubinDirect = valuesByTestCode["LFT02"] || 0;
-
-    console.log("LIVER FUNCTION TEST - Calculating with values:", {
-      totalProtein,
-      albumin,
-      bilirubinTotal,
-      bilirubinDirect,
-    });
-
     const globulinParam = allParams.find((p) => p.test_code === "LFT09");
     if (globulinParam && totalProtein && albumin) {
       const k = `${testname}_${globulinParam.name || globulinParam.test_name}`;
       if (!manuallyEdited[k])
         newValues[k] = (totalProtein - albumin).toFixed(2);
     }
-
     const agRatioParam = allParams.find((p) => p.test_code === "LFT10");
     if (agRatioParam && albumin && totalProtein) {
       const globulin = totalProtein - albumin;
@@ -512,7 +444,6 @@ const calculateDerivedValues = (
         if (!manuallyEdited[k]) newValues[k] = (albumin / globulin).toFixed(2);
       }
     }
-
     const bilirubinIndirectParam = allParams.find(
       (p) => p.test_code === "LFT03",
     );
@@ -523,16 +454,9 @@ const calculateDerivedValues = (
     }
   }
 
-  // ── BILIRUBIN (test_id 449) ──────────────────────────────────────────────
   if (currentTest.test_id === 449) {
     const bilirubinTotal = valuesByTestCode["07"] || 0;
     const bilirubinDirect = valuesByTestCode["LFT02"] || 0;
-
-    console.log("BILIRUBIN TEST - Calculating with values:", {
-      bilirubinTotal,
-      bilirubinDirect,
-    });
-
     const bilirubinIndirectParam = allParams.find(
       (p) => p.test_code === "LFT03",
     );
@@ -543,77 +467,43 @@ const calculateDerivedValues = (
     }
   }
 
-  // ── HbA1c (test_id 467) ──────────────────────────────────────────────────
   if (currentTest.test_id === 467) {
     const hba1c = valuesByTestCode["HBA1C01"] || 0;
-
-    console.log("HbA1c - Calculating with values:", { hba1c });
-
     const eagParam = allParams.find((p) => p.test_code === "HBA1C02");
     if (eagParam && hba1c) {
       const k = `${testname}_${eagParam.name || eagParam.test_name}`;
-      if (!manuallyEdited[k]) {
-        const eag = hba1c * 28.7 - 46.1;
-        newValues[k] = eag.toFixed(2);
-      }
+      if (!manuallyEdited[k]) newValues[k] = (hba1c * 28.7 - 46.1).toFixed(2);
     }
   }
 
-  // ── PROTHROMBIN TIME - PT (test_id 315) ──────────────────────────────────
-  // Formula: INR = (PT-TEST / PT-CNTL) ^ PT-ISI
   if (currentTest.test_id === 315) {
     const ptTest = valuesByTestCode["PT-TEST"] || 0;
     const ptCntl = valuesByTestCode["PT-CNTL"] || 0;
     const ptIsi = valuesByTestCode["PT-ISI"] || 0;
-
-    console.log("PT - Calculating INR with values:", { ptTest, ptCntl, ptIsi });
-
     const inrParam = allParams.find((p) => p.test_code === "INR");
     if (inrParam && ptTest && ptCntl && ptIsi) {
       const k = `${testname}_${inrParam.name || inrParam.test_name}`;
-      if (!manuallyEdited[k]) {
-        const inr = ptTest / ptCntl;
-        newValues[k] = inr.toFixed(2);
-        console.log(`INR: ${inr.toFixed(2)}`);
-      }
+      if (!manuallyEdited[k]) newValues[k] = (ptTest / ptCntl).toFixed(2);
     }
   }
 
-  // ── MICROALBUMIN / CREATININE RATIO (test_id 362) ────────────────────────
-  // Formula: ACR = ((UM / 10) / UC) * 1000
   if (currentTest.test_id === 362) {
     const um = valuesByTestCode["UM"] || 0;
     const uc = valuesByTestCode["UC"] || 0;
-
-    console.log("ACR - Calculating with values:", { um, uc });
-
     const acrParam = allParams.find((p) => p.test_code === "ACR");
     if (acrParam && um && uc) {
       const k = `${testname}_${acrParam.name || acrParam.test_name}`;
-      if (!manuallyEdited[k]) {
-        const acr = (um / 10 / uc) * 1000;
-        newValues[k] = acr.toFixed(2);
-        console.log(`ACR: ${acr.toFixed(2)}`);
-      }
+      if (!manuallyEdited[k]) newValues[k] = ((um / 10 / uc) * 1000).toFixed(2);
     }
   }
 
-  // ── PROTEIN / CREATININE RATIO (test_id 205) ─────────────────────────────
-  // Formula: PCR-RATIO = UR-PRO / UR-CREA
   if (currentTest.test_id === 205) {
     const urPro = valuesByTestCode["UR-PRO"] || 0;
     const urCrea = valuesByTestCode["UR-CREA"] || 0;
-
-    console.log("PCR-RATIO - Calculating with values:", { urPro, urCrea });
-
     const pcrParam = allParams.find((p) => p.test_code === "PCR-RATIO");
     if (pcrParam && urPro && urCrea) {
       const k = `${testname}_${pcrParam.name || pcrParam.test_name}`;
-      if (!manuallyEdited[k]) {
-        const pcrRatio = urPro / urCrea;
-        newValues[k] = pcrRatio.toFixed(2);
-        console.log(`PCR-RATIO: ${pcrRatio.toFixed(2)}`);
-      }
+      if (!manuallyEdited[k]) newValues[k] = (urPro / urCrea).toFixed(2);
     }
   }
 
@@ -637,6 +527,10 @@ function TestDetails() {
   const [initialValues, setInitialValues] = useState({});
   const [processedRecords, setProcessedRecords] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [manuallyEditedCalculatedFields, setManuallyEditedCalculatedFields] =
+    useState({});
+  // NEW: stores { uniqueKey: { low, high } } for each param / test
+  const [criticalRanges, setCriticalRanges] = useState({});
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -644,6 +538,7 @@ function TestDetails() {
   const patientId = queryParams.get("patient_id");
   const patientname = queryParams.get("patientname");
   const age = queryParams.get("age");
+  const gender = queryParams.get("gender"); // NEW: read gender from URL
   const barcode = queryParams.get("barcode");
   const locationId = queryParams.get("locationId");
   const testId = queryParams.get("test_id");
@@ -651,43 +546,32 @@ function TestDetails() {
   const navigate = useNavigate();
   const verified_by = localStorage.getItem("name") || "";
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-  const [manuallyEditedCalculatedFields, setManuallyEditedCalculatedFields] =
-    useState({});
 
-  // ── Fetch ────────────────────────────────────────────────────────────────
+  // ── Fetch ─────────────────────────────────────────────────────────────────
 
   const fetchTestDetails = async (barcode, test_id = null, testName = null) => {
     try {
       setLoading(true);
       setError(null);
 
-      let queryParams = `barcode=${encodeURIComponent(barcode)}`;
-      if (testId) queryParams += `&test_id=${encodeURIComponent(testId)}`;
-      if (testName) queryParams += `&test_name=${encodeURIComponent(testName)}`;
-
-      console.log(`DEBUG: Fetching test details with query: ${queryParams}`);
+      let qp = `barcode=${encodeURIComponent(barcode)}`;
+      if (testId) qp += `&test_id=${encodeURIComponent(testId)}`;
+      if (testName) qp += `&test_name=${encodeURIComponent(testName)}`;
+      // NEW: pass gender to backend so it can return gender-based reference_range, low, high
+      if (gender) qp += `&gender=${encodeURIComponent(gender)}`;
 
       const response = await apiRequest(
-        `${Labbaseurl}compare_test_details/?${queryParams}`,
+        `${Labbaseurl}compare_test_details/?${qp}`,
         "GET",
       );
 
-      let actualResponse;
-      if (response.data && typeof response.data === "object") {
-        actualResponse = response.data;
-      } else {
-        actualResponse = response;
-      }
+      let actualResponse =
+        response.data && typeof response.data === "object"
+          ? response.data
+          : response;
 
-      if (!actualResponse.success) {
+      if (!actualResponse.success)
         throw new Error(actualResponse.error || "Failed to fetch test details");
-      }
-
-      if (actualResponse.filtered_by_test) {
-        console.log(
-          `DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`,
-        );
-      }
 
       if (
         actualResponse.processed_records &&
@@ -719,7 +603,7 @@ function TestDetails() {
       }
 
       const filteredTests = testName
-        ? allTests.filter((test) => test.testname === testName)
+        ? allTests.filter((t) => t.testname === testName)
         : allTests;
 
       const groupedTests = {};
@@ -751,13 +635,14 @@ function TestDetails() {
           if (!groupedTests[tName].parametersBySubtitle[subtitle]) {
             groupedTests[tName].parametersBySubtitle[subtitle] = [];
           }
-
           groupedTests[tName].parametersBySubtitle[subtitle].push({
             name: test.parameter_name,
             test_name: test.parameter_name,
             test_code: test.test_code,
             unit: test.unit,
-            reference_range: test.reference_range,
+            reference_range: test.reference_range, // gender-resolved by backend
+            low: test.low || "", // NEW from backend
+            high: test.high || "", // NEW from backend
             method: test.method,
             value: test.test_value,
             value_option: test.value_option || [],
@@ -766,7 +651,9 @@ function TestDetails() {
           });
         } else if (!test.parameter_name || test.parameter_name === null) {
           groupedTests[tName].unit = test.unit;
-          groupedTests[tName].reference_range = test.reference_range;
+          groupedTests[tName].reference_range = test.reference_range; // gender-resolved
+          groupedTests[tName].low = test.low || ""; // NEW
+          groupedTests[tName].high = test.high || ""; // NEW
           groupedTests[tName].test_value = test.test_value;
           groupedTests[tName].test_code = test.test_code;
           groupedTests[tName].processing_status = test.processing_status;
@@ -780,6 +667,8 @@ function TestDetails() {
       let tempValues = {};
       let tempEditMode = {};
       let tempInitialValues = {};
+      // NEW: build criticalRanges map  { key -> { low, high } }
+      const tempCriticalRanges = {};
 
       transformedTests.forEach((test) => {
         if (
@@ -791,8 +680,6 @@ function TestDetails() {
             .forEach((param) => {
               const paramName = param.name || param.test_name;
               const uniqueKey = `${test.testname}_${paramName}`;
-
-              // Use API value if present, otherwise fall back to any defined default
               let paramValue = param.value || "";
               if (
                 !paramValue &&
@@ -800,39 +687,74 @@ function TestDetails() {
               ) {
                 paramValue = DEFAULT_FIELD_VALUES[param.test_code];
               }
-
               tempValues[uniqueKey] = paramValue;
-              // Store the *original* API value (not the default) so we can tell
-              // whether the user actually entered something new.
               tempInitialValues[uniqueKey] = param.value || "";
+              // store low/high for this param
+              tempCriticalRanges[uniqueKey] = {
+                low: param.low || "",
+                high: param.high || "",
+              };
             });
         } else {
           const testValue = test.test_value || "";
           tempValues[test.testname] = testValue;
           tempEditMode[test.testname] = false;
           tempInitialValues[test.testname] = testValue;
+          // store low/high for single-value test
+          tempCriticalRanges[test.testname] = {
+            low: test.low || "",
+            high: test.high || "",
+          };
         }
       });
 
       setEditMode(tempEditMode);
       setInitialValues(tempInitialValues);
+      setCriticalRanges(tempCriticalRanges);
 
-      // Auto-calculate derived values after loading
-      console.log("Running auto-calculation for loaded data...");
+      // Auto-calculate derived values
       transformedTests.forEach((test) => {
         if (
           [498, 196, 449, 467, 315, 362, 205].includes(test.test_id) &&
           test.parametersBySubtitle &&
           Object.keys(test.parametersBySubtitle).length > 0
         ) {
-          console.log(
-            `Found test with calculations: ${test.testname} (ID: ${test.test_id})`,
-          );
           tempValues = calculateDerivedValues(test.testname, tempValues, test);
         }
       });
 
       setValues(tempValues);
+
+      // NEW: auto-fill Critical for any pre-loaded values that are out of critical range
+      const initialComments = {};
+      const initialParamComments = {};
+      transformedTests.forEach((test) => {
+        if (
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
+        ) {
+          Object.values(test.parametersBySubtitle)
+            .flat()
+            .forEach((param) => {
+              const paramName = param.name || param.test_name;
+              const uniqueKey = `${test.testname}_${paramName}`;
+              const val = tempValues[uniqueKey];
+              const { low, high } = tempCriticalRanges[uniqueKey] || {};
+              if (val && isCriticalValue(val, low, high)) {
+                initialParamComments[uniqueKey] = "Critical";
+              }
+            });
+        } else {
+          const val = tempValues[test.testname];
+          const { low, high } = tempCriticalRanges[test.testname] || {};
+          if (val && isCriticalValue(val, low, high)) {
+            initialComments[test.testname] = "Critical";
+          }
+        }
+      });
+      setComments(initialComments);
+      setParameterComments(initialParamComments);
+
       setLoading(false);
     } catch (error) {
       console.error("Error fetching test details:", error);
@@ -852,13 +774,23 @@ function TestDetails() {
     }
   }, [barcode, testName]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleValueChange = (testname, event) => {
-    setValues((prevValues) => ({
-      ...prevValues,
-      [testname]: event.target.value,
-    }));
+    const newVal = event.target.value;
+    setValues((prev) => ({ ...prev, [testname]: newVal }));
+
+    // Auto-fill Critical comment for single-value tests
+    const { low, high } = criticalRanges[testname] || {};
+    if (isCriticalValue(newVal, low, high)) {
+      setComments((prev) => ({
+        ...prev,
+        [testname]:
+          prev[testname] && prev[testname] !== "Critical"
+            ? prev[testname]
+            : "Critical",
+      }));
+    }
   };
 
   const handleParameterValueChange = (testname, paramName, event) => {
@@ -866,11 +798,7 @@ function TestDetails() {
     const uniqueKey = `${testname}_${paramName}`;
 
     setValues((prevValues) => {
-      const newValues = {
-        ...prevValues,
-        [uniqueKey]: value,
-      };
-
+      const newValues = { ...prevValues, [uniqueKey]: value };
       const currentTest = testDetails.find((t) => t.testname === testname);
       const param = Object.values(currentTest?.parametersBySubtitle || {})
         .flat()
@@ -888,9 +816,6 @@ function TestDetails() {
         return newValues;
       }
 
-      // ── KEY FIX ──────────────────────────────────────────────────────────
-      // When a source field (e.g. PT-TEST) changes, clear the manual-edit
-      // flag for all calculated fields of this test so they recalculate.
       setManuallyEditedCalculatedFields((prev) => {
         const updated = { ...prev };
         const allParams = Object.values(
@@ -898,13 +823,11 @@ function TestDetails() {
         ).flat();
         allParams.forEach((p) => {
           if (ALL_CALCULATED_FIELDS.includes(p.test_code)) {
-            const calcKey = `${testname}_${p.name || p.test_name}`;
-            delete updated[calcKey];
+            delete updated[`${testname}_${p.name || p.test_name}`];
           }
         });
         return updated;
       });
-      // ─────────────────────────────────────────────────────────────────────
 
       if ([498, 196, 449, 467, 315, 362, 205].includes(currentTest?.test_id)) {
         return calculateDerivedValues(
@@ -914,29 +837,44 @@ function TestDetails() {
           manuallyEditedCalculatedFields,
         );
       }
-
       return newValues;
     });
+
+    // NEW: Auto-fill Critical comment for parameter
+    const { low, high } = criticalRanges[uniqueKey] || {};
+    if (isCriticalValue(value, low, high)) {
+      setParameterComments((prev) => ({
+        ...prev,
+        [uniqueKey]:
+          prev[uniqueKey] && prev[uniqueKey] !== "Critical"
+            ? prev[uniqueKey]
+            : "Critical",
+      }));
+    } else {
+      // Clear "Critical" auto-text if user corrects the value back to normal range
+      setParameterComments((prev) => {
+        if (prev[uniqueKey] === "Critical") {
+          const updated = { ...prev };
+          delete updated[uniqueKey];
+          return updated;
+        }
+        return prev;
+      });
+    }
   };
 
   const handleRemarksChange = (testname, event) => {
-    setRemarks((prevRemarks) => ({
-      ...prevRemarks,
-      [testname]: event.target.value,
-    }));
+    setRemarks((prev) => ({ ...prev, [testname]: event.target.value }));
   };
 
   const handleCommentChange = (testname, event) => {
-    setComments((prevComments) => ({
-      ...prevComments,
-      [testname]: event.target.value,
-    }));
+    setComments((prev) => ({ ...prev, [testname]: event.target.value }));
   };
 
   const handleParameterCommentChange = (testname, paramName, event) => {
     const uniqueKey = `${testname}_${paramName}`;
-    setParameterComments((prevComments) => ({
-      ...prevComments,
+    setParameterComments((prev) => ({
+      ...prev,
       [uniqueKey]: event.target.value,
     }));
   };
@@ -946,10 +884,7 @@ function TestDetails() {
   };
 
   const toggleEditMode = (testname) => {
-    setEditMode((prevEditMode) => ({
-      ...prevEditMode,
-      [testname]: !prevEditMode[testname],
-    }));
+    setEditMode((prev) => ({ ...prev, [testname]: !prev[testname] }));
   };
 
   const toggleParameterEditMode = () => {
@@ -960,7 +895,6 @@ function TestDetails() {
 
   const isSaveButtonEnabled = () => {
     if (isSubmitting) return false;
-
     let allValuesFilled = true;
     let remarksRequiredForEditedFields = true;
 
@@ -970,7 +904,6 @@ function TestDetails() {
         Object.keys(test.parametersBySubtitle).length > 0
       ) {
         let hasEditedParameters = false;
-
         Object.values(test.parametersBySubtitle)
           .flat()
           .forEach((param) => {
@@ -978,11 +911,8 @@ function TestDetails() {
             const uniqueKey = `${test.testname}_${paramName}`;
             const paramValue = values[uniqueKey];
             const initialValue = initialValues[uniqueKey];
-
-            if (!paramValue || paramValue.trim() === "") {
+            if (!paramValue || paramValue.trim() === "")
               allValuesFilled = false;
-            }
-
             if (
               (!initialValue || initialValue.trim() === "") &&
               paramValue &&
@@ -991,7 +921,6 @@ function TestDetails() {
               hasEditedParameters = true;
             }
           });
-
         if (
           hasEditedParameters &&
           (!parameterRemarks || parameterRemarks.trim() === "")
@@ -1001,11 +930,7 @@ function TestDetails() {
       } else {
         const testValue = values[test.testname];
         const initialValue = initialValues[test.testname];
-
-        if (!testValue || testValue.trim() === "") {
-          allValuesFilled = false;
-        }
-
+        if (!testValue || testValue.trim() === "") allValuesFilled = false;
         if (
           (!initialValue || initialValue.trim() === "") &&
           testValue &&
@@ -1025,7 +950,6 @@ function TestDetails() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     if (isSubmitting) return;
     setIsSubmitting(true);
 
@@ -1037,7 +961,6 @@ function TestDetails() {
 
     try {
       const validationErrors = [];
-
       testDetails.forEach((test) => {
         if (
           test.parametersBySubtitle &&
@@ -1068,10 +991,10 @@ function TestDetails() {
       });
 
       if (validationErrors.length > 0) {
-        const errorMessage =
+        alert(
           "Please fill in all required values:\n\n" +
-          validationErrors.map((e, i) => `${i + 1}. ${e}`).join("\n");
-        alert(errorMessage);
+            validationErrors.map((e, i) => `${i + 1}. ${e}`).join("\n"),
+        );
         setIsSubmitting(false);
         return;
       }
@@ -1095,7 +1018,6 @@ function TestDetails() {
               });
             },
           );
-
           return {
             device_id: test.device_id,
             test_id: test.test_id,
@@ -1105,8 +1027,8 @@ function TestDetails() {
             dispatch: false,
             dispatch_time: "null",
             remarks: parameterRemarks || "",
-            verified_by: verified_by,
-            parameters: parameters,
+            verified_by,
+            parameters,
           };
         } else {
           return {
@@ -1121,20 +1043,18 @@ function TestDetails() {
             approve_time: "null",
             dispatch: false,
             dispatch_time: "null",
-            verified_by: verified_by,
+            verified_by,
           };
         }
       });
 
       const payload = {
-        date: date,
-        barcode: barcode,
-        locationId: locationId,
+        date,
+        barcode,
+        locationId,
         testdetails: testDetailsData,
         processed_records: processedRecords,
       };
-
-      console.log("DEBUG: Sending POST request with payload:", payload);
 
       const postResult = await apiRequest(
         `${Labbaseurl}test-value/save/`,
@@ -1147,13 +1067,38 @@ function TestDetails() {
         fetchTestDetails(barcode, null, testName);
         setEditMode({});
         setParameterEditMode(false);
-
-        setTimeout(() => {
-          handleBack();
-        }, 1000);
+        setTimeout(() => handleBack(), 1000);
       } else {
-        console.error("Error saving test details:", postResult);
-        alert(postResult.error || "Failed to save test details.");
+        // ── Handle 409 Conflict: duplicate / already-approved record ──────────
+        // The backend returns HTTP 409 when an existing record for this
+        // barcode + test_id already has approve=false (pending) or approve=true
+        // (approved), and is NOT flagged for rerun.
+        const isConflict =
+          postResult.status === 409 ||
+          (postResult.error &&
+            postResult.error.toLowerCase().includes("blocked"));
+
+        if (isConflict) {
+          const blockedTests = postResult.data?.blocked_tests || [];
+          if (blockedTests.length > 0) {
+            const details = blockedTests
+              .map((b) => `• Test ID ${b.test_id}: ${b.reason}`)
+              .join("\n");
+            alert(
+              "Save was blocked because test data already exists:\n\n" +
+                details +
+                "\n\nTo re-enter values, the test must first be flagged for rerun by the doctor.",
+            );
+          } else {
+            alert(
+              postResult.error ||
+                "Save blocked: test data already exists or has already been approved.",
+            );
+          }
+        } else {
+          alert(postResult.error || "Failed to save test details.");
+        }
+
         setIsSubmitting(false);
       }
     } catch (error) {
@@ -1164,29 +1109,17 @@ function TestDetails() {
   };
 
   const handleBack = () => {
-    const barcode = location.state?.barcode;
-    const stateFromDate = location.state?.fromDate;
-    const stateToDate = location.state?.toDate;
-
     navigate("/PatientDetails", {
       state: {
-        barcode: barcode,
-        fromDate: stateFromDate || new Date(),
-        toDate: stateToDate || new Date(),
+        barcode: location.state?.barcode,
+        fromDate: location.state?.fromDate || new Date(),
+        toDate: location.state?.toDate || new Date(),
       },
     });
   };
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
-  /**
-   * Determine whether a parameter input should be disabled.
-   *
-   * Rules:
-   *  1. Calculated (derived) fields (INR, NON-HDL, etc.) → always editable
-   *  2. Always-editable fields (PT-CNTL, PT-ISI) → always editable
-   *  3. Everything else → disabled if the API already returned a non-empty value
-   */
   const isParamDisabled = (param, uniqueKey) => {
     if (ALL_CALCULATED_FIELDS.includes(param.test_code)) return false;
     if (ALWAYS_EDITABLE_FIELDS.includes(param.test_code)) return false;
@@ -1194,8 +1127,6 @@ function TestDetails() {
       initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== ""
     );
   };
-
-  // ── Loading / error states ────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -1245,7 +1176,7 @@ function TestDetails() {
       </Header>
 
       {patientId && (
-        <PatientInfo>
+        <PatientInfoBar>
           <InfoItem>
             <span>Patient ID:</span> {patientId}
           </InfoItem>
@@ -1257,6 +1188,12 @@ function TestDetails() {
           {age && (
             <InfoItem>
               <span>Age:</span> {age}
+            </InfoItem>
+          )}
+          {/* NEW: show gender if present */}
+          {gender && (
+            <InfoItem>
+              <span>Gender:</span> {gender}
             </InfoItem>
           )}
           {date && (
@@ -1274,7 +1211,7 @@ function TestDetails() {
               <span>From:</span> {locationId}
             </InfoItem>
           )}
-        </PatientInfo>
+        </PatientInfoBar>
       )}
 
       {testDetails.length === 0 ? (
@@ -1293,6 +1230,7 @@ function TestDetails() {
               <TestContent>
                 {!test.parametersBySubtitle ||
                 Object.keys(test.parametersBySubtitle).length === 0 ? (
+                  // ── Single-value test ────────────────────────────────────
                   <>
                     <FormRow>
                       <FormGroup>
@@ -1368,8 +1306,10 @@ function TestDetails() {
                                 : undefined
                             }
                             disabled={
-                              initialValues[test.testname] &&
-                              initialValues[test.testname].trim() !== ""
+                              !!(
+                                initialValues[test.testname] &&
+                                initialValues[test.testname].trim() !== ""
+                              )
                             }
                             placeholder={
                               !initialValues[test.testname] ||
@@ -1382,14 +1322,30 @@ function TestDetails() {
                       </FormGroup>
                     </FormRow>
 
-                    <CommentBox>
-                      <CommentLabel>Comments (Optional)</CommentLabel>
-                      <CommentTextArea
-                        value={comments[test.testname] || ""}
-                        onChange={(e) => handleCommentChange(test.testname, e)}
-                        placeholder="Add any comments or observations..."
-                      />
-                    </CommentBox>
+                    {/* NEW: Critical indicator for single-value test */}
+                    {(() => {
+                      const val = values[test.testname];
+                      const { low, high } = criticalRanges[test.testname] || {};
+                      const critical = val && isCriticalValue(val, low, high);
+                      return (
+                        <CommentBox>
+                          <CommentLabel>
+                            Comments (Optional)
+                            {critical && (
+                              <CriticalBadge>⚠ Critical</CriticalBadge>
+                            )}
+                          </CommentLabel>
+                          <CommentTextArea
+                            isCritical={critical}
+                            value={comments[test.testname] || ""}
+                            onChange={(e) =>
+                              handleCommentChange(test.testname, e)
+                            }
+                            placeholder="Add any comments or observations..."
+                          />
+                        </CommentBox>
+                      );
+                    })()}
 
                     {(!initialValues[test.testname] ||
                       initialValues[test.testname].trim() === "") &&
@@ -1420,6 +1376,7 @@ function TestDetails() {
                       )}
                   </>
                 ) : (
+                  // ── Parameter test ───────────────────────────────────────
                   <ParameterSection>
                     <div
                       style={{
@@ -1482,6 +1439,14 @@ function TestDetails() {
                                 ALWAYS_EDITABLE_FIELDS.includes(
                                   param.test_code,
                                 );
+
+                              // NEW: check if current value is critical
+                              const currentVal = values[uniqueKey];
+                              const { low, high } =
+                                criticalRanges[uniqueKey] || {};
+                              const critical =
+                                currentVal &&
+                                isCriticalValue(currentVal, low, high);
 
                               return (
                                 <ParameterCard key={paramIndex}>
@@ -1564,6 +1529,15 @@ function TestDetails() {
                                               ? "Enter value"
                                               : "Value available"
                                           }
+                                          // NEW: highlight input red if critical
+                                          style={
+                                            critical
+                                              ? {
+                                                  borderColor: "var(--danger)",
+                                                  backgroundColor: "#fff5f5",
+                                                }
+                                              : {}
+                                          }
                                         />
                                       )}
                                     </FormGroup>
@@ -1596,11 +1570,18 @@ function TestDetails() {
                                     </FormGroup>
                                   </FormRow>
 
+                                  {/* NEW: Critical badge + red comment box for parameter */}
                                   <CommentBox>
                                     <CommentLabel>
                                       Comments (Optional)
+                                      {critical && (
+                                        <CriticalBadge>
+                                          ⚠ Critical
+                                        </CriticalBadge>
+                                      )}
                                     </CommentLabel>
                                     <CommentTextArea
+                                      isCritical={critical}
                                       value={parameterComments[uniqueKey] || ""}
                                       onChange={(e) =>
                                         handleParameterCommentChange(

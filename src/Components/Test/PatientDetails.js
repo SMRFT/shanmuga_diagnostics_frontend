@@ -1,15 +1,33 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { format } from "date-fns"
-import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components"
-import { Calendar, Search, AlertCircle, ChevronRight, CheckCircle, RefreshCcw, Clock, User, Tag, FileText, CalendarDays, Users, Stethoscope } from 'lucide-react'
-import DatePicker from "react-datepicker"
-import "react-datepicker/dist/react-datepicker.css"
-import { useNavigate, useLocation } from "react-router-dom"
-import apiRequest from "../Auth/apiRequest"
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import styled, {
+  createGlobalStyle,
+  ThemeProvider,
+  keyframes,
+  css,
+} from "styled-components";
+import {
+  Calendar,
+  Search,
+  AlertCircle,
+  ChevronRight,
+  CheckCircle,
+  RefreshCcw,
+  Clock,
+  User,
+  Tag,
+  FileText,
+  CalendarDays,
+  Users,
+  Stethoscope,
+} from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { useNavigate, useLocation } from "react-router-dom";
+import apiRequest from "../Auth/apiRequest";
 
-// Theme
 const theme = {
   colors: {
     primary: "#0178A1",
@@ -34,79 +52,50 @@ const theme = {
     full: "9999px",
   },
   shadows: {
-    sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
-    md: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-    lg: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-    xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+    sm: "0 1px 2px 0 rgba(0,0,0,0.05)",
+    md: "0 4px 6px -1px rgba(0,0,0,0.1)",
+    lg: "0 10px 15px -3px rgba(0,0,0,0.1)",
+    xl: "0 20px 25px -5px rgba(0,0,0,0.1)",
   },
-  breakpoints: {
-    sm: "640px",
-    md: "768px",
-    lg: "1024px",
-    xl: "1280px",
-  },
+  breakpoints: { sm: "640px", md: "768px", lg: "1024px", xl: "1280px" },
   transitions: {
     default: "all 0.2s ease-in-out",
     slow: "all 0.3s ease-in-out",
   },
-}
+};
 
-// Global styles
 const GlobalStyle = createGlobalStyle`
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     color: ${(props) => props.theme.colors.text};
     background-color: ${(props) => props.theme.colors.background};
     line-height: 1.5;
   }
-
-  .react-datepicker-wrapper {
-    width: auto;
-  }
-
+  .react-datepicker-wrapper { width: auto; }
   .react-datepicker {
     font-family: inherit;
     border: 1px solid ${(props) => props.theme.colors.border};
     border-radius: ${(props) => props.theme.borderRadius.lg};
     box-shadow: ${(props) => props.theme.shadows.lg};
   }
-
   .react-datepicker__header {
     background-color: ${(props) => props.theme.colors.background};
     border-bottom: 1px solid ${(props) => props.theme.colors.border};
   }
-
-  .react-datepicker__day--selected {
-    background-color: ${(props) => props.theme.colors.primary};
-    color: white;
-  }
-
-  .react-datepicker__day:hover {
-    background-color: ${(props) => props.theme.colors.primaryHover};
-    color: white;
-  }
-
-  .react-datepicker__day--in-selecting-range,
-  .react-datepicker__day--in-range {
+  .react-datepicker__day--selected { background-color: ${(props) => props.theme.colors.primary}; color: white; }
+  .react-datepicker__day:hover { background-color: ${(props) => props.theme.colors.primaryHover}; color: white; }
+  .react-datepicker__day--in-selecting-range, .react-datepicker__day--in-range {
     background-color: ${(props) => props.theme.colors.primary}30;
     color: ${(props) => props.theme.colors.text};
   }
-
   .react-datepicker__day--selecting-range-start,
   .react-datepicker__day--range-start,
   .react-datepicker__day--range-end {
-    background-color: ${(props) => props.theme.colors.primary};
-    color: white;
+    background-color: ${(props) => props.theme.colors.primary}; color: white;
   }
-`
+`;
 
-// Styled Components
 const Container = styled.div`
   max-width: 1400px;
   margin: 2rem auto;
@@ -114,29 +103,24 @@ const Container = styled.div`
   background: ${(props) => props.theme.colors.backgroundAlt};
   border-radius: ${(props) => props.theme.borderRadius.xl};
   box-shadow: ${(props) => props.theme.shadows.lg};
-
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     margin: 1rem;
     padding: 1rem;
   }
-`
-
+`;
 const Header = styled.div`
   margin-bottom: 2rem;
   text-align: center;
-`
-
+`;
 const Title = styled.h1`
   color: ${(props) => props.theme.colors.primary};
   font-size: 1.875rem;
   font-weight: 600;
   margin-bottom: 1rem;
-
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     font-size: 1.5rem;
   }
-`
-
+`;
 const Controls = styled.div`
   display: flex;
   gap: 1rem;
@@ -144,49 +128,41 @@ const Controls = styled.div`
   justify-content: center;
   margin-bottom: 2rem;
   flex-wrap: wrap;
-
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     flex-direction: column;
     align-items: stretch;
   }
-`
-
+`;
 const DateRangeWrapper = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
   flex-wrap: wrap;
-
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     flex-direction: column;
     width: 100%;
   }
-`
-
+`;
 const DatePickerWrapper = styled.div`
   gap: 0.1rem;
   align-items: center;
   background: ${(props) => props.theme.colors.backgroundAlt};
-  padding: 0.50rem;
+  padding: 0.5rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
   border: 1px solid ${(props) => props.theme.colors.border};
   transition: ${(props) => props.theme.transitions.default};
   min-width: 100px;
-
   &:hover {
     border-color: ${(props) => props.theme.colors.primary};
   }
-
   label {
     color: ${(props) => props.theme.colors.textLight};
     font-size: 0.875rem;
     white-space: nowrap;
   }
-
   .react-datepicker-wrapper {
     width: 100px;
   }
-
   input {
     border: none;
     background: transparent;
@@ -195,23 +171,19 @@ const DatePickerWrapper = styled.div`
     padding: 0.25rem;
     cursor: pointer;
     min-width: 80px;
-
     &:focus {
       outline: none;
     }
   }
-`
-
+`;
 const SearchWrapper = styled.div`
   position: relative;
   flex: 1;
   min-width: 200px;
-
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     max-width: 100%;
   }
-`
-
+`;
 const SearchInput = styled.input`
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
@@ -219,14 +191,12 @@ const SearchInput = styled.input`
   border-radius: ${(props) => props.theme.borderRadius.md};
   font-size: 0.875rem;
   transition: ${(props) => props.theme.transitions.default};
-
   &:focus {
     outline: none;
     border-color: ${(props) => props.theme.colors.primary};
     box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
   }
-`
-
+`;
 const SearchIcon = styled.div`
   position: absolute;
   left: 0.75rem;
@@ -234,23 +204,20 @@ const SearchIcon = styled.div`
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
   pointer-events: none;
-`
-
+`;
 const TableWrapper = styled.div`
   position: relative;
   overflow-x: auto;
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   box-shadow: ${(props) => props.theme.shadows.sm};
-`
-
+`;
 const Table = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;
-`
-
+`;
 const Th = styled.th`
   padding: 1rem;
   text-align: left;
@@ -261,41 +228,33 @@ const Th = styled.th`
   white-space: nowrap;
   top: 0;
   z-index: 10;
-
   &:first-child {
     padding-left: 1.5rem;
   }
-
   &:last-child {
     padding-right: 1.5rem;
   }
-`
-
+`;
 const Td = styled.td`
   padding: 1rem;
   color: ${(props) => props.theme.colors.text};
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
   vertical-align: top;
-
   &:first-child {
     padding-left: 1.5rem;
   }
-
   &:last-child {
     padding-right: 1.5rem;
   }
-`
-
+`;
 const Tr = styled.tr`
   &:hover {
     background-color: ${(props) => props.theme.colors.backgroundHover};
   }
-
   &:last-child td {
     border-bottom: none;
   }
-`
-
+`;
 const TestButton = styled.button`
   display: inline-flex;
   align-items: flex-start;
@@ -311,13 +270,11 @@ const TestButton = styled.button`
   width: 100%;
   text-align: left;
   flex-direction: column;
-
   &:hover {
     background: ${(props) => props.theme.colors.background};
     border-color: ${(props) => props.theme.colors.primary};
     color: ${(props) => props.theme.colors.primary};
   }
-
   &:disabled {
     background: ${(props) => props.theme.colors.background};
     color: ${(props) => props.theme.colors.textLight};
@@ -325,16 +282,14 @@ const TestButton = styled.button`
     cursor: not-allowed;
     opacity: 0.6;
   }
-`
-
+`;
 const TestNameRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   gap: 0.5rem;
-`
-
+`;
 const UserInfoRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -342,8 +297,7 @@ const UserInfoRow = styled.div`
   font-size: 0.75rem;
   color: ${(props) => props.theme.colors.textLight};
   margin-top: 0.25rem;
-`
-
+`;
 const UserBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -352,8 +306,7 @@ const UserBadge = styled.span`
   background: ${(props) => props.theme.colors.background};
   border-radius: ${(props) => props.theme.borderRadius.sm};
   white-space: nowrap;
-`
-
+`;
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -363,28 +316,26 @@ const StatusBadge = styled.span`
   font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
-
   ${(props) => {
     switch (props.status) {
       case "Approved":
         return css`
           background-color: ${props.theme.colors.success}20;
           color: ${props.theme.colors.success};
-        `
+        `;
       case "Rerun Initiated":
         return css`
           background-color: ${props.theme.colors.danger}20;
           color: ${props.theme.colors.danger};
-        `
+        `;
       default:
         return css`
           background-color: ${props.theme.colors.warning}20;
           color: ${props.theme.colors.warning};
-        `
+        `;
     }
   }}
-`
-
+`;
 const EmptyState = styled.div`
   display: flex;
   flex-direction: column;
@@ -395,14 +346,12 @@ const EmptyState = styled.div`
   background: ${(props) => props.theme.colors.backgroundAlt};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   border: 2px dashed ${(props) => props.theme.colors.border};
-`
-
+`;
 const EmptyStateText = styled.p`
   color: ${(props) => props.theme.colors.textLight};
   margin-top: 1rem;
   max-width: 24rem;
-`
-
+`;
 const LoadingSpinner = styled.div`
   display: inline-block;
   width: 2rem;
@@ -411,45 +360,38 @@ const LoadingSpinner = styled.div`
   border-radius: 50%;
   border-top-color: ${(props) => props.theme.colors.primary};
   animation: spin 1s linear infinite;
-
   @keyframes spin {
     to {
       transform: rotate(360deg);
     }
   }
-`
-
+`;
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 3rem;
-`
-
+`;
 const PatientInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 0.25rem;
   color: ${(props) => props.theme.colors.text};
   font-size: 0.875rem;
-
   svg {
     color: ${(props) => props.theme.colors.textLight};
   }
-`
-
+`;
 const TestList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-`
-
+`;
 const DateRangeLabel = styled.span`
   color: ${(props) => props.theme.colors.textLight};
   font-size: 0.875rem;
   margin: 0 0.5rem;
-`
-
+`;
 const FilterSelect = styled.select`
   padding: 0.75rem 2.5rem 0.75rem 1rem;
   border: 1px solid ${(props) => props.theme.colors.border};
@@ -465,27 +407,19 @@ const FilterSelect = styled.select`
   transition: ${(props) => props.theme.transitions.default};
   appearance: none;
   min-width: 150px;
-
   &:hover {
     border-color: ${(props) => props.theme.colors.primary};
   }
-
   &:focus {
     outline: none;
     border-color: ${(props) => props.theme.colors.primary};
     box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
   }
-
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     width: 100%;
   }
-`
-
-const blink = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-`
-
+`;
+const blink = keyframes` 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } `;
 const EmergencyBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -497,7 +431,6 @@ const EmergencyBadge = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
-
   ${(props) =>
     props.emergency &&
     css`
@@ -505,19 +438,16 @@ const EmergencyBadge = styled.span`
       color: white;
       animation: ${blink} 1.5s ease-in-out infinite;
     `}
-
   ${(props) =>
     props.normal &&
     css`
       background-color: ${props.theme.colors.success}20;
       color: ${props.theme.colors.success};
     `}
-`
-
+`;
 const DepartmentGroup = styled.div`
   margin-bottom: 0.75rem;
-`
-
+`;
 const DepartmentHeader = styled.div`
   display: flex;
   align-items: center;
@@ -529,226 +459,193 @@ const DepartmentHeader = styled.div`
   font-weight: 600;
   font-size: 0.875rem;
   color: ${(props) => props.theme.colors.primary};
-`
+`;
 
-// Main Component
 const PatientDetails = () => {
-  const getDefaultFromDate = () => new Date()
-  const getDefaultToDate = () => new Date()
+  const getDefaultFromDate = () => new Date();
+  const getDefaultToDate = () => new Date();
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [patientDetails, setPatientDetails] = useState([])
-  const [fromDate, setFromDate] = useState(getDefaultFromDate())
-  const [toDate, setToDate] = useState(getDefaultToDate())
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [emergencyFilter, setEmergencyFilter] = useState("all")
-  const [fromFilter, setFromFilter] = useState("all")
-  const [opipFilter, setOpipFilter] = useState("all")
-  const [departmentFilter, setDepartmentFilter] = useState("all")
-  const navigate = useNavigate()
-  const location = useLocation()
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+  const [searchQuery, setSearchQuery] = useState("");
+  const [patientDetails, setPatientDetails] = useState([]);
+  const [fromDate, setFromDate] = useState(getDefaultFromDate());
+  const [toDate, setToDate] = useState(getDefaultToDate());
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [emergencyFilter, setEmergencyFilter] = useState("all");
+  const [fromFilter, setFromFilter] = useState("all");
+  const [opipFilter, setOpipFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  // Handle navigation state from previous page
   useEffect(() => {
-    if (location.state?.fromDate || location.state?.toDate || location.state?.barcode) {
-      console.log("[v0] Navigation state received:", location.state)
-
-      if (location.state.fromDate) {
-        const newFromDate = new Date(location.state.fromDate)
-        console.log("[v0] Setting fromDate from state:", newFromDate)
-        setFromDate(newFromDate)
-      }
-
-      if (location.state.toDate) {
-        const newToDate = new Date(location.state.toDate)
-        console.log("[v0] Setting toDate from state:", newToDate)
-        setToDate(newToDate)
-      }
-
-      if (location.state.barcode) {
-        console.log("[v0] Setting search query from state:", location.state.barcode)
-        setSearchQuery(location.state.barcode)
-      }
+    if (
+      location.state?.fromDate ||
+      location.state?.toDate ||
+      location.state?.barcode
+    ) {
+      if (location.state.fromDate)
+        setFromDate(new Date(location.state.fromDate));
+      if (location.state.toDate) setToDate(new Date(location.state.toDate));
+      if (location.state.barcode) setSearchQuery(location.state.barcode);
     }
-  }, [location.state])
+  }, [location.state]);
 
-  // Fetch patient details from API
   useEffect(() => {
     const fetchPatientDetails = async () => {
-      console.log("[v0] Fetching patient details with dates:", { fromDate, toDate })
-      setLoading(true)
-      setError(null)
-
+      setLoading(true);
+      setError(null);
       try {
-        const formattedFromDate = format(fromDate, "yyyy-MM-dd")
-        const formattedToDate = format(toDate, "yyyy-MM-dd")
-        console.log("[v0] Formatted dates:", { formattedFromDate, formattedToDate })
-
+        const formattedFromDate = format(fromDate, "yyyy-MM-dd");
+        const formattedToDate = format(toDate, "yyyy-MM-dd");
         const patientResponse = await apiRequest(
           `${Labbaseurl}samplestatus-testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
           "GET",
-        )
-
-        console.log("[v0] API Response:", patientResponse)
-
-        if (!patientResponse.success) {
-          throw new Error(patientResponse.error || "Failed to fetch patient data")
-        }
-
-        console.log("[v0] Patient data received:", patientResponse.data?.length || 0, "records")
-        setPatientDetails(patientResponse.data)
-        setError(null)
+        );
+        if (!patientResponse.success)
+          throw new Error(
+            patientResponse.error || "Failed to fetch patient data",
+          );
+        setPatientDetails(patientResponse.data);
+        setError(null);
       } catch (err) {
-        console.error("[v0] Error fetching patient details:", err)
-        setError(err.message || "Failed to fetch patient details. Please try again.")
-        setPatientDetails([])
+        setError(
+          err.message || "Failed to fetch patient details. Please try again.",
+        );
+        setPatientDetails([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
+    fetchPatientDetails();
+  }, [fromDate, toDate, Labbaseurl]);
 
-    fetchPatientDetails()
-  }, [fromDate, toDate, Labbaseurl])
-
+  // ── UPDATED: gender is now included in the navigate URL ──
   const handlePatientClick = (
     patientId,
     patientname,
     age,
+    gender, // NEW param
     barcode,
     location_id,
     testId,
     testName,
     patientDate,
-    createdDate
+    createdDate,
   ) => {
-    const formattedPatientDate = patientDate ? format(new Date(patientDate), "yyyy-MM-dd") : ""
+    const formattedPatientDate = patientDate
+      ? format(new Date(patientDate), "yyyy-MM-dd")
+      : "";
+    const rawCreated = createdDate || "";
+    const formattedCreatedDate = rawCreated
+      ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd")
+      : "";
+    const encodedTestName = encodeURIComponent(testName || "");
+    const encodedBarcode = encodeURIComponent(barcode || "");
+    const encodedGender = encodeURIComponent(gender || ""); // NEW
 
-    const rawCreated = createdDate || ""
-    const formattedCreatedDate = rawCreated ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd") : ""
-
-    const encodedTestName = encodeURIComponent(testName || "")
-    const encodedBarcode = encodeURIComponent(barcode || "")
-
-    // Pass the current date range in state
     navigate(
-      `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
+      `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&gender=${encodedGender}&barcode=${encodedBarcode}&locationId=${
         location_id || "Shanmuga Referrence Lab"
       }&test_id=${testId}`,
       {
-        state: {
-          fromDate: fromDate,
-          toDate: toDate,
-          barcode: barcode,
-        },
+        state: { fromDate, toDate, barcode },
       },
-    )
-  }
+    );
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "Approved":
-        return <CheckCircle size={12} />
+        return <CheckCircle size={12} />;
       case "Rerun Initiated":
-        return <RefreshCcw size={12} />
+        return <RefreshCcw size={12} />;
       default:
-        return <Clock size={12} />
+        return <Clock size={12} />;
     }
-  }
+  };
 
   const getTestStatus = (test) => {
-    if (!test.test_value_exists) {
-      return "Waiting for Technician's Approval"
-    }
-    return test.rerun ? "Rerun Initiated" : test.approve ? "Approved" : "Waiting for Doctor's Approval"
-  }
+    if (!test.test_value_exists) return "Waiting for Technician's Approval";
+    return test.rerun
+      ? "Rerun Initiated"
+      : test.approve
+        ? "Approved"
+        : "Waiting for Doctor's Approval";
+  };
 
-  // Group tests by department
   const groupTestsByDepartment = (testdetails) => {
-    const grouped = {}
-    testdetails.forEach(test => {
-      const dept = test.department || "Other"
-      if (!grouped[dept]) {
-        grouped[dept] = []
-      }
-      grouped[dept].push(test)
-    })
-    return grouped
-  }
+    const grouped = {};
+    testdetails.forEach((test) => {
+      const dept = test.department || "Other";
+      if (!grouped[dept]) grouped[dept] = [];
+      grouped[dept].push(test);
+    });
+    return grouped;
+  };
 
-  // Get unique departments from all patients
   const getAllDepartments = () => {
-    const departments = new Set()
-    patientDetails.forEach(patient => {
-      patient.testdetails?.forEach(test => {
-        if (test.department) {
-          departments.add(test.department)
-        }
-      })
-    })
-    return Array.from(departments).sort()
-  }
+    const departments = new Set();
+    patientDetails.forEach((patient) => {
+      patient.testdetails?.forEach((test) => {
+        if (test.department) departments.add(test.department);
+      });
+    });
+    return Array.from(departments).sort();
+  };
 
   const filteredPatients = patientDetails.filter((patient) => {
     const matchesSearch =
-      (patient.patientname || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.barcode || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.patient_id || "").toLowerCase().includes(searchQuery.toLowerCase())
+      (patient.patientname || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (patient.barcode || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (patient.patient_id || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
 
-    if (!matchesSearch) return false
+    const patientLocation = patient.location_id || "Shanmuga Reference Lab";
+    if (fromFilter !== "all" && patientLocation !== fromFilter) return false;
+    if (opipFilter !== "all" && patient.opiptype !== opipFilter) return false;
 
-    const patientLocation = patient.location_id || "Shanmuga Reference Lab"
-    const matchesFrom = fromFilter === "all" || patientLocation === fromFilter
-
-    if (!matchesFrom) return false
-
-    // OP/IP filter
-    const matchesOpIp = opipFilter === "all" || patient.opiptype === opipFilter
-
-    if (!matchesOpIp) return false
-
-    // Emergency filter
     const matchesEmergency =
       emergencyFilter === "all" ||
       (emergencyFilter === "emergency" && patient.is_emergency) ||
-      (emergencyFilter === "normal" && !patient.is_emergency)
+      (emergencyFilter === "normal" && !patient.is_emergency);
+    if (!matchesEmergency) return false;
 
-    if (!matchesEmergency) return false
-
-    // Department filter
     if (departmentFilter !== "all") {
-      const hasDepartment = patient.testdetails?.some(test => test.department === departmentFilter)
-      if (!hasDepartment) return false
+      const hasDepartment = patient.testdetails?.some(
+        (test) => test.department === departmentFilter,
+      );
+      if (!hasDepartment) return false;
     }
 
-    // Status filter
-    if (statusFilter === "all") return true
-
+    if (statusFilter === "all") return true;
     return patient.testdetails?.some((test) => {
-      const testStatus = getTestStatus(test)
-      if (statusFilter === "technician") {
-        return testStatus === "Waiting for Technician's Approval"
-      } else if (statusFilter === "doctor") {
-        return testStatus === "Waiting for Doctor's Approval"
-      } else if (statusFilter === "approved") {
-        return testStatus === "Approved"
-      } else if (statusFilter === "rerun") {
-        return testStatus === "Rerun Initiated"
-      }
-      return false
-    })
-  })
+      const testStatus = getTestStatus(test);
+      if (statusFilter === "technician")
+        return testStatus === "Waiting for Technician's Approval";
+      if (statusFilter === "doctor")
+        return testStatus === "Waiting for Doctor's Approval";
+      if (statusFilter === "approved") return testStatus === "Approved";
+      if (statusFilter === "rerun") return testStatus === "Rerun Initiated";
+      return false;
+    });
+  });
 
-  // Get unique locations
   const getUniqueLocations = () => {
-    const locations = new Set()
-    patientDetails.forEach(p => {
-      locations.add(p.location_id || "Shanmuga Reference Lab")
-    })
-    return Array.from(locations).sort()
-  }
+    const locations = new Set();
+    patientDetails.forEach((p) =>
+      locations.add(p.location_id || "Shanmuga Reference Lab"),
+    );
+    return Array.from(locations).sort();
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -774,9 +671,7 @@ const PatientDetails = () => {
                 maxDate={toDate}
               />
             </DatePickerWrapper>
-
             <DateRangeLabel>to</DateRangeLabel>
-
             <DatePickerWrapper>
               <CalendarDays size={16} color={theme.colors.textLight} />
               <label>To:</label>
@@ -805,27 +700,43 @@ const PatientDetails = () => {
             />
           </SearchWrapper>
 
-          <FilterSelect value={fromFilter} onChange={(e) => setFromFilter(e.target.value)}>
+          <FilterSelect
+            value={fromFilter}
+            onChange={(e) => setFromFilter(e.target.value)}
+          >
             <option value="all">All Locations</option>
             {getUniqueLocations().map((location, idx) => (
-              <option key={idx} value={location}>{location}</option>
+              <option key={idx} value={location}>
+                {location}
+              </option>
             ))}
           </FilterSelect>
 
-          <FilterSelect value={opipFilter} onChange={(e) => setOpipFilter(e.target.value)}>
+          <FilterSelect
+            value={opipFilter}
+            onChange={(e) => setOpipFilter(e.target.value)}
+          >
             <option value="all">All Type</option>
             <option value="OP">OP</option>
             <option value="IP">IP</option>
           </FilterSelect>
 
-          <FilterSelect value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+          <FilterSelect
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+          >
             <option value="all">All Departments</option>
             {getAllDepartments().map((dept, idx) => (
-              <option key={idx} value={dept}>{dept}</option>
+              <option key={idx} value={dept}>
+                {dept}
+              </option>
             ))}
           </FilterSelect>
 
-          <FilterSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <FilterSelect
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value="all">All Status</option>
             <option value="technician">Waiting for Technician</option>
             <option value="doctor">Waiting for Doctor</option>
@@ -833,7 +744,10 @@ const PatientDetails = () => {
             <option value="rerun">Rerun Initiated</option>
           </FilterSelect>
 
-          <FilterSelect value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
+          <FilterSelect
+            value={emergencyFilter}
+            onChange={(e) => setEmergencyFilter(e.target.value)}
+          >
             <option value="all">All Priority</option>
             <option value="emergency">Emergency</option>
             <option value="normal">Normal</option>
@@ -852,7 +766,9 @@ const PatientDetails = () => {
         ) : filteredPatients.length === 0 ? (
           <EmptyState>
             <AlertCircle size={24} color={theme.colors.textLight} />
-            <EmptyStateText>No received tests available for the selected filters.</EmptyStateText>
+            <EmptyStateText>
+              No received tests available for the selected filters.
+            </EmptyStateText>
           </EmptyState>
         ) : (
           <TableWrapper>
@@ -870,8 +786,9 @@ const PatientDetails = () => {
               </thead>
               <tbody>
                 {filteredPatients.map((patient, index) => {
-                  const groupedTests = groupTestsByDepartment(patient.testdetails || [])
-                  
+                  const groupedTests = groupTestsByDepartment(
+                    patient.testdetails || [],
+                  );
                   return (
                     <Tr key={index}>
                       <Td>
@@ -880,15 +797,26 @@ const PatientDetails = () => {
                           {patient.date
                             ? format(new Date(patient.date), "MMM dd, yyyy")
                             : patient.created_date
-                            ? format(new Date(patient.created_date), "MMM dd, yyyy")
-                            : "N/A"}
+                              ? format(
+                                  new Date(patient.created_date),
+                                  "MMM dd, yyyy",
+                                )
+                              : "N/A"}
                         </PatientInfo>
                       </Td>
                       <Td>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "0.5rem",
+                          }}
+                        >
                           <PatientInfo>
                             <User size={14} />
-                            <strong>{patient.patientname || "Unknown Patient"}</strong>
+                            <strong>
+                              {patient.patientname || "Unknown Patient"}
+                            </strong>
                           </PatientInfo>
                           <PatientInfo>
                             <Tag size={14} />
@@ -900,7 +828,8 @@ const PatientDetails = () => {
                           </PatientInfo>
                           <PatientInfo>
                             <User size={14} />
-                            Age: {patient.age || "Unknown"} | {patient.gender || "N/A"}
+                            Age: {patient.age || "Unknown"} |{" "}
+                            {patient.gender || "N/A"}
                           </PatientInfo>
                         </div>
                       </Td>
@@ -910,7 +839,9 @@ const PatientDetails = () => {
                         </StatusBadge>
                       </Td>
                       <Td>
-                        <PatientInfo>{patient.location_id || "Shanmuga Reference Lab"}</PatientInfo>
+                        <PatientInfo>
+                          {patient.location_id || "Shanmuga Reference Lab"}
+                        </PatientInfo>
                       </Td>
                       <Td>
                         {patient.is_emergency ? (
@@ -926,108 +857,116 @@ const PatientDetails = () => {
                         )}
                       </Td>
                       <Td>
-                        {Object.entries(groupedTests).map(([department, tests]) => (
-                          <DepartmentGroup key={department}>
-                            <DepartmentHeader>
-                              <Stethoscope size={14} />
-                              {department}
-                            </DepartmentHeader>
-                            <TestList>
-                              {tests.map((test, idx) => {
-                                const testStatus = getTestStatus(test)
-                                return (
-                                  <TestButton
-                                    key={idx}
-                                    onClick={() =>
-                                      handlePatientClick(
-                                        patient.patient_id,
-                                        patient.patientname,
-                                        patient.age,
-                                        patient.barcode,
-                                        patient.location_id,
-                                        test.test_id,
-                                        test.testname,
-                                        patient.date,
-                                        patient.created_date
-                                      )
-                                    }
-                                    title={
-                                      testStatus === "Waiting for Technician's Approval"
-                                        ? "Enter Test Values"
-                                        : testStatus === "Rerun Initiated"
-                                        ? "Rerun Test"
-                                        : "Test Cannot Be Edited"
-                                    }
-                                    disabled={
-                                      !(
-                                        testStatus === "Waiting for Technician's Approval" ||
-                                        testStatus === "Rerun Initiated"
-                                      )
-                                    }
-                                  >
-                                    <TestNameRow>
-                                      <span>
-                                        {test.test_id} - {test.testname}
-                                      </span>
-                                      <ChevronRight size={16} />
-                                    </TestNameRow>
-                                    <UserInfoRow>
-                                      {test.collectd_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          C/B: {test.collectd_by}
-                                        </UserBadge>
-                                      )}
-                                      {test.received_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          R/B: {test.received_by}
-                                        </UserBadge>
-                                      )}
-                                      {test.verified_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          V/B: {test.verified_by}
-                                        </UserBadge>
-                                      )}
-                                      {test.rerun_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          RR/B: {test.rerun_by}
-                                        </UserBadge>
-                                      )}
-                                    </UserInfoRow>
-                                  </TestButton>
-                                )
-                              })}
-                            </TestList>
-                          </DepartmentGroup>
-                        ))}
+                        {Object.entries(groupedTests).map(
+                          ([department, tests]) => (
+                            <DepartmentGroup key={department}>
+                              <DepartmentHeader>
+                                <Stethoscope size={14} />
+                                {department}
+                              </DepartmentHeader>
+                              <TestList>
+                                {tests.map((test, idx) => {
+                                  const testStatus = getTestStatus(test);
+                                  return (
+                                    <TestButton
+                                      key={idx}
+                                      onClick={() =>
+                                        handlePatientClick(
+                                          patient.patient_id,
+                                          patient.patientname,
+                                          patient.age,
+                                          patient.gender, // ← NEW: pass gender
+                                          patient.barcode,
+                                          patient.location_id,
+                                          test.test_id,
+                                          test.testname,
+                                          patient.date,
+                                          patient.created_date,
+                                        )
+                                      }
+                                      title={
+                                        testStatus ===
+                                        "Waiting for Technician's Approval"
+                                          ? "Enter Test Values"
+                                          : testStatus === "Rerun Initiated"
+                                            ? "Rerun Test"
+                                            : "Test Cannot Be Edited"
+                                      }
+                                      disabled={
+                                        !(
+                                          testStatus ===
+                                            "Waiting for Technician's Approval" ||
+                                          testStatus === "Rerun Initiated"
+                                        )
+                                      }
+                                    >
+                                      <TestNameRow>
+                                        <span>
+                                          {test.test_id} - {test.testname}
+                                        </span>
+                                        <ChevronRight size={16} />
+                                      </TestNameRow>
+                                      <UserInfoRow>
+                                        {test.collectd_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            C/B: {test.collectd_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.received_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            R/B: {test.received_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.verified_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            V/B: {test.verified_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.rerun_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            RR/B: {test.rerun_by}
+                                          </UserBadge>
+                                        )}
+                                      </UserInfoRow>
+                                    </TestButton>
+                                  );
+                                })}
+                              </TestList>
+                            </DepartmentGroup>
+                          ),
+                        )}
                       </Td>
                       <Td>
-                        {Object.entries(groupedTests).map(([department, tests]) => (
-                          <DepartmentGroup key={department}>
-                            <TestList>
-                              {tests.map((test, idx) => {
-                                const testStatus = getTestStatus(test)
-                                return (
-                                  <StatusBadge key={idx} status={testStatus}>
-                                    {getStatusIcon(testStatus)}
-                                    {testStatus}
-                                  </StatusBadge>
-                                )
-                              })}
-                            </TestList>
-                          </DepartmentGroup>
-                        ))}
+                        {Object.entries(groupedTests).map(
+                          ([department, tests]) => (
+                            <DepartmentGroup key={department}>
+                              <TestList>
+                                {tests.map((test, idx) => {
+                                  const testStatus = getTestStatus(test);
+                                  return (
+                                    <StatusBadge key={idx} status={testStatus}>
+                                      {getStatusIcon(testStatus)}
+                                      {testStatus}
+                                    </StatusBadge>
+                                  );
+                                })}
+                              </TestList>
+                            </DepartmentGroup>
+                          ),
+                        )}
                       </Td>
                     </Tr>
-                  )
+                  );
                 })}
               </tbody>
             </Table>
           </TableWrapper>
         )}
+
         <div
           style={{
             padding: "1rem 1.5rem",
@@ -1037,11 +976,12 @@ const PatientDetails = () => {
             borderTop: `1px solid ${theme.colors.border}`,
           }}
         >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+          Showing {filteredPatients.length}{" "}
+          {filteredPatients.length === 1 ? "entry" : "entries"}
         </div>
       </Container>
     </ThemeProvider>
-  )
-}
+  );
+};
 
-export default PatientDetails
+export default PatientDetails;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
+import axios from "axios";
 import { format } from "date-fns";
 import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
@@ -17,6 +18,7 @@ import {
   ChevronUp,
   Search,
   Flag,
+  MessageCircle,
 } from "lucide-react";
 
 // Styled components remain the same as TestSorting.js
@@ -357,6 +359,7 @@ const MBTestSorting = ({ patient, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [dispatchedTests, setDispatchedTests] = useState(new Set());
+  const [showWhatsAppOptions, setShowWhatsAppOptions] = useState(false);
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -1204,6 +1207,67 @@ const MBTestSorting = ({ patient, onClose }) => {
     }
   };
 
+  const handleWhatsAppShare = async (patient, withLetterpad = true) => {
+    if (!patient || !patient.phone) {
+      toast.error("Patient phone number is missing");
+      return;
+    }
+
+    const phoneNumber = patient.phone.startsWith("+91")
+      ? patient.phone.replace("+", "")
+      : `91${patient.phone}`;
+
+    try {
+      const pdfBlob = await handlePrint(patient, withLetterpad, false); // Generate PDF (no download)
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF");
+        return;
+      }
+
+      const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+      const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+
+      // Upload PDF to server
+      const formData = new FormData();
+      formData.append("file", pdfFile);
+
+      const uploadResponse = await axios.post(
+        `${Labbaseurl}upload-pdf/`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+
+      const fileUrl = uploadResponse.data.file_url;
+      if (!fileUrl) {
+        toast.error("File upload failed");
+        return;
+      }
+
+      // Call Django proxy instead of Botify directly
+      const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+        patient_name: patient.patient_name || "Valued Patient",
+        phone: phoneNumber,
+        collection_time: patient.collection_time || "N/A",
+        collected_date: patient.collected_date || "N/A",
+        file_url: fileUrl,
+        pdf_name: pdfName,
+        patient_id: patient.patient_id,
+      });
+
+      if (res.data.success) {
+        toast.success("WhatsApp PDF message sent successfully!");
+      } else {
+        toast.error("Failed to send WhatsApp template message.");
+        console.error("Backend error:", res.data.error);
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp message:", error);
+      toast.error("Error sending WhatsApp message.");
+    }
+  };
+
   const filteredTests = tests.filter((test) =>
     test.testname.toLowerCase().includes(searchTerm.toLowerCase()),
   );
@@ -1298,30 +1362,77 @@ const MBTestSorting = ({ patient, onClose }) => {
           </Button>
 
           <ButtonGroup>
-            <Button
-              primary
-              disabled={selectedTests.length === 0}
-              onClick={() => setShowPrintOptions(!showPrintOptions)}
-            >
-              <Printer size={16} />
-              Print Options
-              {showPrintOptions ? (
-                <ChevronUp size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
-            </Button>
+            {/* WhatsApp Dropdown */}
+            <div style={{ position: "relative" }}>
+              <Button
+                primary
+                disabled={selectedTests.length === 0}
+                onClick={() => {
+                  setShowPrintOptions(false);
+                  setShowWhatsAppOptions(!showWhatsAppOptions);
+                }}
+                style={{ backgroundColor: "#25D366" }}
+              >
+                <MessageCircle size={16} />
+                WhatsApp
+                {showWhatsAppOptions ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </Button>
 
-            <PrintOptions show={showPrintOptions}>
-              <PrintOption onClick={() => handlePrint(true)}>
+              <PrintOptions show={showWhatsAppOptions}>
+                <PrintOption
+                  onClick={() => {
+                    handleWhatsAppShare(patient, true);
+                    setShowWhatsAppOptions(false);
+                  }}
+                >
+                  <MessageCircle size={16} />
+                  Send with Letterhead
+                </PrintOption>
+                <PrintOption
+                  onClick={() => {
+                    handleWhatsAppShare(patient, false);
+                    setShowWhatsAppOptions(false);
+                  }}
+                >
+                  <MessageCircle size={16} />
+                  Send without Letterhead
+                </PrintOption>
+              </PrintOptions>
+            </div>
+            {/* Print Dropdown */}
+            <div style={{ position: "relative" }}>
+              <Button
+                primary
+                disabled={selectedTests.length === 0}
+                onClick={() => {
+                  setShowWhatsAppOptions(false);
+                  setShowPrintOptions(!showPrintOptions);
+                }}
+              >
                 <Printer size={16} />
-                Print with Letterhead
-              </PrintOption>
-              <PrintOption onClick={() => handlePrint(false)}>
-                <Printer size={16} />
-                Print without Letterhead
-              </PrintOption>
-            </PrintOptions>
+                Print Options
+                {showPrintOptions ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </Button>
+
+              <PrintOptions show={showPrintOptions}>
+                <PrintOption onClick={() => handlePrint(true)}>
+                  <Printer size={16} />
+                  Print with Letterhead
+                </PrintOption>
+                <PrintOption onClick={() => handlePrint(false)}>
+                  <Printer size={16} />
+                  Print without Letterhead
+                </PrintOption>
+              </PrintOptions>
+            </div>
           </ButtonGroup>
         </ModalFooter>
       </ModalContent>

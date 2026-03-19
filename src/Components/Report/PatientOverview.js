@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ReactDOM from "react-dom"; // NEW
 import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
 import { format } from "date-fns";
@@ -39,49 +40,28 @@ import apiRequest from "../Auth/apiRequest";
 // Global styles
 const GlobalStyle = createGlobalStyle`
   :root {
-    --primary: #4361ee;
-    --primary-light: #4895ef;
-    --primary-dark: #3a0ca3;
-    --secondary: #3f37c9;
-    --success: #4cc9f0;
-    --danger: #f72585;
-    --warning: #f8961e;
-    --info: #90e0ef;
-    --light: #f8f9fa;
-    --dark: #212529;
-    --gray: #6c757d;
-    --gray-light: #e9ecef;
-    --border-radius: 8px;
-    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --transition: all 0.3s ease;
+    --primary: #4361ee; --primary-light: #4895ef; --primary-dark: #3a0ca3;
+    --secondary: #3f37c9; --success: #4cc9f0; --danger: #f72585;
+    --warning: #f8961e; --info: #90e0ef; --light: #f8f9fa; --dark: #212529;
+    --gray: #6c757d; --gray-light: #e9ecef;
+    --border-radius: 8px; --box-shadow: 0 4px 6px rgba(0,0,0,0.1); --transition: all 0.3s ease;
   }
- 
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
- 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: #f5f7fb;
-    color: var(--dark);
-    line-height: 1.5;
+    background-color: #f5f7fb; color: var(--dark); line-height: 1.5;
   }
 `;
 
-// Container for the main content
 const Container = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
-
   @media (max-width: 768px) {
     padding: 1rem;
   }
 `;
-
 const Card = styled.div`
   background-color: white;
   border-radius: var(--border-radius);
@@ -89,70 +69,59 @@ const Card = styled.div`
   overflow: hidden;
   margin-bottom: 2rem;
 `;
-
 const CardHeader = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
 `;
-
 const Title = styled.h1`
   font-size: 1.5rem;
   color: var(--primary-dark);
   font-weight: 600;
   margin: 0;
 `;
-
 const FiltersContainer = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
 `;
-
 const FilterRow = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 0.5rem;
   margin-bottom: 1rem;
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
-
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 `;
-
 const FilterLabel = styled.label`
   font-size: 0.8rem;
   color: var(--gray);
   font-weight: 500;
 `;
-
 const FilterInput = styled.input`
   padding: 0.5rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   font-size: 0.8rem;
   transition: var(--transition);
-
   &:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
   }
 `;
-
 const FilterSelect = styled.select`
   padding: 0.5rem;
   border: 1px solid var(--gray-light);
@@ -160,21 +129,18 @@ const FilterSelect = styled.select`
   font-size: 0.875rem;
   transition: var(--transition);
   background-color: white;
-
   &:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
   }
 `;
-
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
 `;
-
 const Button = styled.button`
   display: inline-flex;
   align-items: center;
@@ -189,53 +155,42 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
-
   &:hover {
     background-color: var(--primary-dark);
   }
-
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
   }
 `;
-
 const ClearButton = styled(Button)`
   background-color: var(--light);
   color: var(--dark);
-
   &:hover {
     background-color: var(--gray-light);
   }
 `;
-
 const TableContainer = styled.div`
   overflow-x: auto;
-
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-
   &::-webkit-scrollbar-track {
     background: var(--gray-light);
   }
-
   &::-webkit-scrollbar-thumb {
     background-color: var(--gray);
     border-radius: 20px;
   }
 `;
-
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   min-width: 800px;
 `;
-
 const TableHead = styled.thead`
   background-color: var(--gray-light);
-
   th {
     padding: 1rem;
     text-align: left;
@@ -247,34 +202,28 @@ const TableHead = styled.thead`
     white-space: nowrap;
   }
 `;
-
 const TableBody = styled.tbody`
   tr {
     border-bottom: 1px solid var(--gray-light);
-
     &:last-child {
       border-bottom: none;
     }
-
     &:hover {
       background-color: rgba(67, 97, 238, 0.05);
     }
   }
-
   td {
     padding: 1rem;
     vertical-align: middle;
     font-size: 0.875rem;
   }
 `;
-
 const NoData = styled.div`
   text-align: center;
   padding: 2rem;
   color: var(--gray);
   font-style: italic;
 `;
-
 const Badge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -286,13 +235,11 @@ const Badge = styled.span`
   background-color: ${(props) => props.color || "var(--gray)"};
   color: white;
 `;
-
 const ActionContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
 `;
-
 const ActionButton = styled.button`
   display: flex;
   align-items: center;
@@ -307,26 +254,22 @@ const ActionButton = styled.button`
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: var(--transition);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
   &:hover {
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
     box-shadow: ${(props) =>
       props.disabled
-        ? "0 2px 4px rgba(0, 0, 0, 0.1)"
-        : "0 4px 8px rgba(0, 0, 0, 0.1)"};
+        ? "0 2px 4px rgba(0,0,0,0.1)"
+        : "0 4px 8px rgba(0,0,0,0.1)"};
   }
 `;
-
 const CreditAmount = styled.span`
   font-weight: 600;
   color: var(--primary);
   cursor: pointer;
-
   &:hover {
     text-decoration: underline;
   }
 `;
-
 const GenderIcon = styled.div`
   display: inline-flex;
   align-items: center;
@@ -336,27 +279,26 @@ const GenderIcon = styled.div`
   border-radius: 50%;
   margin-right: 0.5rem;
   background-color: ${(props) =>
-    props.gender === "Female"
-      ? "rgba(232, 62, 140, 0.1)"
-      : "rgba(0, 123, 255, 0.1)"};
+    props.gender === "Female" ? "rgba(232,62,140,0.1)" : "rgba(0,123,255,0.1)"};
   color: ${(props) => (props.gender === "Female" ? "#E83E8C" : "#007BFF")};
 `;
 
+// ── PrintDropdown: just a relative wrapper for the trigger button ─────────────
 const PrintDropdown = styled.div`
   position: relative;
 `;
 
-const DropdownMenu = styled.div`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: green;
+// ── PortalDropdownMenu: renders at body level, escapes overflow:auto clipping ──
+// position:fixed + z-index:9999 ensures it always appears above the table.
+const PortalDropdownMenu = styled.div`
+  position: fixed;
+  background-color: white;
   border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  min-width: 180px;
-  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  min-width: 200px;
+  z-index: 9999;
   overflow: hidden;
-  display: ${(props) => (props.isVisible ? "block" : "none")};
+  border: 1px solid var(--gray-light);
 `;
 
 const DropdownItem = styled.button`
@@ -370,7 +312,6 @@ const DropdownItem = styled.button`
   font-size: 0.875rem;
   cursor: pointer;
   transition: var(--transition);
-
   &:hover {
     background-color: var(--gray-light);
   }
@@ -381,7 +322,6 @@ const NavigationContainer = styled.div`
   margin-bottom: 20px;
   border-bottom: 2px solid #f0f0f0;
 `;
-
 const NavigationTab = styled.button`
   padding: 12px 24px;
   border: none;
@@ -395,12 +335,10 @@ const NavigationTab = styled.button`
   margin-right: 4px;
   transition: all 0.3s ease;
   position: relative;
-
   &:hover {
     background: ${(props) => (props.active ? "#0056b3" : "#f8f9fa")};
     color: ${(props) => (props.active ? "white" : "#333")};
   }
-
   &::after {
     content: "";
     position: absolute;
@@ -424,7 +362,6 @@ const DepartmentBadge = styled.span`
   color: ${(props) => (props.isPending ? "#dc3545" : "white")};
   border: ${(props) => (props.isPending ? "2px solid #dc3545" : "none")};
   animation: ${(props) => (props.isPending ? "blink 1s infinite" : "none")};
-
   @keyframes blink {
     0%,
     100% {
@@ -435,20 +372,17 @@ const DepartmentBadge = styled.span`
     }
   }
 `;
-
 const DepartmentCell = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 `;
-
 const DepartmentRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
 `;
-
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -461,7 +395,6 @@ const ModalOverlay = styled.div`
   justify-content: center;
   z-index: 1000;
 `;
-
 const ModalContent = styled.div`
   background: white;
   border-radius: var(--border-radius);
@@ -472,7 +405,6 @@ const ModalContent = styled.div`
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   position: relative;
 `;
-
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -481,13 +413,11 @@ const ModalHeader = styled.div`
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--gray-light);
 `;
-
 const ModalTitle = styled.h2`
   font-size: 1.5rem;
   color: var(--primary-dark);
   margin: 0;
 `;
-
 const CloseButton = styled.button`
   background: none;
   border: none;
@@ -500,19 +430,16 @@ const CloseButton = styled.button`
   justify-content: center;
   border-radius: 50%;
   transition: var(--transition);
-
   &:hover {
     background-color: var(--gray-light);
     color: var(--dark);
   }
 `;
-
 const TestStatusList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 `;
-
 const TestStatusItem = styled.div`
   display: flex;
   justify-content: space-between;
@@ -521,27 +448,23 @@ const TestStatusItem = styled.div`
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   background-color: ${(props) =>
-    props.highlight ? "rgba(67, 97, 238, 0.05)" : "white"};
+    props.highlight ? "rgba(67,97,238,0.05)" : "white"};
   transition: var(--transition);
-
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 `;
-
 const TestNameText = styled.span`
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--dark);
   flex: 1;
 `;
-
 const StatusBadgeContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
-
 const TATIndicator = styled.div`
   display: flex;
   align-items: center;
@@ -554,47 +477,34 @@ const TATIndicator = styled.div`
   justify-content: center;
   background-color: ${(props) => {
     if (!props.secondsLeft && props.secondsLeft !== 0) return "transparent";
-    if (props.secondsLeft < 0) return "#dc3545"; // Red - Overdue
-    if (props.secondsLeft < 7200) return "#ffc107"; // Yellow - Critical (less than 2 hours)
-    return "#28a745"; // Green - On track
+    if (props.secondsLeft < 0) return "#dc3545";
+    if (props.secondsLeft < 7200) return "#ffc107";
+    return "#28a745";
   }};
   color: ${(props) => (props.secondsLeft !== null ? "white" : "var(--gray)")};
 `;
-
 const TATText = styled.span`
   white-space: nowrap;
   font-family: "Courier New", monospace;
   letter-spacing: 0.5px;
 `;
-
 const TATLabel = styled.div`
   font-size: 0.7rem;
   opacity: 0.9;
 `;
 
-// Add this helper function before the PatientOverview component
 const formatTimeRemaining = (seconds) => {
   if (seconds === null || seconds === undefined) return null;
-
   const absSeconds = Math.abs(seconds);
   const days = Math.floor(absSeconds / 86400);
   const hours = Math.floor((absSeconds % 86400) / 3600);
   const minutes = Math.floor((absSeconds % 3600) / 60);
   const secs = Math.floor(absSeconds % 60);
-
   let parts = [];
-
-  if (days > 0) {
-    parts.push(`${days}D`);
-  }
-  if (hours > 0 || days > 0) {
-    parts.push(`${hours}H`);
-  }
-  if (minutes > 0 || hours > 0 || days > 0) {
-    parts.push(`${minutes}M`);
-  }
+  if (days > 0) parts.push(`${days}D`);
+  if (hours > 0 || days > 0) parts.push(`${hours}H`);
+  if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes}M`);
   parts.push(`${secs}S`);
-
   return parts.join(":");
 };
 
@@ -605,7 +515,9 @@ const PatientOverview = () => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
-  const [activeDropdownType, setActiveDropdownType] = useState(null); // 'print' or 'email'
+  const [activeDropdownType, setActiveDropdownType] = useState(null);
+  // NEW: position state for the portal dropdown menu
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const [refByOptions, setRefByOptions] = useState([]);
   const [clinicalNames, setClinicalNames] = useState([]);
   const [branch, setBranch] = useState("");
@@ -630,100 +542,59 @@ const PatientOverview = () => {
     useState(null);
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  // Set active tab based on current route
   useEffect(() => {
-    if (location.pathname === "/HMSPatientOverview") {
-      setActiveTab("hms");
-    } else if (location.pathname === "/PatientOverview") {
+    if (location.pathname === "/HMSPatientOverview") setActiveTab("hms");
+    else if (location.pathname === "/PatientOverview")
       setActiveTab("reference");
-    } else if (location.pathname === "/FranchiseOverview") {
+    else if (location.pathname === "/FranchiseOverview")
       setActiveTab("franchise");
-    } else if (location.pathname === "/CorporateOverview") {
+    else if (location.pathname === "/CorporateOverview")
       setActiveTab("corporate");
-    }
   }, [location.pathname]);
 
-  // Handle tab navigation
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === "hms") {
-      navigate("/HMSPatientOverview");
-    } else if (tab === "reference") {
-      navigate("/PatientOverview");
-    } else if (tab === "franchise") {
-      navigate("/FranchiseOverview");
-    } else if (tab === "corporate") {
-      navigate("/CorporateOverview");
-    }
+    if (tab === "hms") navigate("/HMSPatientOverview");
+    else if (tab === "reference") navigate("/PatientOverview");
+    else if (tab === "franchise") navigate("/FranchiseOverview");
+    else if (tab === "corporate") navigate("/CorporateOverview");
   };
 
-  // Fetch Refby
   useEffect(() => {
     const fetchRefby = async () => {
-      console.log("Fetching Refby from:", `${Labbaseurl}refby/`);
       const result = await apiRequest(`${Labbaseurl}refby/`, "GET");
-
-      if (result.success) {
-        setRefByOptions(result.data);
-      } else {
-        console.error(
-          "Error fetching Refby:",
-          result.error,
-          "Status:",
-          result.status,
-        );
+      if (result.success) setRefByOptions(result.data);
+      else {
         setError("Failed to load referral options");
         toast.error(result.error || "Failed to load referral options");
       }
     };
-
     fetchRefby();
   }, []);
 
-  // Fetch Clinical Names
   useEffect(() => {
     const fetchClinicalNames = async () => {
-      console.log(
-        "Fetching Clinical Names from:",
-        `${Labbaseurl}clinical_name/`,
-      );
       const result = await apiRequest(`${Labbaseurl}clinical_name/`, "GET");
-
-      if (result.success) {
-        setClinicalNames(result.data);
-      } else {
-        console.error(
-          "Error fetching clinical names:",
-          result.error,
-          "Status:",
-          result.status,
-        );
+      if (result.success) setClinicalNames(result.data);
+      else {
         setError("Failed to load clinical names");
         toast.error(result.error || "Failed to load clinical names");
       }
     };
-
     fetchClinicalNames();
   }, []);
 
-  // Fetch patients when component mounts
   useEffect(() => {
     const fetchCombinedPatientData = async () => {
       setLoading(true);
       const formattedStartDate = startDate.toISOString().split("T")[0];
       const formattedEndDate = endDate.toISOString().split("T")[0];
-
       const url = `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
-
       const result = await apiRequest(url, "GET");
-
       if (result.success) {
         const patientData = result.data;
-
-        // Set the full and filtered patient list
         setPatients(patientData);
         setFilteredPatients(patientData);
-
         const statusMap = {};
         patientData.forEach((patient) => {
           statusMap[patient.patient_id] = {
@@ -736,116 +607,71 @@ const PatientOverview = () => {
         console.error("Error fetching combined patient data:", result.error);
         setError("Failed to load patient data");
       }
-
       setLoading(false);
     };
-
-    if (startDate && endDate) {
-      fetchCombinedPatientData();
-    }
+    if (startDate && endDate) fetchCombinedPatientData();
   }, [startDate, endDate]);
 
-  // Determine icon state based on patient status
   const isPrintAndMailEnabled = (status) =>
-    status === "Approved" ||
-    status === "Partially Approved" ||
-    status === "Partially Dispatched" ||
-    status === "Dispatched";
+    ["Approved", "Dispatched"].includes(status);
   const isSortingEnabled = (status) =>
-    status === "Approved" ||
-    status === "Partially Approved" ||
-    status === "Partially Dispatched" ||
-    status === "Dispatched";
-
-  // Add this helper function after the `isSortingEnabled` function (around line 665):
+    [
+      "Approved",
+      "Partially Approved",
+      "Partially Dispatched",
+      "Dispatched",
+    ].includes(status);
   const isMBTestSortingEnabled = (patient) => {
-    // Check if patient has Microbiology department and its status is Approved
     if (!patient.department_statuses) return false;
-
     const microbiologyStatus = patient.department_statuses["Microbiology"];
     return (
       microbiologyStatus === "Approved" || microbiologyStatus === "Dispatched"
     );
   };
+  const isOnlyMicrobiology = (patient) => {
+    if (!patient.department) return false;
+    const departments = patient.department
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+    return departments.length === 1 && departments[0] === "Microbiology";
+  };
 
   const TestStatusModal = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
-
-    // Update current time every second for live countdown
     useEffect(() => {
       if (!isTestStatusModalOpen) return;
-
-      const timer = setInterval(() => {
-        setCurrentTime(new Date());
-      }, 1000);
-
+      const timer = setInterval(() => setCurrentTime(new Date()), 1000);
       return () => clearInterval(timer);
     }, [isTestStatusModalOpen]);
 
     if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
-
     const testStatuses = selectedPatientForStatus.test_statuses || [];
 
     const calculateLiveSecondsLeft = (test) => {
-      if (test.tat_status === "completed") {
-        // For completed tests, return the static value
-        return test.seconds_left;
-      }
-
+      if (test.tat_status === "completed") return test.seconds_left;
       if (test.tat_status === "pending" && test.tat_deadline) {
-        // Calculate live countdown
         const deadline = new Date(test.tat_deadline);
-        const secondsLeft = Math.floor((deadline - currentTime) / 1000);
-        return secondsLeft;
+        return Math.floor((deadline - currentTime) / 1000);
       }
-
       return test.seconds_left;
     };
 
     const formatTATDisplay = (test) => {
       if (!test.tat_time) return null;
-
       const liveSecondsLeft = calculateLiveSecondsLeft(test);
-
       if (test.tat_status === "completed") {
-        // Test is completed
         const timeStr = formatTimeRemaining(liveSecondsLeft);
-        if (liveSecondsLeft >= 0) {
-          return {
-            label: "Completed",
-            time: `${timeStr} early`,
-            isOverdue: false,
-          };
-        } else {
-          return {
-            label: "Completed",
-            time: `${timeStr} late`,
-            isOverdue: true,
-          };
-        }
+        return liveSecondsLeft >= 0
+          ? { label: "Completed", time: `${timeStr} early`, isOverdue: false }
+          : { label: "Completed", time: `${timeStr} late`, isOverdue: true };
       } else if (test.tat_status === "pending") {
-        // Test is still pending
         const timeStr = formatTimeRemaining(liveSecondsLeft);
-        if (liveSecondsLeft > 0) {
-          return {
-            label: "Time Left",
-            time: timeStr,
-            isOverdue: false,
-          };
-        } else {
-          return {
-            label: "Overdue",
-            time: timeStr,
-            isOverdue: true,
-          };
-        }
+        return liveSecondsLeft > 0
+          ? { label: "Time Left", time: timeStr, isOverdue: false }
+          : { label: "Overdue", time: timeStr, isOverdue: true };
       }
-
-      return {
-        label: "TAT",
-        time: test.tat_time,
-        isOverdue: false,
-      };
+      return { label: "TAT", time: test.tat_time, isOverdue: false };
     };
 
     return (
@@ -859,13 +685,11 @@ const PatientOverview = () => {
               <X size={24} />
             </CloseButton>
           </ModalHeader>
-
           <TestStatusList>
             {testStatuses.length > 0 ? (
               testStatuses.map((test, index) => {
                 const tatDisplay = formatTATDisplay(test);
                 const liveSecondsLeft = calculateLiveSecondsLeft(test);
-
                 return (
                   <TestStatusItem
                     key={index}
@@ -937,7 +761,6 @@ const PatientOverview = () => {
     );
   };
 
-  // Filter patients based on multiple criteria
   useEffect(() => {
     const startOfDay = new Date(startDate);
     startOfDay.setHours(0, 0, 0, 0);
@@ -946,15 +769,12 @@ const PatientOverview = () => {
     const filtered = patients.filter((patient) => {
       const patientDate = new Date(patient.date);
       const patientStatus = statuses[patient.patient_id]?.status || "";
-
-      // Department filter logic
       const matchesDepartment =
         !departmentFilter ||
         (patient.department &&
           patient.department
             .split(",")
             .some((dept) => dept.trim() === departmentFilter));
-
       return (
         patientDate >= startOfDay &&
         patientDate <= endOfDay &&
@@ -969,7 +789,7 @@ const PatientOverview = () => {
             ?.toLowerCase()
             .includes(patientName.toLowerCase())) &&
         (!statusFilter || patientStatus === statusFilter) &&
-        matchesDepartment // Add this line
+        matchesDepartment
       );
     });
     setFilteredPatients(filtered);
@@ -986,8 +806,8 @@ const PatientOverview = () => {
     statusFilter,
     departmentFilter,
     statuses,
-  ]); // Add departmentFilter to dependencies
-  // Update the clearFilters function to reset the status filter
+  ]);
+
   const clearFilters = () => {
     setStartDate(new Date());
     setEndDate(new Date());
@@ -1007,40 +827,29 @@ const PatientOverview = () => {
       toast.error("Patient phone number is missing");
       return;
     }
-
     const phoneNumber = patient.phone.startsWith("+91")
       ? patient.phone.replace("+", "")
       : `91${patient.phone}`;
-
     try {
-      const pdfBlob = await handlePrint(patient, withLetterpad, false); // Generate PDF (no download)
+      const pdfBlob = await handlePrint(patient, withLetterpad, false);
       if (!pdfBlob) {
         toast.error("Failed to generate the PDF");
         return;
       }
-
       const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
       const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
-
-      // Upload PDF to server
       const formData = new FormData();
       formData.append("file", pdfFile);
-
       const uploadResponse = await axios.post(
         `${Labbaseurl}upload-pdf/`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
-
       const fileUrl = uploadResponse.data.file_url;
       if (!fileUrl) {
         toast.error("File upload failed");
         return;
       }
-
-      // Call Django proxy instead of Botify directly
       const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
         patient_name: patient.patient_name || "Valued Patient",
         phone: phoneNumber,
@@ -1050,10 +859,9 @@ const PatientOverview = () => {
         pdf_name: pdfName,
         patient_id: patient.patient_id,
       });
-
-      if (res.data.success) {
+      if (res.data.success)
         toast.success("WhatsApp PDF message sent successfully!");
-      } else {
+      else {
         toast.error("Failed to send WhatsApp template message.");
         console.error("Backend error:", res.data.error);
       }
@@ -1065,26 +873,20 @@ const PatientOverview = () => {
 
   const handleSendEmail = async (patient, withLetterpad = true) => {
     try {
-      const pdfBlob = await handlePrint(patient, withLetterpad, false); // Generate PDF (no download)
+      const pdfBlob = await handlePrint(patient, withLetterpad, false);
       if (!pdfBlob) {
         toast.error("Failed to generate the PDF.");
         return;
       }
-
       if (!patient.email) {
         toast.warning("Patient email is missing.");
         return;
       }
-
       const formData = new FormData();
       formData.append("subject", `Test Details for ${patient.patient_name}`);
       formData.append(
         "message",
-        `Dear ${
-          patient.patient_name || "Recipient"
-        },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
-          patient.patient_name || "the patient"
-        }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`,
+        `Dear ${patient.patient_name || "Recipient"},\n\nWe hope this message finds you well. Please find attached the lab test results for ${patient.patient_name || "the patient"}. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`,
       );
       formData.append("recipients", patient.email);
       formData.append("patient_id", patient.patient_id);
@@ -1095,19 +897,14 @@ const PatientOverview = () => {
           type: "application/pdf",
         }),
       );
-
       const emailResponse = await apiRequest(
         `${Labbaseurl}send-email/`,
         "POST",
         formData,
         { "Content-Type": "multipart/form-data" },
       );
-
-      if (emailResponse.success) {
-        toast.success("Email sent successfully!");
-      } else {
-        toast.error(`Failed to send email: ${emailResponse.error}`);
-      }
+      if (emailResponse.success) toast.success("Email sent successfully!");
+      else toast.error(`Failed to send email: ${emailResponse.error}`);
     } catch (error) {
       console.error("Error sending email:", error);
       toast.error("Failed to send email.");
@@ -1116,34 +913,24 @@ const PatientOverview = () => {
 
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
-      console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
         "GET",
       );
-
       if (!response.success) {
-        console.error("Failed to fetch patient details:", response.error);
         toast.error(response.error || "Failed to fetch patient details");
         setLoading(false);
         return null;
       }
 
-      console.log("API Response:", response.data);
-
-      // Extract patient data and signatures from the new response structure
       let patientDetails;
       let signaturesData = [];
-
       if (response.data.patient_data && response.data.signatures) {
-        // New structure with signatures
         patientDetails = response.data.patient_data;
         signaturesData = response.data.signatures;
       } else {
-        // Fallback for old structure
         patientDetails = response.data;
       }
-
       if (Array.isArray(patientDetails)) {
         patientDetails = {
           ...patientDetails[0],
@@ -1152,21 +939,15 @@ const PatientOverview = () => {
           ),
         };
       }
-
-      console.log("Processed Patient Details:", patientDetails);
-      console.log("Signatures Data:", signaturesData);
-
       if (
         !patientDetails.testdetails ||
         patientDetails.testdetails.length === 0
       ) {
-        console.error("No test details found for the patient.");
         toast.error("No test details found for the patient.");
         setLoading(false);
         return null;
       }
 
-      // Unicode character mapping
       const unicodeMap = {
         μ: "µ",
         α: "α",
@@ -1188,67 +969,40 @@ const PatientOverview = () => {
         "\\u00b2": "²",
         "\\u00b3": "³",
       };
-
       const processUnicodeText = (text) => {
         if (!text) return "";
-        let processedText = text;
-        processedText = processedText.replace(
-          /\\u([0-9a-fA-F]{4})/g,
-          (match, hex) => {
-            const char = String.fromCharCode(parseInt(hex, 16));
-            return unicodeMap[char] || char;
-          },
-        );
-        Object.keys(unicodeMap).forEach((unicode) => {
-          const regex = new RegExp(unicode, "g");
-          processedText = processedText.replace(regex, unicodeMap[unicode]);
+        let t = text;
+        t = t.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+          const char = String.fromCharCode(parseInt(hex, 16));
+          return unicodeMap[char] || char;
         });
-        return processedText;
+        Object.keys(unicodeMap).forEach((u) => {
+          t = t.replace(new RegExp(u, "g"), unicodeMap[u]);
+        });
+        return t;
       };
-
       const extractPatientRefNoNumber = (refNo) => {
         if (!refNo) return "N/A";
-        const numberPart = refNo.split("+")[0];
-        return numberPart;
+        return refNo.split("+")[0];
       };
-
-      // CORRECTED: Map designation codes to consultant positions
-      // Note: Data shows DESIG101, DESIG100, DESIG099 (without leading 0)
       const designationMapping = {
         DESIG101: { position: 0, title: "Consultant Microbiologist" },
         DESIG100: { position: 1, title: "Consultant Pathologist" },
         DESIG099: { position: 2, title: "Consultant Biochemist" },
       };
-
-      // Build consultants array dynamically from signatures data
-      const consultants = [];
-
-      // Initialize with empty slots
-      consultants[0] = null; // Microbiologist
-      consultants[1] = null; // Pathologist
-      consultants[2] = null; // Biochemist
-
-      // Fill in the consultants based on signatures data
+      const consultants = [null, null, null];
       signaturesData.forEach((sig) => {
         const mapping = designationMapping[sig.designation];
-        if (mapping) {
-          const signatureImage = sig.signatureBase64
-            ? `data:image/png;base64,${sig.signatureBase64}`
-            : null;
-
+        if (mapping)
           consultants[mapping.position] = [
             sig.employeeName,
             mapping.title,
-            signatureImage,
+            sig.signatureBase64
+              ? `data:image/png;base64,${sig.signatureBase64}`
+              : null,
           ];
-        }
       });
-
-      // Filter out null entries (positions without signatures)
       const activeConsultants = consultants.filter((c) => c !== null);
-
-      console.log("Active Consultants:", activeConsultants);
-
       const departmentOrder = [
         "Haematology",
         "Coagulation",
@@ -1265,12 +1019,9 @@ const PatientOverview = () => {
         "Microbiology",
         "Molecular Biology",
       ];
-
       const patientRefNo =
         patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
       const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
-
-      // Generate Barcode
       let barcodeImage = null;
       if (patientRefNoNumber !== "N/A") {
         const barcodeCanvas = document.createElement("canvas");
@@ -1284,8 +1035,6 @@ const PatientOverview = () => {
         });
         barcodeImage = barcodeCanvas.toDataURL("image/png");
       }
-
-      // Document dimensions
       const leftMargin = 10;
       const rightMargin = leftMargin + 190;
       const contentWidth = rightMargin - leftMargin;
@@ -1294,19 +1043,15 @@ const PatientOverview = () => {
       const contentYStart = headerHeight + 20;
       const signatureHeight = 35;
       const tableHeaderHeight = 10;
-
-      // Column widths
       const colWidths = [
-        contentWidth * 0.28, // Test Description
-        contentWidth * 0.12, // Specimen Type
-        contentWidth * 0.05, // Extra Gap
-        contentWidth * 0.13, // Value(s)
-        contentWidth * 0.1, // Unit
-        contentWidth * 0.17, // Reference Range
-        contentWidth * 0.15, // Method
+        contentWidth * 0.28,
+        contentWidth * 0.12,
+        contentWidth * 0.05,
+        contentWidth * 0.13,
+        contentWidth * 0.1,
+        contentWidth * 0.17,
+        contentWidth * 0.15,
       ];
-
-      // Patient information
       const leftDetails = [
         { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
         {
@@ -1321,7 +1066,6 @@ const PatientOverview = () => {
         { label: "Branch", value: patientDetails.branch || "N/A" },
         { label: "Source", value: patientDetails.B2B || "N/A" },
       ];
-
       const rightDetails = [
         {
           label: "Collected On",
@@ -1351,25 +1095,40 @@ const PatientOverview = () => {
               },
             ]
           : []),
-
         {
           label: "Printed Date",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
-
       const calculateMaxLabelWidth = (details) => {
         const tempDoc = new jsPDF();
         return Math.max(
           ...details.map((item) => tempDoc.getTextWidth(item.label)),
         );
       };
-
       const doc = new jsPDF();
       let pageCount = 1;
       let isTableStarted = false;
-
+      const wrapTextAndGetLines = (doc, text, maxWidth) => {
+        if (!text) return [];
+        return doc.splitTextToSize(text, maxWidth);
+      };
+      const renderWrappedText = (
+        doc,
+        text,
+        maxWidth,
+        startX,
+        yPos,
+        lineHeight = 4,
+      ) => {
+        if (!text) return 0;
+        const lines = wrapTextAndGetLines(doc, text, maxWidth);
+        lines.forEach((line, index) =>
+          doc.text(line, startX, yPos + index * lineHeight),
+        );
+        return lines.length * lineHeight;
+      };
       const addPatientInfo = (yPos) => {
         const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
         const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
@@ -1380,48 +1139,36 @@ const PatientOverview = () => {
         const rightLabelX = centerPoint + 28;
         const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
         const rightValueX = rightColonX + 1;
-
         doc.setFontSize(10);
         let patientInfoY = yPos;
-
-        // FIX: Use the maximum length of both arrays
         const maxLength = Math.max(leftDetails.length, rightDetails.length);
-
         for (let i = 0; i < maxLength; i++) {
           const left = leftDetails[i];
           const right = rightDetails[i];
-
-          // Handle left side (only if exists)
           if (left) {
             doc.setFont("helvetica", "bold");
             doc.text(left.label, leftLabelX, patientInfoY);
             doc.text(":", leftColonX, patientInfoY);
             doc.setFont("helvetica", "normal");
-
             const maxLeftValueWidth = centerPoint + 25 - leftValueX;
             const leftValueLines = wrapTextAndGetLines(
               doc,
               left.value,
               maxLeftValueWidth,
             );
-
-            leftValueLines.forEach((line, lineIndex) => {
-              doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
-            });
-
+            leftValueLines.forEach((line, lineIndex) =>
+              doc.text(line, leftValueX, patientInfoY + lineIndex * 4),
+            );
             var leftRowHeight = leftValueLines.length * 4;
           } else {
-            var leftRowHeight = 5; // Default height when no left detail
+            var leftRowHeight = 5;
           }
-
-          // Handle right side (only if exists)
           if (right) {
             doc.setFont("helvetica", "bold");
             doc.text(right.label, rightLabelX, patientInfoY);
             doc.text(":", rightColonX, patientInfoY);
             doc.setFont("helvetica", "normal");
             doc.text(right.value, rightValueX, patientInfoY);
-
             if (
               right.label === "Patient Ref.No" &&
               patientRefNoNumber !== "N/A" &&
@@ -1437,14 +1184,10 @@ const PatientOverview = () => {
               );
             }
           }
-
-          // Move to next row
           patientInfoY += Math.max(leftRowHeight, 5);
         }
-
         return patientInfoY;
       };
-
       const addHeaderFooter = () => {
         if (withLetterpad) {
           doc.addImage(
@@ -1455,12 +1198,11 @@ const PatientOverview = () => {
             doc.internal.pageSize.width,
             headerHeight,
           );
-          const footerY = doc.internal.pageSize.height - footerHeight;
           doc.addImage(
             FooterImage,
             "PNG",
             0,
-            footerY,
+            doc.internal.pageSize.height - footerHeight,
             doc.internal.pageSize.width,
             footerHeight,
           );
@@ -1472,7 +1214,6 @@ const PatientOverview = () => {
           doc.setTextColor(0, 0, 0);
         }
       };
-
       const renderUnicodeText = (text, x, y, options = {}) => {
         const processedText = processUnicodeText(text);
         if (processedText.includes("µ")) {
@@ -1493,11 +1234,9 @@ const PatientOverview = () => {
           doc.text(processedText, x, y);
         }
       };
-
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
-
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
         const headers = [
@@ -1511,65 +1250,23 @@ const PatientOverview = () => {
         ];
         let xPos = leftMargin;
         headers.forEach((header, index) => {
-          if (header) {
-            doc.text(header, xPos, yPos);
-          }
+          if (header) doc.text(header, xPos, yPos);
           xPos += colWidths[index];
         });
-
         yPos += 3;
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
         return yPos;
       };
-
-      const wrapTextAndGetLines = (doc, text, maxWidth) => {
-        if (!text) return [];
-        return doc.splitTextToSize(text, maxWidth);
-      };
-
-      const renderWrappedText = (
-        doc,
-        text,
-        maxWidth,
-        startX,
-        yPos,
-        lineHeight = 4,
-      ) => {
-        if (!text) return 0;
-        const lines = wrapTextAndGetLines(doc, text, maxWidth);
-        lines.forEach((line, index) => {
-          doc.text(line, startX, yPos + index * lineHeight);
-        });
-        return lines.length * lineHeight;
-      };
-
-      // UPDATED: addSignatures function
-
       const addSignatures = () => {
         const pageHeight = doc.internal.pageSize.height;
         const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
         const signatureWidth = 35;
-
-        // Only show signatures if we have active consultants
         if (activeConsultants.length === 0) return;
-
-        // Calculate spacing based on number of active consultants
-        const totalConsultants = activeConsultants.length;
-
-        // Calculate starting position from RIGHT side
-        const rightEdge = rightMargin;
-        const signatureSpacing = 60; // Fixed spacing between signatures
-
-        // Start from right edge and work backwards
-        const startX = rightEdge - totalConsultants * signatureSpacing;
-
+        const startX = rightMargin - activeConsultants.length * 60;
         activeConsultants.forEach((consultant, index) => {
-          // Position from the calculated start point, moving right
-          const xPosition = startX + index * signatureSpacing;
-
-          // Display signature image if available
-          if (consultant[2]) {
+          const xPosition = startX + index * 60;
+          if (consultant[2])
             doc.addImage(
               consultant[2],
               "PNG",
@@ -1578,26 +1275,17 @@ const PatientOverview = () => {
               signatureWidth,
               15,
             );
-          }
-
-          // Display full name with credentials
-          const fullName = consultant[0];
-
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
-          doc.text(fullName, xPosition, signaturesY + 20);
-
-          // Display title (Consultant position)
+          doc.text(consultant[0], xPosition, signaturesY + 20);
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           doc.text(consultant[1], xPosition, signaturesY + 25);
         });
       };
-
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
-
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
           doc.addPage();
@@ -1606,19 +1294,15 @@ const PatientOverview = () => {
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
           newYPos += 10;
-          if (isTableStarted) {
-            newYPos = drawTableHeader(newYPos);
-          }
+          if (isTableStarted) newYPos = drawTableHeader(newYPos);
           return newYPos;
         }
         return yPos;
       };
-
       const getHighLowStatus = (value, reference) => {
         if (!value || !reference) return null;
         const numValue = Number.parseFloat(value);
         if (isNaN(numValue)) return null;
-
         if (reference.includes("-")) {
           const [min, max] = reference
             .split("-")
@@ -1636,7 +1320,6 @@ const PatientOverview = () => {
         }
         return null;
       };
-
       const drawArrowSymbol = (doc, x, y, direction) => {
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.5);
@@ -1651,17 +1334,14 @@ const PatientOverview = () => {
         }
       };
 
-      // Start PDF generation
       addHeaderFooter();
       let currentYPosition = addPatientInfo(contentYStart);
       currentYPosition += 10;
-
       if (patientDetails.testdetails.length) {
         isTableStarted = true;
         currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
         let yPos = currentYPosition;
         yPos = drawTableHeader(yPos);
-
         const testsByDepartment = patientDetails.testdetails.reduce(
           (acc, test) => {
             (acc[test.department] = acc[test.department] || []).push(test);
@@ -1669,39 +1349,26 @@ const PatientOverview = () => {
           },
           {},
         );
-
-        // Sort departments according to the specified order
         const sortedDepartments = Object.keys(testsByDepartment).sort(
           (a, b) => {
-            const indexA = departmentOrder.indexOf(a);
-            const indexB = departmentOrder.indexOf(b);
-
-            if (indexA !== -1 && indexB !== -1) {
-              return indexA - indexB;
-            }
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
+            const iA = departmentOrder.indexOf(a);
+            const iB = departmentOrder.indexOf(b);
+            if (iA !== -1 && iB !== -1) return iA - iB;
+            if (iA !== -1) return -1;
+            if (iB !== -1) return 1;
             return a.localeCompare(b);
           },
         );
-
         sortedDepartments.forEach((department) => {
-          // Collect all verified_by values in this department
           const verifiedBySet = new Set();
           testsByDepartment[department].forEach((test) => {
-            if (test.verified_by && test.verified_by.trim() !== "") {
+            if (test.verified_by && test.verified_by.trim() !== "")
               verifiedBySet.add(test.verified_by);
-            }
           });
-
           const hasMultipleVerifiers = verifiedBySet.size > 1;
-
           testsByDepartment[department].forEach((test, testIndex) => {
-            // Render department header only for first test in department
             if (testIndex === 0) {
-              const departmentHeight = 15;
-              yPos = checkForNewPage(yPos, departmentHeight);
-
+              yPos = checkForNewPage(yPos, 15);
               doc.setFont("helvetica", "bold");
               doc.setFontSize(10);
               const textWidth = doc.getTextWidth(department.toUpperCase());
@@ -1717,56 +1384,42 @@ const PatientOverview = () => {
               );
               yPos += 10;
             }
-
-            // Group parameters by sub_title
             const parametersBySubtitle = {};
-
             if (test.parameters && test.parameters.length > 0) {
               test.parameters.forEach((param) => {
                 const subtitle = param.sub_title || "";
-                if (!parametersBySubtitle[subtitle]) {
+                if (!parametersBySubtitle[subtitle])
                   parametersBySubtitle[subtitle] = [];
-                }
                 parametersBySubtitle[subtitle].push(param);
               });
             }
-
-            const testHeaderHeight = 20;
-            yPos = checkForNewPage(yPos, testHeaderHeight);
-
-            // Render main test
+            yPos = checkForNewPage(yPos, 20);
             doc.setFontSize(10);
-
-            // Calculate all text wrapping FIRST
             const testNameText = test.testname;
+            const valueText = test.value || "";
+            const methodText = (test.method || "")
+              .replace(/\bMethod\b/i, "")
+              .trim();
             const testNameLines = wrapTextAndGetLines(
               doc,
               testNameText,
               colWidths[0] - 2,
             );
-
-            const valueText = test.value || "";
             const valueLines = wrapTextAndGetLines(
               doc,
               valueText,
               colWidths[3] - 2,
             );
-
             const referenceLines = wrapTextAndGetLines(
               doc,
               test.reference_range || "",
               colWidths[5] - 2,
             );
-
-            const methodText = (test.method || "")
-              .replace(/\bMethod\b/i, "")
-              .trim();
             const methodLines = wrapTextAndGetLines(
               doc,
               methodText,
               colWidths[6] - 2,
             );
-
             const maxLines = Math.max(
               testNameLines.length,
               valueLines.length,
@@ -1775,12 +1428,8 @@ const PatientOverview = () => {
             );
             const lineHeight = 4;
             const actualRowHeight = maxLines * lineHeight + 2;
-
             yPos = checkForNewPage(yPos, actualRowHeight);
-
             let xPos = leftMargin;
-
-            // Test Name
             doc.setFont("helvetica", "bold");
             renderWrappedText(
               doc,
@@ -1791,29 +1440,22 @@ const PatientOverview = () => {
               lineHeight,
             );
             xPos += colWidths[0];
-
             doc.setFont("helvetica", "normal");
-
-            // Specimen Type
             doc.text(test.specimen_type || "", xPos, yPos);
             xPos += colWidths[1];
-
             xPos += colWidths[2];
-
-            // Value(s)
             const statusIndicator = test.isHigh
               ? "H"
               : test.isLow
                 ? "L"
                 : getHighLowStatus(valueText, test.reference_range);
-
             if (statusIndicator) {
               doc.setFont("helvetica", "bold");
-              if (statusIndicator === "H") {
-                doc.setTextColor(255, 0, 0);
-              } else if (statusIndicator === "L") {
-                doc.setTextColor(0, 0, 255);
-              }
+              doc.setTextColor(
+                statusIndicator === "H" ? 255 : 0,
+                0,
+                statusIndicator === "L" ? 255 : 0,
+              );
               renderWrappedText(
                 doc,
                 valueText,
@@ -1823,13 +1465,13 @@ const PatientOverview = () => {
                 lineHeight,
               );
               const valueWidth = doc.getTextWidth(valueText);
-              if (valueWidth < colWidths[3] - 5) {
-                if (statusIndicator === "H") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-                } else if (statusIndicator === "L") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
-                }
-              }
+              if (valueWidth < colWidths[3] - 5)
+                drawArrowSymbol(
+                  doc,
+                  xPos + valueWidth + 2,
+                  yPos - 1,
+                  statusIndicator === "H" ? "up" : "down",
+                );
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
@@ -1843,12 +1485,8 @@ const PatientOverview = () => {
               );
             }
             xPos += colWidths[3];
-
-            // Unit
             renderUnicodeText(test.unit || "", xPos, yPos);
             xPos += colWidths[4];
-
-            // Reference Range
             renderWrappedText(
               doc,
               test.reference_range || "",
@@ -1858,8 +1496,6 @@ const PatientOverview = () => {
               lineHeight,
             );
             xPos += colWidths[5];
-
-            // Method
             doc.setTextColor(0, 0, 0);
             renderWrappedText(
               doc,
@@ -1869,29 +1505,22 @@ const PatientOverview = () => {
               yPos,
               lineHeight,
             );
-
             yPos += actualRowHeight + 4;
-
             doc.setFont("helvetica", "normal");
             doc.setTextColor(0, 0, 0);
-
-            // Add outsourced label
             if (test.outsourced === true) {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
               doc.text("(Outsourced)", leftMargin, yPos);
               yPos += 4;
             }
-
-            // Add comment for main test (when no parameters)
             if (!test.parameters || test.parameters.length === 0) {
               if (test.comment && test.comment.trim() !== "") {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
-                const commentText = `Note: ${test.comment}`;
                 const commentHeight = renderWrappedText(
                   doc,
-                  commentText,
+                  `Note: ${test.comment}`,
                   colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
                   leftMargin,
                   yPos,
@@ -1900,55 +1529,44 @@ const PatientOverview = () => {
                 yPos += commentHeight + 2;
               }
             }
-
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
-
-            // Render parameters grouped by sub_title
             Object.keys(parametersBySubtitle).forEach((subtitle) => {
               if (subtitle && subtitle.trim() !== "") {
-                const subtitleWithParamHeight = 25;
-                yPos = checkForNewPage(yPos, subtitleWithParamHeight);
-
+                yPos = checkForNewPage(yPos, 25);
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(9);
                 doc.text(subtitle, leftMargin, yPos);
                 yPos += 6;
               }
-
               parametersBySubtitle[subtitle].forEach((currentTest) => {
                 doc.setFontSize(10);
-
                 const paramNameText = currentTest.name;
+                const paramValueText = currentTest.value || "";
+                const paramMethodText = (currentTest.method || "")
+                  .replace(/\bMethod\b/i, "")
+                  .trim();
                 const paramNameLines = wrapTextAndGetLines(
                   doc,
                   paramNameText,
                   colWidths[0] - 2,
                 );
-
-                const paramValueText = currentTest.value || "";
                 const paramValueLines = wrapTextAndGetLines(
                   doc,
                   paramValueText,
                   colWidths[3] - 2,
                 );
-
                 const paramReferenceLines = wrapTextAndGetLines(
                   doc,
                   currentTest.reference_range || "",
                   colWidths[5] - 2,
                 );
-
-                const paramMethodText = (currentTest.method || "")
-                  .replace(/\bMethod\b/i, "")
-                  .trim();
                 const paramMethodLines = wrapTextAndGetLines(
                   doc,
                   paramMethodText,
                   colWidths[6] - 2,
                 );
-
                 const paramMaxLines = Math.max(
                   paramNameLines.length,
                   paramValueLines.length,
@@ -1958,11 +1576,8 @@ const PatientOverview = () => {
                 const paramLineHeight = 4;
                 const paramActualRowHeight =
                   paramMaxLines * paramLineHeight + 2;
-
                 yPos = checkForNewPage(yPos, paramActualRowHeight);
-
                 let xPos = leftMargin;
-
                 doc.setFont("helvetica", "normal");
                 renderWrappedText(
                   doc,
@@ -1973,12 +1588,9 @@ const PatientOverview = () => {
                   paramLineHeight,
                 );
                 xPos += colWidths[0];
-
                 doc.text(currentTest.specimen_type || "", xPos, yPos);
                 xPos += colWidths[1];
-
                 xPos += colWidths[2];
-
                 const paramStatusIndicator = currentTest.isHigh
                   ? "H"
                   : currentTest.isLow
@@ -1987,14 +1599,13 @@ const PatientOverview = () => {
                         paramValueText,
                         currentTest.reference_range,
                       );
-
                 if (paramStatusIndicator) {
                   doc.setFont("helvetica", "bold");
-                  if (paramStatusIndicator === "H") {
-                    doc.setTextColor(255, 0, 0);
-                  } else if (paramStatusIndicator === "L") {
-                    doc.setTextColor(0, 0, 255);
-                  }
+                  doc.setTextColor(
+                    paramStatusIndicator === "H" ? 255 : 0,
+                    0,
+                    paramStatusIndicator === "L" ? 255 : 0,
+                  );
                   renderWrappedText(
                     doc,
                     paramValueText,
@@ -2004,23 +1615,13 @@ const PatientOverview = () => {
                     paramLineHeight,
                   );
                   const paramValueWidth = doc.getTextWidth(paramValueText);
-                  if (paramValueWidth < colWidths[3] - 5) {
-                    if (paramStatusIndicator === "H") {
-                      drawArrowSymbol(
-                        doc,
-                        xPos + paramValueWidth + 2,
-                        yPos - 1,
-                        "up",
-                      );
-                    } else if (paramStatusIndicator === "L") {
-                      drawArrowSymbol(
-                        doc,
-                        xPos + paramValueWidth + 2,
-                        yPos - 1,
-                        "down",
-                      );
-                    }
-                  }
+                  if (paramValueWidth < colWidths[3] - 5)
+                    drawArrowSymbol(
+                      doc,
+                      xPos + paramValueWidth + 2,
+                      yPos - 1,
+                      paramStatusIndicator === "H" ? "up" : "down",
+                    );
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
@@ -2034,10 +1635,8 @@ const PatientOverview = () => {
                   );
                 }
                 xPos += colWidths[3];
-
                 renderUnicodeText(currentTest.unit || "", xPos, yPos);
                 xPos += colWidths[4];
-
                 renderWrappedText(
                   doc,
                   currentTest.reference_range || "",
@@ -2047,7 +1646,6 @@ const PatientOverview = () => {
                   paramLineHeight,
                 );
                 xPos += colWidths[5];
-
                 doc.setTextColor(0, 0, 0);
                 renderWrappedText(
                   doc,
@@ -2057,16 +1655,13 @@ const PatientOverview = () => {
                   yPos,
                   paramLineHeight,
                 );
-
                 yPos += paramActualRowHeight;
-
                 if (currentTest.comment && currentTest.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
-                  const paramCommentText = `Note: ${currentTest.comment}`;
                   const paramCommentHeight = renderWrappedText(
                     doc,
-                    paramCommentText,
+                    `Note: ${currentTest.comment}`,
                     colWidths[0] +
                       colWidths[1] +
                       colWidths[2] +
@@ -2078,14 +1673,11 @@ const PatientOverview = () => {
                   );
                   yPos += paramCommentHeight + 2;
                 }
-
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
               });
             });
-
-            // Display "Verified by" under each test if multiple verifiers in department
             if (
               hasMultipleVerifiers &&
               test.verified_by &&
@@ -2097,24 +1689,21 @@ const PatientOverview = () => {
               yPos += 8;
             }
           });
-
-          // Display "Verified by" once at end of department only if single verifier
           if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
-            const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
-            doc.text(verifiedByText, leftMargin, yPos);
+            doc.text(
+              `Verified by: ${Array.from(verifiedBySet).join(", ")}`,
+              leftMargin,
+              yPos,
+            );
             yPos += 8;
           }
-
           yPos += 4;
         });
-
         currentYPosition = yPos;
       }
-
       isTableStarted = false;
-
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
@@ -2127,35 +1716,30 @@ const PatientOverview = () => {
         }
         return currentYPosition;
       };
-
       currentYPosition = ensureSpaceForFooter(currentYPosition);
-
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
       doc.text("**End of the Report**", centerX, currentYPosition, {
         align: "center",
       });
-
       addSignatures();
-
       const finalPageCount = pageCount;
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 2;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
-        const centerX = leftMargin + contentWidth / 2;
-        doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, {
-          align: "center",
-        });
+        doc.text(
+          `Page ${i} of ${finalPageCount}`,
+          centerX,
+          pageHeight - footerHeight - 2,
+          { align: "center" },
+        );
       }
-
       const pdfBlob = doc.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
       window.open(pdfUrl, "_blank");
-
       setLoading(false);
       return pdfBlob;
     } catch (error) {
@@ -2166,18 +1750,14 @@ const PatientOverview = () => {
     }
   };
 
-  // Open modal for editing credit amount
   const openModal = (patient) => {
     setSelectedPatient(patient);
     setModalIsOpen(true);
   };
-
-  // Close modal
   const closeModal = () => {
     setModalIsOpen(false);
     setSelectedPatient(null);
   };
-
   const openTestModal = (patient) => {
     setSelectedPatient(patient);
     setIsTestModalOpen(true);
@@ -2187,8 +1767,14 @@ const PatientOverview = () => {
     setIsMBTestModalOpen(true);
   };
 
-  const showDropdown = (barcode, type) => {
-    setActiveDropdownPatientId(barcode);
+  // NEW: showDropdown captures the button's screen position for the portal menu
+  const showDropdown = (id, type, e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDropdownPos({
+      top: rect.bottom + 4, // 4px below the button
+      left: rect.right - 200, // right-align to button
+    });
+    setActiveDropdownPatientId(id);
     setActiveDropdownType(type);
   };
 
@@ -2200,44 +1786,41 @@ const PatientOverview = () => {
   const getBadgeColor = (status) => {
     switch (status) {
       case "Registered":
-        return "#6c757d"; // Gray
+        return "#6c757d";
       case "Collected":
-        return "#0d6efd"; // Bright Blue
+        return "#0d6efd";
       case "Partially Collected":
-        return "#6610f2"; // Indigo/Purple
+        return "#6610f2";
       case "Received":
-        return "#17a2b8"; // Cyan/Turquoise (distinctly different)
+        return "#17a2b8";
       case "Partially Received":
-        return "#20c997"; // Teal/Mint Green
+        return "#20c997";
       case "Tested":
-        return "#d63384"; // Pink/Magenta
+        return "#d63384";
       case "Partially Tested":
-        return "#fd7e14"; // Orange
+        return "#fd7e14";
       case "Approved":
-        return "#28a745"; // Success Green
+        return "#28a745";
       case "Partially Approved":
-        return "#ffc107"; // Yellow/Amber
+        return "#ffc107";
       case "Dispatched":
-        return "#155724"; // Dark Forest Green
+        return "#155724";
       case "Partially Dispatched":
         return "#617c68";
       default:
-        return "#dc3545"; // Red for unknown/error
+        return "#dc3545";
     }
   };
 
   const getDepartmentStatus = (patient) => {
     if (!patient.department) return [];
-
     const departments = patient.department.split(",").map((d) => d.trim());
     const departmentStatuses = patient.department_statuses || {};
-
     return departments.map((dept) => {
       const backendStatus = departmentStatuses[dept] || "Pending";
       let status = backendStatus;
       let color = "#dc3545";
       let isPending = true;
-
       switch (backendStatus) {
         case "Dispatched":
           color = "#155724";
@@ -2269,17 +1852,22 @@ const PatientOverview = () => {
           isPending = true;
           status = "Pending";
       }
-
       return { department: dept, status, color, isPending };
     });
   };
+
+  // Identify which patient is currently active in the portal dropdown
+  const activePatient = filteredPatients.find(
+    (p) =>
+      p.barcode === activeDropdownPatientId ||
+      p.patient_id === activeDropdownPatientId,
+  );
 
   return (
     <Container>
       <GlobalStyle />
       <Card>
         <CardHeader>
-          {/* Navigation Tabs */}
           <NavigationContainer>
             <NavigationTab
               active={activeTab === "hms"}
@@ -2319,7 +1907,6 @@ const PatientOverview = () => {
                 onChange={(e) => setStartDate(new Date(e.target.value))}
               />
             </FilterGroup>
-
             <FilterGroup>
               <FilterLabel>End Date</FilterLabel>
               <FilterInput
@@ -2328,7 +1915,6 @@ const PatientOverview = () => {
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
             </FilterGroup>
-
             <FilterGroup>
               <FilterLabel>Select B2B</FilterLabel>
               <FilterSelect
@@ -2357,9 +1943,6 @@ const PatientOverview = () => {
                 ))}
               </FilterSelect>
             </FilterGroup>
-            {/* </FilterRow>
-
-          <FilterRow> */}
             <FilterGroup>
               <FilterLabel>Patient ID</FilterLabel>
               <FilterInput
@@ -2378,7 +1961,6 @@ const PatientOverview = () => {
                 onChange={(e) => setBarcode(e.target.value)}
               />
             </FilterGroup>
-
             <FilterGroup>
               <FilterLabel>Patient Name</FilterLabel>
               <FilterInput
@@ -2433,7 +2015,6 @@ const PatientOverview = () => {
               </FilterSelect>
             </FilterGroup>
           </FilterRow>
-
           <ButtonContainer>
             <ClearButton onClick={clearFilters}>
               <X size={16} />
@@ -2463,7 +2044,7 @@ const PatientOverview = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={11}
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Loading patient data...
@@ -2472,7 +2053,7 @@ const PatientOverview = () => {
               ) : error ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={11}
                     style={{
                       textAlign: "center",
                       padding: "2rem",
@@ -2486,11 +2067,14 @@ const PatientOverview = () => {
                 filteredPatients.map((patient) => {
                   const patientStatus = statuses[patient.patient_id] || {};
                   const status = patientStatus.status || "Loading...";
-                  const barcode = patientStatus.barcode || "N/A";
-                  const isPrintMailEnabled = isPrintAndMailEnabled(status);
-                  const isSortingEnabledFlag = isSortingEnabled(status);
+                  const barcodeVal = patientStatus.barcode || "N/A";
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
+                  const onlyMB = isOnlyMicrobiology(patient);
+                  const isPrintMailEnabled =
+                    !onlyMB && isPrintAndMailEnabled(status);
+                  const isSortingEnabledFlag =
+                    !onlyMB && isSortingEnabled(status);
                   const badgeColor = getBadgeColor(status);
 
                   return (
@@ -2501,7 +2085,7 @@ const PatientOverview = () => {
                           : "N/A"}
                       </td>
                       <td>{patient.patient_id}</td>
-                      <td>{barcode}</td>
+                      <td>{barcodeVal}</td>
                       <td>
                         <div style={{ display: "flex", alignItems: "center" }}>
                           <GenderIcon gender={patient.gender}>
@@ -2579,10 +2163,11 @@ const PatientOverview = () => {
                             <List size={16} />
                           </ActionButton>
 
+                          {/* PRINT dropdown trigger — no menu inside, portal renders it outside the table */}
                           <PrintDropdown
-                            onMouseEnter={() =>
+                            onMouseEnter={(e) =>
                               isPrintMailEnabled &&
-                              showDropdown(patient.barcode, "print")
+                              showDropdown(patient.barcode, "print", e)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -2592,32 +2177,13 @@ const PatientOverview = () => {
                             >
                               <Printer size={16} />
                             </ActionButton>
-
-                            {isPrintMailEnabled && (
-                              <DropdownMenu
-                                isVisible={
-                                  activeDropdownPatientId === patient.barcode &&
-                                  activeDropdownType === "print"
-                                }
-                              >
-                                <DropdownItem
-                                  onClick={() => handlePrint(patient, true)}
-                                >
-                                  Print with Letterpad
-                                </DropdownItem>
-                                <DropdownItem
-                                  onClick={() => handlePrint(patient, false)}
-                                >
-                                  Print without Letterpad
-                                </DropdownItem>
-                              </DropdownMenu>
-                            )}
                           </PrintDropdown>
 
+                          {/* WHATSAPP dropdown trigger */}
                           <PrintDropdown
-                            onMouseEnter={() =>
+                            onMouseEnter={(e) =>
                               isPrintMailEnabled &&
-                              showDropdown(patient.patient_id, "whatsapp")
+                              showDropdown(patient.patient_id, "whatsapp", e)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -2627,37 +2193,14 @@ const PatientOverview = () => {
                             >
                               <MessageCircle size={16} />
                             </ActionButton>
-
-                            {isPrintMailEnabled && (
-                              <DropdownMenu
-                                isVisible={
-                                  activeDropdownPatientId ===
-                                    patient.patient_id &&
-                                  activeDropdownType === "whatsapp"
-                                }
-                              >
-                                <DropdownItem
-                                  onClick={() =>
-                                    handleWhatsAppShare(patient, true)
-                                  }
-                                >
-                                  Send with Letterpad
-                                </DropdownItem>
-                                <DropdownItem
-                                  onClick={() =>
-                                    handleWhatsAppShare(patient, false)
-                                  }
-                                >
-                                  Send without Letterpad
-                                </DropdownItem>
-                              </DropdownMenu>
-                            )}
                           </PrintDropdown>
+
+                          {/* EMAIL dropdown trigger */}
                           <PrintDropdown
-                            onMouseEnter={() =>
+                            onMouseEnter={(e) =>
                               isPrintMailEnabled &&
                               patient.email &&
-                              showDropdown(patient.patient_id, "email")
+                              showDropdown(patient.patient_id, "email", e)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -2682,29 +2225,6 @@ const PatientOverview = () => {
                                 }
                               />
                             </ActionButton>
-
-                            {isPrintMailEnabled && patient.email && (
-                              <DropdownMenu
-                                isVisible={
-                                  activeDropdownPatientId ===
-                                    patient.patient_id &&
-                                  activeDropdownType === "email"
-                                }
-                              >
-                                <DropdownItem
-                                  onClick={() => handleSendEmail(patient, true)}
-                                >
-                                  Send with Letterpad
-                                </DropdownItem>
-                                <DropdownItem
-                                  onClick={() =>
-                                    handleSendEmail(patient, false)
-                                  }
-                                >
-                                  Send without Letterpad
-                                </DropdownItem>
-                              </DropdownMenu>
-                            )}
                           </PrintDropdown>
                         </ActionContainer>
                       </td>
@@ -2713,7 +2233,7 @@ const PatientOverview = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={11}>
                     <NoData>No patients found</NoData>
                   </td>
                 </tr>
@@ -2721,6 +2241,7 @@ const PatientOverview = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
         <div
           style={{
             padding: "1rem 1.5rem",
@@ -2735,43 +2256,114 @@ const PatientOverview = () => {
         </div>
       </Card>
 
-      {/* Test Sorting Modal */}
+      {/* ── PORTAL DROPDOWN: renders at <body> level, escapes overflow:auto clipping ── */}
+      {activeDropdownPatientId &&
+        activePatient &&
+        ReactDOM.createPortal(
+          <PortalDropdownMenu
+            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+            onMouseEnter={() => {
+              // Keep the menu open while hovering over it
+              setActiveDropdownPatientId(activeDropdownPatientId);
+              setActiveDropdownType(activeDropdownType);
+            }}
+            onMouseLeave={hideDropdown}
+          >
+            {activeDropdownType === "print" && (
+              <>
+                <DropdownItem
+                  onClick={() => {
+                    handlePrint(activePatient, true);
+                    hideDropdown();
+                  }}
+                >
+                  Print with Letterpad
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => {
+                    handlePrint(activePatient, false);
+                    hideDropdown();
+                  }}
+                >
+                  Print without Letterpad
+                </DropdownItem>
+              </>
+            )}
+            {activeDropdownType === "whatsapp" && (
+              <>
+                <DropdownItem
+                  onClick={() => {
+                    handleWhatsAppShare(activePatient, true);
+                    hideDropdown();
+                  }}
+                >
+                  Send with Letterpad
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => {
+                    handleWhatsAppShare(activePatient, false);
+                    hideDropdown();
+                  }}
+                >
+                  Send without Letterpad
+                </DropdownItem>
+              </>
+            )}
+            {activeDropdownType === "email" && (
+              <>
+                <DropdownItem
+                  onClick={() => {
+                    handleSendEmail(activePatient, true);
+                    hideDropdown();
+                  }}
+                >
+                  Send with Letterpad
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => {
+                    handleSendEmail(activePatient, false);
+                    hideDropdown();
+                  }}
+                >
+                  Send without Letterpad
+                </DropdownItem>
+              </>
+            )}
+          </PortalDropdownMenu>,
+          document.body,
+        )}
+
       {isTestModalOpen && (
         <TestSorting
           patient={selectedPatient}
           onClose={() => setIsTestModalOpen(false)}
         />
       )}
-      {/* M/B Test Sorting Modal */}
       {isMBTestModalOpen && (
         <MBTestSorting
           patient={selectedPatient}
           onClose={() => setIsMBTestModalOpen(false)}
         />
       )}
-      {/* Test Status Modal */}
       <TestStatusModal />
 
-      {/* Credit Amount Modal */}
       <Modal
         isOpen={modalIsOpen}
         onRequestClose={closeModal}
         style={{
-          overlay: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-          },
+          overlay: { backgroundColor: "rgba(0,0,0,0.5)" },
           content: {
             width: "800px",
             height: "fit-content",
             position: "absolute",
-            left: "400px", // Adjusted for sidebar width
+            left: "400px",
             right: "auto",
             top: "50%",
             transform: "translateY(-50%)",
             padding: "20px",
             borderRadius: "10px",
             backgroundColor: "#fff",
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Adding shadow
+            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -2781,7 +2373,6 @@ const PatientOverview = () => {
           },
         }}
       >
-        {/* Close Icon at Top-Right */}
         <div
           style={{
             position: "absolute",
@@ -2795,7 +2386,6 @@ const PatientOverview = () => {
         >
           <IoMdClose />
         </div>
-        {/* Pass patient_id and date as props */}
         {selectedPatient && (
           <div
             style={{
@@ -2812,6 +2402,7 @@ const PatientOverview = () => {
           </div>
         )}
       </Modal>
+
       <ToastContainer
         position="top-right"
         autoClose={3000}
