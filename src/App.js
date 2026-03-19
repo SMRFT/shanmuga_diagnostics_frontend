@@ -135,7 +135,7 @@ function App() {
       case "Doctor":
         navigate("/PatientList");
         break;
-      case "Sales Person":
+      case "Sales Executive":
         navigate("/SalesVisitLog");
         break;
       case "HR":
