@@ -537,9 +537,19 @@ function TestDetails() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [manuallyEditedCalculatedFields, setManuallyEditedCalculatedFields] =
     useState({});
+  // stores { uniqueKey: { low, high } } for each param / test
   const [criticalRanges, setCriticalRanges] = useState({});
+  // Set of keys that are CONFIRMED critical after debounce settles.
+  // The badge, red border, and comment auto-fill all read from this —
+  // never directly from values — so mid-type intermediates never show.
   const [criticalKeys, setCriticalKeys] = useState({});
+  // Debounce timers for critical-value detection — one timer per field key.
+  // Critical comment is only auto-filled after the user stops typing for 600 ms,
+  // so typing "400" does not trigger on "4" or "40".
   const criticalTimers = React.useRef({});
+  // Tracks which comment keys were auto-filled by the critical check.
+  // If the user manually edits the comment, it is removed from this set
+  // so we never auto-clear a comment the user intentionally wrote.
   const autoCriticalComments = React.useRef(new Set());
 
   const location = useLocation();
@@ -755,14 +765,16 @@ function TestDetails() {
               const val = tempValues[uniqueKey];
               const { low, high } = tempCriticalRanges[uniqueKey] || {};
               if (val && isCriticalValue(val, low, high)) {
-                initialParamComments[uniqueKey] = "Critical.";
+                initialParamComments[uniqueKey] =
+                  "Critical, Rechecked, Kindly correlate clinically";
               }
             });
         } else {
           const val = tempValues[test.testname];
           const { low, high } = tempCriticalRanges[test.testname] || {};
           if (val && isCriticalValue(val, low, high)) {
-            initialComments[test.testname] = "Critical.";
+            initialComments[test.testname] =
+              "Critical, Rechecked, Kindly correlate clinically";
           }
         }
       });
@@ -823,11 +835,15 @@ function TestDetails() {
       if (isCrit) {
         // Auto-fill only if empty or already the auto-text; mark as auto-filled
         setComments((prev) => {
-          if (!prev[testname] || prev[testname] === "Critical.") {
+          if (
+            !prev[testname] ||
+            prev[testname] ===
+              "Critical, Rechecked, Kindly correlate clinically"
+          ) {
             autoCriticalComments.current.add(testname);
             return {
               ...prev,
-              [testname]: "Critical.",
+              [testname]: "Critical, Rechecked, Kindly correlate clinically",
             };
           }
           return prev; // user wrote their own comment — leave it
@@ -918,11 +934,15 @@ function TestDetails() {
       if (isCrit) {
         // Auto-fill only if empty or already the auto-text; mark as auto-filled
         setParameterComments((prev) => {
-          if (!prev[uniqueKey] || prev[uniqueKey] === "Critical.") {
+          if (
+            !prev[uniqueKey] ||
+            prev[uniqueKey] ===
+              "Critical, Rechecked, Kindly correlate clinically"
+          ) {
             autoCriticalComments.current.add(uniqueKey);
             return {
               ...prev,
-              [uniqueKey]: "Critical.",
+              [uniqueKey]: "Critical, Rechecked, Kindly correlate clinically",
             };
           }
           return prev; // user wrote their own comment — leave it
@@ -1150,7 +1170,36 @@ function TestDetails() {
         setParameterEditMode(false);
         setTimeout(() => handleBack(), 1000);
       } else {
-        alert(postResult.error || "Failed to save test details.");
+        // ── Handle 409 Conflict: duplicate / already-approved record ──────────
+        // The backend returns HTTP 409 when an existing record for this
+        // barcode + test_id already has approve=false (pending) or approve=true
+        // (approved), and is NOT flagged for rerun.
+        const isConflict =
+          postResult.status === 409 ||
+          (postResult.error &&
+            postResult.error.toLowerCase().includes("blocked"));
+
+        if (isConflict) {
+          const blockedTests = postResult.data?.blocked_tests || [];
+          if (blockedTests.length > 0) {
+            const details = blockedTests
+              .map((b) => `\u2022 Test ID ${b.test_id}: ${b.reason}`)
+              .join("\n");
+            alert(
+              "Save was blocked because test data already exists:\n\n" +
+                details +
+                "\n\nTo re-enter values, the test must first be flagged for rerun by the doctor.",
+            );
+          } else {
+            alert(
+              postResult.error ||
+                "Save blocked: test data already exists or has already been approved.",
+            );
+          }
+        } else {
+          alert(postResult.error || "Failed to save test details.");
+        }
+
         setIsSubmitting(false);
       }
     } catch (error) {
