@@ -346,6 +346,14 @@ const DEFAULT_FIELD_VALUES = {
   "APTT-C": "25.0",
 };
 
+// ─── Normalize "neg" variants to "Negative" ──────────────────────────────────
+const normalizeDisplayValue = (value) => {
+  if (typeof value === "string" && value.trim().toLowerCase() === "neg") {
+    return "Negative";
+  }
+  return value;
+};
+
 // ─── Critical range checker ───────────────────────────────────────────────────
 /**
  * Parses the `low` and `high` fields from the test definition.
@@ -687,8 +695,12 @@ function TestDetails() {
               ) {
                 paramValue = DEFAULT_FIELD_VALUES[param.test_code];
               }
-              tempValues[uniqueKey] = paramValue;
-              tempInitialValues[uniqueKey] = param.value || "";
+              // Normalize "neg" → "Negative" on load for ALL tests
+              tempValues[uniqueKey] = normalizeDisplayValue(paramValue);
+              // Store normalized API value as initial (used for editability check)
+              tempInitialValues[uniqueKey] = normalizeDisplayValue(
+                param.value || "",
+              );
               // store low/high for this param
               tempCriticalRanges[uniqueKey] = {
                 low: param.low || "",
@@ -741,14 +753,16 @@ function TestDetails() {
               const val = tempValues[uniqueKey];
               const { low, high } = tempCriticalRanges[uniqueKey] || {};
               if (val && isCriticalValue(val, low, high)) {
-                initialParamComments[uniqueKey] = "Critical";
+                initialParamComments[uniqueKey] =
+                  "Critical, Rechecked, Kindly correlate clinically";
               }
             });
         } else {
           const val = tempValues[test.testname];
           const { low, high } = tempCriticalRanges[test.testname] || {};
           if (val && isCriticalValue(val, low, high)) {
-            initialComments[test.testname] = "Critical";
+            initialComments[test.testname] =
+              "Critical, Rechecked, Kindly correlate clinically";
           }
         }
       });
@@ -786,9 +800,10 @@ function TestDetails() {
       setComments((prev) => ({
         ...prev,
         [testname]:
-          prev[testname] && prev[testname] !== "Critical"
+          prev[testname] &&
+          prev[testname] !== "Critical, Rechecked, Kindly correlate clinically"
             ? prev[testname]
-            : "Critical",
+            : "Critical, Rechecked, Kindly correlate clinically",
       }));
     }
   };
@@ -797,8 +812,15 @@ function TestDetails() {
     const { value } = event.target;
     const uniqueKey = `${testname}_${paramName}`;
 
+    // Normalize "neg" → "Negative" on user input for test_id 429
+    const currentTestForNorm = testDetails.find((t) => t.testname === testname);
+    const normalizedValue =
+      currentTestForNorm?.test_id === 429
+        ? normalizeDisplayValue(value)
+        : value;
+
     setValues((prevValues) => {
-      const newValues = { ...prevValues, [uniqueKey]: value };
+      const newValues = { ...prevValues, [uniqueKey]: normalizedValue };
       const currentTest = testDetails.find((t) => t.testname === testname);
       const param = Object.values(currentTest?.parametersBySubtitle || {})
         .flat()
@@ -846,14 +868,17 @@ function TestDetails() {
       setParameterComments((prev) => ({
         ...prev,
         [uniqueKey]:
-          prev[uniqueKey] && prev[uniqueKey] !== "Critical"
+          prev[uniqueKey] &&
+          prev[uniqueKey] !== "Critical, Rechecked, Kindly correlate clinically"
             ? prev[uniqueKey]
-            : "Critical",
+            : "Critical, Rechecked, Kindly correlate clinically",
       }));
     } else {
       // Clear "Critical" auto-text if user corrects the value back to normal range
       setParameterComments((prev) => {
-        if (prev[uniqueKey] === "Critical") {
+        if (
+          prev[uniqueKey] === "Critical, Rechecked, Kindly correlate clinically"
+        ) {
           const updated = { ...prev };
           delete updated[uniqueKey];
           return updated;
@@ -1055,7 +1080,6 @@ function TestDetails() {
         testdetails: testDetailsData,
         processed_records: processedRecords,
       };
-
       const postResult = await apiRequest(
         `${Labbaseurl}test-value/save/`,
         "POST",
@@ -1069,36 +1093,7 @@ function TestDetails() {
         setParameterEditMode(false);
         setTimeout(() => handleBack(), 1000);
       } else {
-        // ── Handle 409 Conflict: duplicate / already-approved record ──────────
-        // The backend returns HTTP 409 when an existing record for this
-        // barcode + test_id already has approve=false (pending) or approve=true
-        // (approved), and is NOT flagged for rerun.
-        const isConflict =
-          postResult.status === 409 ||
-          (postResult.error &&
-            postResult.error.toLowerCase().includes("blocked"));
-
-        if (isConflict) {
-          const blockedTests = postResult.data?.blocked_tests || [];
-          if (blockedTests.length > 0) {
-            const details = blockedTests
-              .map((b) => `• Test ID ${b.test_id}: ${b.reason}`)
-              .join("\n");
-            alert(
-              "Save was blocked because test data already exists:\n\n" +
-                details +
-                "\n\nTo re-enter values, the test must first be flagged for rerun by the doctor.",
-            );
-          } else {
-            alert(
-              postResult.error ||
-                "Save blocked: test data already exists or has already been approved.",
-            );
-          }
-        } else {
-          alert(postResult.error || "Failed to save test details.");
-        }
-
+        alert(postResult.error || "Failed to save test details.");
         setIsSubmitting(false);
       }
     } catch (error) {
@@ -1120,7 +1115,9 @@ function TestDetails() {
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
-  const isParamDisabled = (param, uniqueKey) => {
+  const isParamDisabled = (param, uniqueKey, testId) => {
+    // test_id 429 — all params always editable, machine value is just pre-filled
+    if (testId === 429) return false;
     if (ALL_CALCULATED_FIELDS.includes(param.test_code)) return false;
     if (ALWAYS_EDITABLE_FIELDS.includes(param.test_code)) return false;
     return !!(
@@ -1434,11 +1431,12 @@ function TestDetails() {
                               const disabled = isParamDisabled(
                                 param,
                                 uniqueKey,
+                                test.test_id,
                               );
                               const isAlwaysEditable =
                                 ALWAYS_EDITABLE_FIELDS.includes(
                                   param.test_code,
-                                );
+                                ) || test.test_id === 429;
 
                               // NEW: check if current value is critical
                               const currentVal = values[uniqueKey];
