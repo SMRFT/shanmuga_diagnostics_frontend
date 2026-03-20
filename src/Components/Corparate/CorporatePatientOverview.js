@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import ReactDOM from "react-dom";
 import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
 import { format } from "date-fns";
@@ -346,19 +347,16 @@ const PrintDropdown = styled.div`
   position: relative;
 `;
 
-const DropdownMenu = styled.div`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: green;
+const PortalDropdownMenu = styled.div`
+  position: fixed; /* fixed so it escapes any overflow:auto ancestor */
+  background-color: white;
   border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  min-width: 180px;
-  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  min-width: 190px;
+  z-index: 9999; /* above everything */
   overflow: hidden;
-  display: ${(props) => (props.isVisible ? "block" : "none")};
+  border: 1px solid var(--gray-light);
 `;
-
 const DropdownItem = styled.button`
   display: block;
   width: 100%;
@@ -571,6 +569,7 @@ const CorporatePatientOverview = () => {
   const [isTestStatusModalOpen, setIsTestStatusModalOpen] = useState(false);
   const [selectedPatientForStatus, setSelectedPatientForStatus] =
     useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   // Set active tab based on current route
@@ -1905,7 +1904,13 @@ const CorporatePatientOverview = () => {
     setIsTestModalOpen(true);
   };
 
-  const showDropdown = (barcode) => {
+  const showDropdown = (barcode, e) => {
+    // Calculate where to place the portal menu based on the trigger button position
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDropdownPos({
+      top: rect.bottom + 4, // 4px gap below the button
+      left: rect.right - 190, // align right edge of menu with button right edge
+    });
     setActiveDropdownPatientId(barcode);
   };
 
@@ -2241,9 +2246,9 @@ const CorporatePatientOverview = () => {
                           </ActionButton>
 
                           <PrintDropdown
-                            onMouseEnter={() =>
+                            onMouseEnter={(e) =>
                               isPrintMailEnabled &&
-                              showDropdown(patient.barcode)
+                              showDropdown(patient.barcode, e)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -2253,25 +2258,6 @@ const CorporatePatientOverview = () => {
                             >
                               <Printer size={16} />
                             </ActionButton>
-
-                            {isPrintMailEnabled && (
-                              <DropdownMenu
-                                isVisible={
-                                  activeDropdownPatientId === patient.barcode
-                                }
-                              >
-                                <DropdownItem
-                                  onClick={() => handlePrint(patient, true)}
-                                >
-                                  Print with Letterpad
-                                </DropdownItem>
-                                <DropdownItem
-                                  onClick={() => handlePrint(patient, false)}
-                                >
-                                  Print without Letterpad
-                                </DropdownItem>
-                              </DropdownMenu>
-                            )}
                           </PrintDropdown>
                           {/* 
                           <ActionButton
@@ -2319,6 +2305,45 @@ const CorporatePatientOverview = () => {
           Showing {filteredPatients.length}{" "}
           {filteredPatients.length === 1 ? "entry" : "entries"}
         </div>
+        {activeDropdownPatientId &&
+          ReactDOM.createPortal(
+            (() => {
+              // Find which patient triggered the dropdown so we can pass it to handlePrint
+              const activePatient = filteredPatients.find(
+                (p) => p.barcode === activeDropdownPatientId,
+              );
+              if (!activePatient) return null;
+
+              return (
+                <PortalDropdownMenu
+                  style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                  // Keep the menu open while hovering over it
+                  onMouseEnter={() =>
+                    setActiveDropdownPatientId(activeDropdownPatientId)
+                  }
+                  onMouseLeave={hideDropdown}
+                >
+                  <DropdownItem
+                    onClick={() => {
+                      handlePrint(activePatient, true);
+                      hideDropdown();
+                    }}
+                  >
+                    Print with Letterpad
+                  </DropdownItem>
+                  <DropdownItem
+                    onClick={() => {
+                      handlePrint(activePatient, false);
+                      hideDropdown();
+                    }}
+                  >
+                    Print without Letterpad
+                  </DropdownItem>
+                </PortalDropdownMenu>
+              );
+            })(),
+            document.body,
+          )}
       </Card>
 
       {/* Test Sorting Modal */}

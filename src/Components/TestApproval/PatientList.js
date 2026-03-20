@@ -12,7 +12,12 @@ import {
   ChevronRight,
   Filter,
   AlertTriangle,
+  Printer,
 } from "lucide-react";
+import { format } from "date-fns";
+import JsBarcode from "jsbarcode";
+import { jsPDF } from "jspdf";
+import { toast } from "react-toastify";
 import apiRequest from "../Auth/apiRequest";
 
 // ===== Global styles =====
@@ -42,17 +47,8 @@ const GlobalStyle = createGlobalStyle`
     color: var(--dark);
     line-height: 1.5;
   }
-  
-  /* DatePicker Styles */
-  .react-datepicker-wrapper { 
-    width: auto;
-    display: inline-block;
-  }
-  
-  .react-datepicker__input-container {
-    display: inline-block;
-  }
-  
+  .react-datepicker-wrapper { width: auto; display: inline-block; }
+  .react-datepicker__input-container { display: inline-block; }
   .react-datepicker__input-container input {
     padding: 0.5rem 1rem;
     border: 1px solid var(--gray-light);
@@ -62,59 +58,16 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
     transition: var(--transition);
     min-width: 140px;
-    
-    &:hover, &:focus { 
-      border-color: var(--primary); 
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
-    }
+    &:hover, &:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1); }
   }
-  
-  .react-datepicker { 
-    border: none; 
-    box-shadow: var(--box-shadow); 
-    font-family: inherit; 
-    z-index: 1000 !important;
-    border: 1px solid var(--gray-light);
-  }
-  
-  .react-datepicker-popper { 
-    z-index: 1000 !important; 
-  }
-  
-  .react-datepicker__header { 
-    background-color: var(--primary); 
-    border-bottom: none; 
-    padding-top: 0.8rem;
-    border-radius: 0;
-  }
-  
-  .react-datepicker__current-month, 
-  .react-datepicker__day-name { 
-    color: white; 
-  }
-  
-  .react-datepicker__day--selected,
-  .react-datepicker__day--keyboard-selected {
-    background-color: var(--primary);
-    &:hover { 
-      background-color: var(--primary-dark); 
-    }
-  }
-  
-  .react-datepicker__day:hover {
-    background-color: var(--gray-light);
-  }
-  
-  .react-datepicker__day--disabled {
-    color: var(--gray-light);
-    cursor: not-allowed;
-  }
-  
-  .react-datepicker__close-icon::after {
-    background-color: var(--gray);
-    font-size: 16px;
-  }
+  .react-datepicker { border: none; box-shadow: var(--box-shadow); font-family: inherit; z-index: 1000 !important; border: 1px solid var(--gray-light); }
+  .react-datepicker-popper { z-index: 1000 !important; }
+  .react-datepicker__header { background-color: var(--primary); border-bottom: none; padding-top: 0.8rem; border-radius: 0; }
+  .react-datepicker__current-month, .react-datepicker__day-name { color: white; }
+  .react-datepicker__day--selected, .react-datepicker__day--keyboard-selected { background-color: var(--primary); &:hover { background-color: var(--primary-dark); } }
+  .react-datepicker__day:hover { background-color: var(--gray-light); }
+  .react-datepicker__day--disabled { color: var(--gray-light); cursor: not-allowed; }
+  .react-datepicker__close-icon::after { background-color: var(--gray); font-size: 16px; }
 `;
 
 const blink = keyframes`
@@ -122,7 +75,6 @@ const blink = keyframes`
   50% { opacity: 0.4; }
 `;
 
-// ===== Layout components =====
 const Container = styled.div`
   max-width: 1400px;
   margin: 0 auto;
@@ -131,14 +83,12 @@ const Container = styled.div`
     padding: 1rem;
   }
 `;
-
 const Card = styled.div`
   background-color: white;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   overflow: hidden;
 `;
-
 const Header = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
@@ -151,14 +101,12 @@ const Header = styled.div`
     gap: 1rem;
   }
 `;
-
 const Title = styled.h1`
   font-size: 1.5rem;
   color: var(--primary-dark);
   font-weight: 600;
   margin: 0;
 `;
-
 const FiltersContainer = styled.div`
   display: flex;
   align-items: center;
@@ -168,20 +116,17 @@ const FiltersContainer = styled.div`
     width: 100%;
   }
 `;
-
 const DateRangeContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 `;
-
 const DatePickerWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
-
 const DatePickerLabel = styled.label`
   font-size: 0.875rem;
   color: var(--gray);
@@ -190,7 +135,6 @@ const DatePickerLabel = styled.label`
   gap: 0.25rem;
   white-space: nowrap;
 `;
-
 const SearchContainer = styled.div`
   position: relative;
   width: 300px;
@@ -198,7 +142,6 @@ const SearchContainer = styled.div`
     width: 100%;
   }
 `;
-
 const SearchInput = styled.input`
   width: 100%;
   padding: 0.5rem 1rem 0.5rem 2.5rem;
@@ -212,7 +155,6 @@ const SearchInput = styled.input`
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
   }
 `;
-
 const SearchIconWrapper = styled.div`
   position: absolute;
   left: 0.75rem;
@@ -221,7 +163,6 @@ const SearchIconWrapper = styled.div`
   color: var(--gray);
   pointer-events: none;
 `;
-
 const FilterButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -243,7 +184,6 @@ const FilterButton = styled.button`
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
   }
 `;
-
 const ClearButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -261,7 +201,6 @@ const ClearButton = styled.button`
     background-color: var(--dark);
   }
 `;
-
 const Select = styled.select`
   padding: 0.5rem 1rem;
   border: 1px solid var(--gray-light);
@@ -272,7 +211,6 @@ const Select = styled.select`
   transition: var(--transition);
   color: var(--dark);
   font-weight: 500;
-
   &:hover,
   &:focus {
     border-color: var(--primary);
@@ -280,7 +218,6 @@ const Select = styled.select`
     box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
   }
 `;
-
 const TableContainer = styled.div`
   overflow-x: auto;
   max-height: 600px;
@@ -297,14 +234,12 @@ const TableContainer = styled.div`
     border-radius: 20px;
   }
 `;
-
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   min-width: 1000px;
   transform: rotateX(180deg);
 `;
-
 const TableHead = styled.thead`
   background-color: var(--gray-light);
   position: sticky;
@@ -321,7 +256,6 @@ const TableHead = styled.thead`
     white-space: nowrap;
   }
 `;
-
 const TableBody = styled.tbody`
   tr {
     border-bottom: 1px solid var(--gray-light);
@@ -338,14 +272,12 @@ const TableBody = styled.tbody`
     font-size: 0.875rem;
   }
 `;
-
 const NoData = styled.td`
   text-align: center;
   padding: 2rem !important;
   color: var(--gray);
   font-style: italic;
 `;
-
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -356,12 +288,10 @@ const StatusBadge = styled.span`
   font-weight: 500;
   white-space: nowrap;
 `;
-
 const WaitingBadge = styled(StatusBadge)`
   background-color: rgba(248, 150, 30, 0.15);
   color: var(--warning);
 `;
-
 const EmergencyBadge = styled(StatusBadge)`
   background-color: rgba(247, 37, 133, 0.2);
   color: var(--danger);
@@ -371,13 +301,11 @@ const EmergencyBadge = styled(StatusBadge)`
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
-
 const NormalBadge = styled(StatusBadge)`
   background-color: rgba(76, 201, 240, 0.15);
   color: var(--success);
   font-weight: 600;
 `;
-
 const OutsourcedBadge = styled(StatusBadge)`
   background-color: rgba(246, 160, 233, 0.15);
   color: #d75de0ff;
@@ -385,7 +313,6 @@ const OutsourcedBadge = styled(StatusBadge)`
   font-weight: 600;
   border: 1px solid #d75de0ff;
 `;
-
 const Button = styled.button`
   display: inline-flex;
   align-items: center;
@@ -408,7 +335,6 @@ const Button = styled.button`
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
   }
 `;
-
 const ViewButton = styled(Button)`
   padding: 0.35rem 0.75rem;
   background-color: var(--primary-light);
@@ -416,7 +342,23 @@ const ViewButton = styled(Button)`
     background-color: var(--primary);
   }
 `;
-
+const PrintButton = styled(Button)`
+  padding: 0.35rem 0.75rem;
+  background-color: #6c757d;
+  &:hover {
+    background-color: #495057;
+  }
+  &:disabled {
+    background-color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+`;
+const ActionButtonsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
 const TestList = styled.ul`
   list-style: none;
   padding: 0;
@@ -425,7 +367,6 @@ const TestList = styled.ul`
   flex-direction: column;
   gap: 0.25rem;
 `;
-
 const TestItem = styled.li`
   white-space: nowrap;
   font-size: 0.875rem;
@@ -433,7 +374,6 @@ const TestItem = styled.li`
   align-items: center;
   gap: 0.5rem;
 `;
-
 const StatusList = styled.ul`
   list-style: none;
   padding: 0;
@@ -442,7 +382,6 @@ const StatusList = styled.ul`
   flex-direction: column;
   gap: 0.5rem;
 `;
-
 const PaginationContainer = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -450,7 +389,6 @@ const PaginationContainer = styled.div`
   padding: 1rem;
   border-top: 1px solid var(--gray-light);
 `;
-
 const PaginationButton = styled.button`
   display: flex;
   align-items: center;
@@ -470,7 +408,6 @@ const PaginationButton = styled.button`
     cursor: not-allowed;
   }
 `;
-
 const PaginationInfo = styled.div`
   margin: 0 1rem;
   font-size: 0.875rem;
@@ -485,7 +422,6 @@ const formatYmd = (d) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
-
 const parseYmd = (s) => {
   if (!s) return null;
   const [y, m, d] = s.split("-").map(Number);
@@ -512,7 +448,6 @@ function PatientList() {
       return today;
     }
   }, [today]);
-
   const initialTo = useMemo(() => {
     try {
       return parseYmd(sessionStorage.getItem("patient_to")) || today;
@@ -530,9 +465,10 @@ function PatientList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [printingBarcode, setPrintingBarcode] = useState(null);
+
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  // Save filter state to sessionStorage
   useEffect(() => {
     try {
       sessionStorage.setItem(
@@ -545,7 +481,6 @@ function PatientList() {
     }
   }, [fromDate, toDate]);
 
-  // Handle barcode search from location state
   useEffect(() => {
     if (location.state?.barcode) {
       setSearchQuery(location.state.barcode);
@@ -568,12 +503,10 @@ function PatientList() {
       );
     if (toDateParam)
       queryParams.append("to_date", toDateParam.toLocaleDateString("en-CA"));
-    if (emergency && emergency !== "all") {
+    if (emergency && emergency !== "all")
       queryParams.append("emergency", emergency);
-    }
     const queryString = queryParams.toString();
     const url = `${Labbaseurl}test-values/${queryString ? `?${queryString}` : ""}`;
-
     try {
       const patientResponse = await apiRequest(url, "GET");
       if (!patientResponse.success)
@@ -600,7 +533,6 @@ function PatientList() {
     fetchPatientData(fromDate, toDate, emergencyFilter);
     setCurrentPage(1);
   };
-
   const handleClearFilter = () => {
     setFromDate(today);
     setToDate(today);
@@ -615,13 +547,11 @@ function PatientList() {
       console.error("Invalid patient data:", patient);
       return;
     }
-
     const date = new Date(patient.date);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const formattedDate = `${year}-${month}-${day}`;
-
     navigate(
       `/DoctorForm?patient_id=${patient.patient_id}&date=${formattedDate}`,
       {
@@ -644,25 +574,640 @@ function PatientList() {
     );
   };
 
+  // ===== handlePrint — uses already-fetched grouped patient object =====
+  const handlePrint = (patient) => {
+    if (!patient) return;
+    setPrintingBarcode(patient.barcode);
+
+    try {
+      if (!patient.testdetails || patient.testdetails.length === 0) {
+        toast.error("No test details found for this patient.");
+        setPrintingBarcode(null);
+        return;
+      }
+
+      // ── Unicode helpers ──
+      const unicodeMap = {
+        μ: "µ",
+        α: "α",
+        β: "β",
+        γ: "γ",
+        δ: "δ",
+        Ω: "Ω",
+        "²": "²",
+        "³": "³",
+        "⁴": "⁴",
+        "°": "°",
+        "±": "±",
+        "×": "x",
+        "÷": "/",
+        "\\u03bc": "µ",
+        "\\u00b5": "µ",
+        "\\u00b0": "°",
+        "\\u00b1": "±",
+        "\\u00b2": "²",
+        "\\u00b3": "³",
+      };
+      const processUnicodeText = (text) => {
+        if (!text) return "";
+        let t = String(text);
+        t = t.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
+          const char = String.fromCharCode(parseInt(hex, 16));
+          return unicodeMap[char] || char;
+        });
+        Object.keys(unicodeMap).forEach((u) => {
+          t = t.replace(new RegExp(u, "g"), unicodeMap[u]);
+        });
+        return t;
+      };
+
+      const departmentOrder = [
+        "Haematology",
+        "Coagulation",
+        "Biochemistry",
+        "Immunology",
+        "Immunoassay",
+        "Serology",
+        "Clinical Pathology",
+        "Clinical Chemistry",
+        "Cytology",
+        "Genetics",
+        "Histopathology",
+        "Immunohistochemistry",
+        "Microbiology",
+        "Molecular Biology",
+      ];
+
+      // ── Barcode image ──
+      const patientRefNoNumber = patient.barcode || "N/A";
+      let barcodeImage = null;
+      if (patientRefNoNumber !== "N/A") {
+        try {
+          const barcodeCanvas = document.createElement("canvas");
+          JsBarcode(barcodeCanvas, patientRefNoNumber, {
+            format: "CODE128",
+            lineColor: "#000",
+            width: 1.5,
+            height: 10,
+            displayValue: false,
+            margin: 0,
+          });
+          barcodeImage = barcodeCanvas.toDataURL("image/png");
+        } catch (e) {
+          console.warn("Barcode generation failed:", e);
+        }
+      }
+
+      // ── PDF layout ──
+      const leftMargin = 10;
+      const rightMargin = leftMargin + 190;
+      const contentWidth = rightMargin - leftMargin;
+      const headerHeight = 30;
+      const footerHeight = 20;
+      const contentYStart = headerHeight + 20;
+      const tableHeaderHeight = 10;
+      const colWidths = [
+        contentWidth * 0.28, // Test name
+        contentWidth * 0.12, // Specimen
+        contentWidth * 0.05, // Gap
+        contentWidth * 0.13, // Value
+        contentWidth * 0.1, // Unit
+        contentWidth * 0.17, // Reference range
+        contentWidth * 0.15, // Method
+      ];
+
+      // ── Build patient info rows ──
+      // LEFT panel: UHID | Name | Age & Age_type / Gender | Referral | Phone (if available)
+      // RIGHT panel: Verified On | Printed Date | Patient Ref.No
+
+      // Age/Gender combined row  e.g. "21 Years / Male"
+      const ageLabel = [
+        patient.age != null ? String(patient.age) : "",
+        patient.age_type ? patient.age_type : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const genderLabel = patient.gender ? String(patient.gender) : "";
+      const ageGenderVal =
+        ageLabel && genderLabel
+          ? `${ageLabel} / ${genderLabel}`
+          : ageLabel || genderLabel || "N/A";
+
+      const leftDetails = [
+        { label: "UHID", value: patient.patient_id || "" },
+        { label: "Name", value: patient.patientname || "" },
+        { label: "Age/Gender", value: ageGenderVal },
+        // Referral (ref_doctor) — only if available
+        ...(patient.ref_doctor
+          ? [{ label: "Referral", value: patient.ref_doctor }]
+          : []),
+        // Phone — only if available
+        ...(patient.phone ? [{ label: "Phone", value: patient.phone }] : []),
+      ];
+
+      // Verified On: use created_date as best available field from list data
+      const verifiedOn = patient.created_date
+        ? (() => {
+            try {
+              return format(
+                new Date(patient.created_date),
+                "dd MMM yy / HH:mm",
+              );
+            } catch {
+              return "N/A";
+            }
+          })()
+        : "N/A";
+
+      const rightDetails = [
+        { label: "Verified On", value: verifiedOn },
+        {
+          label: "Printed Date",
+          value: format(new Date(), "dd MMM yy / HH:mm"),
+        },
+        { label: "Ref.No", value: patientRefNoNumber },
+      ];
+
+      // ── jsPDF helpers ──
+      const doc = new jsPDF();
+      let pageCount = 1;
+      let isTableStarted = false;
+      const centerX = leftMargin + contentWidth / 2;
+
+      const wrapLines = (text, maxWidth) => {
+        if (!text) return [];
+        return doc.splitTextToSize(String(text), maxWidth);
+      };
+      const renderWrapped = (text, maxWidth, x, y, lh = 4) => {
+        if (!text) return 0;
+        const lines = wrapLines(text, maxWidth);
+        lines.forEach((l, i) => doc.text(l, x, y + i * lh));
+        return lines.length * lh;
+      };
+      const renderUnicode = (text, x, y) => {
+        const processed = processUnicodeText(text);
+        if (processed.includes("µ")) {
+          const parts = processed.split("µ");
+          let cx = x;
+          parts.forEach((part, i) => {
+            if (i > 0) {
+              doc.text("µ", cx, y);
+              cx += doc.getTextWidth("µ");
+            }
+            if (part) {
+              doc.text(part, cx, y);
+              cx += doc.getTextWidth(part);
+            }
+          });
+        } else {
+          doc.text(processed, x, y);
+        }
+      };
+      const calcMaxLabelWidth = (details) => {
+        const tmp = new jsPDF();
+        return Math.max(...details.map((d) => tmp.getTextWidth(d.label)));
+      };
+
+      const addPatientInfo = (yPos) => {
+        const leftMaxLW = calcMaxLabelWidth(leftDetails);
+        const rightMaxLW = calcMaxLabelWidth(rightDetails);
+        const cp = (leftMargin + rightMargin) / 2;
+        const lLabelX = leftMargin;
+        const lColonX = lLabelX + leftMaxLW + 2;
+        const lValueX = lColonX + 3;
+        const rLabelX = cp + 28;
+        const rColonX = rLabelX + rightMaxLW + 2;
+        const rValueX = rColonX + 1;
+
+        doc.setFontSize(10);
+        let iy = yPos;
+        const maxLen = Math.max(leftDetails.length, rightDetails.length);
+
+        for (let i = 0; i < maxLen; i++) {
+          const left = leftDetails[i];
+          const right = rightDetails[i];
+          let leftRowH = 5;
+
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, lLabelX, iy);
+            doc.text(":", lColonX, iy);
+            doc.setFont("helvetica", "normal");
+            const maxW = cp + 25 - lValueX;
+            const lines = wrapLines(left.value, maxW);
+            lines.forEach((line, li) => doc.text(line, lValueX, iy + li * 4));
+            leftRowH = lines.length * 4;
+          }
+
+          if (right) {
+            doc.setFont("helvetica", "bold");
+            doc.text(right.label, rLabelX, iy);
+            doc.text(":", rColonX, iy);
+            doc.setFont("helvetica", "normal");
+            doc.text(String(right.value), rValueX, iy);
+            // Barcode image next to Ref.No
+            if (right.label === "Ref.No" && barcodeImage) {
+              doc.addImage(
+                barcodeImage,
+                "PNG",
+                rValueX + doc.getTextWidth(String(right.value)) - 18,
+                iy + 4,
+                25,
+                10,
+              );
+            }
+          }
+
+          iy += Math.max(leftRowH, 5);
+        }
+        return iy;
+      };
+
+      const addHeaderFooter = () => {
+        // Plug in your headerImage / FooterImage here if available, e.g.:
+        // doc.addImage(headerImage, "PNG", 0, 10, doc.internal.pageSize.width, headerHeight);
+      };
+
+      const drawTableHeader = (yPos) => {
+        doc.line(leftMargin, yPos, rightMargin, yPos);
+        yPos += 5;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        const headers = [
+          "Test",
+          "Specimen",
+          "",
+          "Result",
+          "Units",
+          "Reference Value",
+          "Method",
+        ];
+        let xPos = leftMargin;
+        headers.forEach((h, i) => {
+          if (h) doc.text(h, xPos, yPos);
+          xPos += colWidths[i];
+        });
+        yPos += 3;
+        doc.line(leftMargin, yPos, rightMargin, yPos);
+        yPos += 5;
+        return yPos;
+      };
+
+      // ── "(Preliminary Report)" replaces signatures on every page ──
+      const addPreliminaryReport = () => {
+        const ph = doc.internal.pageSize.height;
+        const prelimY = ph - footerHeight - 15;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text("(Preliminary Report)", centerX, prelimY, { align: "center" });
+      };
+
+      const checkNewPage = (yPos, neededHeight) => {
+        const ph = doc.internal.pageSize.height;
+        const footerStart = ph - (footerHeight + 30);
+        if (yPos + neededHeight >= footerStart) {
+          addPreliminaryReport();
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter();
+          let ny = contentYStart;
+          ny = addPatientInfo(ny);
+          ny += 10;
+          if (isTableStarted) ny = drawTableHeader(ny);
+          return ny;
+        }
+        return yPos;
+      };
+
+      const getHighLow = (value, reference) => {
+        if (!value || !reference) return null;
+        const num = Number.parseFloat(value);
+        if (isNaN(num)) return null;
+        if (reference.includes("-")) {
+          const parts = reference.split("-");
+          const min = Number.parseFloat(parts[0]);
+          const max = Number.parseFloat(parts[1]);
+          if (!isNaN(min) && !isNaN(max)) {
+            if (num < min) return "L";
+            if (num > max) return "H";
+          }
+        } else if (reference.includes("<")) {
+          const max = Number.parseFloat(reference.replace("<", ""));
+          if (!isNaN(max) && num > max) return "H";
+        } else if (reference.includes(">")) {
+          const min = Number.parseFloat(reference.replace(">", ""));
+          if (!isNaN(min) && num < min) return "L";
+        }
+        return null;
+      };
+
+      const drawArrow = (x, y, direction) => {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        if (direction === "up") {
+          doc.line(x, y, x + 1, y - 1);
+          doc.line(x + 1, y - 1, x + 2, y);
+          doc.line(x + 1, y - 1, x + 1, y + 2);
+        } else {
+          doc.line(x, y, x + 1, y + 1);
+          doc.line(x + 1, y + 1, x + 2, y);
+          doc.line(x + 1, y + 1, x + 1, y - 2);
+        }
+      };
+
+      // Renders one data row; returns new yPos
+      const renderRow = (
+        nameText,
+        specimenType,
+        valueText,
+        referenceRange,
+        unitText,
+        methodRaw,
+        yPos,
+        boldName = false,
+      ) => {
+        const methodText = (methodRaw || "").replace(/\bMethod\b/i, "").trim();
+        const lh = 4;
+        const nameLns = wrapLines(nameText, colWidths[0] - 2);
+        const valLns = wrapLines(valueText, colWidths[3] - 2);
+        const refLns = wrapLines(referenceRange || "", colWidths[5] - 2);
+        const methLns = wrapLines(methodText, colWidths[6] - 2);
+        const maxLns = Math.max(
+          nameLns.length,
+          valLns.length,
+          refLns.length,
+          methLns.length,
+          1,
+        );
+        const rowH = maxLns * lh + 2;
+
+        yPos = checkNewPage(yPos, rowH);
+
+        let xPos = leftMargin;
+
+        doc.setFont("helvetica", boldName ? "bold" : "normal");
+        renderWrapped(nameText, colWidths[0] - 2, xPos, yPos, lh);
+        xPos += colWidths[0];
+
+        doc.setFont("helvetica", "normal");
+        doc.text(specimenType || "", xPos, yPos);
+        xPos += colWidths[1];
+
+        xPos += colWidths[2]; // gap col
+
+        const status = getHighLow(valueText, referenceRange);
+        if (status) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(
+            status === "H" ? 255 : 0,
+            0,
+            status === "L" ? 255 : 0,
+          );
+          renderWrapped(valueText, colWidths[3] - 5, xPos, yPos, lh);
+          const vw = doc.getTextWidth(String(valueText));
+          if (vw < colWidths[3] - 5)
+            drawArrow(xPos + vw + 2, yPos - 1, status === "H" ? "up" : "down");
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "normal");
+        } else {
+          renderWrapped(valueText, colWidths[3] - 2, xPos, yPos, lh);
+        }
+        xPos += colWidths[3];
+
+        renderUnicode(unitText || "", xPos, yPos);
+        xPos += colWidths[4];
+
+        renderWrapped(referenceRange || "", colWidths[5] - 2, xPos, yPos, lh);
+        xPos += colWidths[5];
+
+        doc.setTextColor(0, 0, 0);
+        renderWrapped(methodText, colWidths[6] - 2, xPos, yPos, lh);
+
+        return yPos + rowH + 4;
+      };
+
+      // ── Build PDF ──
+      addHeaderFooter();
+      let yPos = addPatientInfo(contentYStart);
+      yPos += 10;
+
+      // Group testdetails by department
+      const testsByDept = patient.testdetails.reduce((acc, test) => {
+        const dept = test.department || "Other";
+        if (!acc[dept]) acc[dept] = [];
+        acc[dept].push(test);
+        return acc;
+      }, {});
+
+      const sortedDepts = Object.keys(testsByDept).sort((a, b) => {
+        const iA = departmentOrder.indexOf(a);
+        const iB = departmentOrder.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1;
+        if (iB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      if (sortedDepts.length > 0) {
+        isTableStarted = true;
+        yPos = checkNewPage(yPos, tableHeaderHeight);
+        yPos = drawTableHeader(yPos);
+
+        sortedDepts.forEach((dept) => {
+          const tests = testsByDept[dept];
+
+          const verifiedBySet = new Set();
+          tests.forEach((t) => {
+            if (t.verified_by?.trim()) verifiedBySet.add(t.verified_by.trim());
+          });
+          const hasMultipleVerifiers = verifiedBySet.size > 1;
+
+          tests.forEach((test, testIndex) => {
+            // Department header
+            if (testIndex === 0) {
+              yPos = checkNewPage(yPos, 15);
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(10);
+              const deptLabel = dept.toUpperCase();
+              const tw = doc.getTextWidth(deptLabel);
+              doc.text(deptLabel, centerX, yPos, { align: "center" });
+              doc.line(centerX - tw / 2, yPos + 2, centerX + tw / 2, yPos + 2);
+              yPos += 10;
+            }
+
+            const testName = test.test_name || "";
+            const hasParams = test.parameters && test.parameters.length > 0;
+
+            yPos = checkNewPage(yPos, 20);
+            doc.setFontSize(10);
+
+            if (hasParams) {
+              // Print test name as bold header row — no value and no specimen_type at test level
+              // specimen_type will appear on each parameter row instead
+              yPos = renderRow(testName, "", "", "", "", "", yPos, true);
+            } else {
+              // Single-value test — print value at test level
+              yPos = renderRow(
+                testName,
+                test.specimen_type || "",
+                test.value || "",
+                test.reference_range || "",
+                test.unit || "",
+                test.method || "",
+                yPos,
+                true,
+              );
+            }
+
+            if (test.outsourced === true) {
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
+              doc.text("(Outsourced)", leftMargin, yPos);
+              yPos += 4;
+            }
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+
+            // Parameters grouped by sub_title
+            if (hasParams) {
+              const paramsBySubtitle = test.parameters.reduce((acc, param) => {
+                const key = param.sub_title || "";
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(param);
+                return acc;
+              }, {});
+
+              Object.keys(paramsBySubtitle).forEach((subtitle) => {
+                if (subtitle.trim()) {
+                  yPos = checkNewPage(yPos, 25);
+                  doc.setFont("helvetica", "bold");
+                  doc.setFontSize(9);
+                  doc.text(subtitle, leftMargin, yPos);
+                  yPos += 6;
+                }
+
+                paramsBySubtitle[subtitle].forEach((param) => {
+                  doc.setFontSize(10);
+                  yPos = renderRow(
+                    param.parameter_name || param.name || "",
+                    param.specimen_type || test.specimen_type || "",
+                    param.value || "",
+                    param.reference_range || "",
+                    param.unit || "",
+                    param.method || "",
+                    yPos,
+                    false,
+                  );
+
+                  if (param.comment?.trim()) {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const ch = renderWrapped(
+                      `Note: ${param.comment}`,
+                      colWidths[0] +
+                        colWidths[1] +
+                        colWidths[2] +
+                        colWidths[3] -
+                        2,
+                      leftMargin,
+                      yPos,
+                      3.5,
+                    );
+                    yPos += ch + 2;
+                  }
+
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
+                  doc.setTextColor(0, 0, 0);
+                });
+              });
+            }
+
+            if (hasMultipleVerifiers && test.verified_by?.trim()) {
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
+              doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
+              yPos += 8;
+            }
+          });
+
+          if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(
+              `Verified by: ${Array.from(verifiedBySet).join(", ")}`,
+              leftMargin,
+              yPos,
+            );
+            yPos += 8;
+          }
+
+          yPos += 4;
+        });
+      }
+
+      isTableStarted = false;
+
+      // Ensure room for End of Report line
+      const ph = doc.internal.pageSize.height;
+      if (yPos + 10 >= ph - (footerHeight + 30)) {
+        addPreliminaryReport();
+        doc.addPage();
+        pageCount++;
+        addHeaderFooter();
+        yPos = addPatientInfo(contentYStart);
+      }
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("**End of the Report**", centerX, yPos, { align: "center" });
+
+      // Stamp "(Preliminary Report)" + page number on every page
+      const finalPageCount = pageCount;
+      for (let i = 1; i <= finalPageCount; i++) {
+        doc.setPage(i);
+        addPreliminaryReport();
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(
+          `Page ${i} of ${finalPageCount}`,
+          centerX,
+          doc.internal.pageSize.height - footerHeight - 2,
+          { align: "center" },
+        );
+      }
+
+      const pdfBlob = doc.output("blob");
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, "_blank");
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      toast.error("An unexpected error occurred while generating the PDF");
+    } finally {
+      setPrintingBarcode(null);
+    }
+  };
+
+  // ── Badge helpers ──
   const getStatusBadge = () => (
     <WaitingBadge>
       <AlertCircle size={12} /> Waiting for Approval
     </WaitingBadge>
   );
+  const getPriorityBadge = (isEmergency) =>
+    isEmergency ? (
+      <EmergencyBadge>
+        <AlertTriangle size={12} /> Emergency
+      </EmergencyBadge>
+    ) : (
+      <NormalBadge>Normal</NormalBadge>
+    );
 
-  const getPriorityBadge = (isEmergency) => {
-    if (isEmergency) {
-      return (
-        <EmergencyBadge>
-          <AlertTriangle size={12} /> Emergency
-        </EmergencyBadge>
-      );
-    }
-    return <NormalBadge>Normal</NormalBadge>;
-  };
-
+  // ── Grouping ──
   const safePatientList = Array.isArray(patientList) ? patientList : [];
-
   const groupedByBarcode = safePatientList.reduce((acc, patient) => {
     const barcode = patient.barcode;
     if (!acc[barcode]) {
@@ -676,6 +1221,11 @@ function PatientList() {
           : [],
         is_emergency: patient.is_emergency || false,
         patient_history: patient.patient_history || "",
+        // new fields carried through
+        age_type: patient.age_type || "",
+        gender: patient.gender || "",
+        phone: patient.phone || "",
+        ref_doctor: patient.ref_doctor || "",
       };
     } else {
       const testsWithCreatedDate = patient.testdetails
@@ -684,7 +1234,6 @@ function PatientList() {
             created_date: patient.created_date,
           }))
         : [];
-
       acc[barcode].testdetails = [
         ...acc[barcode].testdetails,
         ...testsWithCreatedDate,
@@ -692,10 +1241,8 @@ function PatientList() {
     }
     return acc;
   }, {});
-
   const uniquePatients = Object.values(groupedByBarcode);
 
-  // Extract unique locations from patient list
   const uniqueLocations = useMemo(() => {
     const locations = uniquePatients
       .map((p) => p.locationId)
@@ -708,10 +1255,8 @@ function PatientList() {
       p.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
-
     const matchesLocation =
       locationFilter === "all" || p.locationId === locationFilter;
-
     return matchesSearch && matchesLocation;
   });
 
@@ -723,11 +1268,9 @@ function PatientList() {
     indexOfLastPatient,
   );
   const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
-
   const nextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const prevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
@@ -836,7 +1379,6 @@ function PatientList() {
                 <ClearButton onClick={handleClearFilter}>Clear All</ClearButton>
               )}
             </DateRangeContainer>
-
             <SearchContainer>
               <SearchIconWrapper>
                 <Search size={16} />
@@ -917,7 +1459,7 @@ function PatientList() {
                       <StatusList>
                         {patient.testdetails &&
                         patient.testdetails.length > 0 ? (
-                          patient.testdetails.map((test, idx) => (
+                          patient.testdetails.map((_, idx) => (
                             <li key={idx}>{getStatusBadge()}</li>
                           ))
                         ) : (
@@ -926,9 +1468,21 @@ function PatientList() {
                       </StatusList>
                     </td>
                     <td>
-                      <ViewButton onClick={() => handleViewDetails(patient)}>
-                        <Eye size={14} /> View
-                      </ViewButton>
+                      <ActionButtonsContainer>
+                        <ViewButton onClick={() => handleViewDetails(patient)}>
+                          <Eye size={14} /> View
+                        </ViewButton>
+                        <PrintButton
+                          onClick={() => handlePrint(patient)}
+                          disabled={printingBarcode === patient.barcode}
+                          title="Print preliminary report"
+                        >
+                          <Printer size={14} />
+                          {printingBarcode === patient.barcode
+                            ? "Printing…"
+                            : "Print"}
+                        </PrintButton>
+                      </ActionButtonsContainer>
                     </td>
                   </tr>
                 ))
