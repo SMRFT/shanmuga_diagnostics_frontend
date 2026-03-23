@@ -346,6 +346,14 @@ const DEFAULT_FIELD_VALUES = {
   "APTT-C": "25.0",
 };
 
+// ─── Normalize "neg" variants to "Negative" ──────────────────────────────────
+const normalizeDisplayValue = (value) => {
+  if (typeof value === "string" && value.trim().toLowerCase() === "neg") {
+    return "Negative";
+  }
+  return value;
+};
+
 // ─── Critical range checker ───────────────────────────────────────────────────
 /**
  * Parses the `low` and `high` fields from the test definition.
@@ -529,8 +537,20 @@ function TestDetails() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [manuallyEditedCalculatedFields, setManuallyEditedCalculatedFields] =
     useState({});
-  // NEW: stores { uniqueKey: { low, high } } for each param / test
+  // stores { uniqueKey: { low, high } } for each param / test
   const [criticalRanges, setCriticalRanges] = useState({});
+  // Set of keys that are CONFIRMED critical after debounce settles.
+  // The badge, red border, and comment auto-fill all read from this —
+  // never directly from values — so mid-type intermediates never show.
+  const [criticalKeys, setCriticalKeys] = useState({});
+  // Debounce timers for critical-value detection — one timer per field key.
+  // Critical comment is only auto-filled after the user stops typing for 600 ms,
+  // so typing "400" does not trigger on "4" or "40".
+  const criticalTimers = React.useRef({});
+  // Tracks which comment keys were auto-filled by the critical check.
+  // If the user manually edits the comment, it is removed from this set
+  // so we never auto-clear a comment the user intentionally wrote.
+  const autoCriticalComments = React.useRef(new Set());
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -687,8 +707,12 @@ function TestDetails() {
               ) {
                 paramValue = DEFAULT_FIELD_VALUES[param.test_code];
               }
-              tempValues[uniqueKey] = paramValue;
-              tempInitialValues[uniqueKey] = param.value || "";
+              // Normalize "neg" → "Negative" on load for ALL tests
+              tempValues[uniqueKey] = normalizeDisplayValue(paramValue);
+              // Store normalized API value as initial (used for editability check)
+              tempInitialValues[uniqueKey] = normalizeDisplayValue(
+                param.value || "",
+              );
               // store low/high for this param
               tempCriticalRanges[uniqueKey] = {
                 low: param.low || "",
@@ -741,17 +765,30 @@ function TestDetails() {
               const val = tempValues[uniqueKey];
               const { low, high } = tempCriticalRanges[uniqueKey] || {};
               if (val && isCriticalValue(val, low, high)) {
-                initialParamComments[uniqueKey] = "Critical";
+                initialParamComments[uniqueKey] =
+                  "Critical, Rechecked, Kindly correlate clinically";
               }
             });
         } else {
           const val = tempValues[test.testname];
           const { low, high } = tempCriticalRanges[test.testname] || {};
           if (val && isCriticalValue(val, low, high)) {
-            initialComments[test.testname] = "Critical";
+            initialComments[test.testname] =
+              "Critical, Rechecked, Kindly correlate clinically";
           }
         }
       });
+      // Seed criticalKeys for any pre-loaded values that are already critical
+      const initialCriticalKeys = {};
+      Object.keys(tempCriticalRanges).forEach((key) => {
+        const val = tempValues[key];
+        const { low, high } = tempCriticalRanges[key] || {};
+        if (val && isCriticalValue(val, low, high))
+          initialCriticalKeys[key] = true;
+      });
+      setCriticalKeys(initialCriticalKeys);
+      // Mark pre-loaded critical comments as auto-filled so they can be cleared on edit
+      autoCriticalComments.current = new Set(Object.keys(initialCriticalKeys));
       setComments(initialComments);
       setParameterComments(initialParamComments);
 
@@ -780,25 +817,64 @@ function TestDetails() {
     const newVal = event.target.value;
     setValues((prev) => ({ ...prev, [testname]: newVal }));
 
-    // Auto-fill Critical comment for single-value tests
-    const { low, high } = criticalRanges[testname] || {};
-    if (isCriticalValue(newVal, low, high)) {
-      setComments((prev) => ({
-        ...prev,
-        [testname]:
-          prev[testname] && prev[testname] !== "Critical"
-            ? prev[testname]
-            : "Critical",
-      }));
-    }
+    // Debounced critical check — fires only after typing stops for 600 ms.
+    // Both the badge/border (criticalKeys) and comment update here,
+    // so nothing shows mid-type.
+    clearTimeout(criticalTimers.current[testname]);
+    criticalTimers.current[testname] = setTimeout(() => {
+      const { low, high } = criticalRanges[testname] || {};
+      const isCrit = isCriticalValue(newVal, low, high);
+      // Update criticalKeys so badge + border reflect settled value
+      setCriticalKeys((prev) => {
+        if (isCrit === !!prev[testname]) return prev;
+        const next = { ...prev };
+        if (isCrit) next[testname] = true;
+        else delete next[testname];
+        return next;
+      });
+      if (isCrit) {
+        // Auto-fill only if empty or already the auto-text; mark as auto-filled
+        setComments((prev) => {
+          if (
+            !prev[testname] ||
+            prev[testname] ===
+              "Critical, Rechecked, Kindly correlate clinically"
+          ) {
+            autoCriticalComments.current.add(testname);
+            return {
+              ...prev,
+              [testname]: "Critical, Rechecked, Kindly correlate clinically",
+            };
+          }
+          return prev; // user wrote their own comment — leave it
+        });
+      } else {
+        // Value no longer critical — clear ONLY if it was auto-filled, not manually edited
+        if (autoCriticalComments.current.has(testname)) {
+          autoCriticalComments.current.delete(testname);
+          setComments((prev) => {
+            const next = { ...prev };
+            delete next[testname];
+            return next;
+          });
+        }
+      }
+    }, 600);
   };
 
   const handleParameterValueChange = (testname, paramName, event) => {
     const { value } = event.target;
     const uniqueKey = `${testname}_${paramName}`;
 
+    // Normalize "neg" → "Negative" on user input for test_id 429
+    const currentTestForNorm = testDetails.find((t) => t.testname === testname);
+    const normalizedValue =
+      currentTestForNorm?.test_id === 429
+        ? normalizeDisplayValue(value)
+        : value;
+
     setValues((prevValues) => {
-      const newValues = { ...prevValues, [uniqueKey]: value };
+      const newValues = { ...prevValues, [uniqueKey]: normalizedValue };
       const currentTest = testDetails.find((t) => t.testname === testname);
       const param = Object.values(currentTest?.parametersBySubtitle || {})
         .flat()
@@ -840,27 +916,49 @@ function TestDetails() {
       return newValues;
     });
 
-    // NEW: Auto-fill Critical comment for parameter
-    const { low, high } = criticalRanges[uniqueKey] || {};
-    if (isCriticalValue(value, low, high)) {
-      setParameterComments((prev) => ({
-        ...prev,
-        [uniqueKey]:
-          prev[uniqueKey] && prev[uniqueKey] !== "Critical"
-            ? prev[uniqueKey]
-            : "Critical",
-      }));
-    } else {
-      // Clear "Critical" auto-text if user corrects the value back to normal range
-      setParameterComments((prev) => {
-        if (prev[uniqueKey] === "Critical") {
-          const updated = { ...prev };
-          delete updated[uniqueKey];
-          return updated;
-        }
-        return prev;
+    // Debounced critical check for parameter — fires only after typing stops for 600 ms.
+    // Both the badge/border (criticalKeys) and comment update inside the timeout,
+    // so nothing shows mid-type.
+    clearTimeout(criticalTimers.current[uniqueKey]);
+    criticalTimers.current[uniqueKey] = setTimeout(() => {
+      const { low, high } = criticalRanges[uniqueKey] || {};
+      const isCrit = isCriticalValue(normalizedValue, low, high);
+      // Update criticalKeys so badge + border reflect settled value
+      setCriticalKeys((prev) => {
+        if (isCrit === !!prev[uniqueKey]) return prev;
+        const next = { ...prev };
+        if (isCrit) next[uniqueKey] = true;
+        else delete next[uniqueKey];
+        return next;
       });
-    }
+      if (isCrit) {
+        // Auto-fill only if empty or already the auto-text; mark as auto-filled
+        setParameterComments((prev) => {
+          if (
+            !prev[uniqueKey] ||
+            prev[uniqueKey] ===
+              "Critical, Rechecked, Kindly correlate clinically"
+          ) {
+            autoCriticalComments.current.add(uniqueKey);
+            return {
+              ...prev,
+              [uniqueKey]: "Critical, Rechecked, Kindly correlate clinically",
+            };
+          }
+          return prev; // user wrote their own comment — leave it
+        });
+      } else {
+        // Value no longer critical — clear ONLY if it was auto-filled, not manually edited
+        if (autoCriticalComments.current.has(uniqueKey)) {
+          autoCriticalComments.current.delete(uniqueKey);
+          setParameterComments((prev) => {
+            const next = { ...prev };
+            delete next[uniqueKey];
+            return next;
+          });
+        }
+      }
+    }, 600);
   };
 
   const handleRemarksChange = (testname, event) => {
@@ -868,11 +966,15 @@ function TestDetails() {
   };
 
   const handleCommentChange = (testname, event) => {
+    // User manually edited the comment — it is no longer auto-managed
+    autoCriticalComments.current.delete(testname);
     setComments((prev) => ({ ...prev, [testname]: event.target.value }));
   };
 
   const handleParameterCommentChange = (testname, paramName, event) => {
     const uniqueKey = `${testname}_${paramName}`;
+    // User manually edited the comment — it is no longer auto-managed
+    autoCriticalComments.current.delete(uniqueKey);
     setParameterComments((prev) => ({
       ...prev,
       [uniqueKey]: event.target.value,
@@ -1055,7 +1157,6 @@ function TestDetails() {
         testdetails: testDetailsData,
         processed_records: processedRecords,
       };
-
       const postResult = await apiRequest(
         `${Labbaseurl}test-value/save/`,
         "POST",
@@ -1082,7 +1183,7 @@ function TestDetails() {
           const blockedTests = postResult.data?.blocked_tests || [];
           if (blockedTests.length > 0) {
             const details = blockedTests
-              .map((b) => `• Test ID ${b.test_id}: ${b.reason}`)
+              .map((b) => `\u2022 Test ID ${b.test_id}: ${b.reason}`)
               .join("\n");
             alert(
               "Save was blocked because test data already exists:\n\n" +
@@ -1120,7 +1221,9 @@ function TestDetails() {
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
-  const isParamDisabled = (param, uniqueKey) => {
+  const isParamDisabled = (param, uniqueKey, testId) => {
+    // test_id 429 — all params always editable, machine value is just pre-filled
+    if (testId === 429) return false;
     if (ALL_CALCULATED_FIELDS.includes(param.test_code)) return false;
     if (ALWAYS_EDITABLE_FIELDS.includes(param.test_code)) return false;
     return !!(
@@ -1322,11 +1425,11 @@ function TestDetails() {
                       </FormGroup>
                     </FormRow>
 
-                    {/* NEW: Critical indicator for single-value test */}
+                    {/* Critical indicator for single-value test — reads from
+                         criticalKeys (debounced) not values (live), so the badge
+                         and red border only appear after typing settles. */}
                     {(() => {
-                      const val = values[test.testname];
-                      const { low, high } = criticalRanges[test.testname] || {};
-                      const critical = val && isCriticalValue(val, low, high);
+                      const critical = !!criticalKeys[test.testname];
                       return (
                         <CommentBox>
                           <CommentLabel>
@@ -1434,19 +1537,15 @@ function TestDetails() {
                               const disabled = isParamDisabled(
                                 param,
                                 uniqueKey,
+                                test.test_id,
                               );
                               const isAlwaysEditable =
                                 ALWAYS_EDITABLE_FIELDS.includes(
                                   param.test_code,
-                                );
+                                ) || test.test_id === 429;
 
-                              // NEW: check if current value is critical
-                              const currentVal = values[uniqueKey];
-                              const { low, high } =
-                                criticalRanges[uniqueKey] || {};
-                              const critical =
-                                currentVal &&
-                                isCriticalValue(currentVal, low, high);
+                              // Critical reads from criticalKeys (debounced) not values (live)
+                              const critical = !!criticalKeys[uniqueKey];
 
                               return (
                                 <ParameterCard key={paramIndex}>
