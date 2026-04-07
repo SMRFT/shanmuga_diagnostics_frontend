@@ -563,6 +563,7 @@ function PatientList() {
             age: patient.age,
             barcode: patient.barcode,
             date: patient.date,
+            locationId: patient.locationId,
             created_date: patient.created_date,
             testdetails: patient.testdetails || [],
             is_emergency: patient.is_emergency || false,

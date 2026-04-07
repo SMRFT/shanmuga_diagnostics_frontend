@@ -17,6 +17,7 @@ import "react-toastify/dist/ReactToastify.css";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
 import Muhsina from "../Images/Muhsina.png";
+import drarun from "../Images/drarun.png";
 import DRPS from "../Images/DRPS.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
@@ -751,7 +752,8 @@ const CHCReport = () => {
       yPos += 15;
       doc.setFontSize(10);
       const leftCol = [
-        { label: "Name", value: patientDetails.patientname || "N/A" },
+        { label: "Employee ID", value: patientDetails.patient_id || "N/A" },
+        { label: "Employee Name", value: patientDetails.patientname || "N/A" },
         {
           label: "Age / Sex",
           value: `${patientDetails.age || "N/A"} / ${patientDetails.gender || "N/A"}`,
@@ -762,10 +764,12 @@ const CHCReport = () => {
           label: "Date",
           value: safeFormatDate(new Date().toISOString(), "dd/MM/yyyy"),
         },
+        // AFTER
         {
           label: "Approved Date",
           value: safeFormatDate(
-            patientDetails.final_assessment?.approved_date,
+            patientDetails.final_assessment?.approved_date ||
+              patientDetails.testdetails?.[0]?.approve_time,
             "dd/MM/yyyy",
           ),
         },
@@ -819,8 +823,15 @@ const CHCReport = () => {
       yPos += 10;
       doc.setFontSize(10);
       const historyItems = [
-        { label: "Employee ID", value: patientDetails.patient_id || "N/A" },
         { label: "Department", value: patientDetails.department || "N/A" },
+        {
+          label: "DOJ",
+          value: safeFormatDate(patientDetails.doj, "dd/MM/yyyy"),
+        },
+        {
+          label: "Employment Type",
+          value: patientDetails.employee_type || "N/A",
+        },
         {
           label: "Medical History",
           value:
@@ -853,10 +864,11 @@ const CHCReport = () => {
       doc.text("VITALS", leftMargin, yPos);
       yPos += 10;
       doc.setFontSize(10);
-      const colWidths = [60, 40, 50];
+      const colWidths = [55, 40, 45, 35];
       const tableStartX = leftMargin;
       const rowHeight = 8;
-      const tableWidth = colWidths[0] + colWidths[1] + colWidths[2];
+      const tableWidth =
+        colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3];
       doc.rect(tableStartX, yPos, tableWidth, rowHeight);
       doc.line(
         tableStartX + colWidths[0],
@@ -870,12 +882,24 @@ const CHCReport = () => {
         tableStartX + colWidths[0] + colWidths[1],
         yPos + rowHeight,
       );
+      doc.line(
+        tableStartX + colWidths[0] + colWidths[1] + colWidths[2],
+        yPos,
+        tableStartX + colWidths[0] + colWidths[1] + colWidths[2],
+        yPos + rowHeight,
+      );
+
       doc.setFont("helvetica", "bold");
       doc.text("Parameter", tableStartX + 2, yPos + 5);
-      doc.text("Reading", tableStartX + colWidths[0] + 2, yPos + 5);
+      doc.text("Value", tableStartX + colWidths[0] + 2, yPos + 5);
       doc.text(
         "Normal Range",
         tableStartX + colWidths[0] + colWidths[1] + 2,
+        yPos + 5,
+      );
+      doc.text(
+        "Status",
+        tableStartX + colWidths[0] + colWidths[1] + colWidths[2] + 2,
         yPos + 5,
       );
       yPos += rowHeight;
@@ -893,17 +917,20 @@ const CHCReport = () => {
         {
           param: "BMI",
           value: (patientDetails.vitals?.bmi || "N/A") + " kg/m²",
-          range: "18.5 - 24.9",
+          range: "18.5 - 24.9 kg/m²",
+          status: patientDetails.vitals?.bmi_status || "N/A",
         },
         {
           param: "Blood Pressure",
           value: (patientDetails.vitals?.blood_pressure || "N/A") + " mmHg",
-          range: "120/80",
+          range: "120/80 mmHg",
+          status: patientDetails.vitals?.BP_status || "N/A",
         },
         {
           param: "Pulse Rate",
           value: (patientDetails.vitals?.spo2 || "N/A") + " bpm",
-          range: "60 - 100",
+          range: "60 - 100 bpm",
+          status: patientDetails.vitals?.spo2_status || "N/A",
         },
       ];
       doc.setFont("helvetica", "normal");
@@ -922,13 +949,49 @@ const CHCReport = () => {
           tableStartX + colWidths[0] + colWidths[1],
           rowY + rowHeight,
         );
+        doc.line(
+          tableStartX + colWidths[0] + colWidths[1] + colWidths[2],
+          rowY,
+          tableStartX + colWidths[0] + colWidths[1] + colWidths[2],
+          rowY + rowHeight,
+        );
+        doc.line(
+          tableStartX +
+            colWidths[0] +
+            colWidths[1] +
+            colWidths[2] +
+            colWidths[3],
+          rowY,
+          tableStartX +
+            colWidths[0] +
+            colWidths[1] +
+            colWidths[2] +
+            colWidths[3],
+          rowY + rowHeight,
+        );
         doc.text(item.param, tableStartX + 2, rowY + 5);
         doc.text(item.value, tableStartX + colWidths[0] + 2, rowY + 5);
         doc.text(
-          item.range,
+          item.range || "",
           tableStartX + colWidths[0] + colWidths[1] + 2,
           rowY + 5,
         );
+        // Render status in the same cell below the range, or use a 4th column
+        if (item.status && item.status !== "N/A") {
+          // Color-code: red for abnormal
+          const isAbnormal = ["High", "Low", "Obese", "Overweight"].includes(
+            item.status,
+          );
+          doc.setTextColor(isAbnormal ? 220 : 0, 0, 0);
+          doc.setFont("helvetica", "bold");
+          doc.text(
+            item.status,
+            tableStartX + colWidths[0] + colWidths[1] + colWidths[2] + 2, // 4th column
+            rowY + 5,
+          );
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "normal");
+        }
         yPos += rowHeight;
       });
       return yPos + 10;
@@ -944,9 +1007,13 @@ const CHCReport = () => {
       doc.setFontSize(10);
 
       const chcTestsForMisc = patientDetails.chc_tests_for_files || [];
-      // Only show tests that have been collected; skip ophthalmology (handled separately)
+
       const availedTests = chcTestsForMisc.filter((t) => {
-        if (!t.has_report && !t.has_file) return false;
+        // Include if has any content — file, report text, or notes
+        const hasContent =
+          t.has_file || t.has_report || t.report?.trim() || t.notes?.trim();
+        if (!hasContent) return false;
+
         const name = (t.testname || "").toLowerCase();
         return (
           !name.includes("optho") &&
@@ -1154,15 +1221,42 @@ const CHCReport = () => {
       yPos = checkForNewPage(yPos, 30);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      const impression = patientDetails.final_assessment?.impression;
-      const remarks = patientDetails.final_assessment?.remarks;
+      const impression =
+        patientDetails.final_assessment?.impression ||
+        "Reports within Normal Limits.";
+      const remarks =
+        patientDetails.final_assessment?.remarks ||
+        "The above candidate was examined and found Medically Fit for the Job.";
       if (impression?.trim()) {
+        const impressionLines = impression.split("\n").filter((l) => l.trim());
+        doc.setFont("helvetica", "bold");
         doc.text("Impression", leftMargin, yPos);
         doc.text(":", leftMargin + 30, yPos);
         doc.setFont("helvetica", "normal");
-        doc.text(impression, leftMargin + 35, yPos);
+
+        // First line sits on the same row as the label
+        const firstWrapped = doc.splitTextToSize(
+          impressionLines[0] || "",
+          contentWidth - 40,
+        );
+        firstWrapped.forEach((wl, wi) => {
+          doc.text(wl, leftMargin + 35, yPos);
+          yPos += 6;
+        });
+
+        // Remaining \n-separated lines
+        for (let i = 1; i < impressionLines.length; i++) {
+          const wrapped = doc.splitTextToSize(
+            impressionLines[i].trim(),
+            contentWidth - 40,
+          );
+          wrapped.forEach((wl) => {
+            doc.text(wl, leftMargin + 35, yPos);
+            yPos += 6;
+          });
+        }
         doc.setFont("helvetica", "bold");
-        yPos += 6;
+        yPos += 4;
       }
       if (remarks?.trim()) {
         yPos += 10;
@@ -1192,15 +1286,11 @@ const CHCReport = () => {
     const addInvestigationFiles = async () => {
       const files = patientDetails.investigation_files;
       const chcTestsOrder = patientDetails.chc_tests_for_files || [];
-      const hasFiles =
-        files &&
-        Object.values(files).some((t) => t.files && t.files.length > 0);
-      if (!hasFiles) return;
+      if (!files) return;
 
       const pageHeight = doc.internal.pageSize.height;
 
       for (const test of chcTestsOrder) {
-        // Skip ophthalmology — already rendered as a table in addOphthalmologyReport
         const testNameLower = (test.testname || "").toLowerCase();
         if (
           testNameLower.includes("optho") ||
@@ -1210,52 +1300,61 @@ const CHCReport = () => {
           continue;
 
         const testEntry = files[test.test_id];
-        if (!testEntry || !testEntry.files || testEntry.files.length === 0)
-          continue;
+        if (!testEntry) continue;
+
         const label = testEntry.label || test.testname;
+        const reportText = testEntry.report || test.report?.trim() || "";
+        const notesText = testEntry.notes || test.notes?.trim() || "";
+        const hasFiles = testEntry.files?.length > 0;
 
-        // ── Collect all rendered images for this test ────────────────────
-        const allImages = [];
+        // Skip if nothing to render
+        if (!reportText && !notesText && !hasFiles) continue;
 
-        for (let fileIdx = 0; fileIdx < testEntry.files.length; fileIdx++) {
-          const file = testEntry.files[fileIdx];
-          if (!file || !file.data) continue;
-          try {
-            const contentType = file.contentType || "";
-            const filename = (file.filename || "").toLowerCase();
-            const isPDF =
-              contentType.includes("pdf") || filename.endsWith(".pdf");
-
-            if (isPDF) {
-              const pdfImages = await convertPdfToImages(file.data);
-              pdfImages.forEach((imgDataUri) => {
-                allImages.push({ dataUri: imgDataUri, format: "PNG" });
-              });
-            } else {
-              let imageFormat = "PNG";
-              if (
-                contentType.includes("jpeg") ||
-                contentType.includes("jpg") ||
-                filename.endsWith(".jpg") ||
-                filename.endsWith(".jpeg")
-              )
-                imageFormat = "JPEG";
-              const imgData = `data:${contentType || "image/png"};base64,${file.data}`;
-              allImages.push({ dataUri: imgData, format: imageFormat });
-            }
-          } catch (err) {
-            console.error(`Error processing file in ${label}:`, err);
-          }
-        }
-
-        // ── STEP A: Render report text page (if any) ────────────────────
-        const reportText = test.report?.trim() || "";
-        const notesText = test.notes?.trim() || "";
         const isXRay =
           testNameLower.includes("x-ray") ||
           testNameLower.includes("xray") ||
           testNameLower.includes("chest");
 
+        const isEcho =
+          testNameLower.includes("echo") ||
+          testNameLower.includes("echocardiogram");
+
+        // ── Collect images ──────────────────────────────────────────
+        const allImages = [];
+        if (hasFiles) {
+          for (let fileIdx = 0; fileIdx < testEntry.files.length; fileIdx++) {
+            const file = testEntry.files[fileIdx];
+            if (!file || !file.data) continue;
+            try {
+              const contentType = file.contentType || "";
+              const filename = (file.filename || "").toLowerCase();
+              const isPDF =
+                contentType.includes("pdf") || filename.endsWith(".pdf");
+
+              if (isPDF) {
+                const pdfImages = await convertPdfToImages(file.data);
+                pdfImages.forEach((imgDataUri) => {
+                  allImages.push({ dataUri: imgDataUri, format: "PNG" });
+                });
+              } else {
+                let imageFormat = "PNG";
+                if (
+                  contentType.includes("jpeg") ||
+                  contentType.includes("jpg") ||
+                  filename.endsWith(".jpg") ||
+                  filename.endsWith(".jpeg")
+                )
+                  imageFormat = "JPEG";
+                const imgData = `data:${contentType || "image/png"};base64,${file.data}`;
+                allImages.push({ dataUri: imgData, format: imageFormat });
+              }
+            } catch (err) {
+              console.error(`Error processing file in ${label}:`, err);
+            }
+          }
+        }
+
+        // ── STEP A: Report text page ─────────────────────────────────
         if (reportText) {
           doc.addPage();
           pageCount++;
@@ -1264,16 +1363,24 @@ const CHCReport = () => {
           yPos = addMedicalExaminationHeader(yPos);
           yPos += 5;
 
+          // ── Test name header ──────────────────────────────────────
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(12);
-          doc.text(
-            isXRay ? "X-RAY CHEST PA VIEW" : `${label} - REPORT`,
-            leftMargin + contentWidth / 2,
+          doc.setFontSize(13);
+          doc.text(label.toUpperCase(), leftMargin + contentWidth / 2, yPos, {
+            align: "center",
+          });
+          yPos += 3;
+          const titleWidth = doc.getTextWidth(label.toUpperCase());
+          doc.setLineWidth(0.5);
+          doc.line(
+            leftMargin + contentWidth / 2 - titleWidth / 2,
             yPos,
-            { align: "center" },
+            leftMargin + contentWidth / 2 + titleWidth / 2,
+            yPos,
           );
-          yPos += 15;
+          yPos += 12;
 
+          // ── Report body ───────────────────────────────────────────
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           const normalizedReport = reportText
@@ -1301,6 +1408,7 @@ const CHCReport = () => {
             yPos += wrappedLines.length * 5.5 + 4;
           });
 
+          // ── Impression — only shown when report text exists ───────
           if (notesText) {
             yPos += 8;
             doc.setFont("helvetica", "bold");
@@ -1331,83 +1439,85 @@ const CHCReport = () => {
               yPos += 5;
               doc.text("REG NO: 143512 (TNMC)", signatureX, yPos);
             }
+
+            if (isEcho) {
+              const signatureX = leftMargin + 110;
+              if (drarun) doc.addImage(drarun, "PNG", signatureX, yPos, 40, 20);
+              yPos += 20;
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9);
+              doc.text(
+                "Dr. ARUN KUMAR.B, MD(MED), DNB(CARDIO)",
+                signatureX,
+                yPos,
+              );
+              yPos += 5;
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(9);
+              doc.text(
+                "CONSULTANT INTERVENTIONAL CARDIOLOGIST",
+                signatureX,
+                yPos,
+              );
+              yPos += 5;
+              doc.text("REG NO: 91581", signatureX, yPos);
+              yPos += 5;
+              doc.text(
+                "Shanmuga Hospital & Salem Cancer Institute",
+                signatureX,
+                yPos,
+              );
+            }
           }
         }
 
-        // ── STEP B: Render image pages ───────────────────────────────────
-        if (allImages.length === 0) continue;
-
-        const isSingle = allImages.length === 1;
-        const COLS = isSingle ? 1 : 2;
-        const IMAGES_PER_PAGE = isSingle ? 1 : 4;
-        const colGap = 4;
-        const rowGap = 6;
-
-        const headerSectionEnd = headerHeight + 10 + 35 + 15 + 10;
-        const footerSectionStart = pageHeight - footerHeight - 10 - 5;
-        const availableHeight = footerSectionStart - headerSectionEnd;
-
-        const imgWidth = isSingle ? contentWidth : (contentWidth - colGap) / 2;
-        const imgHeight = isSingle
-          ? availableHeight
-          : (availableHeight - rowGap) / 2;
-
-        let imageIndex = 0;
-        const totalGridPages = Math.ceil(allImages.length / IMAGES_PER_PAGE);
-
-        while (imageIndex < allImages.length) {
+        // ── STEP B: Image pages ──────────────────────────────────────
+        for (let imgIdx = 0; imgIdx < allImages.length; imgIdx++) {
+          const img = allImages[imgIdx];
           doc.addPage();
           pageCount++;
           addHeaderFooter();
 
-          let yPos = headerHeight + 10;
-          yPos = addMedicalExaminationHeader(yPos);
-          yPos += 5;
-
+          // ── Image page header with test name ────────────────────────
+          let imgYPos = headerHeight + 10;
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(12);
-          const currentGridPage = Math.floor(imageIndex / IMAGES_PER_PAGE) + 1;
-          const pageTitle =
-            totalGridPages > 1
-              ? `${label} - Images (Page ${currentGridPage}/${totalGridPages})`
-              : `${label} - Images`;
-          doc.text(pageTitle, leftMargin + contentWidth / 2, yPos, {
-            align: "center",
-          });
-          yPos += 10;
-
-          const gridStartY = yPos;
-          const imagesOnThisPage = Math.min(
-            IMAGES_PER_PAGE,
-            allImages.length - imageIndex,
+          doc.setFontSize(13);
+          doc.text(
+            label.toUpperCase(),
+            leftMargin + contentWidth / 2,
+            imgYPos,
+            { align: "center" },
           );
+          imgYPos += 3;
+          const imgTitleWidth = doc.getTextWidth(label.toUpperCase());
+          doc.setLineWidth(0.5);
+          doc.line(
+            leftMargin + contentWidth / 2 - imgTitleWidth / 2,
+            imgYPos,
+            leftMargin + contentWidth / 2 + imgTitleWidth / 2,
+            imgYPos,
+          );
+          imgYPos += 5;
 
-          for (let slot = 0; slot < imagesOnThisPage; slot++) {
-            const img = allImages[imageIndex + slot];
-            const col = slot % COLS;
-            const row = Math.floor(slot / COLS);
-            const xPos = leftMargin + col * (imgWidth + colGap);
-            const yPosCell = gridStartY + row * (imgHeight + rowGap);
-            try {
-              doc.addImage(
-                img.dataUri,
-                img.format,
-                xPos,
-                yPosCell,
-                imgWidth,
-                imgHeight,
-              );
-            } catch (imgError) {
-              doc.setFont("helvetica", "normal");
-              doc.setFontSize(8);
-              doc.text(
-                `[Image load error: ${imgError.message}]`,
-                xPos,
-                yPosCell + imgHeight / 2,
-              );
-            }
+          const availableHeight = pageHeight - footerHeight - imgYPos - 5;
+          try {
+            doc.addImage(
+              img.dataUri,
+              img.format,
+              leftMargin,
+              imgYPos,
+              contentWidth,
+              availableHeight,
+            );
+          } catch (imgError) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.text(
+              `[Image load error: ${imgError.message}]`,
+              leftMargin,
+              imgYPos + availableHeight / 2,
+            );
           }
-          imageIndex += IMAGES_PER_PAGE;
         }
       }
     };
@@ -1563,7 +1673,7 @@ const CHCReport = () => {
           [
             "Age/Gender",
             `${patientDetails.age || "N/A"} / ${patientDetails.gender || "N/A"}`,
-            "Printed Date",
+            "Approved Date",
             safeFormatDate(
               firstTest?.approve_time,
               "dd MMM yy / HH:mm",
@@ -2037,17 +2147,23 @@ const CHCReport = () => {
           ? invResult.data.chc_tests
           : investigationStatuses[patient.barcode]?.chc_tests || [];
 
+      // In handlePrint, replace the investigationFiles fetch block:
       const investigationFiles = {};
       await Promise.all(
         chcTestsForFiles.map(async (test) => {
+          // Always register the test entry (even if no files)
+          investigationFiles[test.test_id] = {
+            label: test.testname,
+            report: test.report?.trim() || "",
+            notes: test.notes?.trim() || "",
+            files: [],
+          };
+
           if (test.files?.length > 0) {
             const testFiles = await Promise.all(
               test.files.map((fileId) => fetchInvestigationFile(fileId)),
             );
-            investigationFiles[test.test_id] = {
-              label: test.testname,
-              files: testFiles.filter(Boolean),
-            };
+            investigationFiles[test.test_id].files = testFiles.filter(Boolean);
           }
         }),
       );
@@ -2208,17 +2324,24 @@ const CHCReport = () => {
               ? invResult.data.chc_tests
               : investigationStatuses[bc]?.chc_tests || [];
 
+          // In handlePrint, replace the investigationFiles fetch block:
           const investigationFiles = {};
           await Promise.all(
             chcTestsForFiles.map(async (test) => {
+              // Always register the test entry (even if no files)
+              investigationFiles[test.test_id] = {
+                label: test.testname,
+                report: test.report?.trim() || "",
+                notes: test.notes?.trim() || "",
+                files: [],
+              };
+
               if (test.files?.length > 0) {
                 const testFiles = await Promise.all(
                   test.files.map((fileId) => fetchInvestigationFile(fileId)),
                 );
-                investigationFiles[test.test_id] = {
-                  label: test.testname,
-                  files: testFiles.filter(Boolean),
-                };
+                investigationFiles[test.test_id].files =
+                  testFiles.filter(Boolean);
               }
             }),
           );

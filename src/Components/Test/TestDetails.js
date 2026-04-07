@@ -346,6 +346,17 @@ const DEFAULT_FIELD_VALUES = {
   "APTT-C": "25.0",
 };
 
+const formatDateTime = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 // ─── Normalize "neg" variants to "Negative" ──────────────────────────────────
 const normalizeDisplayValue = (value) => {
   if (typeof value === "string" && value.trim().toLowerCase() === "neg") {
@@ -382,6 +393,50 @@ const isCriticalValue = (value, low, high) => {
   }
 
   return tooLow || tooHigh;
+};
+
+// ─── Normal range checker ─────────────────────────────────────────────────────
+/**
+ * Returns:
+ *   true  → value is within normal range (safe to auto-approve)
+ *   false → value is outside normal range
+ *   null  → range is complex/descriptive and cannot be evaluated (skip auto-approve)
+ *
+ * Handles formats:
+ *   "13.0 - 17.5"   → numeric range
+ *   "<2"  / "<=2"   → upper bound only
+ *   ">5"  / ">=5"   → lower bound only
+ *   ""    / null    → no range defined → treat as normal (true)
+ *   "Normal : 4.0 - 6.0, Good Control : ..." → complex → null (skip)
+ */
+const isWithinNormalRange = (value, referenceRange) => {
+  // No range defined at all → cannot judge → skip auto-approve
+  if (!referenceRange || referenceRange.trim() === "") return null; // ← was: return true
+
+  const ref = referenceRange.trim();
+
+  // Detect complex/descriptive ranges
+  if (ref.includes(":") || ref.includes(",")) return null;
+
+  const num = parseFloat(value);
+  if (isNaN(num)) return true; // non-numeric value → skip
+
+  // Format: "13.0 - 17.5"
+  const rangeMatch = ref.match(/^([0-9.]+)\s*-\s*([0-9.]+)$/);
+  if (rangeMatch) {
+    return num >= parseFloat(rangeMatch[1]) && num <= parseFloat(rangeMatch[2]);
+  }
+
+  // Format: "<2" or "<=2"
+  const ltMatch = ref.match(/^<=?\s*([0-9.]+)$/);
+  if (ltMatch) return num <= parseFloat(ltMatch[1]);
+
+  // Format: ">5" or ">=5"
+  const gtMatch = ref.match(/^>=?\s*([0-9.]+)$/);
+  if (gtMatch) return num >= parseFloat(gtMatch[1]);
+
+  // Anything else unparseable → skip auto-approve
+  return null;
 };
 
 // ─── Derived-value calculator ────────────────────────────────────────────────
@@ -476,7 +531,7 @@ const calculateDerivedValues = (
   }
 
   if (currentTest.test_id === 467) {
-    const hba1c = valuesByTestCode["HBA1C01"] || 0;
+    const hba1c = valuesByTestCode["HbA1c"] || 0;
     const eagParam = allParams.find((p) => p.test_code === "HBA1C02");
     if (eagParam && hba1c) {
       const k = `${testname}_${eagParam.name || eagParam.test_name}`;
@@ -1101,7 +1156,53 @@ function TestDetails() {
         return;
       }
 
+      const approveTime = formatDateTime(new Date());
+
       const testDetailsData = testDetails.map((test) => {
+        // ── Auto-approve check ─────────────────────────────────────────────────
+        // true  → all values within parseable normal range → approve
+        // false → any value out of range or complex/descriptive range → approve:null
+        let allNormal = true;
+
+        if (
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
+        ) {
+          const allParams = Object.values(test.parametersBySubtitle).flat();
+          for (const param of allParams) {
+            const paramName = param.name || param.test_name;
+            const uniqueKey = `${test.testname}_${paramName}`;
+            const result = isWithinNormalRange(
+              values[uniqueKey],
+              param.reference_range,
+            );
+            if (result === null || result === false) {
+              allNormal = false;
+              break;
+            }
+          }
+        } else {
+          const result = isWithinNormalRange(
+            values[test.testname],
+            test.reference_range,
+          );
+          if (result === null || result === false) allNormal = false;
+        }
+
+        const approveFields = allNormal
+          ? {
+              approve: true,
+              approve_time: approveTime,
+              status: "Normal",
+            }
+          : {
+              approve: null,
+              approve_time: null,
+              approve_by: null,
+              status: null,
+            };
+        // ──────────────────────────────────────────────────────────────────────
+
         if (
           test.parametersBySubtitle &&
           Object.keys(test.parametersBySubtitle).length > 0
@@ -1124,8 +1225,7 @@ function TestDetails() {
             device_id: test.device_id,
             test_id: test.test_id,
             rerun: parameterEditMode ? false : test.rerun,
-            approve: false,
-            approve_time: "null",
+            ...approveFields,
             dispatch: false,
             dispatch_time: "null",
             remarks: parameterRemarks || "",
@@ -1141,8 +1241,7 @@ function TestDetails() {
             remarks: remarks[test.testname] || "",
             comment: comments[test.testname] || "",
             rerun: editMode[test.testname] ? false : test.rerun,
-            approve: false,
-            approve_time: "null",
+            ...approveFields,
             dispatch: false,
             dispatch_time: "null",
             verified_by,
@@ -1157,6 +1256,7 @@ function TestDetails() {
         testdetails: testDetailsData,
         processed_records: processedRecords,
       };
+
       const postResult = await apiRequest(
         `${Labbaseurl}test-value/save/`,
         "POST",
@@ -1170,10 +1270,7 @@ function TestDetails() {
         setParameterEditMode(false);
         setTimeout(() => handleBack(), 1000);
       } else {
-        // ── Handle 409 Conflict: duplicate / already-approved record ──────────
-        // The backend returns HTTP 409 when an existing record for this
-        // barcode + test_id already has approve=false (pending) or approve=true
-        // (approved), and is NOT flagged for rerun.
+        // ── Handle 409 Conflict ───────────────────────────────────────────────
         const isConflict =
           postResult.status === 409 ||
           (postResult.error &&

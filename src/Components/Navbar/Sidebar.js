@@ -328,7 +328,8 @@ const Sidebar = () => {
   const [name, setName] = useState("");
   const [employeeId, setEmployeeId] = useState("");
 
-  const [dropdowns, setDropdowns] = useState({
+  // With this:
+  const defaultDropdowns = {
     patientDetails: false,
     barcodeDetails: false,
     sampleDetails: false,
@@ -339,12 +340,24 @@ const Sidebar = () => {
     financeDetails: false,
     misDetails: false,
     b2bDetails: false,
+  };
+
+  const [dropdowns, setDropdowns] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebarDropdowns");
+      return saved
+        ? { ...defaultDropdowns, ...JSON.parse(saved) }
+        : defaultDropdowns;
+    } catch {
+      return defaultDropdowns;
+    }
   });
 
   const toggleDropdown = (dropdown) => {
-    setDropdowns({
-      ...dropdowns,
-      [dropdown]: !dropdowns[dropdown],
+    setDropdowns((prev) => {
+      const updated = { ...prev, [dropdown]: !prev[dropdown] };
+      localStorage.setItem("sidebarDropdowns", JSON.stringify(updated));
+      return updated;
     });
   };
 
@@ -486,6 +499,12 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Diagnostics Sample Collection
+                </SubLink>
+                <SubLink
+                  to="/SampleStatusUpdate"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Diagnostics Sample Accessioning and Distribution
                 </SubLink>
               </DropdownContent>
 
