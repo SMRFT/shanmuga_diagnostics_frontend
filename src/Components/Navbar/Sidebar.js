@@ -1006,7 +1006,7 @@ const Sidebar = () => {
             </>
           )}
 
-          {role === "Sales Person" && (
+          {role === "Sales Executive" && (
             <>
               <DropdownHeader
                 isOpen={dropdowns.patientDetails}
@@ -1318,20 +1318,17 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader
-                isOpen={dropdowns.patientDetails}
-                onClick={() => toggleDropdown("patientDetails")}
-              >
+              <DropdownHeader isOpen={dropdowns.BillingDetails} onClick={() => toggleDropdown("BillingDetails")}>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
                   </IconWrapper>
                   Billing
                 </div>
-                <ChevronIcon isOpen={dropdowns.patientDetails} />
+                <ChevronIcon isOpen={dropdowns.BillingDetails} />
               </DropdownHeader>
 
-              <DropdownContent isOpen={dropdowns.patientDetails}>
+              <DropdownContent isOpen={dropdowns.BillingDetails}>
                 <SubLink to="/Estimate" onClick={() => setIsSidebarOpen(false)}>
                   Bill Estimate
                 </SubLink>
@@ -1672,10 +1669,10 @@ const Sidebar = () => {
                 >
                   Outsourced Samples
                 </SubLink>
-                <SubLink
-                  to="/HomeCollectionReport"
-                  onClick={() => setIsSidebarOpen(false)}
-                >
+                <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
+                  Ledger Balance
+                </SubLink>
+                <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
                   Home Collection Report
                 </SubLink>
               </DropdownContent>
@@ -2138,11 +2135,7 @@ const Sidebar = () => {
                 </IconWrapper>
                 Bill Estimate
               </SidebarNavLink>
-
-              <SidebarNavLink
-                to="/PreethamPatientOverview"
-                onClick={() => setIsSidebarOpen(false)}
-              >
+              <SidebarNavLink to="/PreethamPatientOverview" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>

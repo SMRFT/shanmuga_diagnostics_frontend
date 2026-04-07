@@ -518,7 +518,9 @@ const CHCReport = () => {
   };
 
   // ─── PDF utilities ────────────────────────────────────────────────────────
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+  `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
 
   const convertPdfToImages = async (base64Data) => {
     try {
@@ -549,6 +551,7 @@ const CHCReport = () => {
       return [];
     }
   };
+
 
   const fetchInvestigationFile = async (fileId) => {
     if (!fileId) return null;
@@ -651,33 +654,30 @@ const CHCReport = () => {
     }
 
     // Extract ophthalmology from CHCT001 in chc_tests
-    const ophthalTest = chcTests.find(
-      (t) =>
-        t.test_id === "CHCT001" ||
-        (t.testname || "").toLowerCase().includes("eye") ||
-        (t.testname || "").toLowerCase().includes("ophthal"),
-    );
-    if (ophthalTest?.report?.trim()) {
-      try {
-        const parsed = JSON.parse(ophthalTest.report);
-        if (
-          parsed &&
-          (parsed.distance || parsed.nearVision || parsed.colourVision)
-        ) {
-          merged.chc_ophthalmology = {
-            distance: parsed.distance || {},
-            nearVision: parsed.nearVision || {},
-            colourVision: parsed.colourVision || {},
-            ocularmovement: parsed.ocularmovement || {},
-            complaints: ophthalTest.notes?.trim() || parsed.complaints || "",
-            remarks: parsed.remarks || "",
-          };
-        }
-      } catch (e) {
-        // report is plain text, not JSON — leave chc_ophthalmology unset
-        // addOphthalmologyReport will fall back to patientDetails.ophthalmology
-      }
+const ophthalTest = chcTests.find(
+  (t) =>
+    t.test_id === "CHCT001" ||
+    (t.testname || "").toLowerCase().includes("eye") ||
+    (t.testname || "").toLowerCase().includes("ophthal"),
+);
+if (ophthalTest?.report?.trim()) {
+  try {
+    const parsed = JSON.parse(ophthalTest.report);
+    if (parsed && (parsed.distance || parsed.nearVision || parsed.colourVision)) {
+      merged.chc_ophthalmology = {
+        distance: parsed.distance || {},
+        nearVision: parsed.nearVision || {},
+        colourVision: parsed.colourVision || {},
+        ocularmovement: parsed.ocularmovement || {},
+        complaints: ophthalTest.notes?.trim() || parsed.complaints || "",
+        remarks: parsed.remarks || "",
+      };
     }
+  } catch (e) {
+    // report is plain text, not JSON — leave chc_ophthalmology unset
+    // addOphthalmologyReport will fall back to patientDetails.ophthalmology
+  }
+}
 
     return merged;
   };
@@ -1073,15 +1073,15 @@ const CHCReport = () => {
 
       // Normalise to {right, left} regardless of source
       const getEyes = (chcKey, legacyKey) => {
-        if (chcOphthal) {
-          const obj = chcOphthal[chcKey] || {};
-          return { right: obj.right || "N/A", left: obj.left || "N/A" };
-        }
-        // legacyOphthal = patientDetails.ophthalmology from corporate_health_report
-        // keys are at the top level, not nested under visual_acuity
-        const obj = legacyOphthal?.[legacyKey] || {};
-        return { right: obj.right || "N/A", left: obj.left || "N/A" };
-      };
+  if (chcOphthal) {
+    const obj = chcOphthal[chcKey] || {};
+    return { right: obj.right || "N/A", left: obj.left || "N/A" };
+  }
+  // legacyOphthal = patientDetails.ophthalmology from corporate_health_report
+  // keys are at the top level, not nested under visual_acuity
+  const obj = legacyOphthal?.[legacyKey] || {};
+  return { right: obj.right || "N/A", left: obj.left || "N/A" };
+};
 
       const rows = [
         { label: "Distant Vision", eyes: getEyes("distance", "distance") },
@@ -2139,6 +2139,8 @@ const CHCReport = () => {
       );
       if (invResult.success && invResult.data) {
         patientDetails = mergeInvestigationData(patientDetails, invResult.data);
+
+      
       }
 
       // 3. Fetch investigation files from chc_tests
@@ -2316,6 +2318,7 @@ const CHCReport = () => {
               patientDetails,
               invResult.data,
             );
+            
           }
 
           // Fetch investigation files
