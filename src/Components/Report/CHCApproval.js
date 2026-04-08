@@ -344,7 +344,7 @@ const TextArea = styled.textarea`
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
-  min-height: 80px;
+  min-height: 120px;
   box-sizing: border-box;
   
   &:focus {
@@ -485,6 +485,28 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   const [impression, setImpression] = useState("Reports within Normal Limits.")
   const [remarks, setRemarks] = useState("The above candidate was examined and found Medically Fit for the Job.")
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+
+  const buildImpression = (vitals) => {
+    const lines = ["Reports within Normal Limits."];
+    const bmi = (vitals?.bmi_status || "").toLowerCase();
+    const bp = (vitals?.BP_status || "").toLowerCase();
+    const spo = (vitals?.spo2_status || "").toLowerCase();
+
+    if (bmi === "obese" || bmi === "over weight" || bmi === "overweight") {
+      lines.push("Life style modification for weight reduction.");
+    }
+    if (bp === "low" || bp === "high") {
+      lines.push(
+        "To recheck BP after 2 weeks and get physician consultation for BP control.",
+      );
+    }
+    if (spo === "low" || spo === "high") {
+      lines.push(
+        "To recheck SpO2 after 2 weeks and get cardiologist consultation for SpO2 control.",
+      );
+    }
+    return lines.join("\n");
+  };
 
   useEffect(() => {
     // Dynamically resolve the worker URL from the installed pdfjs-dist version
@@ -671,8 +693,12 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
             }
           }
 
-          return merged
-        })
+          if (merged.vitals && Object.keys(merged.vitals).length > 0) {
+            setImpression(buildImpression(merged.vitals));
+          }
+
+          return merged;
+        });
       }
 
       // ── Step 3: Fetch investigation files from chc_tests ────────────────
@@ -1185,38 +1211,85 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                   {patientDetails.department && (
                     <InfoRow><InfoLabel>Department:</InfoLabel><InfoValue>{patientDetails.department}</InfoValue></InfoRow>
                   )}
+                  {patientDetails.doj && (
+                    <InfoRow>
+                      <InfoLabel>Date of Joining:</InfoLabel>
+                      <InfoValue>{formatDate(patientDetails.doj)}</InfoValue>
+                    </InfoRow>
+                  )}
+                  {patientDetails.designation && (
+                    <InfoRow>
+                      <InfoLabel>Designation:</InfoLabel>
+                      <InfoValue>{patientDetails.designation}</InfoValue>
+                    </InfoRow>
+                  )}
+                  {patientDetails.employee_type && (
+                    <InfoRow>
+                      <InfoLabel>Employee Type:</InfoLabel>
+                      <InfoValue>{patientDetails.employee_type}</InfoValue>
+                    </InfoRow>
+                  )}
                 </ReportSection>
 
                 {/* Vitals — backend may use height_cm/weight_kg OR height/weight */}
-                {patientDetails.vitals && Object.keys(patientDetails.vitals).length > 0 && (() => {
-                  const v = patientDetails.vitals
-                  const height   = v.height   || v.height_cm   || "N/A"
-                  const weight   = v.weight   || v.weight_kg   || "N/A"
-                  const bmi      = v.bmi      || "N/A"
-                  const bp       = v.blood_pressure || "N/A"
-                  const pulse    = v.spo2 || v.pulse || "N/A"
-                  return (
-                    <ReportSection>
-                      <SectionTitle>Vitals</SectionTitle>
-                      <LabTable>
-                        <LabThead>
-                          <tr>
-                            <LabTh>Parameter</LabTh>
-                            <LabTh>Reading</LabTh>
-                            <LabTh>Normal Range</LabTh>
-                          </tr>
-                        </LabThead>
-                        <tbody>
-                          <tr><LabTd>Height</LabTd><LabTd>{height} cms</LabTd><LabTd></LabTd></tr>
-                          <tr><LabTd>Weight</LabTd><LabTd>{weight} kgs</LabTd><LabTd></LabTd></tr>
-                          <tr><LabTd>BMI</LabTd><LabTd>{bmi} kg/m²</LabTd><LabTd>18.5 - 24.9</LabTd></tr>
-                          <tr><LabTd>Blood Pressure</LabTd><LabTd>{bp} mmHg</LabTd><LabTd>120/80</LabTd></tr>
-                          <tr><LabTd>Pulse Rate</LabTd><LabTd>{pulse} bpm</LabTd><LabTd>60 - 100</LabTd></tr>
-                        </tbody>
-                      </LabTable>
-                    </ReportSection>
-                  )
-                })()}
+                {patientDetails.vitals &&
+                  Object.keys(patientDetails.vitals).length > 0 &&
+                  (() => {
+                    const v = patientDetails.vitals;
+                    const height = v.height || "N/A";
+                    const weight = v.weight || "N/A";
+                    const bmi = v.bmi || "N/A";
+                    const bmi_status = v.bmi_status || "N/A";
+                    const bp = v.blood_pressure || "N/A";
+                    const bp_status = v.BP_status || "N/A";
+                    const pulse = v.spo2 || "N/A";
+                    const pulse_status = v.spo2_status || "N/A";
+                    return (
+                      <ReportSection>
+                        <SectionTitle>Vitals</SectionTitle>
+                        <LabTable>
+                          <LabThead>
+                            <tr>
+                              <LabTh>Parameter</LabTh>
+                              <LabTh>Reading</LabTh>
+                              <LabTh>Normal Range</LabTh>
+                              <LabTh>Status</LabTh>
+                            </tr>
+                          </LabThead>
+                          <tbody>
+                            <tr>
+                              <LabTd>Height</LabTd>
+                              <LabTd>{height} cms</LabTd>
+                              <LabTd></LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>Weight</LabTd>
+                              <LabTd>{weight} kgs</LabTd>
+                              <LabTd></LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>BMI</LabTd>
+                              <LabTd>{bmi} kg/m²</LabTd>
+                              <LabTd>18.5 - 24.9</LabTd>
+                              <LabTd>{bmi_status}</LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>Blood Pressure</LabTd>
+                              <LabTd>{bp} mmHg</LabTd>
+                              <LabTd>120/80</LabTd>
+                              <LabTd>{bp_status}</LabTd>
+                            </tr>
+                            <tr>
+                              <LabTd>Pulse Rate</LabTd>
+                              <LabTd>{pulse} bpm</LabTd>
+                              <LabTd>60 - 100</LabTd>
+                              <LabTd>{pulse_status}</LabTd>
+                            </tr>
+                          </tbody>
+                        </LabTable>
+                      </ReportSection>
+                    );
+                  })()}
 
                 {/* Medical History */}
                 {patientDetails.medical_history && (

@@ -45,6 +45,7 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.5;
   }
 `;
+
 const StyledToastContainer = styled(ToastContainer)`
   .Toastify__toast--success {
     background-color: var(--white);
@@ -60,7 +61,6 @@ const StyledToastContainer = styled(ToastContainer)`
   }
 `;
 
-// Container
 const Container = styled.div`
   max-width: 1400px;
   margin: 0 auto;
@@ -71,7 +71,6 @@ const Container = styled.div`
   }
 `;
 
-// Header
 const Header = styled.header`
   display: flex;
   align-items: center;
@@ -120,7 +119,6 @@ const InfoItem = styled.div`
   }
 `;
 
-// Patient History Card
 const PatientHistoryCard = styled.div`
   background-color: white;
   padding: 1.5rem;
@@ -153,7 +151,6 @@ const NoHistory = styled.p`
   font-size: 0.875rem;
 `;
 
-// Comment display styles
 const CommentNote = styled.div`
   display: flex;
   align-items: flex-start;
@@ -178,7 +175,6 @@ const CommentText = styled.span`
   line-height: 1.4;
 `;
 
-// Table styles
 const TableContainer = styled.div`
   overflow-x: auto;
   background-color: white;
@@ -233,7 +229,6 @@ const TableBody = styled.tbody`
   }
 `;
 
-// Special row styles for test headers and parameters
 const TestHeaderRow = styled.tr`
   background-color: rgba(67, 97, 238, 0.15) !important;
 
@@ -286,7 +281,6 @@ const NoData = styled.td`
   font-style: italic;
 `;
 
-// Button styles
 const Button = styled.button`
   display: flex;
   align-items: center;
@@ -351,7 +345,6 @@ const RerunButton = styled(Button)`
   }
 `;
 
-// Status indicators
 const blink = keyframes`
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -433,29 +426,75 @@ const OutsourcedBadge = styled(StatusBadge)`
   border: 1px solid #d75de0ff;
 `;
 
+// ── Normal / Abnormal radio styles (CHC locations only) ───────────────────
+const StatusRadioGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+`;
+
+const RadioLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  opacity: ${(props) => (props.disabled ? 0.5 : 1)};
+  color: ${(props) =>
+    props.value === "Normal"
+      ? "#2d8a4e"
+      : props.value === "Abnormal"
+        ? "#c0392b"
+        : "inherit"};
+
+  input[type="radio"] {
+    accent-color: ${(props) =>
+      props.value === "Normal" ? "#2d8a4e" : "#c0392b"};
+    width: 14px;
+    height: 14px;
+    cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  }
+`;
+
+const RequiredHint = styled.span`
+  font-size: 0.7rem;
+  color: var(--danger);
+  display: block;
+  margin-top: 0.2rem;
+  font-style: italic;
+`;
+// ─────────────────────────────────────────────────────────────────────────────
+
 function DoctorForm() {
   const [testValues, setTestValues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [patientHistory, setPatientHistory] = useState("");
+
+  // Key: `${recordIndex}-${detailIndex}` → "Normal" | "Abnormal" | ""
+  const [testStatusMap, setTestStatusMap] = useState({});
+
   const approved_by = localStorage.getItem("employeeId");
   const userRole = localStorage.getItem("role");
   const location = useLocation();
   const navigate = useNavigate();
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  // Extract date and patient_id from URL query params
   const queryParams = new URLSearchParams(location.search);
   const selectedDate = queryParams.get("date");
   const patientId = queryParams.get("patient_id");
 
+  // True when the record's locationId starts with "CHC" (case-sensitive)
+  const isCHC =
+    testValues.length > 0 &&
+    String(testValues[0].locationId || "").startsWith("CHC");
+
   useEffect(() => {
-    // Get patient history from navigation state
     if (location.state?.patientHistory) {
       setPatientHistory(location.state.patientHistory);
     }
 
-    // If we have patient data passed from PatientList, use it directly
     if (location.state?.skipFetch && location.state?.patientData) {
       const patientData = location.state.patientData;
       const processedData = [
@@ -470,7 +509,6 @@ function DoctorForm() {
       setTestValues(processedData);
       setLoading(false);
     } else if (selectedDate && patientId) {
-      // Otherwise fetch from API
       fetchTestData(selectedDate, patientId);
     } else {
       setLoading(false);
@@ -479,14 +517,12 @@ function DoctorForm() {
 
   const fetchTestData = async (date, patientId) => {
     setLoading(true);
-
     try {
-      const queryParams = new URLSearchParams();
-      queryParams.append("patient_id", patientId);
-      queryParams.append("date", date);
+      const qp = new URLSearchParams();
+      qp.append("patient_id", patientId);
+      qp.append("date", date);
 
-      const url = `${Labbaseurl}test-values/?${queryParams.toString()}`;
-
+      const url = `${Labbaseurl}test-values/?${qp.toString()}`;
       const response = await apiRequest(url, "GET");
 
       if (!response.success) {
@@ -503,7 +539,6 @@ function DoctorForm() {
 
       setTestValues(processedData);
 
-      // Set patient history from API response if available
       if (processedData.length > 0 && processedData[0].patient_history) {
         setPatientHistory(processedData[0].patient_history);
       }
@@ -517,8 +552,45 @@ function DoctorForm() {
     }
   };
 
-  // Update the handleTestApprove function to include approve_time
+  const formatDateTime = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const seconds = String(d.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const statusKey = (recordIndex, detailIndex) =>
+    `${recordIndex}-${detailIndex}`;
+
+  const handleStatusChange = (recordIndex, detailIndex, value) => {
+    setTestStatusMap((prev) => ({
+      ...prev,
+      [statusKey(recordIndex, detailIndex)]: value,
+    }));
+  };
+
   const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
+    // CHC locations require Normal/Abnormal selection before approving
+    if (isCHC) {
+      const key = statusKey(recordIndex, testIndex);
+      const selectedStatus = testStatusMap[key] || "";
+      if (!selectedStatus) {
+        toast.warning("Please select Normal or Abnormal before approving.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return;
+      }
+    }
+
     try {
       const test = testValues[recordIndex];
       const testDetail = test?.testdetails[testIndex];
@@ -526,29 +598,25 @@ function DoctorForm() {
         throw new Error("Test or test detail not found");
       }
 
-      const formatDateTime = (date) => {
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
-        const seconds = String(d.getSeconds()).padStart(2, "0");
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      };
-
       const approveTime = formatDateTime(new Date());
+
+      // Include status in payload only for CHC locations
+      const payload = {
+        approve: true,
+        approve_by,
+        approve_time: approveTime,
+        barcode: test.barcode,
+        created_date: testDetail.created_date,
+        test_id: testDetail.test_id,
+      };
+      if (isCHC) {
+        payload.status = testStatusMap[statusKey(recordIndex, testIndex)];
+      }
+
       const response = await apiRequest(
         `${Labbaseurl}test-approval/${test.barcode}/approve/`,
         "PATCH",
-        {
-          approve: true,
-          approve_by,
-          approve_time: approveTime,
-          barcode: test.barcode,
-          created_date: testDetail.created_date,
-          test_id: testDetail.test_id,
-        },
+        payload,
       );
 
       if (!response.success) {
@@ -560,28 +628,33 @@ function DoctorForm() {
         (response.data.message.includes("Test approved successfully") ||
           response.data.message.includes("Test detail approved successfully"))
       ) {
-        setTestValues((prevValues) => {
-          return prevValues.map((record, idx) => {
-            if (idx === recordIndex) {
-              return {
-                ...record,
-                testdetails: record.testdetails.map((detail) =>
-                  detail.test_id === testDetail.test_id
-                    ? {
-                        ...detail,
-                        approve: true,
-                        approve_by,
-                        approve_time: approveTime,
-                      }
-                    : detail,
-                ),
-              };
-            }
-            return record;
-          });
-        });
+        setTestValues((prevValues) =>
+          prevValues.map((record, idx) => {
+            if (idx !== recordIndex) return record;
+            return {
+              ...record,
+              testdetails: record.testdetails.map((detail) =>
+                detail.test_id === testDetail.test_id
+                  ? {
+                      ...detail,
+                      approve: true,
+                      approve_by,
+                      approve_time: approveTime,
+                      ...(isCHC && {
+                        status:
+                          testStatusMap[statusKey(recordIndex, testIndex)],
+                      }),
+                    }
+                  : detail,
+              ),
+            };
+          }),
+        );
 
-        toast.success("Test approved successfully!", {
+        const statusLabel = isCHC
+          ? ` as ${testStatusMap[statusKey(recordIndex, testIndex)]}`
+          : "";
+        toast.success(`Test approved successfully${statusLabel}!`, {
           position: "top-right",
           autoClose: 2000,
           hideProgressBar: false,
@@ -615,7 +688,6 @@ function DoctorForm() {
     }
   };
 
-  // Replace the handleTestRerun function
   const handleTestRerun = async (recordIndex, testIndex) => {
     try {
       const test = testValues[recordIndex];
@@ -624,19 +696,8 @@ function DoctorForm() {
         throw new Error("Test detail not found");
       }
       const rerun_by = localStorage.getItem("name");
-
-      const formatDateTime = (date) => {
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
-        const seconds = String(d.getSeconds()).padStart(2, "0");
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      };
-
       const rerunTime = formatDateTime(new Date());
+
       const response = await apiRequest(
         `${Labbaseurl}test-rerun/${test.barcode}/rerun/`,
         "PATCH",
@@ -654,26 +715,19 @@ function DoctorForm() {
         throw new Error(response.error || "Failed to initiate rerun");
       }
 
-      setTestValues((prevValues) => {
-        return prevValues.map((record, idx) => {
-          if (idx === recordIndex) {
-            return {
-              ...record,
-              testdetails: record.testdetails.map((detail) =>
-                detail.test_id === testDetail.test_id
-                  ? {
-                      ...detail,
-                      rerun: true,
-                      rerun_by,
-                      rerun_time: rerunTime,
-                    }
-                  : detail,
-              ),
-            };
-          }
-          return record;
-        });
-      });
+      setTestValues((prevValues) =>
+        prevValues.map((record, idx) => {
+          if (idx !== recordIndex) return record;
+          return {
+            ...record,
+            testdetails: record.testdetails.map((detail) =>
+              detail.test_id === testDetail.test_id
+                ? { ...detail, rerun: true, rerun_by, rerun_time: rerunTime }
+                : detail,
+            ),
+          };
+        }),
+      );
 
       toast.success("Test rerun initiated successfully!", {
         position: "top-right",
@@ -698,7 +752,6 @@ function DoctorForm() {
 
   const getStatusBadge = (value, referenceRange) => {
     if (!value || !referenceRange) return null;
-
     const numericValue = parseFloat(value);
     if (isNaN(numericValue)) return null;
 
@@ -712,7 +765,6 @@ function DoctorForm() {
       !isNaN(rangeParts[1])
     ) {
       const [min, max] = rangeParts;
-
       if (numericValue < min) {
         return (
           <LowBadge>
@@ -730,9 +782,7 @@ function DoctorForm() {
     return null;
   };
 
-  const handleBack = () => {
-    navigate("/PatientList");
-  };
+  const handleBack = () => navigate("/PatientList");
 
   const getRomanNumeral = (num) => {
     const romanNumerals = [
@@ -760,6 +810,47 @@ function DoctorForm() {
     return romanNumerals[num] || (num + 1).toString();
   };
 
+  // Renders Normal/Abnormal radio buttons — only called when isCHC is true
+  const renderStatusRadios = (recordIndex, detailIndex, detail) => {
+    const key = statusKey(recordIndex, detailIndex);
+    const isDisabled = detail.approve || detail.rerun;
+    // When already approved/rerrun show the saved value; otherwise show local selection
+    const current = isDisabled ? detail.status || "" : testStatusMap[key] || "";
+    const showHint = !isDisabled && !current;
+
+    return (
+      <StatusRadioGroup>
+        <RadioLabel value="Normal" disabled={isDisabled}>
+          <input
+            type="radio"
+            name={`status-${key}`}
+            value="Normal"
+            checked={current === "Normal"}
+            onChange={() =>
+              handleStatusChange(recordIndex, detailIndex, "Normal")
+            }
+            disabled={isDisabled}
+          />
+          Normal
+        </RadioLabel>
+        <RadioLabel value="Abnormal" disabled={isDisabled}>
+          <input
+            type="radio"
+            name={`status-${key}`}
+            value="Abnormal"
+            checked={current === "Abnormal"}
+            onChange={() =>
+              handleStatusChange(recordIndex, detailIndex, "Abnormal")
+            }
+            disabled={isDisabled}
+          />
+          Abnormal
+        </RadioLabel>
+        {showHint && <RequiredHint>* required</RequiredHint>}
+      </StatusRadioGroup>
+    );
+  };
+
   const generateTableRows = () => {
     const rows = [];
     let testNumber = 1;
@@ -767,6 +858,7 @@ function DoctorForm() {
     testValues.forEach((test, recordIndex) => {
       test.testdetails.forEach((detail, detailIndex) => {
         if (detail.parameters && detail.parameters.length > 0) {
+          // ── Test header row WITH parameters ──────────────────────────────
           rows.push(
             <TestHeaderRow key={`test-${recordIndex}-${detailIndex}`}>
               <TestTitleCell colSpan="2">
@@ -794,6 +886,10 @@ function DoctorForm() {
               <td></td>
               <td></td>
               <TestRemarksCell>{detail.remarks || "N/A"}</TestRemarksCell>
+              {/* Status radios — CHC only */}
+              {isCHC && (
+                <td>{renderStatusRadios(recordIndex, detailIndex, detail)}</td>
+              )}
               <td>
                 <RerunButton
                   onClick={() => handleTestRerun(recordIndex, detailIndex)}
@@ -819,12 +915,11 @@ function DoctorForm() {
             </TestHeaderRow>,
           );
 
+          // ── Parameter sub-rows ────────────────────────────────────────────
           const groupedParams = {};
           detail.parameters.forEach((param) => {
             const subtitle = param.sub_title || "Other";
-            if (!groupedParams[subtitle]) {
-              groupedParams[subtitle] = [];
-            }
+            if (!groupedParams[subtitle]) groupedParams[subtitle] = [];
             groupedParams[subtitle].push(param);
           });
 
@@ -837,7 +932,8 @@ function DoctorForm() {
                 >
                   <td></td>
                   <SubTitleCell colSpan="7">{subtitle}</SubTitleCell>
-                  <td></td>
+                  {/* Pad with an extra empty cell when CHC adds the Status column */}
+                  <td colSpan={isCHC ? 4 : 3}></td>
                 </SubTitleRow>,
               );
             }
@@ -881,7 +977,8 @@ function DoctorForm() {
                   </ValueCell>
                   <td>{parameter.unit || "N/A"}</td>
                   <td>{parameter.reference_range || "N/A"}</td>
-                  <td colSpan="3"></td>
+                  {/* Pad trailing cells to match header column count */}
+                  <td colSpan={isCHC ? 4 : 3}></td>
                 </ParameterRow>,
               );
               paramCounter++;
@@ -890,6 +987,7 @@ function DoctorForm() {
 
           testNumber++;
         } else {
+          // ── Test header row WITHOUT parameters ────────────────────────────
           rows.push(
             <TestHeaderRow key={`test-no-params-${recordIndex}-${detailIndex}`}>
               <TestTitleCellMerged colSpan="2">
@@ -929,6 +1027,10 @@ function DoctorForm() {
               <td>{detail.unit || "N/A"}</td>
               <td>{detail.reference_range || "N/A"}</td>
               <TestRemarksCell>{detail.remarks || "N/A"}</TestRemarksCell>
+              {/* Status radios — CHC only */}
+              {isCHC && (
+                <td>{renderStatusRadios(recordIndex, detailIndex, detail)}</td>
+              )}
               <td>
                 <RerunButton
                   onClick={() => handleTestRerun(recordIndex, detailIndex)}
@@ -1008,6 +1110,9 @@ function DoctorForm() {
             <InfoItem>
               <span>Age:</span> {testValues[0].age || "N/A"}
             </InfoItem>
+            <InfoItem>
+              <span>Location:</span> {testValues[0].locationId || "N/A"}
+            </InfoItem>
           </>
         )}
       </PatientInfo>
@@ -1045,6 +1150,8 @@ function DoctorForm() {
               <th>Unit</th>
               <th>Reference Range</th>
               <th>Remarks</th>
+              {/* Status column header — only for CHC locations */}
+              {isCHC && <th>Status</th>}
               <th>Rerun</th>
               <th>Approve</th>
             </tr>
@@ -1054,7 +1161,7 @@ function DoctorForm() {
               generateTableRows()
             ) : (
               <tr>
-                <NoData colSpan="9">
+                <NoData colSpan={isCHC ? 12 : 11}>
                   No test data available for the selected patient and date.
                 </NoData>
               </tr>
