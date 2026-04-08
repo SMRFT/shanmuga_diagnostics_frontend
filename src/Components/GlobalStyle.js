@@ -1,4 +1,4 @@
-import styled, { createGlobalStyle, keyframes } from "styled-components"
+import styled, { createGlobalStyle, keyframes } from "styled-components";
 
 // Animations
 export const fadeIn = keyframes`
@@ -10,7 +10,7 @@ export const fadeIn = keyframes`
     opacity: 1;
     transform: translateY(0);
   }
-`
+`;
 
 export const slideIn = keyframes`
   from {
@@ -21,7 +21,7 @@ export const slideIn = keyframes`
     opacity: 1;
     transform: translateX(0);
   }
-`
+`;
 
 export const pulse = keyframes`
   0%, 100% {
@@ -30,12 +30,12 @@ export const pulse = keyframes`
   50% {
     opacity: 0.5;
   }
-`
+`;
 
 export const spin = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-`
+`;
 
 export const float = keyframes`
   0%, 100% {
@@ -44,7 +44,7 @@ export const float = keyframes`
   50% {
     transform: translateY(-10px);
   }
-`
+`;
 
 export const shimmer = keyframes`
   0% {
@@ -53,7 +53,7 @@ export const shimmer = keyframes`
   100% {
     background-position: 468px 0;
   }
-`
+`;
 
 // Global Styles
 export const GlobalStyle = createGlobalStyle`
@@ -289,7 +289,7 @@ export const GlobalStyle = createGlobalStyle`
     max-width: 100%;
     height: auto;
   }
-`
+`;
 
 // Common Button Component
 export const Button = styled.button`
@@ -302,26 +302,26 @@ export const Button = styled.button`
   padding: ${(props) => {
     switch (props.size) {
       case "sm":
-        return "var(--space-2) var(--space-4)"
+        return "var(--space-2) var(--space-4)";
       case "lg":
-        return "var(--space-4) var(--space-6)"
+        return "var(--space-4) var(--space-6)";
       case "xl":
-        return "var(--space-5) var(--space-8)"
+        return "var(--space-5) var(--space-8)";
       default:
-        return "var(--space-3) var(--space-5)"
+        return "var(--space-3) var(--space-5)";
     }
   }};
   border-radius: var(--radius-lg);
   font-size: ${(props) => {
     switch (props.size) {
       case "sm":
-        return "var(--text-sm)"
+        return "var(--text-sm)";
       case "lg":
-        return "var(--text-lg)"
+        return "var(--text-lg)";
       case "xl":
-        return "var(--text-xl)"
+        return "var(--text-xl)";
       default:
-        return "var(--text-base)"
+        return "var(--text-base)";
     }
   }};
   font-weight: var(--font-weight-semibold);
@@ -331,13 +331,13 @@ export const Button = styled.button`
   min-height: ${(props) => {
     switch (props.size) {
       case "sm":
-        return "32px"
+        return "32px";
       case "lg":
-        return "48px"
+        return "48px";
       case "xl":
-        return "56px"
+        return "56px";
       default:
-        return "40px"
+        return "40px";
     }
   }};
   overflow: hidden;
@@ -357,7 +357,7 @@ export const Button = styled.button`
             box-shadow: var(--shadow-md);
             transform: translateY(-2px);
           }
-        `
+        `;
       case "outline":
         return `
           background: transparent;
@@ -369,7 +369,7 @@ export const Button = styled.button`
             color: var(--text-inverse);
             transform: translateY(-2px);
           }
-        `
+        `;
       case "ghost":
         return `
           background: transparent;
@@ -379,7 +379,7 @@ export const Button = styled.button`
             background: var(--primary-50);
             transform: translateY(-2px);
           }
-        `
+        `;
       case "danger":
         return `
           background: linear-gradient(135deg, var(--error-500), var(--error-600));
@@ -390,7 +390,7 @@ export const Button = styled.button`
             box-shadow: var(--shadow-lg);
             transform: translateY(-2px);
           }
-        `
+        `;
       case "success":
         return `
           background: linear-gradient(135deg, var(--success-500), var(--success-600));
@@ -401,7 +401,7 @@ export const Button = styled.button`
             box-shadow: var(--shadow-lg);
             transform: translateY(-2px);
           }
-        `
+        `;
       default: // primary
         return `
           background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
@@ -413,7 +413,7 @@ export const Button = styled.button`
             box-shadow: var(--shadow-lg);
             transform: translateY(-2px);
           }
-        `
+        `;
     }
   }}
 
@@ -449,7 +449,7 @@ export const Button = styled.button`
 
   /* Ripple effect */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     left: 50%;
@@ -458,50 +458,56 @@ export const Button = styled.button`
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.5);
     transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
+    transition:
+      width 0.6s,
+      height 0.6s;
   }
 
   &:active::after {
     width: 300px;
     height: 300px;
   }
-`
+`;
 
 // Common Title Component
 export const Title = styled.h2`
   font-size: ${(props) => {
     switch (props.size) {
       case "sm":
-        return "var(--text-xl)"
+        return "var(--text-xl)";
       case "lg":
-        return "var(--text-4xl)"
+        return "var(--text-4xl)";
       case "xl":
-        return "var(--text-5xl)"
+        return "var(--text-5xl)";
       default:
-        return "var(--text-3xl)"
+        return "var(--text-3xl)";
     }
   }};
   font-weight: var(--font-weight-bold);
   text-align: ${(props) => props.align || "center"};
   margin-bottom: ${(props) => props.marginBottom || "var(--space-8)"};
   position: relative;
-  
+
   /* Gradient text */
-  background: ${(props) => props.gradient || "linear-gradient(135deg, var(--primary-600), var(--secondary-500))"};
+  background: ${(props) =>
+    props.gradient ||
+    "linear-gradient(135deg, var(--primary-600), var(--secondary-500))"};
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  
+
   /* Animated underline */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -8px;
     left: 50%;
     transform: translateX(-50%);
     width: ${(props) => props.underlineWidth || "60px"};
     height: 4px;
-    background: ${(props) => props.gradient || "linear-gradient(135deg, var(--primary-600), var(--secondary-500))"};
+    background: ${(props) =>
+      props.gradient ||
+      "linear-gradient(135deg, var(--primary-600), var(--secondary-500))"};
     border-radius: var(--radius-full);
     animation: ${slideIn} 0.6s ease-out;
   }
@@ -514,7 +520,7 @@ export const Title = styled.h2`
       display: none;
     }
   `}
-`
+`;
 
 // Common Input Component
 export const Input = styled.input`
@@ -525,23 +531,23 @@ export const Input = styled.input`
   font-size: var(--text-base);
   background: var(--bg-primary);
   transition: all var(--transition-normal);
-  
+
   &::placeholder {
     color: var(--text-tertiary);
   }
-  
+
   &:focus {
     border-color: var(--border-focus);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
     background: var(--bg-primary);
   }
-  
+
   &:disabled {
     background: var(--bg-secondary);
     cursor: not-allowed;
     opacity: 0.7;
   }
-  
+
   /* Error state */
   ${(props) =>
     props.error &&
@@ -553,7 +559,7 @@ export const Input = styled.input`
       box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
     }
   `}
-  
+
   /* Success state */
   ${(props) =>
     props.success &&
@@ -565,7 +571,7 @@ export const Input = styled.input`
       box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
     }
   `}
-`
+`;
 
 // Common Select Component
 export const Select = styled.select`
@@ -578,37 +584,42 @@ export const Select = styled.select`
   cursor: pointer;
   transition: all var(--transition-normal);
   appearance: none;
-  
+
   /* Custom arrow */
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   background-position: right var(--space-3) center;
   background-repeat: no-repeat;
   background-size: 16px;
   padding-right: var(--space-10);
-  
+
   &:focus {
     border-color: var(--border-focus);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   }
-  
+
   &:disabled {
     background-color: var(--bg-secondary);
     cursor: not-allowed;
     opacity: 0.7;
   }
-`
+`;
 
 // Common Card Component
 export const Card = styled.div`
-  background: ${(props) => (props.glass ? "var(--glass-bg)" : "var(--bg-primary)")};
-  border: ${(props) => (props.glass ? "1px solid var(--glass-border)" : "1px solid var(--border-light)")};
+  background: ${(props) =>
+    props.glass ? "var(--glass-bg)" : "var(--bg-primary)"};
+  border: ${(props) =>
+    props.glass
+      ? "1px solid var(--glass-border)"
+      : "1px solid var(--border-light)"};
   border-radius: var(--radius-2xl);
   padding: ${(props) => props.padding || "var(--space-8)"};
-  box-shadow: ${(props) => (props.glass ? "var(--glass-shadow)" : "var(--shadow-lg)")};
+  box-shadow: ${(props) =>
+    props.glass ? "var(--glass-shadow)" : "var(--shadow-lg)"};
   backdrop-filter: ${(props) => (props.glass ? "blur(10px)" : "none")};
   transition: all var(--transition-normal);
   animation: ${fadeIn} 0.6s ease-out;
-  
+
   &:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-2xl);
@@ -618,7 +629,7 @@ export const Card = styled.div`
     padding: var(--space-6);
     border-radius: var(--radius-xl);
   }
-`
+`;
 
 // Loading Spinner Component
 export const LoadingSpinner = styled.div`
@@ -628,7 +639,7 @@ export const LoadingSpinner = styled.div`
   border-top: 2px solid currentColor;
   border-radius: 50%;
   animation: ${spin} 1s linear infinite;
-`
+`;
 
 // Badge Component
 export const Badge = styled.span`
@@ -639,7 +650,7 @@ export const Badge = styled.span`
   font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-full);
-  
+
   ${(props) => {
     switch (props.variant) {
       case "success":
@@ -647,51 +658,52 @@ export const Badge = styled.span`
           background: var(--success-50);
           color: var(--success-600);
           border: 1px solid var(--success-200);
-        `
+        `;
       case "warning":
         return `
           background: var(--warning-50);
           color: var(--warning-600);
           border: 1px solid var(--warning-200);
-        `
+        `;
       case "error":
         return `
           background: var(--error-50);
           color: var(--error-600);
           border: 1px solid var(--error-200);
-        `
+        `;
       default:
         return `
           background: var(--primary-50);
           color: var(--primary-600);
           border: 1px solid var(--primary-200);
-        `
+        `;
     }
   }}
-`
+`;
 
 // Container Component
 export const Container = styled.div`
   max-width: ${(props) => props.maxWidth || "1400px"};
   margin: 0 auto;
   padding: ${(props) => props.padding || "var(--space-5)"};
-  
+
   @media (max-width: 768px) {
     padding: var(--space-4);
   }
-`
+`;
 
 // Grid Component
 export const Grid = styled.div`
   display: grid;
-  grid-template-columns: ${(props) => props.columns || "repeat(auto-fit, minmax(300px, 1fr))"};
+  grid-template-columns: ${(props) =>
+    props.columns || "repeat(auto-fit, minmax(300px, 1fr))"};
   gap: ${(props) => props.gap || "var(--space-6)"};
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: var(--space-4);
   }
-`
+`;
 
 // Flex Component
 export const Flex = styled.div`
@@ -701,6 +713,6 @@ export const Flex = styled.div`
   flex-direction: ${(props) => props.direction || "row"};
   flex-wrap: ${(props) => props.wrap || "nowrap"};
   gap: ${(props) => props.gap || "0"};
-`
+`;
 
-export default GlobalStyle
+export default GlobalStyle;
