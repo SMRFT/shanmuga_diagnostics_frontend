@@ -174,4 +174,3 @@ function getUserRole(allowedActions) {
     redirectToLogin();
   }
 })();
-
