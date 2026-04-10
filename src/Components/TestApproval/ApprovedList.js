@@ -13,6 +13,7 @@ import {
   Filter,
   AlertTriangle,
   Printer,
+  Edit2,
 } from "lucide-react";
 import { format } from "date-fns";
 import JsBarcode from "jsbarcode";
@@ -218,10 +219,6 @@ const Select = styled.select`
     box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
   }
 `;
-
-/* ── KEY FIX: removed rotateX(180deg) from both container and table,
-   added overflow-y: auto so the container itself scrolls vertically.
-   This allows position: sticky on thead to work correctly. ── */
 const TableContainer = styled.div`
   overflow-x: auto;
   overflow-y: auto;
@@ -243,11 +240,8 @@ const Table = styled.table`
   border-collapse: collapse;
   min-width: 1000px;
 `;
-
-/* ── background-color must be on each th individually (not just thead)
-   and box-shadow replaces the bottom border because border-collapse
-   eats real borders on sticky cells. ── */
 const TableHead = styled.thead`
+  background-color: var(--gray-light);
   position: sticky;
   top: 0;
   z-index: 5;
@@ -423,6 +417,75 @@ const PaginationInfo = styled.div`
   font-size: 0.765rem;
   color: var(--gray);
 `;
+const HistorySectionCard = styled.div`
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  margin-top: 2rem;
+`;
+const HistorySectionHeader = styled.div`
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+const HistorySectionTitle = styled.h2`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+`;
+const EditCountBadge = styled.span`
+  background-color: rgba(67, 97, 238, 0.12);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+`;
+const HistoryTableContainer = styled.div`
+  overflow-x: auto;
+`;
+const HistoryEntryBlock = styled.div`
+  background-color: #fffbf0;
+  border-left: 3px solid var(--warning);
+  border-radius: 0 4px 4px 0;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.765rem;
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+const HistoryMetaRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  color: var(--gray);
+  margin-bottom: 0.2rem;
+  b {
+    color: var(--dark);
+    font-weight: 500;
+  }
+`;
+const OldVal = styled.span`
+  color: var(--danger);
+  text-decoration: line-through;
+`;
+const NewVal = styled.span`
+  color: #2d8a4e;
+  font-weight: 600;
+`;
+const ReasonText = styled.div`
+  color: var(--gray);
+  font-style: italic;
+  font-size: 0.75rem;
+`;
 
 // ===== Helpers =====
 const formatYmd = (d) => {
@@ -441,7 +504,7 @@ const parseYmd = (s) => {
 };
 
 // ===== Component =====
-function PatientList() {
+function ApprovedList() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -458,6 +521,7 @@ function PatientList() {
       return today;
     }
   }, [today]);
+
   const initialTo = useMemo(() => {
     try {
       return parseYmd(sessionStorage.getItem("patient_to")) || today;
@@ -516,7 +580,7 @@ function PatientList() {
     if (emergency && emergency !== "all")
       queryParams.append("emergency", emergency);
     const queryString = queryParams.toString();
-    const url = `${Labbaseurl}test-values/${queryString ? `?${queryString}` : ""}`;
+    const url = `${Labbaseurl}test-approved-values/${queryString ? `?${queryString}` : ""}`;
     try {
       const patientResponse = await apiRequest(url, "GET");
       if (!patientResponse.success)
@@ -544,6 +608,7 @@ function PatientList() {
     fetchPatientData(fromDate, toDate, emergencyFilter);
     setCurrentPage(1);
   };
+
   const handleClearFilter = () => {
     setFromDate(today);
     setToDate(today);
@@ -564,7 +629,7 @@ function PatientList() {
     const day = String(date.getDate()).padStart(2, "0");
     const formattedDate = `${year}-${month}-${day}`;
     navigate(
-      `/DoctorForm?patient_id=${patient.patient_id}&date=${formattedDate}`,
+      `/EditForm?patient_id=${patient.patient_id}&date=${formattedDate}`,
       {
         state: {
           patientHistory: patient.patient_history || "",
@@ -584,603 +649,6 @@ function PatientList() {
         },
       },
     );
-  };
-
-  // ===== handlePrint — uses already-fetched grouped patient object =====
-  const handlePrint = (patient) => {
-    if (!patient) return;
-    setPrintingBarcode(patient.barcode);
-
-    try {
-      if (!patient.testdetails || patient.testdetails.length === 0) {
-        toast.error("No test details found for this patient.");
-        setPrintingBarcode(null);
-        return;
-      }
-
-      // ── Unicode helpers ──
-      const unicodeMap = {
-        μ: "µ",
-        α: "α",
-        β: "β",
-        γ: "γ",
-        δ: "δ",
-        Ω: "Ω",
-        "²": "²",
-        "³": "³",
-        "⁴": "⁴",
-        "°": "°",
-        "±": "±",
-        "×": "x",
-        "÷": "/",
-        "\\u03bc": "µ",
-        "\\u00b5": "µ",
-        "\\u00b0": "°",
-        "\\u00b1": "±",
-        "\\u00b2": "²",
-        "\\u00b3": "³",
-      };
-      const processUnicodeText = (text) => {
-        if (!text) return "";
-        let t = String(text);
-        t = t.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
-          const char = String.fromCharCode(parseInt(hex, 16));
-          return unicodeMap[char] || char;
-        });
-        Object.keys(unicodeMap).forEach((u) => {
-          t = t.replace(new RegExp(u, "g"), unicodeMap[u]);
-        });
-        return t;
-      };
-
-      const departmentOrder = [
-        "Haematology",
-        "Coagulation",
-        "Biochemistry",
-        "Immunology",
-        "Immunoassay",
-        "Serology",
-        "Clinical Pathology",
-        "Clinical Chemistry",
-        "Cytology",
-        "Genetics",
-        "Histopathology",
-        "Immunohistochemistry",
-        "Microbiology",
-        "Molecular Biology",
-      ];
-
-      // ── Barcode image ──
-      const patientRefNoNumber = patient.barcode || "N/A";
-      let barcodeImage = null;
-      if (patientRefNoNumber !== "N/A") {
-        try {
-          const barcodeCanvas = document.createElement("canvas");
-          JsBarcode(barcodeCanvas, patientRefNoNumber, {
-            format: "CODE128",
-            lineColor: "#000",
-            width: 1.5,
-            height: 10,
-            displayValue: false,
-            margin: 0,
-          });
-          barcodeImage = barcodeCanvas.toDataURL("image/png");
-        } catch (e) {
-          console.warn("Barcode generation failed:", e);
-        }
-      }
-
-      // ── PDF layout ──
-      const leftMargin = 10;
-      const rightMargin = leftMargin + 190;
-      const contentWidth = rightMargin - leftMargin;
-      const headerHeight = 30;
-      const footerHeight = 20;
-      const contentYStart = headerHeight + 20;
-      const tableHeaderHeight = 10;
-      const colWidths = [
-        contentWidth * 0.28,
-        contentWidth * 0.12,
-        contentWidth * 0.05,
-        contentWidth * 0.13,
-        contentWidth * 0.1,
-        contentWidth * 0.17,
-        contentWidth * 0.15,
-      ];
-
-      const ageLabel = [
-        patient.age != null ? String(patient.age) : "",
-        patient.age_type ? patient.age_type : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      const genderLabel = patient.gender ? String(patient.gender) : "";
-      const ageGenderVal =
-        ageLabel && genderLabel
-          ? `${ageLabel} / ${genderLabel}`
-          : ageLabel || genderLabel || "N/A";
-
-      const leftDetails = [
-        { label: "UHID", value: patient.patient_id || "" },
-        { label: "Name", value: patient.patientname || "" },
-        { label: "Age/Gender", value: ageGenderVal },
-        ...(patient.ref_doctor
-          ? [{ label: "Referral", value: patient.ref_doctor }]
-          : []),
-        ...(patient.phone ? [{ label: "Phone", value: patient.phone }] : []),
-      ];
-
-      const verifiedOn = patient.created_date
-        ? (() => {
-            try {
-              return format(
-                new Date(patient.created_date),
-                "dd MMM yy / HH:mm",
-              );
-            } catch {
-              return "N/A";
-            }
-          })()
-        : "N/A";
-
-      const rightDetails = [
-        { label: "Verified On", value: verifiedOn },
-        {
-          label: "Printed Date",
-          value: format(new Date(), "dd MMM yy / HH:mm"),
-        },
-        { label: "Ref.No", value: patientRefNoNumber },
-      ];
-
-      // ── jsPDF helpers ──
-      const doc = new jsPDF();
-      let pageCount = 1;
-      let isTableStarted = false;
-      const centerX = leftMargin + contentWidth / 2;
-
-      const wrapLines = (text, maxWidth) => {
-        if (!text) return [];
-        return doc.splitTextToSize(String(text), maxWidth);
-      };
-      const renderWrapped = (text, maxWidth, x, y, lh = 4) => {
-        if (!text) return 0;
-        const lines = wrapLines(text, maxWidth);
-        lines.forEach((l, i) => doc.text(l, x, y + i * lh));
-        return lines.length * lh;
-      };
-      const renderUnicode = (text, x, y) => {
-        const processed = processUnicodeText(text);
-        if (processed.includes("µ")) {
-          const parts = processed.split("µ");
-          let cx = x;
-          parts.forEach((part, i) => {
-            if (i > 0) {
-              doc.text("µ", cx, y);
-              cx += doc.getTextWidth("µ");
-            }
-            if (part) {
-              doc.text(part, cx, y);
-              cx += doc.getTextWidth(part);
-            }
-          });
-        } else {
-          doc.text(processed, x, y);
-        }
-      };
-      const calcMaxLabelWidth = (details) => {
-        const tmp = new jsPDF();
-        return Math.max(...details.map((d) => tmp.getTextWidth(d.label)));
-      };
-
-      const addPatientInfo = (yPos) => {
-        const leftMaxLW = calcMaxLabelWidth(leftDetails);
-        const rightMaxLW = calcMaxLabelWidth(rightDetails);
-        const cp = (leftMargin + rightMargin) / 2;
-        const lLabelX = leftMargin;
-        const lColonX = lLabelX + leftMaxLW + 2;
-        const lValueX = lColonX + 3;
-        const rLabelX = cp + 28;
-        const rColonX = rLabelX + rightMaxLW + 2;
-        const rValueX = rColonX + 1;
-
-        doc.setFontSize(10);
-        let iy = yPos;
-        const maxLen = Math.max(leftDetails.length, rightDetails.length);
-
-        for (let i = 0; i < maxLen; i++) {
-          const left = leftDetails[i];
-          const right = rightDetails[i];
-          let leftRowH = 5;
-
-          if (left) {
-            doc.setFont("helvetica", "bold");
-            doc.text(left.label, lLabelX, iy);
-            doc.text(":", lColonX, iy);
-            doc.setFont("helvetica", "normal");
-            const maxW = cp + 25 - lValueX;
-            const lines = wrapLines(left.value, maxW);
-            lines.forEach((line, li) => doc.text(line, lValueX, iy + li * 4));
-            leftRowH = lines.length * 4;
-          }
-
-          if (right) {
-            doc.setFont("helvetica", "bold");
-            doc.text(right.label, rLabelX, iy);
-            doc.text(":", rColonX, iy);
-            doc.setFont("helvetica", "normal");
-            doc.text(String(right.value), rValueX, iy);
-            if (right.label === "Ref.No" && barcodeImage) {
-              doc.addImage(
-                barcodeImage,
-                "PNG",
-                rValueX + doc.getTextWidth(String(right.value)) - 18,
-                iy + 4,
-                25,
-                10,
-              );
-            }
-          }
-
-          iy += Math.max(leftRowH, 5);
-        }
-        return iy;
-      };
-
-      const addHeaderFooter = () => {
-        // Plug in your headerImage / FooterImage here if available
-      };
-
-      const drawTableHeader = (yPos) => {
-        doc.line(leftMargin, yPos, rightMargin, yPos);
-        yPos += 5;
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        const headers = [
-          "Test",
-          "Specimen",
-          "",
-          "Result",
-          "Units",
-          "Reference Value",
-          "Method",
-        ];
-        let xPos = leftMargin;
-        headers.forEach((h, i) => {
-          if (h) doc.text(h, xPos, yPos);
-          xPos += colWidths[i];
-        });
-        yPos += 3;
-        doc.line(leftMargin, yPos, rightMargin, yPos);
-        yPos += 5;
-        return yPos;
-      };
-
-      const addPreliminaryReport = () => {
-        const ph = doc.internal.pageSize.height;
-        const prelimY = ph - footerHeight - 15;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.text("(Preliminary Report)", centerX, prelimY, { align: "center" });
-      };
-
-      const checkNewPage = (yPos, neededHeight) => {
-        const ph = doc.internal.pageSize.height;
-        const footerStart = ph - (footerHeight + 30);
-        if (yPos + neededHeight >= footerStart) {
-          addPreliminaryReport();
-          doc.addPage();
-          pageCount++;
-          addHeaderFooter();
-          let ny = contentYStart;
-          ny = addPatientInfo(ny);
-          ny += 10;
-          if (isTableStarted) ny = drawTableHeader(ny);
-          return ny;
-        }
-        return yPos;
-      };
-
-      const getHighLow = (value, reference) => {
-        if (!value || !reference) return null;
-        const num = Number.parseFloat(value);
-        if (isNaN(num)) return null;
-        if (reference.includes("-")) {
-          const parts = reference.split("-");
-          const min = Number.parseFloat(parts[0]);
-          const max = Number.parseFloat(parts[1]);
-          if (!isNaN(min) && !isNaN(max)) {
-            if (num < min) return "L";
-            if (num > max) return "H";
-          }
-        } else if (reference.includes("<")) {
-          const max = Number.parseFloat(reference.replace("<", ""));
-          if (!isNaN(max) && num > max) return "H";
-        } else if (reference.includes(">")) {
-          const min = Number.parseFloat(reference.replace(">", ""));
-          if (!isNaN(min) && num < min) return "L";
-        }
-        return null;
-      };
-
-      const drawArrow = (x, y, direction) => {
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.5);
-        if (direction === "up") {
-          doc.line(x, y, x + 1, y - 1);
-          doc.line(x + 1, y - 1, x + 2, y);
-          doc.line(x + 1, y - 1, x + 1, y + 2);
-        } else {
-          doc.line(x, y, x + 1, y + 1);
-          doc.line(x + 1, y + 1, x + 2, y);
-          doc.line(x + 1, y + 1, x + 1, y - 2);
-        }
-      };
-
-      const renderRow = (
-        nameText,
-        specimenType,
-        valueText,
-        referenceRange,
-        unitText,
-        methodRaw,
-        yPos,
-        boldName = false,
-      ) => {
-        const methodText = (methodRaw || "").replace(/\bMethod\b/i, "").trim();
-        const lh = 4;
-        const nameLns = wrapLines(nameText, colWidths[0] - 2);
-        const valLns = wrapLines(valueText, colWidths[3] - 2);
-        const refLns = wrapLines(referenceRange || "", colWidths[5] - 2);
-        const methLns = wrapLines(methodText, colWidths[6] - 2);
-        const maxLns = Math.max(
-          nameLns.length,
-          valLns.length,
-          refLns.length,
-          methLns.length,
-          1,
-        );
-        const rowH = maxLns * lh + 2;
-
-        yPos = checkNewPage(yPos, rowH);
-
-        let xPos = leftMargin;
-
-        doc.setFont("helvetica", boldName ? "bold" : "normal");
-        renderWrapped(nameText, colWidths[0] - 2, xPos, yPos, lh);
-        xPos += colWidths[0];
-
-        doc.setFont("helvetica", "normal");
-        doc.text(specimenType || "", xPos, yPos);
-        xPos += colWidths[1];
-
-        xPos += colWidths[2];
-
-        const status = getHighLow(valueText, referenceRange);
-        if (status) {
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(
-            status === "H" ? 255 : 0,
-            0,
-            status === "L" ? 255 : 0,
-          );
-          renderWrapped(valueText, colWidths[3] - 5, xPos, yPos, lh);
-          const vw = doc.getTextWidth(String(valueText));
-          if (vw < colWidths[3] - 5)
-            drawArrow(xPos + vw + 2, yPos - 1, status === "H" ? "up" : "down");
-          doc.setTextColor(0, 0, 0);
-          doc.setFont("helvetica", "normal");
-        } else {
-          renderWrapped(valueText, colWidths[3] - 2, xPos, yPos, lh);
-        }
-        xPos += colWidths[3];
-
-        renderUnicode(unitText || "", xPos, yPos);
-        xPos += colWidths[4];
-
-        renderWrapped(referenceRange || "", colWidths[5] - 2, xPos, yPos, lh);
-        xPos += colWidths[5];
-
-        doc.setTextColor(0, 0, 0);
-        renderWrapped(methodText, colWidths[6] - 2, xPos, yPos, lh);
-
-        return yPos + rowH + 4;
-      };
-
-      // ── Build PDF ──
-      addHeaderFooter();
-      let yPos = addPatientInfo(contentYStart);
-      yPos += 10;
-
-      const testsByDept = patient.testdetails.reduce((acc, test) => {
-        const dept = test.department || "Other";
-        if (!acc[dept]) acc[dept] = [];
-        acc[dept].push(test);
-        return acc;
-      }, {});
-
-      const sortedDepts = Object.keys(testsByDept).sort((a, b) => {
-        const iA = departmentOrder.indexOf(a);
-        const iB = departmentOrder.indexOf(b);
-        if (iA !== -1 && iB !== -1) return iA - iB;
-        if (iA !== -1) return -1;
-        if (iB !== -1) return 1;
-        return a.localeCompare(b);
-      });
-
-      if (sortedDepts.length > 0) {
-        isTableStarted = true;
-        yPos = checkNewPage(yPos, tableHeaderHeight);
-        yPos = drawTableHeader(yPos);
-
-        sortedDepts.forEach((dept) => {
-          const tests = testsByDept[dept];
-
-          const verifiedBySet = new Set();
-          tests.forEach((t) => {
-            if (t.verified_by?.trim()) verifiedBySet.add(t.verified_by.trim());
-          });
-          const hasMultipleVerifiers = verifiedBySet.size > 1;
-
-          tests.forEach((test, testIndex) => {
-            if (testIndex === 0) {
-              yPos = checkNewPage(yPos, 15);
-              doc.setFont("helvetica", "bold");
-              doc.setFontSize(10);
-              const deptLabel = dept.toUpperCase();
-              const tw = doc.getTextWidth(deptLabel);
-              doc.text(deptLabel, centerX, yPos, { align: "center" });
-              doc.line(centerX - tw / 2, yPos + 2, centerX + tw / 2, yPos + 2);
-              yPos += 10;
-            }
-
-            const testName = test.test_name || "";
-            const hasParams = test.parameters && test.parameters.length > 0;
-
-            yPos = checkNewPage(yPos, 20);
-            doc.setFontSize(10);
-
-            if (hasParams) {
-              yPos = renderRow(testName, "", "", "", "", "", yPos, true);
-            } else {
-              yPos = renderRow(
-                testName,
-                test.specimen_type || "",
-                test.value || "",
-                test.reference_range || "",
-                test.unit || "",
-                test.method || "",
-                yPos,
-                true,
-              );
-            }
-
-            if (test.outsourced === true) {
-              doc.setFont("helvetica", "italic");
-              doc.setFontSize(8);
-              doc.text("(Outsourced)", leftMargin, yPos);
-              yPos += 4;
-            }
-
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-
-            if (hasParams) {
-              const paramsBySubtitle = test.parameters.reduce((acc, param) => {
-                const subKey = param.sub_title || "";
-                if (!acc[subKey]) acc[subKey] = [];
-                acc[subKey].push(param);
-                return acc;
-              }, {});
-
-              Object.keys(paramsBySubtitle).forEach((subtitle) => {
-                if (subtitle.trim()) {
-                  yPos = checkNewPage(yPos, 25);
-                  doc.setFont("helvetica", "bold");
-                  doc.setFontSize(9);
-                  doc.text(subtitle, leftMargin, yPos);
-                  yPos += 6;
-                }
-
-                paramsBySubtitle[subtitle].forEach((param) => {
-                  doc.setFontSize(10);
-                  yPos = renderRow(
-                    param.parameter_name || param.name || "",
-                    param.specimen_type || test.specimen_type || "",
-                    param.value || "",
-                    param.reference_range || "",
-                    param.unit || "",
-                    param.method || "",
-                    yPos,
-                    false,
-                  );
-
-                  if (param.comment?.trim()) {
-                    doc.setFont("helvetica", "italic");
-                    doc.setFontSize(8);
-                    const ch = renderWrapped(
-                      `Note: ${param.comment}`,
-                      colWidths[0] +
-                        colWidths[1] +
-                        colWidths[2] +
-                        colWidths[3] -
-                        2,
-                      leftMargin,
-                      yPos,
-                      3.5,
-                    );
-                    yPos += ch + 2;
-                  }
-
-                  doc.setFont("helvetica", "normal");
-                  doc.setFontSize(10);
-                  doc.setTextColor(0, 0, 0);
-                });
-              });
-            }
-
-            if (hasMultipleVerifiers && test.verified_by?.trim()) {
-              doc.setFont("helvetica", "normal");
-              doc.setFontSize(10);
-              doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
-            }
-          });
-
-          if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.text(
-              `Verified by: ${Array.from(verifiedBySet).join(", ")}`,
-              leftMargin,
-              yPos,
-            );
-            yPos += 8;
-          }
-
-          yPos += 4;
-        });
-      }
-
-      isTableStarted = false;
-
-      const ph = doc.internal.pageSize.height;
-      if (yPos + 10 >= ph - (footerHeight + 30)) {
-        addPreliminaryReport();
-        doc.addPage();
-        pageCount++;
-        addHeaderFooter();
-        yPos = addPatientInfo(contentYStart);
-      }
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text("**End of the Report**", centerX, yPos, { align: "center" });
-
-      const finalPageCount = pageCount;
-      for (let i = 1; i <= finalPageCount; i++) {
-        doc.setPage(i);
-        addPreliminaryReport();
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.text(
-          `Page ${i} of ${finalPageCount}`,
-          centerX,
-          doc.internal.pageSize.height - footerHeight - 2,
-          { align: "center" },
-        );
-      }
-
-      const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      window.open(pdfUrl, "_blank");
-    } catch (err) {
-      console.error("Error generating PDF:", err);
-      toast.error("An unexpected error occurred while generating the PDF");
-    } finally {
-      setPrintingBarcode(null);
-    }
   };
 
   const getPriorityBadge = (isEmergency) =>
@@ -1253,6 +721,7 @@ function PatientList() {
     indexOfLastPatient,
   );
   const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
+
   const nextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
@@ -1266,6 +735,181 @@ function PatientList() {
     emergencyFilter !== "all" ||
     locationFilter !== "all";
 
+  // ── Edit History — ALL hooks must be called before any early return ──
+  const editHistoryRows = useMemo(() => {
+    const rows = [];
+    uniquePatients.forEach((patient) => {
+      (patient.testdetails || []).forEach((test) => {
+        const hasParams =
+          Array.isArray(test.parameters) && test.parameters.length > 0;
+        if (hasParams) {
+          test.parameters.forEach((param, pi) => {
+            if (Array.isArray(param.history) && param.history.length > 0) {
+              rows.push({
+                date: patient.date,
+                patientname: patient.patientname,
+                patient_id: patient.patient_id,
+                barcode: patient.barcode,
+                test_name: test.test_name || String(test.test_id),
+                parameter_name: param.parameter_name || `Param ${pi + 1}`,
+                editCount: param.history.length,
+                history: param.history,
+              });
+            }
+          });
+        } else {
+          if (Array.isArray(test.history) && test.history.length > 0) {
+            rows.push({
+              date: patient.date,
+              patientname: patient.patientname,
+              patient_id: patient.patient_id,
+              barcode: patient.barcode,
+              test_name: test.test_name || String(test.test_id),
+              parameter_name: null,
+              editCount: test.history.length,
+              history: test.history,
+            });
+          }
+        }
+      });
+    });
+    return rows;
+  }, [uniquePatients]);
+
+  const totalEditCount = useMemo(
+    () => editHistoryRows.reduce((sum, r) => sum + r.editCount, 0),
+    [editHistoryRows],
+  );
+
+  const handlePrintHistory = () => {
+    const win = window.open("", "_blank");
+    win.document.write(`
+    <html>
+      <head>
+        <title>Edit History Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; font-size: 12px; margin: 2rem; color: #222; }
+          
+          .report-header { text-align: center; margin-bottom: 1.5rem; border-bottom: 2px solid #4361ee; padding-bottom: 1rem; }
+          .report-header h1 { font-size: 18px; color: #3a0ca3; margin: 0 0 4px 0; }
+          .report-header p { color: #555; font-size: 11px; margin: 0; }
+
+          table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+          th { background: #4361ee; color: white; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+          td { border: 1px solid #dee2e6; padding: 8px 10px; vertical-align: top; font-size: 11px; }
+          tr:nth-child(even) td { background-color: #f8f9ff; }
+          tr:nth-child(odd) td { background-color: #ffffff; }
+
+          .patient-name { font-weight: 600; color: #212529; }
+          .patient-id { color: #6c757d; font-size: 10px; margin-top: 2px; }
+
+          .history-block { border-left: 3px solid #f8961e; background: #fffbf0; padding: 5px 8px; margin-bottom: 5px; border-radius: 0 3px 3px 0; }
+          .history-block:last-child { margin-bottom: 0; }
+          
+          .history-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 3px; }
+          .history-meta span { font-size: 10.5px; color: #444; }
+          .history-meta b { color: #222; }
+          
+          .value-change { display: inline-flex; align-items: center; gap: 6px; }
+          .old-val { color: #c0392b; text-decoration: line-through; }
+          .new-val { color: #1a7a3f; font-weight: 600; }
+          .arrow { color: #888; font-size: 12px; }
+
+          .reason { color: #777; font-style: italic; font-size: 10.5px; margin-top: 3px; }
+          .reason::before { content: "Reason: "; font-weight: 600; color: #555; font-style: normal; }
+
+          .edit-badge { background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+
+          .footer { margin-top: 2rem; text-align: right; color: #888; font-size: 10px; border-top: 1px solid #dee2e6; padding-top: 0.5rem; }
+          .sl-col { width: 40px; text-align: center; }
+          .date-col { width: 80px; white-space: nowrap; }
+          .barcode-col { width: 90px; }
+          .edits-col { width: 70px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="report-header">
+          <h1>Edit History Report</h1>
+          <p>Generated on: ${new Date().toLocaleString()}</p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th class="sl-col">Sl.No</th>
+              <th class="date-col">Date</th>
+              <th>Patient</th>
+              <th class="barcode-col">Barcode</th>
+              <th>Test Name</th>
+              <th>Parameter</th>
+              <th class="edits-col">Total Edits</th>
+              <th>Edit History</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${editHistoryRows
+              .map(
+                (row, idx) => `
+              <tr>
+                <td class="sl-col" style="text-align:center;">${idx + 1}</td>
+                <td class="date-col">${row.date ? new Date(row.date).toLocaleDateString() : "—"}</td>
+                <td>
+                  <div class="patient-name">${row.patientname}</div>
+                  <div class="patient-id">${row.patient_id}</div>
+                </td>
+                <td class="barcode-col">${row.barcode}</td>
+                <td>${row.test_name}</td>
+                <td>${row.parameter_name || "—"}</td>
+                <td class="edits-col" style="text-align:center;">
+                  <span class="edit-badge">${row.editCount} edit${row.editCount !== 1 ? "s" : ""}</span>
+                </td>
+                <td>
+                  ${row.history
+                    .map(
+                      (h) => `
+                    <div class="history-block">
+                      <div class="history-meta">
+                        <span><b>By:</b> ${h.edited_by}</span>
+                        <span><b>At:</b> ${h.edited_at}</span>
+                        ${
+                          h.old_value !== undefined || h.new_value !== undefined
+                            ? `
+                          <span class="value-change">
+                            <b>Value:</b>
+                            <span class="old-val">${h.old_value ?? "—"}</span>
+                            <span class="arrow">→</span>
+                            <span class="new-val">${h.new_value ?? "—"}</span>
+                          </span>
+                        `
+                            : ""
+                        }
+                      </div>
+                      ${h.reason ? `<div class="reason">${h.reason}</div>` : ""}
+                    </div>
+                  `,
+                    )
+                    .join("")}
+                </td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          Total Records: ${editHistoryRows.length} &nbsp;|&nbsp;
+          Total Edits: ${totalEditCount}
+        </div>
+      </body>
+    </html>
+  `);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
+
+  // ── Early return AFTER all hooks ──
   if (error) {
     return (
       <Container>
@@ -1295,7 +939,7 @@ function PatientList() {
       <GlobalStyle />
       <Card>
         <Header>
-          <Title>Patient List</Title>
+          <Title>Report List</Title>
           <FiltersContainer>
             <DateRangeContainer>
               <DatePickerWrapper>
@@ -1400,7 +1044,7 @@ function PatientList() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={9}
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Loading patient data...
@@ -1439,29 +1083,18 @@ function PatientList() {
                         )}
                       </TestList>
                     </td>
-
                     <td>
                       <ActionButtonsContainer>
                         <ViewButton onClick={() => handleViewDetails(patient)}>
                           <Eye size={14} /> View
                         </ViewButton>
-                        <PrintButton
-                          onClick={() => handlePrint(patient)}
-                          disabled={printingBarcode === patient.barcode}
-                          title="Print preliminary report"
-                        >
-                          <Printer size={14} />
-                          {printingBarcode === patient.barcode
-                            ? "Printing…"
-                            : "Print"}
-                        </PrintButton>
                       </ActionButtonsContainer>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <NoData colSpan={10}>
+                  <NoData colSpan={9}>
                     No patient data available for the selected criteria.
                   </NoData>
                 </tr>
@@ -1486,6 +1119,7 @@ function PatientList() {
             </PaginationButton>
           </PaginationContainer>
         )}
+
         <div
           style={{
             padding: "1rem 1.5rem",
@@ -1499,8 +1133,117 @@ function PatientList() {
           {filteredPatients.length === 1 ? "entry" : "entries"}
         </div>
       </Card>
+
+      {/* ── Edit History Section ── */}
+      {editHistoryRows.length > 0 && (
+        <HistorySectionCard>
+          <HistorySectionHeader>
+            <HistorySectionTitle>
+              <Edit2 size={16} />
+              Edit History
+              <EditCountBadge>
+                {totalEditCount} edit{totalEditCount !== 1 ? "s" : ""} across{" "}
+                {editHistoryRows.length} record
+                {editHistoryRows.length !== 1 ? "s" : ""}
+              </EditCountBadge>
+            </HistorySectionTitle>
+            <Button
+              onClick={handlePrintHistory}
+              style={{ padding: "0.4rem 1rem", fontSize: "0.82rem" }}
+            >
+              <Printer size={14} /> Print History
+            </Button>
+          </HistorySectionHeader>
+
+          {/* This div is what gets printed — no styled-components wrapper so innerHTML is clean */}
+          <div id="edit-history-print-area">
+            <HistoryTableContainer>
+              <Table style={{ minWidth: "950px" }}>
+                <TableHead>
+                  <tr>
+                    <th>Sl.No</th>
+                    <th>Date</th>
+                    <th>Patient</th>
+                    <th>Barcode</th>
+                    <th>Test Name</th>
+                    <th>Parameter</th>
+                    <th>Total Edits</th>
+                    <th>Edit History</th>
+                  </tr>
+                </TableHead>
+                <TableBody>
+                  {editHistoryRows.map((row, idx) => (
+                    <tr key={idx}>
+                      <td>{idx + 1}</td>
+                      <td>
+                        {row.date
+                          ? new Date(row.date).toLocaleDateString()
+                          : "—"}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>{row.patientname}</div>
+                        <div
+                          style={{ color: "var(--gray)", fontSize: "0.75rem" }}
+                        >
+                          {row.patient_id}
+                        </div>
+                      </td>
+                      <td>{row.barcode}</td>
+                      <td>{row.test_name}</td>
+                      <td style={{ color: "var(--gray)" }}>
+                        {row.parameter_name || "—"}
+                      </td>
+                      <td>
+                        <WaitingBadge>
+                          {row.editCount} edit{row.editCount !== 1 ? "s" : ""}
+                        </WaitingBadge>
+                      </td>
+                      <td>
+                        {row.history.map((h, hi) => (
+                          <HistoryEntryBlock key={hi}>
+                            <HistoryMetaRow>
+                              <span>
+                                <b>By:</b> {h.edited_by}
+                              </span>
+                              <span>
+                                <b>At:</b> {h.edited_at}
+                              </span>
+                              {(h.old_value !== undefined ||
+                                h.new_value !== undefined) && (
+                                <span>
+                                  <OldVal>{h.old_value ?? "—"}</OldVal>
+                                  {" → "}
+                                  <NewVal>{h.new_value ?? "—"}</NewVal>
+                                </span>
+                              )}
+                            </HistoryMetaRow>
+                            {h.reason && <ReasonText>{h.reason}</ReasonText>}
+                          </HistoryEntryBlock>
+                        ))}
+                      </td>
+                    </tr>
+                  ))}
+                </TableBody>
+              </Table>
+            </HistoryTableContainer>
+          </div>
+
+          <div
+            style={{
+              padding: "0.75rem 1.5rem",
+              textAlign: "right",
+              color: "var(--gray)",
+              fontSize: "0.875rem",
+              borderTop: "1px solid var(--gray-light)",
+            }}
+          >
+            Showing {editHistoryRows.length} edited record
+            {editHistoryRows.length !== 1 ? "s" : ""}
+          </div>
+        </HistorySectionCard>
+      )}
     </Container>
   );
 }
 
-export default PatientList;
+export default ApprovedList;

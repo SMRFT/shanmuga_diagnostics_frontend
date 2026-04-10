@@ -750,7 +750,7 @@ const Sidebar = () => {
                   to="/PatientList"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Report Edit
+                  Rerun Sample
                 </SubLink>
                 <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
                   Work List
@@ -952,6 +952,12 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Report Authorization
+                </SubLink>
+                <SubLink
+                  to="/ApprovedList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Report Edit
                 </SubLink>
                 <SubLink
                   to="/MBPatientList"
@@ -1318,7 +1324,10 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              <DropdownHeader isOpen={dropdowns.BillingDetails} onClick={() => toggleDropdown("BillingDetails")}>
+              <DropdownHeader
+                isOpen={dropdowns.BillingDetails}
+                onClick={() => toggleDropdown("BillingDetails")}
+              >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
                     <FaCreditCard />
@@ -1469,6 +1478,12 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Report Authorization
+                </SubLink>
+                <SubLink
+                  to="/ApprovedList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Report Edit
                 </SubLink>
                 <SubLink
                   to="/MBPatientList"
@@ -1669,10 +1684,16 @@ const Sidebar = () => {
                 >
                   Outsourced Samples
                 </SubLink>
-                <SubLink to="/LedgerBalance" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/LedgerBalance"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Ledger Balance
                 </SubLink>
-                <SubLink to="/HomeCollectionReport" onClick={() => setIsSidebarOpen(false)}>
+                <SubLink
+                  to="/HomeCollectionReport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
                   Home Collection Report
                 </SubLink>
               </DropdownContent>
@@ -2135,7 +2156,10 @@ const Sidebar = () => {
                 </IconWrapper>
                 Bill Estimate
               </SidebarNavLink>
-              <SidebarNavLink to="/PreethamPatientOverview" onClick={() => setIsSidebarOpen(false)}>
+              <SidebarNavLink
+                to="/PreethamPatientOverview"
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
