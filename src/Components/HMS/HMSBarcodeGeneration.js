@@ -17,10 +17,11 @@ import {
 
 // Modern styled components
 const PageContainer = styled.div`
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
 `;
+
 
 const PageHeader = styled.div`
   margin-bottom: 2.5rem;
@@ -159,11 +160,28 @@ const ApplyButton = styled.button`
 const TableContainer = styled.div`
   background: white;
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
   margin-top: 1.5rem;
+
+  /* Custom scrollbar for better aesthetics */
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
 `;
+
 
 const StyledTable = styled.table`
   width: 100%;
@@ -327,6 +345,8 @@ const HMSBarcodeGeneration = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [ipopFilter, setIpopFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
 
   const patientsPerPage = 15; // Increased for table layout
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -436,11 +456,18 @@ const HMSBarcodeGeneration = () => {
       );
     }
 
+    if (statusFilter !== "ALL") {
+      filtered = filtered.filter(
+        (patient) => patient.barcode_status === statusFilter
+      );
+    }
+
     setFilteredPatients(filtered);
     setCurrentPage(1);
     setTotalPages(Math.max(1, Math.ceil(filtered.length / patientsPerPage)));
 
-  }, [searchTerm, ipopFilter, allPatients]);
+  }, [searchTerm, ipopFilter, statusFilter, allPatients]);
+
 
 
   // Update displayed patients based on current page
@@ -551,11 +578,28 @@ const HMSBarcodeGeneration = () => {
               fontWeight: 600,
             }}
           >
-            <option value="ALL">All</option>
+            <option value="ALL">All IP/OP</option>
             <option value="IP">IP</option>
             <option value="OP">OP</option>
           </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              padding: "0.75rem 1rem",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              background: "#f8fafc",
+              fontWeight: 600,
+            }}
+          >
+            <option value="ALL">All Status</option>
+            <option value="Generated">Generated</option>
+            <option value="Pending">Pending</option>
+          </select>
         </div>
+
 
 
         <DateRangeContainer>
@@ -599,6 +643,7 @@ const HMSBarcodeGeneration = () => {
           <StyledTable>
             <TableHeader>
               <TableHeaderRow>
+                <TableHeaderCell>S.No</TableHeaderCell>
                 <TableHeaderCell>Date</TableHeaderCell>
                 <TableHeaderCell>Patient ID</TableHeaderCell>
                 <TableHeaderCell>Patient Name</TableHeaderCell>
@@ -606,7 +651,10 @@ const HMSBarcodeGeneration = () => {
                 <TableHeaderCell>Gender</TableHeaderCell>
                 <TableHeaderCell>IP/OP</TableHeaderCell>
                 <TableHeaderCell>Bill No</TableHeaderCell>
+                <TableHeaderCell>Status</TableHeaderCell>
                 <TableHeaderCell>Action</TableHeaderCell>
+
+
               </TableHeaderRow>
             </TableHeader>
             <TableBody>
@@ -616,6 +664,7 @@ const HMSBarcodeGeneration = () => {
                 return (
                   <TableRow key={index} ipop={patient.IPOPType}>
 
+                    <TableCell>{(currentPage - 1) * patientsPerPage + index + 1}</TableCell>
                     <TableCell>{formatDate(patient.date)}</TableCell>
                     <TableCell>{patient.patient_id}</TableCell>
                     <TableCell>
@@ -659,14 +708,32 @@ const HMSBarcodeGeneration = () => {
 
 
                     <TableCell>{patient.bill_no || "-"}</TableCell>
+
+
+                    <TableCell>
+                      <Badge
+                        style={{
+                          backgroundColor: patient.barcode_status === "Generated" ? "#dcfce7" : "#fef3c7",
+                          color: patient.barcode_status === "Generated" ? "#166534" : "#92400e",
+                        }}
+                      >
+                        {patient.barcode_status || "Pending"}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <ActionButton
                         onClick={(e) => handleGenerateBarcode(patient, e)}
+                        style={{
+                          background: patient.barcode_status === "Generated"
+                            ? "linear-gradient(135deg, #10b981, #059669)"
+                            : "linear-gradient(135deg, #667eea, #764ba2)"
+                        }}
                       >
-                        Generate Barcode
+                        {patient.barcode_status === "Generated" ? "View Barcode" : "Generate Barcode"}
                         <ChevronRight size={16} />
                       </ActionButton>
                     </TableCell>
+
                   </TableRow>
                 );
               })}

@@ -991,7 +991,7 @@ const Sidebar = () => {
                 <IconWrapper>
                   <GrOverview />
                 </IconWrapper>
-                Test Count
+                B2B Test Count
               </SidebarNavLink>
 
               <SidebarNavLink
@@ -1002,6 +1002,15 @@ const Sidebar = () => {
                   <GrOverview />
                 </IconWrapper>
                 MIS Report
+              </SidebarNavLink>
+              <SidebarNavLink
+                to="/HMSTestCount"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                HMS Test Count
               </SidebarNavLink>
             </>
           )}
@@ -1661,7 +1670,13 @@ const Sidebar = () => {
                   to="/Testcount"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Test Count
+                  B2B Test Count
+                </SubLink>
+                <SubLink
+                  to="/HMSTestCount"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  HMS Test Count
                 </SubLink>
                 <SubLink
                   to="/OutsourcedSamples"
@@ -1972,7 +1987,7 @@ const Sidebar = () => {
                   to="/Testcount"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Test Count
+                  B2B Test Count
                 </SubLink>
                 <SubLink
                   to="/LedgerBalance"
