@@ -440,7 +440,7 @@ const isWithinNormalRange = (value, referenceRange) => {
   if (ref.includes(":") || ref.includes(",")) return null;
 
   const num = parseFloat(value);
-  if (isNaN(num)) return true; // non-numeric value → skip
+  if (isNaN(num)) return false; // non-numeric value → skip
 
   // Format: "13.0 - 17.5"
   const rangeMatch = ref.match(/^([0-9.]+)\s*-\s*([0-9.]+)$/);
