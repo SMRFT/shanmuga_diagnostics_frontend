@@ -920,16 +920,20 @@ const HMSBarcodeTestDetails = () => {
               <Table>
                 <TableHead>
                   <tr>
+                    <th>S.No</th>
                     <th>Test Name</th>
                     <th>Collection Container</th>
                     <th>Barcode</th>
                   </tr>
+
                 </TableHead>
                 <TableBody>
                   {testDetails.map((test, index) => (
                     <tr key={index}>
+                      <td>{index + 1}</td>
                       <td>{test.testname}</td>
                       <td>{test.collection_container}</td>
+
                       <td>
                         {test.barcode ? (
                           <BarcodeContainer>

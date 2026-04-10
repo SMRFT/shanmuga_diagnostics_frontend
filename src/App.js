@@ -33,6 +33,7 @@ import FranchiseBatchApproval from "./Components/Sample/FranchiseBatchApproval";
 import FranchiseTestSorting from "./Components/Franchise/FranchiseTestSorting";
 import HMSTestSorting from "./Components/HMSReport/HMSTestSorting";
 import HMSPatientOverview from "./Components/HMSReport/HMSPatientOverview";
+import HMSTestCount from "./Components/HMSReport/HMSTestCount";
 import Invoice from "./Components/Finance/Invoice";
 import CashTally from "./Components/Finance/CashTally";
 import LedgerBalance from "./Components/Finance/LedgerBalance";
@@ -500,6 +501,7 @@ function App() {
               path="/HMSPatientOverview"
               element={<HMSPatientOverview />}
             />
+            <Route path="/HMSTestCount" element={<HMSTestCount />} />
             <Route
               path="/PatientOverallReport"
               element={<PatientOverallReport />}
