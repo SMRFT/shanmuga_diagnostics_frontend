@@ -32,7 +32,7 @@ const TrackedPath = ({ points, isLive }) => {
   const polylineRef = useRef(null);
 
   const pathCoordinates = useMemo(() => 
-    points.map(p => ({ lat: parseFloat(p.latitude), lng: parseFloat(p.longitude) })), 
+    points.map(p => ({ lat: parseFloat(p.latitude || p.lat), lng: parseFloat(p.longitude || p.lng) })), 
     [points]
   );
 
@@ -127,7 +127,7 @@ const LogisticsTracking = () => {
 
                   {/* Marker for Current Position */}
                   <Marker
-                    position={{ lat: parseFloat(lastPos.latitude), lng: parseFloat(lastPos.longitude) }}
+                    position={{ lat: parseFloat(lastPos.latitude || lastPos.lat), lng: parseFloat(lastPos.longitude || lastPos.lng) }}
                     onClick={() => setSelectedCollector(collector)}
                     label={{
                       text: collector.sampleCollector,
@@ -143,8 +143,8 @@ const LogisticsTracking = () => {
             {selectedCollector && (
               <InfoWindow
                 position={{
-                  lat: parseFloat(selectedCollector.location_history.slice(-1)[0].latitude),
-                  lng: parseFloat(selectedCollector.location_history.slice(-1)[0].longitude)
+                  lat: parseFloat(selectedCollector.location_history.slice(-1)[0].latitude || selectedCollector.location_history.slice(-1)[0].lat),
+                  lng: parseFloat(selectedCollector.location_history.slice(-1)[0].longitude || selectedCollector.location_history.slice(-1)[0].lng)
                 }}
                 onCloseClick={() => setSelectedCollector(null)}
               >

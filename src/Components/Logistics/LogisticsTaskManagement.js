@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import apiRequest from '../Auth/apiRequest';
 
@@ -641,7 +641,10 @@ const LogisticsTaskManagement = () => {
     startLocation: null,
     distance: null,
   });
-  const [watchId, setWatchId] = useState(null);
+
+  const wakeLockRef = useRef(null);
+  const watchIdRef = useRef(null);
+  const lastPutTimeRef = useRef(0);
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -704,15 +707,20 @@ const LogisticsTaskManagement = () => {
               {
                 sampleCollector: userName,
                 date: today,
-                startTime: startTime.toISOString(),
-                location_history: locationHistory,
+                latitudeStart: latitude,
+                longitudeStart: longitude,
+                startTime: startTime.toISOString()
               },
               null
             );
             setSuccess('Location tracking started!');
             setTimeout(() => setSuccess(''), 3000);
+
+            // Start continuous tracking loop
+            startWatchPosition(userName, today, startTime);
           } catch (err) {
             console.error('Error saving to backend:', err);
+            setError('Failed to contact server');
           }
 
           setActionLoading(prev => ({ ...prev, startLocation: false }));
@@ -755,12 +763,18 @@ const LogisticsTaskManagement = () => {
             timestamp: endTime.toISOString(),
           });
 
-          // Calculate total distance
+          // Calculate total distance fallback
           let totalDistance = 0;
           for (let i = 1; i < locationHistory.length; i++) {
             const prev = locationHistory[i - 1];
             const curr = locationHistory[i];
-            totalDistance += calculateDistance(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
+            const lat1 = prev.latitude || prev.lat;
+            const lng1 = prev.longitude || prev.lng;
+            const lat2 = curr.latitude || curr.lat;
+            const lng2 = curr.longitude || curr.lng;
+            if (lat1 && lng1 && lat2 && lng2) {
+               totalDistance += calculateDistance(lat1, lng1, lat2, lng2);
+            }
           }
 
           sessionStorage.setItem(sessionKey, JSON.stringify(locationHistory));
@@ -774,22 +788,32 @@ const LogisticsTaskManagement = () => {
             distance: totalDistance.toFixed(2),
           }));
 
-          // Save to backend
+          // Clear watch interval and release wake lock
+          if (watchIdRef.current) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current = null;
+          }
+          releaseWakeLock();
+
+          // Save to backend using PUT method
           const userName = localStorage.getItem('name');
           try {
-            await apiRequest(
+            const res = await apiRequest(
               `${Labbaseurl}sample-collector-location/`,
-              'POST',
+              'PUT',
               {
                 sampleCollector: userName,
                 date: today,
-                startTime: sessionStorage.getItem(`location_start_${today}`),
-                endTime: endTime.toISOString(),
-                location_history: locationHistory,
-                distance_travelled: totalDistance.toFixed(2),
+                latitudeEnd: latitude,
+                longitudeEnd: longitude
               },
               null
             );
+            
+            if (res && res.distance) {
+               setLocationTracking(prev => ({ ...prev, distance: res.distance }));
+            }
+            
             setSuccess('Location tracking ended! Distance calculated successfully.');
             setTimeout(() => setSuccess(''), 3000);
           } catch (err) {
@@ -816,10 +840,127 @@ const LogisticsTaskManagement = () => {
     if (storedName) {
       setUserInfo({ name: storedName });
       fetchTasks(storedName);
+      checkActiveTracking(storedName);
     } else {
       setError("User name not found in local storage");
     }
+
+    return () => {
+       if (watchIdRef.current) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+       }
+       releaseWakeLock();
+    };
   }, []);
+
+  const checkActiveTracking = async (userName) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await apiRequest(`${Labbaseurl}sample-collector-location/?sampleCollector=${encodeURIComponent(userName)}&date=${today}`, 'GET');
+      
+      if (response && response.length > 0) {
+        const data = response[0];
+        if (data.isActive) {
+          // Resume tracking
+          const startTime = new Date(data.startTime);
+          setLocationTracking(prev => ({
+            ...prev,
+            isTracking: true,
+            startTime,
+            startLocation: { latitude: parseFloat(data.latitudeStart), longitude: parseFloat(data.longitudeStart) }
+          }));
+          
+          startWatchPosition(userName, today, startTime);
+        } else if (data.endTime) {
+          setLocationTracking({
+            isTracking: false,
+            startTime: new Date(data.startTime),
+            endTime: new Date(data.endTime),
+            distance: data.distance_travelled,
+            startLocation: { latitude: parseFloat(data.latitudeStart), longitude: parseFloat(data.longitudeStart) }
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error checking active tracking status:', err);
+    }
+  };
+
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      }
+    } catch (err) {
+      console.error('Wake Lock error:', err);
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    if (wakeLockRef.current !== null) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      } catch (err) {
+         console.error(err);
+      }
+    }
+  };
+
+  const startWatchPosition = (userName, today, startTimeVal) => {
+    requestWakeLock();
+    lastPutTimeRef.current = 0; // Reset timer
+
+    if (navigator.geolocation) {
+      const id = navigator.geolocation.watchPosition(
+        async (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          
+          // Update session storage
+          const sessionKey = `location_history_${today}`;
+          const locationHistory = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+          
+          // Avoid pushing same location too quickly
+          locationHistory.push({
+            latitude,
+            longitude,
+            timestamp: new Date().toISOString(),
+            accuracy
+          });
+          sessionStorage.setItem(sessionKey, JSON.stringify(locationHistory));
+          if (!sessionStorage.getItem(`location_start_${today}`)) {
+              sessionStorage.setItem(`location_start_${today}`, startTimeVal.toISOString());
+          }
+
+          // Throttle PUT requests to every 10 seconds to reduce server load
+          const now = Date.now();
+          if (now - lastPutTimeRef.current > 10000) {
+            lastPutTimeRef.current = now;
+            try {
+              await apiRequest(
+                `${Labbaseurl}sample-collector-location/`,
+                'PUT',
+                {
+                  sampleCollector: userName,
+                  date: today,
+                  currentLatitude: latitude,
+                  currentLongitude: longitude
+                },
+                null
+              );
+            } catch (err) {
+              console.error('Error sending local updates to backend', err);
+            }
+          }
+        },
+        (err) => {
+          console.error('Geolocation error:', err);
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      );
+      watchIdRef.current = id;
+    }
+  };
 
   const fetchTasks = async (userName) => {
     if (!userName) return;
