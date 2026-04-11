@@ -513,7 +513,7 @@ const calculateDerivedValues = (
     const totalProtein = valuesByTestCode["26"] || 0;
     const albumin = valuesByTestCode["06"] || 0;
     const bilirubinTotal = valuesByTestCode["07"] || 0;
-    const bilirubinDirect = valuesByTestCode["LFT02"] || 0;
+    const bilirubinDirect = valuesByTestCode["24"] || 0;
     const globulinParam = allParams.find((p) => p.test_code === "LFT09");
     if (globulinParam && totalProtein && albumin) {
       const k = `${testname}_${globulinParam.name || globulinParam.test_name}`;
