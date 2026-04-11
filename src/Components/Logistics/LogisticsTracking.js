@@ -71,7 +71,8 @@ const LogisticsTracking = () => {
       setLoading(true);
       const res = await apiRequest(`${BASE_URL}sample-collector-location/`, 'GET', null, { date });
       // Filter out null/invalid entries
-      const validData = (res.results || []).filter(item => item.sampleCollector && item.location_history.length > 0);
+      const dataArray = Array.isArray(res) ? res : (res?.data || res?.results || []);
+      const validData = dataArray.filter(item => item.sampleCollector && item.routePoints && item.routePoints.length > 0);
       setCollectors(validData);
     } catch (err) {
       console.error("Tracking Error:", err);
@@ -116,9 +117,9 @@ const LogisticsTracking = () => {
             disableDefaultUI={false}
           >
             {collectors.map((collector, index) => {
-              const history = collector.location_history;
+              const history = collector.routePoints || [];
               const lastPos = history[history.length - 1];
-              const isLive = !collector.endTime;
+              const isLive = collector.isActive;
 
               return (
                 <React.Fragment key={collector.id || index}>
@@ -143,15 +144,15 @@ const LogisticsTracking = () => {
             {selectedCollector && (
               <InfoWindow
                 position={{
-                  lat: parseFloat(selectedCollector.location_history.slice(-1)[0].latitude || selectedCollector.location_history.slice(-1)[0].lat),
-                  lng: parseFloat(selectedCollector.location_history.slice(-1)[0].longitude || selectedCollector.location_history.slice(-1)[0].lng)
+                  lat: parseFloat(selectedCollector.routePoints.slice(-1)[0].latitude || selectedCollector.routePoints.slice(-1)[0].lat),
+                  lng: parseFloat(selectedCollector.routePoints.slice(-1)[0].longitude || selectedCollector.routePoints.slice(-1)[0].lng)
                 }}
                 onCloseClick={() => setSelectedCollector(null)}
               >
                 <div style={{ color: '#333' }}>
                   <h4 style={{ margin: '0 0 5px 0' }}>{selectedCollector.sampleCollector}</h4>
                   <p style={{ fontSize: '12px', margin: '2px 0' }}>
-                    <b>Status:</b> {selectedCollector.endTime ? '✅ Completed' : '🔴 Live'}
+                    <b>Status:</b> {selectedCollector.isActive ? '🔴 Live' : '✅ Completed'}
                   </p>
                   <p style={{ fontSize: '12px', margin: '2px 0' }}>
                     <b>Distance:</b> {selectedCollector.distance_travelled || 'Calculating...'} km
@@ -183,8 +184,8 @@ const LogisticsTracking = () => {
                 >
                   <div>
                     <div style={{ fontWeight: '600', fontSize: '14px' }}>{c.sampleCollector}</div>
-                    <div style={{ fontSize: '11px', color: c.endTime ? '#777' : '#22c55e' }}>
-                      {c.endTime ? 'Shift Ended' : 'Currently Tracking'}
+                    <div style={{ fontSize: '11px', color: c.isActive ? '#22c55e' : '#777' }}>
+                      {c.isActive ? 'Currently Tracking' : 'Shift Ended'}
                     </div>
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 'bold' }}>

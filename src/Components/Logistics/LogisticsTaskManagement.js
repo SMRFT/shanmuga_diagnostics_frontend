@@ -627,6 +627,7 @@ const LogisticsTaskManagement = () => {
   const [actionLoading, setActionLoading] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isCheckingLocation, setIsCheckingLocation] = useState(true);
   
   // Modal states
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -855,6 +856,7 @@ const LogisticsTaskManagement = () => {
 
   const checkActiveTracking = async (userName) => {
     try {
+      setIsCheckingLocation(true);
       const today = new Date().toISOString().split('T')[0];
       const response = await apiRequest(`${Labbaseurl}sample-collector-location/?sampleCollector=${encodeURIComponent(userName)}&date=${today}`, 'GET');
       
@@ -883,6 +885,8 @@ const LogisticsTaskManagement = () => {
       }
     } catch (err) {
       console.error('Error checking active tracking status:', err);
+    } finally {
+      setIsCheckingLocation(false);
     }
   };
 
@@ -1249,27 +1253,31 @@ const LogisticsTaskManagement = () => {
                 <UserName>{userInfo.name}</UserName>
               </UserInfoContent>
               <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <LocationTrackingButton
-                  onClick={handleStartLocation}
-                  disabled={locationTracking.isTracking || actionLoading.startLocation}
-                >
-                  {actionLoading.startLocation ? (
-                    <LoadingSpinner />
-                  ) : (
-                    '📍 Start Location'
-                  )}
-                </LocationTrackingButton>
-                <LocationTrackingButton
-                  onClick={handleEndLocation}
-                  disabled={!locationTracking.isTracking || actionLoading.endLocation}
-                  style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}
-                >
-                  {actionLoading.endLocation ? (
-                    <LoadingSpinner />
-                  ) : (
-                    '🏁 End Location'
-                  )}
-                </LocationTrackingButton>
+                {!locationTracking.isTracking && (
+                  <LocationTrackingButton
+                    onClick={handleStartLocation}
+                    disabled={isCheckingLocation || actionLoading.startLocation}
+                  >
+                    {isCheckingLocation || actionLoading.startLocation ? (
+                      <LoadingSpinner />
+                    ) : (
+                      '📍 Start Location'
+                    )}
+                  </LocationTrackingButton>
+                )}
+                {locationTracking.isTracking && (
+                  <LocationTrackingButton
+                    onClick={handleEndLocation}
+                    disabled={actionLoading.endLocation}
+                    style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}
+                  >
+                    {actionLoading.endLocation ? (
+                      <LoadingSpinner />
+                    ) : (
+                      '🏁 End Location'
+                    )}
+                  </LocationTrackingButton>
+                )}
               </div>
               {locationTracking.isTracking && (
                 <LocationStatusContainer>
