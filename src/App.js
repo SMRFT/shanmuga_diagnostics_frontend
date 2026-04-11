@@ -91,6 +91,8 @@ import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 import LogisticsTracking from "./Components/Logistics/LogisticsTracking";
 import PreethamHospitalLedger from "./Components/PreethamHospital/PreethamLedgerBalance";
 import WorkList from "./Components/Test/WorkList";
+import ApprovedList from "./Components/TestApproval/ApprovedList";
+import EditForm from "./Components/TestApproval/EditForm";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -398,6 +400,8 @@ function App() {
             {/* Test Approval */}
             <Route path="/PatientList" element={<PatientList />} />
             <Route path="/DoctorForm" element={<DoctorForm />} />
+            <Route path="/ApprovedList" element={<ApprovedList />} />
+            <Route path="/EditForm" element={<EditForm />} />
             <Route path="/MBPatientList" element={<MBPatientList />} />
             <Route path="/MBDoctorForm" element={<MBDoctorForm />} />
 

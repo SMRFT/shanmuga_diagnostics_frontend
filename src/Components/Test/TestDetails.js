@@ -322,6 +322,27 @@ const SelectIcon = styled(ChevronDown)`
   color: var(--gray);
 `;
 
+const MultiSelect = styled.select`
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+  background-color: white;
+  cursor: pointer;
+  min-height: 100px;
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+  }
+  &:disabled {
+    background-color: var(--gray-light);
+    cursor: not-allowed;
+  }
+`;
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const ALL_CALCULATED_FIELDS = [
@@ -419,7 +440,7 @@ const isWithinNormalRange = (value, referenceRange) => {
   if (ref.includes(":") || ref.includes(",")) return null;
 
   const num = parseFloat(value);
-  if (isNaN(num)) return true; // non-numeric value → skip
+  if (isNaN(num)) return false; // non-numeric value → skip
 
   // Format: "13.0 - 17.5"
   const rangeMatch = ref.match(/^([0-9.]+)\s*-\s*([0-9.]+)$/);
@@ -571,6 +592,179 @@ const calculateDerivedValues = (
   }
 
   return newValues;
+};
+
+const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef(null);
+
+  const selected = value
+    ? value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+    : [];
+
+  const toggleOption = (option) => {
+    const updated = selected.includes(option)
+      ? selected.filter((s) => s !== option)
+      : [...selected, option];
+    onChange(updated.join(", "));
+  };
+
+  const removeOption = (option) => {
+    const updated = selected.filter((s) => s !== option);
+    onChange(updated.join(", "));
+  };
+
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <div
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        style={{
+          minHeight: "42px",
+          padding: "0.4rem 2rem 0.4rem 0.75rem",
+          border: "1px solid var(--gray-light)",
+          borderRadius: "var(--border-radius)",
+          fontSize: "1rem",
+          backgroundColor: disabled ? "var(--gray-light)" : "white",
+          cursor: disabled ? "not-allowed" : "pointer",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.35rem",
+          alignItems: "center",
+          position: "relative",
+        }}
+      >
+        {selected.length === 0 && (
+          <span style={{ color: "var(--gray)", fontSize: "0.9rem" }}>
+            Select value(s)
+          </span>
+        )}
+        {selected.map((s) => (
+          <span
+            key={s}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.25rem",
+              backgroundColor: "var(--primary)",
+              color: "white",
+              borderRadius: "4px",
+              padding: "0.1rem 0.5rem",
+              fontSize: "0.8rem",
+            }}
+          >
+            {s}
+            {!disabled && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeOption(s);
+                }}
+                style={{
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  marginLeft: "2px",
+                }}
+              >
+                ×
+              </span>
+            )}
+          </span>
+        ))}
+        <ChevronDown
+          size={16}
+          style={{
+            position: "absolute",
+            right: "0.5rem",
+            top: "50%",
+            transform: open
+              ? "translateY(-50%) rotate(180deg)"
+              : "translateY(-50%)",
+            color: "var(--gray)",
+            pointerEvents: "none",
+            transition: "transform 0.2s",
+          }}
+        />
+      </div>
+
+      {open && !disabled && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            backgroundColor: "white",
+            border: "1px solid var(--gray-light)",
+            borderRadius: "var(--border-radius)",
+            zIndex: 999,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+            maxHeight: "200px",
+            overflowY: "auto",
+          }}
+        >
+          {options.map((option) => {
+            const isSelected = selected.includes(option);
+            return (
+              <div
+                key={option}
+                onClick={() => toggleOption(option)}
+                style={{
+                  padding: "0.6rem 0.75rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  backgroundColor: isSelected ? "#eef1fd" : "white",
+                  color: isSelected ? "var(--primary)" : "var(--dark)",
+                  fontWeight: isSelected ? "600" : "400",
+                  fontSize: "0.95rem",
+                  borderBottom: "1px solid var(--gray-light)",
+                }}
+              >
+                <span
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    border: `2px solid ${isSelected ? "var(--primary)" : "var(--gray)"}`,
+                    borderRadius: "3px",
+                    backgroundColor: isSelected ? "var(--primary)" : "white",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {isSelected && (
+                    <span
+                      style={{
+                        color: "white",
+                        fontSize: "11px",
+                        lineHeight: 1,
+                      }}
+                    >
+                      ✓
+                    </span>
+                  )}
+                </span>
+                {option}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -1678,33 +1872,18 @@ function TestDetails() {
                                         )}
                                       </Label>
                                       {hasValueOptions && !disabled ? (
-                                        <SelectWrapper>
-                                          <Select
-                                            value={values[uniqueKey] || ""}
-                                            onChange={(e) =>
-                                              handleParameterValueChange(
-                                                test.testname,
-                                                paramName,
-                                                e,
-                                              )
-                                            }
-                                          >
-                                            <option value="">
-                                              Select value
-                                            </option>
-                                            {param.value_option.map(
-                                              (option, optIndex) => (
-                                                <option
-                                                  key={optIndex}
-                                                  value={option}
-                                                >
-                                                  {option}
-                                                </option>
-                                              ),
-                                            )}
-                                          </Select>
-                                          <SelectIcon size={18} />
-                                        </SelectWrapper>
+                                        <MultiSelectDropdown
+                                          options={param.value_option}
+                                          value={values[uniqueKey] || ""}
+                                          disabled={disabled}
+                                          onChange={(val) =>
+                                            handleParameterValueChange(
+                                              test.testname,
+                                              paramName,
+                                              { target: { value: val } },
+                                            )
+                                          }
+                                        />
                                       ) : (
                                         <Input
                                           type="text"

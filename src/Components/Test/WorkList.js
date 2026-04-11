@@ -883,7 +883,7 @@ const WorkList = () => {
             <Label>UHID / OP Number</Label>
             <Input
               type="text"
-              placeholder="e.g. OP2024001234"
+              placeholder="e.g. S0XX/YYYYYY"
               value={uhid}
               onChange={(e) => setUhid(e.target.value)}
               onKeyDown={handleKeyDown}
