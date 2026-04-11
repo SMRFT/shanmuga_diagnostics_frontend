@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
 import { toast, ToastContainer } from "react-toastify";
@@ -77,7 +77,7 @@ const Header = styled.header`
 `;
 
 const Title = styled.h1`
-  font-size: 0.875rem;
+  font-size: 1.75rem;
   color: var(--dark);
   font-weight: 600;
   @media (max-width: 768px) {
@@ -121,7 +121,7 @@ const HistoryTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.865rem;
+  font-size: 1rem;
   color: var(--primary);
   margin-bottom: 0.75rem;
   font-weight: 600;
@@ -149,7 +149,7 @@ const CommentNote = styled.div`
   background-color: rgba(67, 97, 238, 0.08);
   border-left: 3px solid var(--primary);
   border-radius: 4px;
-  font-size: 0.765rem;
+  font-size: 0.85rem;
   color: var(--secondary);
 `;
 
@@ -175,7 +175,7 @@ const TableContainer = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 900px;
+  min-width: 1000px;
   transform: rotateX(180deg);
 `;
 
@@ -227,7 +227,7 @@ const ParameterRow = styled.tr`
 
 const TestTitleCell = styled.td`
   font-weight: 700 !important;
-  font-size: 0.865rem;
+  font-size: 1.1rem;
   color: var(--primary);
   padding: 1.5rem 1rem !important;
   background-color: rgba(67, 97, 238, 0.1);
@@ -379,6 +379,13 @@ const HistoryBadge = styled.span`
 const ValueCell = styled.td`
   position: relative;
   font-weight: 600 !important;
+  min-width: 140px;
+`;
+
+const CommentCell = styled.td`
+  min-width: 160px;
+  font-size: 0.85rem;
+  color: var(--dark);
 `;
 
 const ValueContainer = styled.div`
@@ -403,9 +410,26 @@ const EditInput = styled.input`
   padding: 0.35rem 0.5rem;
   border: 1.5px solid var(--primary);
   border-radius: 4px;
-  font-size: 0.765rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--dark);
+  outline: none;
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+  }
+`;
+
+const CommentInput = styled.textarea`
+  width: 100%;
+  min-width: 140px;
+  padding: 0.35rem 0.5rem;
+  border: 1.5px solid var(--primary);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: var(--dark);
+  resize: vertical;
+  min-height: 56px;
+  font-family: inherit;
   outline: none;
   &:focus {
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
@@ -416,6 +440,29 @@ const ActionGroup = styled.div`
   display: flex;
   gap: 0.4rem;
   align-items: center;
+`;
+
+const StatusRadioGroup = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+`;
+
+const RadioLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: ${(p) => (p.value === "Normal" ? "#2d8a4e" : "#c0392b")};
+  input[type="radio"] {
+    accent-color: ${(p) => (p.value === "Normal" ? "#2d8a4e" : "#c0392b")};
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
 `;
 
 const SubTitleRow = styled.tr`
@@ -443,29 +490,7 @@ const OutsourcedBadge = styled(StatusBadge)`
   border: 1px solid #d75de0ff;
 `;
 
-const StatusRadioGroup = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.4rem;
-  flex-wrap: wrap;
-`;
-
-const RadioLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  color: ${(p) => (p.value === "Normal" ? "#2d8a4e" : "#c0392b")};
-  input[type="radio"] {
-    accent-color: ${(p) => (p.value === "Normal" ? "#2d8a4e" : "#c0392b")};
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-  }
-`;
-
+// ── Modal ─────────────────────────────────────────────────────────────────────
 const ModalOverlay = styled.div`
   position: fixed;
   inset: 0;
@@ -480,13 +505,13 @@ const ModalBox = styled.div`
   background: white;
   border-radius: 12px;
   padding: 1.75rem;
-  width: 420px;
+  width: 440px;
   max-width: 92vw;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 `;
 
 const ModalTitle = styled.h3`
-  font-size: 0.875rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--dark);
   margin-bottom: 1.25rem;
@@ -511,7 +536,7 @@ const ModalValueBox = styled.div`
   background: #f5f7fb;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 0.765rem;
+  font-size: 0.9rem;
   color: ${(p) => (p.isnew ? "var(--primary)" : "var(--dark)")};
 `;
 
@@ -522,7 +547,7 @@ const ModalTextarea = styled.textarea`
   border-radius: 6px;
   font-size: 0.765rem;
   resize: vertical;
-  min-height: 90px;
+  min-height: 80px;
   font-family: inherit;
   color: var(--dark);
   &:focus {
@@ -545,6 +570,7 @@ const ModalActions = styled.div`
   margin-top: 1.25rem;
 `;
 
+// ── History panel ─────────────────────────────────────────────────────────────
 const HistoryPanel = styled.div`
   margin-top: 0.6rem;
   background: #fffbf0;
@@ -599,16 +625,19 @@ function EditForm() {
   const [error, setError] = useState(null);
   const [patientHistory, setPatientHistory] = useState("");
 
-  // Edit state
+  // Edit state — all keyed by makeKey(ri, di[, pi])
   const [editingKey, setEditingKey] = useState(null);
-  const [editValues, setEditValues] = useState({});
-  const [editStatuses, setEditStatuses] = useState({});
+  const [editValues, setEditValues] = useState({}); // new value
+  const [editStatuses, setEditStatuses] = useState({}); // new status
+  const [editComments, setEditComments] = useState({}); // new comment
+
+  // Reason modal
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [pendingSave, setPendingSave] = useState(null);
   const [editReason, setEditReason] = useState("");
   const [reasonError, setReasonError] = useState(false);
 
-  // History panel toggle: key → boolean
+  // History panel toggle
   const [historyOpen, setHistoryOpen] = useState({});
 
   const approved_by = localStorage.getItem("employeeId");
@@ -620,42 +649,10 @@ function EditForm() {
   const selectedDate = queryParams.get("date");
   const patientId = queryParams.get("patient_id");
 
-  // ── Wrapped in useCallback so it can safely be listed as a useEffect dependency ──
-  const fetchTestData = useCallback(
-    async (date, pid) => {
-      setLoading(true);
-      try {
-        const qp = new URLSearchParams({ patient_id: pid, date });
-        const response = await apiRequest(
-          `${Labbaseurl}test-values/?${qp}`,
-          "GET",
-        );
-        if (!response.success)
-          throw new Error(response.error || "Failed to fetch");
-        const processed = response.data.map((item) => ({
-          ...item,
-          testdetails:
-            typeof item.testdetails === "string"
-              ? JSON.parse(item.testdetails)
-              : item.testdetails,
-        }));
-        setTestValues(processed);
-        if (processed[0]?.patient_history)
-          setPatientHistory(processed[0].patient_history);
-        setError(null);
-      } catch (err) {
-        setError("Failed to load test data. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [Labbaseurl],
-  );
-
   useEffect(() => {
-    if (location.state?.patientHistory) {
+    if (location.state?.patientHistory)
       setPatientHistory(location.state.patientHistory);
-    }
+
     if (location.state?.skipFetch && location.state?.patientData) {
       const pd = location.state.patientData;
       setTestValues([
@@ -673,7 +670,35 @@ function EditForm() {
     } else {
       setLoading(false);
     }
-  }, [location.state, selectedDate, patientId, fetchTestData]);
+  }, [location.state, selectedDate, patientId]);
+
+  const fetchTestData = async (date, pid) => {
+    setLoading(true);
+    try {
+      const qp = new URLSearchParams({ patient_id: pid, date });
+      const response = await apiRequest(
+        `${Labbaseurl}test-values/?${qp}`,
+        "GET",
+      );
+      if (!response.success)
+        throw new Error(response.error || "Failed to fetch");
+      const processed = response.data.map((item) => ({
+        ...item,
+        testdetails:
+          typeof item.testdetails === "string"
+            ? JSON.parse(item.testdetails)
+            : item.testdetails,
+      }));
+      setTestValues(processed);
+      if (processed[0]?.patient_history)
+        setPatientHistory(processed[0].patient_history);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load test data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDateTime = (date) => {
     const d = new Date(date);
@@ -681,20 +706,22 @@ function EditForm() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   };
 
-  // ── Edit helpers ────────────────────────────────────────────────────────────
+  // ── Key helpers ─────────────────────────────────────────────────────────────
   const makeKey = (ri, di, pi = null) =>
     pi !== null ? `${ri}-${di}-${pi}` : `${ri}-${di}`;
 
-  const startEdit = (key, currentValue, currentStatus) => {
+  const startEdit = (key, currentValue, currentStatus, currentComment) => {
     setEditingKey(key);
     setEditValues((p) => ({ ...p, [key]: currentValue ?? "" }));
     setEditStatuses((p) => ({ ...p, [key]: currentStatus ?? "" }));
+    setEditComments((p) => ({ ...p, [key]: currentComment ?? "" }));
   };
 
   const cancelEdit = () => {
     setEditingKey(null);
     setEditValues({});
     setEditStatuses({});
+    setEditComments({});
   };
 
   const promptSave = (
@@ -705,9 +732,18 @@ function EditForm() {
     paramIndex = null,
   ) => {
     const newVal = (editValues[key] ?? "").trim();
-    const newStatus = editStatuses[key] ?? "";
+    const newStatus = (editStatuses[key] ?? "").trim();
+    const newComment = (editComments[key] ?? "").trim();
 
-    if (!newVal && !newStatus) {
+    // Nothing changed — just cancel
+    const record = testValues[recordIndex];
+    const detail = record.testdetails[detailIndex];
+    const source = paramIndex !== null ? detail.parameters[paramIndex] : detail;
+    const valSame = newVal === String(source.value ?? "");
+    const statusSame = newStatus === String(source.status ?? "");
+    const commentSame = newComment === String(source.comment ?? "");
+
+    if (valSame && statusSame && commentSame) {
       cancelEdit();
       return;
     }
@@ -717,6 +753,7 @@ function EditForm() {
       oldVal,
       newVal,
       newStatus,
+      newComment,
       recordIndex,
       detailIndex,
       paramIndex,
@@ -737,6 +774,7 @@ function EditForm() {
       oldVal,
       newVal,
       newStatus,
+      newComment,
       recordIndex,
       detailIndex,
       paramIndex,
@@ -759,6 +797,7 @@ function EditForm() {
       test_id: detail.test_id,
       new_value: newVal || undefined,
       new_status: newStatus || undefined,
+      new_comment: newComment !== undefined ? newComment : undefined,
       history_entry: histEntry,
       param_index: paramIndex,
     };
@@ -772,7 +811,7 @@ function EditForm() {
       if (!response.success)
         throw new Error(response.error || "Failed to save");
 
-      // Optimistic update
+      // Optimistic local update
       setTestValues((prev) =>
         prev.map((record, ri) => {
           if (ri !== recordIndex) return record;
@@ -780,26 +819,22 @@ function EditForm() {
             ...record,
             testdetails: record.testdetails.map((d, di) => {
               if (di !== detailIndex) return d;
+              const applyChanges = (obj) => ({
+                ...obj,
+                ...(newVal && { value: newVal }),
+                ...(newStatus && { status: newStatus }),
+                comment: newComment, // always update comment (can be cleared)
+                history: [histEntry, ...(obj.history || [])],
+              });
               if (paramIndex !== null) {
                 return {
                   ...d,
-                  parameters: d.parameters.map((p, pi) => {
-                    if (pi !== paramIndex) return p;
-                    return {
-                      ...p,
-                      ...(newVal && { value: newVal }),
-                      ...(newStatus && { status: newStatus }),
-                      history: [histEntry, ...(p.history || [])],
-                    };
-                  }),
+                  parameters: d.parameters.map((p, pi) =>
+                    pi === paramIndex ? applyChanges(p) : p,
+                  ),
                 };
               }
-              return {
-                ...d,
-                ...(newVal && { value: newVal }),
-                ...(newStatus && { status: newStatus }),
-                history: [histEntry, ...(d.history || [])],
-              };
+              return applyChanges(d);
             }),
           };
         }),
@@ -905,6 +940,7 @@ function EditForm() {
     return null;
   };
 
+  // ── Value cell (editing: input + radios | view: value + badges) ─────────────
   const renderValueCell = (
     key,
     currentValue,
@@ -954,6 +990,33 @@ function EditForm() {
     );
   };
 
+  // ── Comment cell (editing: textarea | view: text or CommentNote) ─────────────
+  const renderCommentCell = (key, currentComment) => {
+    const isEditing = editingKey === key;
+    if (isEditing) {
+      return (
+        <CommentInput
+          value={editComments[key] ?? currentComment ?? ""}
+          onChange={(e) =>
+            setEditComments((p) => ({ ...p, [key]: e.target.value }))
+          }
+          placeholder="Add a comment..."
+        />
+      );
+    }
+    if (!currentComment)
+      return (
+        <span style={{ color: "var(--gray)", fontSize: "0.8rem" }}>—</span>
+      );
+    return (
+      <CommentNote style={{ margin: 0 }}>
+        <CommentLabel>Note:</CommentLabel>
+        <CommentText>{currentComment}</CommentText>
+      </CommentNote>
+    );
+  };
+
+  // ── Action cell ──────────────────────────────────────────────────────────────
   const renderActionCell = (
     key,
     oldVal,
@@ -975,17 +1038,10 @@ function EditForm() {
     ) : (
       <EditButton
         onClick={() => {
-          const record = testValues[recordIndex];
-          const detail = record.testdetails[detailIndex];
-          const currentStatus =
-            paramIndex !== null
-              ? detail.parameters[paramIndex]?.status
-              : detail.status;
-          const currentValue =
-            paramIndex !== null
-              ? detail.parameters[paramIndex]?.value
-              : detail.value;
-          startEdit(key, currentValue, currentStatus);
+          const rec = testValues[recordIndex];
+          const det = rec.testdetails[detailIndex];
+          const src = paramIndex !== null ? det.parameters[paramIndex] : det;
+          startEdit(key, src.value, src.status, src.comment);
         }}
       >
         <Edit2 size={13} /> Edit
@@ -1031,7 +1087,7 @@ function EditForm() {
         const testKey = makeKey(recordIndex, detailIndex);
 
         if (hasParams) {
-          // ── Header row ────────────────────────────────────────────────────
+          // ── Header row ──────────────────────────────────────────────────
           rows.push(
             <TestHeaderRow key={`test-${recordIndex}-${detailIndex}`}>
               <TestTitleCell colSpan="2">
@@ -1045,15 +1101,10 @@ function EditForm() {
                     )}
                   </strong>
                   {renderHistoryBadge(detail.history, testKey)}
-                  {detail.comment && (
-                    <CommentNote>
-                      <CommentLabel>Note:</CommentLabel>
-                      <CommentText>{detail.comment}</CommentText>
-                    </CommentNote>
-                  )}
                   {renderHistoryPanel(detail.history, testKey)}
                 </div>
               </TestTitleCell>
+              <td />
               <td />
               <td />
               <td />
@@ -1065,7 +1116,7 @@ function EditForm() {
             </TestHeaderRow>,
           );
 
-          // ── Parameter rows ────────────────────────────────────────────────
+          // ── Parameter rows ──────────────────────────────────────────────
           const groups = {};
           detail.parameters.forEach((p) => {
             const sub = p.sub_title || "Other";
@@ -1074,7 +1125,6 @@ function EditForm() {
           });
 
           let pc = 0;
-          // "subtitle" is the group key — "key" renamed to avoid lint warning
           Object.entries(groups).forEach(([subtitle, params]) => {
             if (subtitle && subtitle !== "Other") {
               rows.push(
@@ -1082,7 +1132,7 @@ function EditForm() {
                   key={`sub-${recordIndex}-${detailIndex}-${subtitle}`}
                 >
                   <td />
-                  <SubTitleCell colSpan="7">{subtitle}</SubTitleCell>
+                  <SubTitleCell colSpan="8">{subtitle}</SubTitleCell>
                   <td colSpan="3" />
                 </SubTitleRow>,
               );
@@ -1097,12 +1147,6 @@ function EditForm() {
                     <div>
                       {getRomanNumeral(pc)}. {parameter.parameter_name || "N/A"}
                       {renderHistoryBadge(parameter.history, paramKey)}
-                      {parameter.comment && (
-                        <CommentNote>
-                          <CommentLabel>Note:</CommentLabel>
-                          <CommentText>{parameter.comment}</CommentText>
-                        </CommentNote>
-                      )}
                       {renderHistoryPanel(parameter.history, paramKey)}
                     </div>
                   </ParameterNameCell>
@@ -1119,6 +1163,9 @@ function EditForm() {
                   </ValueCell>
                   <td>{parameter.unit || "N/A"}</td>
                   <td>{parameter.reference_range || "N/A"}</td>
+                  <CommentCell>
+                    {renderCommentCell(paramKey, parameter.comment)}
+                  </CommentCell>
                   <td />
                   <td>
                     {renderActionCell(
@@ -1137,7 +1184,7 @@ function EditForm() {
 
           testNumber++;
         } else {
-          // ── Single-value test row ─────────────────────────────────────────
+          // ── Single-value test row ───────────────────────────────────────
           rows.push(
             <TestHeaderRow key={`test-nop-${recordIndex}-${detailIndex}`}>
               <TestTitleCell colSpan="2">
@@ -1151,12 +1198,6 @@ function EditForm() {
                     )}
                   </strong>
                   {renderHistoryBadge(detail.history, testKey)}
-                  {detail.comment && (
-                    <CommentNote>
-                      <CommentLabel>Note:</CommentLabel>
-                      <CommentText>{detail.comment}</CommentText>
-                    </CommentNote>
-                  )}
                   {renderHistoryPanel(detail.history, testKey)}
                 </div>
               </TestTitleCell>
@@ -1173,6 +1214,9 @@ function EditForm() {
               </ValueCell>
               <td>{detail.unit || "N/A"}</td>
               <td>{detail.reference_range || "N/A"}</td>
+              <CommentCell>
+                {renderCommentCell(testKey, detail.comment)}
+              </CommentCell>
               <TestRemarksCell>{detail.remarks || "N/A"}</TestRemarksCell>
               <td>
                 {renderActionCell(
@@ -1235,6 +1279,17 @@ function EditForm() {
               <div style={{ marginBottom: "1rem" }}>
                 <ModalLabel>Status</ModalLabel>
                 <ModalValueBox isnew>{pendingSave.newStatus}</ModalValueBox>
+              </div>
+            )}
+            {pendingSave?.newComment !== undefined && (
+              <div style={{ marginBottom: "1rem" }}>
+                <ModalLabel>Comment</ModalLabel>
+                <ModalValueBox
+                  isnew
+                  style={{ fontWeight: 400, fontSize: "0.85rem" }}
+                >
+                  {pendingSave.newComment || "—"}
+                </ModalValueBox>
               </div>
             )}
             <ModalLabel>
@@ -1325,6 +1380,7 @@ function EditForm() {
               <th>Value / Status</th>
               <th>Unit</th>
               <th>Reference Range</th>
+              <th>Comment</th>
               <th>Remarks</th>
               <th>Action</th>
             </tr>
@@ -1334,7 +1390,7 @@ function EditForm() {
               generateTableRows()
             ) : (
               <tr>
-                <NoData colSpan="10">No test data available.</NoData>
+                <NoData colSpan="11">No test data available.</NoData>
               </tr>
             )}
           </TableBody>
