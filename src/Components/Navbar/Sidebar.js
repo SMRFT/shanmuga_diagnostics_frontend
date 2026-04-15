@@ -1543,6 +1543,12 @@ const Sidebar = () => {
                 >
                   Logistics Tracking
                 </SubLink>
+                <SubLink
+                  to="/TrackingHistory"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Tracking History
+                </SubLink>
               </DropdownContent>
 
               <DropdownHeader
@@ -1899,6 +1905,12 @@ const Sidebar = () => {
                 >
                   Logistics Tracking
                 </SubLink>
+                <SubLink
+                  to="/TrackingHistory"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Tracking History
+                </SubLink>
               </DropdownContent>
 
               <DropdownHeader
@@ -2147,6 +2159,15 @@ const Sidebar = () => {
                   <FaMapMarkerAlt />
                 </IconWrapper>
                 Logistics Tracking
+              </SidebarNavLink>
+              <SidebarNavLink
+                to="/TrackingHistory"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaMapMarkerAlt />
+                </IconWrapper>
+                Tracking History
               </SidebarNavLink>
             </>
           )}

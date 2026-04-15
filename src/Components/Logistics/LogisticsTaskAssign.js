@@ -542,6 +542,10 @@ const LogisticsTaskAssign = () => {
     remarks: '',
   });
 
+  const [reassigningTask, setReassigningTask] = useState(null); // stores task_id of task being reassigned
+  const [newCollector, setNewCollector] = useState('');
+  const [isReassignLoading, setIsReassignLoading] = useState(false);
+
   const [loading,            setLoading]            = useState(false);
   const [fetchingTasks,      setFetchingTasks]      = useState(true);
   const [fetchingCollectors, setFetchingCollectors] = useState(true);
@@ -695,6 +699,27 @@ const LogisticsTaskAssign = () => {
     } finally { setLoading(false); }
   };
 
+  const handleReassign = async () => {
+    if (!reassigningTask || !newCollector) {
+      showToast('Please select a new collector', 'error');
+      return;
+    }
+    setIsReassignLoading(true);
+    try {
+      await apiRequest(`${Labbaseurl}logistics/reassign/${reassigningTask}/`, 'PATCH', {
+        new_collector: newCollector
+      });
+      showToast('Task reassigned successfully!', 'success');
+      setReassigningTask(null);
+      setNewCollector('');
+      fetchTasks(appliedRange.from, appliedRange.to);
+    } catch (err) {
+      showToast(err.message || 'Failed to reassign task.', 'error');
+    } finally {
+      setIsReassignLoading(false);
+    }
+  };
+
   const handleReset = () => {
     setFormData({ clinicalname:'', sample_collector:'', sales_person:'', sampleordertime:'', sampleacceptedtime:'', samplepickeduptime:'', remarks:'' });
   };
@@ -832,26 +857,28 @@ const LogisticsTaskAssign = () => {
                   <TableHeaderCell>Date</TableHeaderCell>
                   <TableHeaderCell>Lab Name</TableHeaderCell>
                   <TableHeaderCell>Sample Collector</TableHeaderCell>
+                  <TableHeaderCell>Reassigned To</TableHeaderCell>
                   <TableHeaderCell>Sales Person</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
                   <TableHeaderCell>Order Time</TableHeaderCell>
                   <TableHeaderCell>Accepted Time</TableHeaderCell>
                   <TableHeaderCell>PickedUp Time</TableHeaderCell>
                   <TableHeaderCell>Remarks</TableHeaderCell>
+                  <TableHeaderCell>Actions</TableHeaderCell>
                 </TableRow>
               </TableHead>
 
               <tbody>
                 {fetchingTasks ? (
                   <TableRow>
-                    <TableCell colSpan="10" style={{ textAlign:'center', color:'#94a3b8', padding:'2rem' }}>
+                    <TableCell colSpan="12" style={{ textAlign:'center', color:'#94a3b8', padding:'2rem' }}>
                       <LoadingSpinner style={{ margin:'0 auto', borderTopColor:'#0ea5e9', borderColor:'rgba(14,165,233,0.2)' }}/>
                       <div style={{ marginTop:'0.5rem' }}>Loading tasks…</div>
                     </TableCell>
                   </TableRow>
                 ) : tasks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan="10" style={{ padding:0 }}>
+                    <TableCell colSpan="12" style={{ padding:0 }}>
                       <EmptyState>
                         <div className="emoji">📋</div>
                         <div className="msg">No tasks found</div>
@@ -870,14 +897,58 @@ const LogisticsTaskAssign = () => {
                       <TableCell>{formatDate(task.date || task.created_date)}</TableCell>
                       <TableCell>{task.clinicalname}</TableCell>
                       <TableCell>{task.sample_collector}</TableCell>
+                      <TableCell>{task.reassigned_to || '—'}</TableCell>
                       <TableCell>{task.sales_person}</TableCell>
                       <TableCell>
-                        <TableStatusBadge status={task.status}>{task.status}</TableStatusBadge>
+                        <TableStatusBadge status={task.status}>
+                          {(task.remarks && task.remarks.includes('REJECTED')) ? 'Rejected' : task.status}
+                        </TableStatusBadge>
                       </TableCell>
                       <TableCell>{formatTime(task.sampleordertime)}</TableCell>
                       <TableCell>{formatTime(task.sampleacceptedtime)}</TableCell>
                       <TableCell>{formatTime(task.samplepickeduptime)}</TableCell>
                       <TableCell>{task.remarks || '—'}</TableCell>
+                      <TableCell>
+                        {(task.remarks && task.remarks.includes('REJECTED')) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {reassigningTask === task.task_id ? (
+                              <>
+                                <Select 
+                                  style={{ width: '150px', padding: '5px' }}
+                                  value={newCollector}
+                                  onChange={(e) => setNewCollector(e.target.value)}
+                                >
+                                  <option value="">Select Collector</option>
+                                  {sampleCollectors.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                                </Select>
+                                <FilterButton 
+                                   style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+                                   onClick={handleReassign}
+                                   disabled={isReassignLoading}
+                                >
+                                  {isReassignLoading ? '...' : '→'}
+                                </FilterButton>
+                                <SecondaryButton 
+                                   style={{ padding: '5px 10px', fontSize: '0.75rem', minWidth: 'auto' }}
+                                   onClick={() => setReassigningTask(null)}
+                                >
+                                  ✕
+                                </SecondaryButton>
+                              </>
+                            ) : (
+                              <FilterButton 
+                                title="Reassign Task"
+                                onClick={() => {
+                                  setReassigningTask(task.task_id);
+                                  setNewCollector('');
+                                }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+                              </FilterButton>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

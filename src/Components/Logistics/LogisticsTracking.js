@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
-import { Users, Route, RefreshCw, Map as MapIcon, Navigation } from 'lucide-react';
+import { Users, RefreshCw, Navigation } from 'lucide-react';
 import styled from 'styled-components';
 import apiRequest from '../Auth/apiRequest';
 
@@ -24,6 +24,23 @@ const OverlayPanel = styled.div`
   z-index: 10;
   width: 280px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+`;
+
+const LiveBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ef4444;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  animation: pulse 2s infinite;
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
 `;
 
 // --- Helper: Polyline Component ---
@@ -56,22 +73,23 @@ const TrackedPath = ({ points, isLive }) => {
   return null;
 };
 
-// --- Main Dashboard Component ---
+// --- Main Dashboard Component (LIVE ONLY — today's date, no date picker) ---
 const LogisticsTracking = () => {
   const [collectors, setCollectors] = useState([]);
   const [selectedCollector, setSelectedCollector] = useState(null);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
 
   const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
   const BASE_URL = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
+  const today = new Date().toISOString().split('T')[0];
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await apiRequest(`${BASE_URL}sample-collector-location/`, 'GET', null, { date });
-      // Filter out null/invalid entries
-      const validData = (res.results || []).filter(item => item.sampleCollector && item.location_history.length > 0);
+      const res = await apiRequest(`${BASE_URL}sample-collector-location/?date=${today}`, 'GET');
+      const dataArray = Array.isArray(res) ? res : (res?.data || res?.results || []);
+      const validData = dataArray.filter(item => item.sampleCollector && item.routePoints && item.routePoints.length > 0);
       setCollectors(validData);
     } catch (err) {
       console.error("Tracking Error:", err);
@@ -85,21 +103,17 @@ const LogisticsTracking = () => {
     fetchData();
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, [date]);
+  }, []);
 
   return (
     <div style={{ padding: '20px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Navigation color="#4F46E5" /> Logistics Control Center
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+          <Navigation color="#4F46E5" /> Live Logistics Tracking
         </h2>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <input 
-            type="date" 
-            value={date} 
-            onChange={(e) => setDate(e.target.value)} 
-            style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ccc' }}
-          />
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <LiveBadge>● LIVE</LiveBadge>
+          <span style={{ fontSize: '14px', color: '#555', fontWeight: '500' }}>{today}</span>
           <button onClick={fetchData} style={{ padding: '8px 15px', cursor: 'pointer', borderRadius: '5px', background: '#fff', border: '1px solid #ddd' }}>
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -111,21 +125,19 @@ const LogisticsTracking = () => {
           <Map
             defaultCenter={{ lat: 11.6735, lng: 78.1525 }}
             defaultZoom={11}
-            mapId="bf50a69a05151240" // Optional: Google Vector Map ID
+            mapId="bf50a69a05151240"
             gestureHandling={'greedy'}
             disableDefaultUI={false}
           >
             {collectors.map((collector, index) => {
-              const history = collector.location_history;
+              const history = collector.routePoints || [];
+              if (!history.length) return null;
               const lastPos = history[history.length - 1];
-              const isLive = !collector.endTime;
+              const isLive = collector.isActive;
 
               return (
                 <React.Fragment key={collector.id || index}>
-                  {/* Draw the Route Line */}
                   <TrackedPath points={history} isLive={isLive} />
-
-                  {/* Marker for Current Position */}
                   <Marker
                     position={{ lat: parseFloat(lastPos.latitude || lastPos.lat), lng: parseFloat(lastPos.longitude || lastPos.lng) }}
                     onClick={() => setSelectedCollector(collector)}
@@ -140,18 +152,18 @@ const LogisticsTracking = () => {
               );
             })}
 
-            {selectedCollector && (
+            {selectedCollector && selectedCollector.routePoints?.length > 0 && (
               <InfoWindow
                 position={{
-                  lat: parseFloat(selectedCollector.location_history.slice(-1)[0].latitude || selectedCollector.location_history.slice(-1)[0].lat),
-                  lng: parseFloat(selectedCollector.location_history.slice(-1)[0].longitude || selectedCollector.location_history.slice(-1)[0].lng)
+                  lat: parseFloat(selectedCollector.routePoints.slice(-1)[0].latitude || selectedCollector.routePoints.slice(-1)[0].lat),
+                  lng: parseFloat(selectedCollector.routePoints.slice(-1)[0].longitude || selectedCollector.routePoints.slice(-1)[0].lng)
                 }}
                 onCloseClick={() => setSelectedCollector(null)}
               >
                 <div style={{ color: '#333' }}>
                   <h4 style={{ margin: '0 0 5px 0' }}>{selectedCollector.sampleCollector}</h4>
                   <p style={{ fontSize: '12px', margin: '2px 0' }}>
-                    <b>Status:</b> {selectedCollector.endTime ? '✅ Completed' : '🔴 Live'}
+                    <b>Status:</b> {selectedCollector.isActive ? '🔴 Live' : '✅ Completed'}
                   </p>
                   <p style={{ fontSize: '12px', margin: '2px 0' }}>
                     <b>Distance:</b> {selectedCollector.distance_travelled || 'Calculating...'} km
@@ -164,9 +176,14 @@ const LogisticsTracking = () => {
 
           <OverlayPanel>
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 15px 0' }}>
-              <Users size={18} /> Collectors ({collectors.length})
+              <Users size={18} /> Active Collectors ({collectors.length})
             </h4>
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {collectors.length === 0 && (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
+                  No active collectors today
+                </div>
+              )}
               {collectors.map(c => (
                 <div 
                   key={c.id} 
@@ -183,8 +200,8 @@ const LogisticsTracking = () => {
                 >
                   <div>
                     <div style={{ fontWeight: '600', fontSize: '14px' }}>{c.sampleCollector}</div>
-                    <div style={{ fontSize: '11px', color: c.endTime ? '#777' : '#22c55e' }}>
-                      {c.endTime ? 'Shift Ended' : 'Currently Tracking'}
+                    <div style={{ fontSize: '11px', color: c.isActive ? '#22c55e' : '#777' }}>
+                      {c.isActive ? 'Currently Tracking' : 'Shift Ended'}
                     </div>
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 'bold' }}>

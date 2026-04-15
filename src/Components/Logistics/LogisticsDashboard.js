@@ -231,7 +231,7 @@ const SummaryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
-  padding: 2rem;
+  padding: 2.5rem 2rem;
   
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
@@ -241,71 +241,65 @@ const SummaryGrid = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: ${props => props.gradient || 'linear-gradient(135deg, #f8fafc, #f1f5f9)'};
-  border: 1.5px solid ${props => props.borderColor || '#e2e8f0'};
-  border-radius: 16px;
+  background: ${props => props.gradient || 'white'};
+  border: 2px solid ${props => props.borderColor || '#e2e8f0'};
+  border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100px;
   
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
   }
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 800;
   color: ${props => props.color || '#64748b'};
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+  margin-bottom: 0.75rem;
 `;
 
 const StatValue = styled.div`
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 800;
   color: ${props => props.color || '#1e293b'};
   line-height: 1;
 `;
 
 const TabContainer = styled.div`
-  padding: 2rem;
-  border-top: 1px solid #e2e8f0;
+  padding: 0 2rem 2rem;
 `;
 
 const TabList = styled.div`
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
   flex-wrap: wrap;
-  border-bottom: 2px solid #e2e8f0;
+  padding: 1rem 0;
 `;
 
 const Tab = styled.button`
-  padding: 12px 24px;
-  border: none;
-  background: ${props => props.active ? 'linear-gradient(135deg, #667eea, #764ba2' : 'transparent'};
-  color: ${props => props.active ? 'white' : '#64748b'};
-  font-weight: 700;
-  font-size: 0.9rem;
+  padding: 10px 18px;
+  border: 1.5px solid #000;
+  background: ${props => props.active ? '#f1f5f9' : 'white'};
+  color: ${props => props.active ? '#000' : '#334155'};
+  font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
-  border-radius: 12px 12px 0 0;
-  transition: all 0.3s;
-  position: relative;
+  border-radius: 6px;
+  transition: all 0.2s;
+  box-shadow: ${props => props.active ? '0 0 0 1.5px #000 inset' : 'none'};
+  border-width: ${props => props.active ? '2.5px' : '1.5px'};
   
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: ${props => props.active ? 'linear-gradient(135deg, #667eea, #764ba2' : 'transparent'};
-  }
-
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? 'linear-gradient(135deg, #667eea, #764ba2' : '#f8fafc'};
+  &:hover {
+    background: #f8fafc;
   }
 `;
 
@@ -375,6 +369,7 @@ const StatusBadge = styled.div`
       case 'Accepted': return 'linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1))';
       case 'PickedUp': return 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1))';
       case 'Billed': return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1))';
+      case 'Rejected': return 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1))';
       default: return 'linear-gradient(135deg, rgba(148, 163, 184, 0.1), rgba(100, 116, 139, 0.1))';
     }
   }};
@@ -384,6 +379,7 @@ const StatusBadge = styled.div`
       case 'Accepted': return 'rgba(251, 191, 36, 0.3)';
       case 'PickedUp': return 'rgba(34, 197, 94, 0.3)';
       case 'Billed': return 'rgba(139, 92, 246, 0.3)';
+      case 'Rejected': return 'rgba(239, 68, 68, 0.3)';
       default: return 'rgba(148, 163, 184, 0.3)';
     }
   }};
@@ -393,6 +389,7 @@ const StatusBadge = styled.div`
       case 'Accepted': return '#b45309';
       case 'PickedUp': return '#15803d';
       case 'Billed': return '#6d28d9';
+      case 'Rejected': return '#b91c1c';
       default: return '#475569';
     }
   }};
@@ -473,31 +470,31 @@ const ErrorMessage = styled(MessageContainer)`
 // ============ Icons ============
 const DashboardIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="7" height="7"/>
-    <rect x="14" y="3" width="7" height="7"/>
-    <rect x="14" y="14" width="7" height="7"/>
-    <rect x="3" y="14" width="7" height="7"/>
+    <rect x="3" y="3" width="7" height="7" />
+    <rect x="14" y="3" width="7" height="7" />
+    <rect x="14" y="14" width="7" height="7" />
+    <rect x="3" y="14" width="7" height="7" />
   </svg>
 );
 
 const SearchIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8"/>
-    <path d="m21 21-4.35-4.35"/>
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.35-4.35" />
   </svg>
 );
 
 const InboxIcon = () => (
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const AlertCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="8" x2="12" y2="12"/>
-    <line x1="12" y1="16" x2="12.01" y2="16"/>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
 
@@ -509,7 +506,7 @@ const LogisticsDashboard = () => {
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [dashboardData, setDashboardData] = useState(null);
   const [activeTab, setActiveTab] = useState('assigned');
 
@@ -518,68 +515,68 @@ const LogisticsDashboard = () => {
   useEffect(() => {
     fetchCollectors();
     // Set default dates (last 30 days)
-      const today = new Date().toISOString().split('T')[0];
-      setStartDate(today);
-      setEndDate(today);
+    const today = new Date().toISOString().split('T')[0];
+    setStartDate(today);
+    setEndDate(today);
 
   }, []);
 
-const fetchCollectors = async () => {
-  try {
-    const response = await apiRequest(
-      `${Labbaseurl}sample-collector/`,
-      'GET'
-    );
+  const fetchCollectors = async () => {
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}sample-collector/`,
+        'GET'
+      );
 
-    console.log('Raw collectors response:', response);
+      console.log('Raw collectors response:', response);
 
-    let collectorsList = [];
+      let collectorsList = [];
 
-    const collectorsData =
-      response?.data?.collectors ?? response?.data ?? [];
+      const collectorsData =
+        response?.data?.collectors ?? response?.data ?? [];
 
-    if (Array.isArray(collectorsData)) {
-      collectorsList = collectorsData;
-    } 
-    else if (typeof collectorsData === 'object') {
-      collectorsList = Object.values(collectorsData);
-    } 
-    else if (typeof collectorsData === 'string') {
-      collectorsList = [collectorsData];
+      if (Array.isArray(collectorsData)) {
+        collectorsList = collectorsData;
+      }
+      else if (typeof collectorsData === 'object') {
+        collectorsList = Object.values(collectorsData);
+      }
+      else if (typeof collectorsData === 'string') {
+        collectorsList = [collectorsData];
+      }
+
+      // Clean + dedupe
+      collectorsList = [...new Set(
+        collectorsList
+          .map(c => c?.trim())
+          .filter(Boolean)
+      )];
+
+      console.log('Final collectors list:', collectorsList);
+      setCollectors(collectorsList);
+
+    } catch (err) {
+      console.error('Error fetching collectors:', err);
+      setError('Failed to load sample collectors');
     }
-
-    // Clean + dedupe
-    collectorsList = [...new Set(
-      collectorsList
-        .map(c => c?.trim())
-        .filter(Boolean)
-    )];
-
-    console.log('Final collectors list:', collectorsList);
-    setCollectors(collectorsList);
-
-  } catch (err) {
-    console.error('Error fetching collectors:', err);
-    setError('Failed to load sample collectors');
-  }
-};
+  };
 
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError('');
-      
+
       const params = new URLSearchParams();
       if (selectedCollector) params.append('sample_collector', selectedCollector);
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
-      
+
       const response = await apiRequest(
         `${Labbaseurl}logistics-dashboard/?${params.toString()}`,
         'GET'
       );
-      
+
       setDashboardData(response?.data || null);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -835,50 +832,35 @@ const fetchCollectors = async () => {
                     active={activeTab === 'assigned'}
                     onClick={() => setActiveTab('assigned')}
                   >
-                    Assigned
-                    <TabBadge active={activeTab === 'assigned'}>
-                      {dashboardData.tasks.assigned.count}
-                    </TabBadge>
+                    Assigned {dashboardData.tasks.assigned.count}
                   </Tab>
 
                   <Tab
                     active={activeTab === 'accepted'}
                     onClick={() => setActiveTab('accepted')}
                   >
-                    Accepted
-                    <TabBadge active={activeTab === 'accepted'}>
-                      {dashboardData.tasks.accepted.count}
-                    </TabBadge>
+                    Accepted {dashboardData.tasks.accepted.count}
                   </Tab>
 
                   <Tab
                     active={activeTab === 'picked_up'}
                     onClick={() => setActiveTab('picked_up')}
                   >
-                    Picked Up
-                    <TabBadge active={activeTab === 'picked_up'}>
-                      {dashboardData.tasks.picked_up.count}
-                    </TabBadge>
+                    Picked Up {dashboardData.tasks.picked_up.count}
                   </Tab>
 
                   <Tab
                     active={activeTab === 'rejected'}
                     onClick={() => setActiveTab('rejected')}
                   >
-                    Rejected
-                    <TabBadge active={activeTab === 'rejected'}>
-                      {dashboardData.tasks.rejected.count}
-                    </TabBadge>
+                    Rejected {dashboardData.tasks.rejected.count}
                   </Tab>
 
                   <Tab
                     active={activeTab === 'billed'}
                     onClick={() => setActiveTab('billed')}
                   >
-                    Billed
-                    <TabBadge active={activeTab === 'billed'}>
-                      {dashboardData.tasks.billed.count}
-                    </TabBadge>
+                    Billed {dashboardData.tasks.billed.count}
                   </Tab>
                 </TabList>
 
