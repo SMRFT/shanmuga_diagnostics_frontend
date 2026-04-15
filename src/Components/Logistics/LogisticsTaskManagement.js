@@ -531,62 +531,62 @@ const Label = styled.label`
 // ============ Icons ============
 const TruckIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8 0h2m-2 0a1 1 0 001 1h2a1 1 0 001-1m0 0h1a1 1 0 001-1v-4m0 0h-5m5 0a2 2 0 00-2-2h-2a2 2 0 00-2 2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8 0h2m-2 0a1 1 0 001 1h2a1 1 0 001-1m0 0h1a1 1 0 001-1v-4m0 0h-5m5 0a2 2 0 00-2-2h-2a2 2 0 00-2 2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const UserIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const CalendarIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-    <line x1="16" y1="2" x2="16" y2="6"/>
-    <line x1="8" y1="2" x2="8" y2="6"/>
-    <line x1="3" y1="10" x2="21" y2="10"/>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
 
 const ClockIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <polyline points="12 6 12 12 16 14"/>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
   </svg>
 );
 
 const CheckCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const XCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const PackageIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const AlertCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="8" x2="12" y2="12"/>
-    <line x1="12" y1="16" x2="12.01" y2="16"/>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
 
 const InboxIcon = () => (
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -628,7 +628,7 @@ const LogisticsTaskManagement = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isCheckingLocation, setIsCheckingLocation] = useState(true);
-  
+
   // Modal states
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -774,7 +774,7 @@ const LogisticsTaskManagement = () => {
             const lat2 = curr.latitude || curr.lat;
             const lng2 = curr.longitude || curr.lng;
             if (lat1 && lng1 && lat2 && lng2) {
-               totalDistance += calculateDistance(lat1, lng1, lat2, lng2);
+              totalDistance += calculateDistance(lat1, lng1, lat2, lng2);
             }
           }
 
@@ -810,11 +810,11 @@ const LogisticsTaskManagement = () => {
               },
               null
             );
-            
+
             if (res && res.distance) {
-               setLocationTracking(prev => ({ ...prev, distance: res.distance }));
+              setLocationTracking(prev => ({ ...prev, distance: res.distance }));
             }
-            
+
             setSuccess('Location tracking ended! Distance calculated successfully.');
             setTimeout(() => setSuccess(''), 3000);
           } catch (err) {
@@ -823,11 +823,48 @@ const LogisticsTaskManagement = () => {
 
           setActionLoading(prev => ({ ...prev, endLocation: false }));
         },
-        (error) => {
-          console.error('Geolocation error:', error);
-          setError('Unable to get your location. Please enable location services.');
-          setActionLoading(prev => ({ ...prev, endLocation: false }));
-        }
+        async (error) => {
+          console.error('Geolocation error during end tracking:', error);
+          setError('Unable to get exact final location, strictly terminating the session via fallback...');
+          
+          // Fallback backend termination to ensure they aren't trapped if GPS fails
+          const userName = localStorage.getItem('name');
+          const today = new Date().toISOString().split('T')[0];
+          try {
+            await apiRequest(
+              `${Labbaseurl}sample-collector-location/`,
+              'PUT',
+              {
+                sampleCollector: userName,
+                date: today,
+                latitudeEnd: null,
+                longitudeEnd: null
+              },
+              null
+            );
+            
+            setLocationTracking(prev => ({
+              ...prev,
+              isTracking: false,
+              endTime: new Date(),
+            }));
+            setSuccess('Session safely terminated without final coordinates.');
+            setTimeout(() => setSuccess(''), 3000);
+            
+            // Cleanup watch handles
+            if (watchIdRef.current) {
+              navigator.geolocation.clearWatch(watchIdRef.current);
+              watchIdRef.current = null;
+            }
+            releaseWakeLock();
+          } catch (err) {
+            console.error('Failed to fallback terminate session:', err);
+            setError('CRITICAL: Server unreachable. Failed to terminate session.');
+          } finally {
+            setActionLoading(prev => ({ ...prev, endLocation: false }));
+          }
+        },
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
       );
     } catch (err) {
       setError('Failed to end location tracking');
@@ -847,10 +884,10 @@ const LogisticsTaskManagement = () => {
     }
 
     return () => {
-       if (watchIdRef.current) {
-          navigator.geolocation.clearWatch(watchIdRef.current);
-       }
-       releaseWakeLock();
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      releaseWakeLock();
     };
   }, []);
 
@@ -859,9 +896,13 @@ const LogisticsTaskManagement = () => {
       setIsCheckingLocation(true);
       const today = new Date().toISOString().split('T')[0];
       const response = await apiRequest(`${Labbaseurl}sample-collector-location/?sampleCollector=${encodeURIComponent(userName)}&date=${today}`, 'GET');
+
+      // apiRequest wraps response as { success, data, status }
+      const results = response?.data || [];
+      const dataArray = Array.isArray(results) ? results : [];
       
-      if (response && response.length > 0) {
-        const data = response[0];
+      if (dataArray.length > 0) {
+        const data = dataArray[0];
         if (data.isActive) {
           // Resume tracking
           const startTime = new Date(data.startTime);
@@ -871,7 +912,7 @@ const LogisticsTaskManagement = () => {
             startTime,
             startLocation: { latitude: parseFloat(data.latitudeStart), longitude: parseFloat(data.longitudeStart) }
           }));
-          
+
           startWatchPosition(userName, today, startTime);
         } else if (data.endTime) {
           setLocationTracking({
@@ -906,7 +947,7 @@ const LogisticsTaskManagement = () => {
         await wakeLockRef.current.release();
         wakeLockRef.current = null;
       } catch (err) {
-         console.error(err);
+        console.error(err);
       }
     }
   };
@@ -919,11 +960,11 @@ const LogisticsTaskManagement = () => {
       const id = navigator.geolocation.watchPosition(
         async (position) => {
           const { latitude, longitude, accuracy } = position.coords;
-          
+
           // Update session storage
           const sessionKey = `location_history_${today}`;
           const locationHistory = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
-          
+
           // Avoid pushing same location too quickly
           locationHistory.push({
             latitude,
@@ -933,7 +974,7 @@ const LogisticsTaskManagement = () => {
           });
           sessionStorage.setItem(sessionKey, JSON.stringify(locationHistory));
           if (!sessionStorage.getItem(`location_start_${today}`)) {
-              sessionStorage.setItem(`location_start_${today}`, startTimeVal.toISOString());
+            sessionStorage.setItem(`location_start_${today}`, startTimeVal.toISOString());
           }
 
           // Throttle PUT requests to every 10 seconds to reduce server load
@@ -1010,13 +1051,13 @@ const LogisticsTaskManagement = () => {
       );
 
       setSuccess('Task accepted successfully!');
-      
+
       // Re-fetch username from localStorage
       const storedName = localStorage.getItem("name");
       if (storedName) {
         fetchTasks(storedName);
       }
-      
+
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error accepting task:', err);
@@ -1058,13 +1099,13 @@ const LogisticsTaskManagement = () => {
 
       setSuccess('Task rejected successfully!');
       closeRejectModal();
-      
+
       // Re-fetch username from localStorage
       const storedName = localStorage.getItem("name");
       if (storedName) {
         fetchTasks(storedName);
       }
-      
+
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error rejecting task:', err);
@@ -1088,13 +1129,13 @@ const LogisticsTaskManagement = () => {
       );
 
       setSuccess('Sample picked up successfully!');
-      
+
       // Re-fetch username from localStorage
       const storedName = localStorage.getItem("name");
       if (storedName) {
         fetchTasks(storedName);
       }
-      
+
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error marking pickup:', err);
@@ -1212,7 +1253,7 @@ const LogisticsTaskManagement = () => {
             <TableCell>{task.sales_person}</TableCell>
             <TableCell>
               <StatusBadge status={task.status}>
-                <StatusDot 
+                <StatusDot
                   color={getStatusColor(task.status)}
                   pulse={task.status === 'Assigned'}
                 />
@@ -1253,31 +1294,32 @@ const LogisticsTaskManagement = () => {
                 <UserName>{userInfo.name}</UserName>
               </UserInfoContent>
               <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {!locationTracking.isTracking && (
-                  <LocationTrackingButton
-                    onClick={handleStartLocation}
-                    disabled={isCheckingLocation || actionLoading.startLocation}
-                  >
-                    {isCheckingLocation || actionLoading.startLocation ? (
-                      <LoadingSpinner />
-                    ) : (
-                      '📍 Start Location'
-                    )}
-                  </LocationTrackingButton>
-                )}
-                {locationTracking.isTracking && (
-                  <LocationTrackingButton
-                    onClick={handleEndLocation}
-                    disabled={actionLoading.endLocation}
-                    style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}
-                  >
-                    {actionLoading.endLocation ? (
-                      <LoadingSpinner />
-                    ) : (
-                      '🏁 End Location'
-                    )}
-                  </LocationTrackingButton>
-                )}
+                <LocationTrackingButton
+                  onClick={handleStartLocation}
+                  disabled={isCheckingLocation || locationTracking.isTracking || actionLoading.startLocation}
+                >
+                  {isCheckingLocation || actionLoading.startLocation ? (
+                    <LoadingSpinner />
+                  ) : (
+                    '📍 Start Location'
+                  )}
+                </LocationTrackingButton>
+
+                <LocationTrackingButton
+                  onClick={handleEndLocation}
+                  disabled={isCheckingLocation || !locationTracking.isTracking || actionLoading.endLocation}
+                  style={{
+                    background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    opacity: isCheckingLocation || !locationTracking.isTracking ? 0.6 : 1,
+                    cursor: isCheckingLocation || !locationTracking.isTracking ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {actionLoading.endLocation ? (
+                    <LoadingSpinner />
+                  ) : (
+                    '🏁 End Location'
+                  )}
+                </LocationTrackingButton>
               </div>
               {locationTracking.isTracking && (
                 <LocationStatusContainer>
@@ -1355,14 +1397,14 @@ const LogisticsTaskManagement = () => {
                   </SectionHeader>
                   {pendingTasks.map((dateGroup, idx) => (
                     <div key={idx}>
-                      <div style={{ 
-                        padding: '1rem 2rem', 
+                      <div style={{
+                        padding: '1rem 2rem',
                         background: 'linear-gradient(135deg, #fef9ec, #fffbeb)',
                         borderBottom: '1px solid #fde68a'
                       }}>
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
                           gap: '0.75rem',
                           fontSize: '0.95rem',
                           fontWeight: '600',
@@ -1370,8 +1412,8 @@ const LogisticsTaskManagement = () => {
                         }}>
                           <CalendarIcon />
                           <span>{formatDate(dateGroup.date)}</span>
-                          <span style={{ 
-                            fontSize: '0.85rem', 
+                          <span style={{
+                            fontSize: '0.85rem',
                             opacity: '0.8',
                             fontWeight: '500'
                           }}>

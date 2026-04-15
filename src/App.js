@@ -89,6 +89,7 @@ import LogisticsTaskManagement from "./Components/Logistics/LogisticsTaskManagem
 import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
 import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 import LogisticsTracking from "./Components/Logistics/LogisticsTracking";
+import TrackingHistory from "./Components/Logistics/TrackingHistory";
 import PreethamHospitalLedger from "./Components/PreethamHospital/PreethamLedgerBalance";
 import WorkList from "./Components/Test/WorkList";
 import ApprovedList from "./Components/TestApproval/ApprovedList";
@@ -258,6 +259,7 @@ function App() {
       "/LogisticsManagement": "Logistic Management",
       "/LogisticsDashboard": "Logistics Dashboard",
       "/LogisticsTracking": "Logistics Tracking",
+      "/TrackingHistory": "Tracking History",
       "/LogisticsTAT": "Logistics TAT",
       "/HmsBilling": "HMS Billing",
       "/Hmssamplestatus": "HMS Sample Status",
@@ -480,6 +482,7 @@ function App() {
             />
             <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
             <Route path="/LogisticsTracking" element={<LogisticsTracking />} />
+            <Route path="/TrackingHistory" element={<TrackingHistory />} />
 
             {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling />} />
