@@ -564,30 +564,43 @@ const ShanmugaMIS = () => {
   }, {});
 
   // Filter patients by search
-  const filteredPatients = Object.values(groupedData).filter((patient) => {
-    const matchesSearch =
-      patient.patient_name
-        ?.toLowerCase()
-        .includes(searchQuery?.toLowerCase()) ||
-      patient.patient_id?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-      patient.barcode?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-      patient.tests.some(
-        (test) =>
-          test.test_name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-          test.department?.toLowerCase().includes(searchQuery?.toLowerCase()),
-      );
+  const filteredPatients = Object.values(groupedData)
+    .filter((patient) => {
+      const matchesSearch =
+        patient.patient_name
+          ?.toLowerCase()
+          .includes(searchQuery?.toLowerCase()) ||
+        patient.patient_id
+          ?.toLowerCase()
+          .includes(searchQuery?.toLowerCase()) ||
+        patient.barcode?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+        patient.tests.some(
+          (test) =>
+            test.test_name
+              ?.toLowerCase()
+              .includes(searchQuery?.toLowerCase()) ||
+            test.department?.toLowerCase().includes(searchQuery?.toLowerCase()),
+        );
 
-    if (!matchesSearch) return false;
+      if (!matchesSearch) return false;
 
-    if (tatFilter === "all") return true;
+      // Check if at least one test matches the TAT filter
+      if (tatFilter === "ontime")
+        return patient.tests.some((test) => test.tat_status === "within_limit");
+      if (tatFilter === "overage")
+        return patient.tests.some((test) => test.tat_status === "exceeded");
 
-    // Keep patient if at least one test matches the TAT filter
-    return patient.tests.some((test) => {
-      if (tatFilter === "ontime") return test.tat_status === "within_limit";
-      if (tatFilter === "overage") return test.tat_status === "exceeded";
-      return true;
-    });
-  });
+      return true; // tatFilter === "all"
+    })
+    .map((patient) => {
+      const filteredTests = patient.tests.filter((test) => {
+        if (tatFilter === "ontime") return test.tat_status === "within_limit";
+        if (tatFilter === "overage") return test.tat_status === "exceeded";
+        return true;
+      });
+      return { ...patient, tests: filteredTests };
+    })
+    .filter((patient) => patient.tests.length > 0); // remove empty groups
 
   // ── Pagination logic ────────────────────────────────────────────────────────
   // We paginate by "row count" (each test = 1 row), not by patient group,
@@ -664,9 +677,7 @@ const ShanmugaMIS = () => {
         .toLocaleDateString("en-GB")
         .replace(/\//g, "-");
 
-      const dataToExport = searchQuery
-        ? filteredPatients.flatMap((group) => group.tests)
-        : data;
+      const dataToExport = filteredPatients.flatMap((g) => g.tests);
 
       const formattedData = dataToExport.map((row) => ({
         Date: new Date(row.date)

@@ -527,13 +527,17 @@ const PatientDetails = () => {
     patientId,
     patientname,
     age,
-    gender, // NEW param
+    gender,
     barcode,
     location_id,
     testId,
     testName,
     patientDate,
     createdDate,
+    phone,
+    ref_doctor,
+    barcode_by,
+    barcode_date, // NEW
   ) => {
     const formattedPatientDate = patientDate
       ? format(new Date(patientDate), "yyyy-MM-dd")
@@ -544,15 +548,20 @@ const PatientDetails = () => {
       : "";
     const encodedTestName = encodeURIComponent(testName || "");
     const encodedBarcode = encodeURIComponent(barcode || "");
-    const encodedGender = encodeURIComponent(gender || ""); // NEW
+    const encodedGender = encodeURIComponent(gender || "");
+    const encodedPhone = encodeURIComponent(phone || ""); // NEW
+    const encodedRefDoctor = encodeURIComponent(ref_doctor || ""); // NEW
+    const encodedBarcodeBy = encodeURIComponent(barcode_by || ""); // NEW
+    const encodedBarcodeDate = encodeURIComponent(barcode_date || ""); // NEW
 
     navigate(
-      `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patientId}&patientname=${patientname}&age=${age}&gender=${encodedGender}&barcode=${encodedBarcode}&locationId=${
-        location_id || "Shanmuga Referrence Lab"
-      }&test_id=${testId}`,
-      {
-        state: { fromDate, toDate, barcode },
-      },
+      `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}` +
+        `&patient_id=${patientId}&patientname=${patientname}&age=${age}` +
+        `&gender=${encodedGender}&barcode=${encodedBarcode}` +
+        `&locationId=${location_id || "Shanmuga Referrence Lab"}&test_id=${testId}` +
+        `&phone=${encodedPhone}&ref_doctor=${encodedRefDoctor}` + // NEW
+        `&barcode_by=${encodedBarcodeBy}&barcode_date=${encodedBarcodeDate}`, // NEW
+      { state: { fromDate, toDate, barcode } },
     );
   };
 
@@ -826,6 +835,28 @@ const PatientDetails = () => {
                             <FileText size={14} />
                             Barcode: {patient.barcode || "N/A"}
                           </PatientInfo>
+                          {/* NEW: barcode_by and barcode_date in IST */}
+                          {patient.barcode_by && (
+                            <PatientInfo>
+                              <User size={14} />
+                              Barcode By: {patient.barcode_by}
+                            </PatientInfo>
+                          )}
+                          {patient.barcode_date && (
+                            <PatientInfo>
+                              <Calendar size={14} />
+                              Barcode Date:{" "}
+                              {format(
+                                new Date(
+                                  new Date(patient.barcode_date).toLocaleString(
+                                    "en-US",
+                                    { timeZone: "Asia/Kolkata" },
+                                  ),
+                                ),
+                                "MMM dd, yyyy hh:mm a",
+                              )}
+                            </PatientInfo>
+                          )}
                           <PatientInfo>
                             <User size={14} />
                             Age: {patient.age || "Unknown"} |{" "}
@@ -882,6 +913,10 @@ const PatientDetails = () => {
                                           test.testname,
                                           patient.date,
                                           patient.created_date,
+                                          patient.phone, // NEW
+                                          patient.ref_doctor, // NEW
+                                          patient.barcode_by, // NEW
+                                          patient.barcode_date, // NEW
                                         )
                                       }
                                       title={

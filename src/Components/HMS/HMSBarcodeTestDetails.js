@@ -398,7 +398,8 @@ const HMSBarcodeTestDetails = () => {
   const toast = useToast();
   const printSectionRef = useRef(null);
   const navigate = useNavigate();
-  const { patientId, selectedDate, gender, bill_no, bill_type } = location.state || {};
+  const { patientId, selectedDate, gender, bill_no, bill_type } =
+    location.state || {};
   const [testDetails, setTestDetails] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -416,16 +417,15 @@ const HMSBarcodeTestDetails = () => {
     if (!billNumber) return null;
 
     // Split bill number by '/' to get year and number parts
-    const parts = String(billNumber).split('/');
+    const parts = String(billNumber).split("/");
     if (parts.length !== 2) return null;
 
     const year = parts[0]; // e.g., "2526"
     const number = parts[1]; // e.g., "014079"
 
     // Construct barcode as: year + billType + number
-    return `${year}${billType || ''}${number}`;
+    return `${year}${billType || ""}${number}`;
   };
-
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -458,14 +458,14 @@ const HMSBarcodeTestDetails = () => {
     // Format time as HH:MM AM/PM
     let hours = istTime.getUTCHours();
     const minutes = String(istTime.getUTCMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const ampm = hours >= 12 ? "PM" : "AM";
     hours = hours % 12;
     hours = hours ? hours : 12; // the hour '0' should be '12'
     const formattedHours = String(hours).padStart(2, "0");
 
     return {
       date: `${day}/${month}/${year}`,
-      time: `${formattedHours}:${minutes} ${ampm}`
+      time: `${formattedHours}:${minutes} ${ampm}`,
     };
   };
 
@@ -488,7 +488,10 @@ const HMSBarcodeTestDetails = () => {
       setIsGenerating(true);
 
       // Extract barcode from bill number and bill type
-      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.BillType || bill_type);
+      const patientBarcode = extractBarcodeFromBillNo(
+        bill_no,
+        selectedPatient?.BillType || bill_type,
+      );
 
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
@@ -512,7 +515,6 @@ const HMSBarcodeTestDetails = () => {
         barcode: patientBarcode,
       }));
 
-
       setTestDetails(updatedTestDetails);
 
       // Create barcode data for UI
@@ -533,13 +535,12 @@ const HMSBarcodeTestDetails = () => {
 
       setBarcodeData(newBarcodeData);
 
-
       const payload = {
         patient_id: patientId,
         patientname: selectedPatient?.patientname,
         phone: selectedPatient?.phone,
         age: selectedPatient?.age,
-        age_type: selectedPatient?.age_type || 'Y',
+        age_type: selectedPatient?.age_type || "Y",
         gender: selectedPatient?.gender,
 
         date: formatDate(selectedPatient?.date),
@@ -549,10 +550,10 @@ const HMSBarcodeTestDetails = () => {
         barcode: patientBarcode,
 
         // Additional HMS-specific fields
-        ipnumber: selectedPatient?.ipnumber || '',
-        IPOPType: selectedPatient?.IPOPType || '',
-        ref_doctor: selectedPatient?.ref_doctor || '',
-        source: selectedPatient?.source || 'core_hmspatientbilling',
+        ipnumber: selectedPatient?.ipnumber || "",
+        IPOPType: selectedPatient?.IPOPType || "",
+        ref_doctor: selectedPatient?.ref_doctor || "",
+        source: selectedPatient?.source || "core_hmspatientbilling",
       };
       // Save the barcode using your apiRequest method
       const saveUrl = `${Labbaseurl}save-hms-barcodes/`;
@@ -587,7 +588,10 @@ const HMSBarcodeTestDetails = () => {
       setIsGenerating(true);
 
       // Extract barcode from bill number and bill type
-      const patientBarcode = extractBarcodeFromBillNo(bill_no, selectedPatient?.BillType || bill_type);
+      const patientBarcode = extractBarcodeFromBillNo(
+        bill_no,
+        selectedPatient?.BillType || bill_type,
+      );
 
       if (!patientBarcode) {
         toast.error("Could not extract barcode from bill number.");
@@ -611,14 +615,12 @@ const HMSBarcodeTestDetails = () => {
       setTestDetails(updatedTestDetails);
 
       const newBarcodeData = [
-        ...Object.entries(containerGroups).map(
-          ([container, testdetails]) => ({
-            barcode: patientBarcode,
-            containerName: container,
-            shortcut: testdetails[0]?.shortcut || "",
-            isExtra: false,
-          })
-        ),
+        ...Object.entries(containerGroups).map(([container, testdetails]) => ({
+          barcode: patientBarcode,
+          containerName: container,
+          shortcut: testdetails[0]?.shortcut || "",
+          isExtra: false,
+        })),
         {
           barcode: patientBarcode,
           containerName: "",
@@ -778,7 +780,7 @@ const HMSBarcodeTestDetails = () => {
 
       const patientResult = await apiRequest(
         `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
-        "GET"
+        "GET",
       );
 
       if (!patientResult.success) {
@@ -789,7 +791,7 @@ const HMSBarcodeTestDetails = () => {
 
       const patientData = patientResult.data.data.find(
         (patient) =>
-          patient.patient_id === patientId && patient.bill_no === bill_no
+          patient.patient_id === patientId && patient.bill_no === bill_no,
       );
 
       if (!patientData) {
@@ -801,16 +803,21 @@ const HMSBarcodeTestDetails = () => {
       setSelectedPatient(patientData);
       setTestDetails(patientData.testdetails || []);
       setSelectedTests(
-        new Array(patientData.testdetails?.length || 0).fill(false)
+        new Array(patientData.testdetails?.length || 0).fill(false),
       );
 
       // Generate barcode immediately from bill number and bill type
-      const generatedBarcode = extractBarcodeFromBillNo(bill_no, patientData.BillType || bill_type);
+      const generatedBarcode = extractBarcodeFromBillNo(
+        bill_no,
+        patientData.BillType || bill_type,
+      );
       if (generatedBarcode) {
-        const updatedTestDetails = (patientData.testdetails || []).map((test) => ({
-          ...test,
-          barcode: generatedBarcode,
-        }));
+        const updatedTestDetails = (patientData.testdetails || []).map(
+          (test) => ({
+            ...test,
+            barcode: generatedBarcode,
+          }),
+        );
 
         setTestDetails(updatedTestDetails);
 
@@ -825,12 +832,14 @@ const HMSBarcodeTestDetails = () => {
         });
 
         const newBarcodeData = [
-          ...Object.entries(containerGroups).map(([container, testdetails]) => ({
-            barcode: generatedBarcode,
-            containerName: container,
-            shortcut: testdetails[0]?.shortcut || "",
-            isExtra: false,
-          })),
+          ...Object.entries(containerGroups).map(
+            ([container, testdetails]) => ({
+              barcode: generatedBarcode,
+              containerName: container,
+              shortcut: testdetails[0]?.shortcut || "",
+              isExtra: false,
+            }),
+          ),
           {
             barcode: generatedBarcode,
             containerName: "",
@@ -904,7 +913,10 @@ const HMSBarcodeTestDetails = () => {
                   <InfoLabel>Generated Barcode</InfoLabel>
                   <InfoValue>
                     <BarcodeScan size={14} />
-                    {extractBarcodeFromBillNo(bill_no, selectedPatient?.BillType || bill_type)}
+                    {extractBarcodeFromBillNo(
+                      bill_no,
+                      selectedPatient?.BillType || bill_type,
+                    )}
                   </InfoValue>
                 </PatientInfoItem>
               </PatientInfoGrid>
@@ -925,7 +937,6 @@ const HMSBarcodeTestDetails = () => {
                     <th>Collection Container</th>
                     <th>Barcode</th>
                   </tr>
-
                 </TableHead>
                 <TableBody>
                   {testDetails.map((test, index) => (
@@ -1009,10 +1020,13 @@ const HMSBarcodeTestDetails = () => {
         {barcodeData.map((item, index) => (
           <BarcodeItem key={index} className="barcode-item">
             <BarcodeText className="barcode-text">
-              {selectedPatient?.patientname} | {selectedPatient?.age} | {formatGender(selectedPatient?.gender)}
+              {selectedPatient?.patientname} | {selectedPatient?.age} |{" "}
+              {formatGender(selectedPatient?.gender)}
             </BarcodeText>
             <BarcodeDate className="barcode-date">
-              {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}{generationTimestamp ? `      ${generationTimestamp.time}` : ""}
+              {selectedPatient?.patient_id} |{" "}
+              {selectedPatient?.date ? formatDate(selectedPatient.date) : ""}
+              {generationTimestamp ? `      ${generationTimestamp.time}` : ""}
             </BarcodeDate>
             <BarcodeContainer className="barcode-container">
               <svg
