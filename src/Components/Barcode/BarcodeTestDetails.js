@@ -534,7 +534,7 @@ const BarcodeTestDetails = () => {
               barcode: existingBarcode,
               containerName: container,
               isExtra: false,
-            })
+            }),
           ),
           {
             barcode: extraBarcode,
@@ -710,7 +710,7 @@ const BarcodeTestDetails = () => {
               barcode: patientBarcode,
               containerName: container,
               isExtra: false,
-            })
+            }),
           ),
           {
             barcode: patientBarcode,
@@ -735,10 +735,10 @@ const BarcodeTestDetails = () => {
       } else {
         console.error(
           "Error getting existing barcode:",
-          existingBarcodeResult.error
+          existingBarcodeResult.error,
         );
         toast.error(
-          existingBarcodeResult.error || "Failed to get existing barcode."
+          existingBarcodeResult.error || "Failed to get existing barcode.",
         );
       }
     } catch (error) {
@@ -873,7 +873,7 @@ const BarcodeTestDetails = () => {
       // First API call - get patient data
       const patientResult = await apiRequest(
         `${Labbaseurl}patients_get_barcode/?date=${dateString}`,
-        "GET"
+        "GET",
       );
 
       if (!patientResult.success) {
@@ -884,7 +884,7 @@ const BarcodeTestDetails = () => {
 
       const patientData = patientResult.data.data.find(
         (patient) =>
-          patient.patient_id === patientId && patient.bill_no === bill_no
+          patient.patient_id === patientId && patient.bill_no === bill_no,
       );
 
       if (!patientData) {
@@ -896,7 +896,7 @@ const BarcodeTestDetails = () => {
       setSelectedPatient(patientData);
       setTestDetails(patientData.testdetails || []);
       setSelectedTests(
-        new Array(patientData.test_name?.length || 0).fill(false)
+        new Array(patientData.test_name?.length || 0).fill(false),
       );
 
       // Second API call - get existing barcode data
@@ -907,7 +907,7 @@ const BarcodeTestDetails = () => {
       }).toString();
       const barcodeResult = await apiRequest(
         `${Labbaseurl}get-existing-barcode/?${barcodeQueryParams}`,
-        "GET"
+        "GET",
       );
 
       if (barcodeResult.success && barcodeResult.status === 200) {
@@ -932,7 +932,7 @@ const BarcodeTestDetails = () => {
               barcode: containerBarcodes[container],
               containerName: container,
               isExtra: false,
-            })
+            }),
           ),
           {
             barcode: extraBarcode || "",
@@ -1081,7 +1081,9 @@ const BarcodeTestDetails = () => {
               disabled={generateDisabled}
             >
               <BarcodeScan size={16} />
-              {isGenerating && !barcodeGenerated ? "Generating..." : "Generate & Print Barcodes"}
+              {isGenerating && !barcodeGenerated
+                ? "Generating..."
+                : "Generate & Print Barcodes"}
             </PrimaryButton>
 
             {/* Regenerate: disabled on page load, enabled after barcode generated */}
@@ -1090,10 +1092,10 @@ const BarcodeTestDetails = () => {
               disabled={regenerateDisabled}
             >
               <RefreshCw size={16} />
-              {isGenerating && barcodeGenerated ? "Regenerating..." : "Regenerate & Print Barcodes"}
+              {isGenerating && barcodeGenerated
+                ? "Regenerating..."
+                : "Regenerate & Print Barcodes"}
             </SecondaryButton>
-
-
           </ButtonsContainer>
         </>
       ) : (
@@ -1117,6 +1119,7 @@ const BarcodeTestDetails = () => {
             </BarcodeText>
             {/* ── Date + Time (IST) on barcode label ──────────────────────── */}
             <BarcodeDate className="barcode-date">
+              {selectedPatient?.patient_id} |{" "}
               {barcodeGeneratedAt
                 ? barcodeGeneratedAt
                 : selectedPatient?.date

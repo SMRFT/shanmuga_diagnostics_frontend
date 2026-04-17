@@ -540,7 +540,7 @@ const calculateDerivedValues = (
 
   if (currentTest.test_id === 449) {
     const bilirubinTotal = valuesByTestCode["07"] || 0;
-    const bilirubinDirect = valuesByTestCode["LFT02"] || 0;
+    const bilirubinDirect = valuesByTestCode["24"] || 0;
     const bilirubinIndirectParam = allParams.find(
       (p) => p.test_code === "LFT03",
     );
@@ -552,7 +552,7 @@ const calculateDerivedValues = (
   }
 
   if (currentTest.test_id === 467) {
-    const hba1c = valuesByTestCode["HbA1c"] || 0;
+    const hba1c = valuesByTestCode["ValueHbA1c"] || 0;
     const eagParam = allParams.find((p) => p.test_code === "HBA1C02");
     if (eagParam && hba1c) {
       const k = `${testname}_${eagParam.name || eagParam.test_name}`;
@@ -809,6 +809,10 @@ function TestDetails() {
   const age = queryParams.get("age");
   const gender = queryParams.get("gender"); // NEW: read gender from URL
   const barcode = queryParams.get("barcode");
+  const phone = queryParams.get("phone"); // NEW
+  const ref_doctor = queryParams.get("ref_doctor"); // NEW
+  const barcode_by = queryParams.get("barcode_by"); // NEW
+  const barcode_date = queryParams.get("barcode_date"); // NEW
   const locationId = queryParams.get("locationId");
   const testId = queryParams.get("test_id");
   const testName = queryParams.get("test_name");
@@ -1600,6 +1604,36 @@ function TestDetails() {
               <span>Barcode:</span> {barcode}
             </InfoItem>
           )}
+          {/* NEW: barcode_by, barcode_date, phone, ref_doctor */}
+          {barcode_by && (
+            <InfoItem>
+              <span>Barcode By:</span> {barcode_by}
+            </InfoItem>
+          )}
+          {barcode_date && (
+            <InfoItem>
+              <span>Barcode Date:</span>{" "}
+              {new Date(barcode_date).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </InfoItem>
+          )}
+          {phone && (
+            <InfoItem>
+              <span>Phone:</span> {phone}
+            </InfoItem>
+          )}
+          {ref_doctor && (
+            <InfoItem>
+              <span>Ref. Doctor:</span> {ref_doctor}
+            </InfoItem>
+          )}
           {locationId && (
             <InfoItem>
               <span>From:</span> {locationId}
@@ -1871,50 +1905,116 @@ function TestDetails() {
                                           </span>
                                         )}
                                       </Label>
-                                      {hasValueOptions && !disabled ? (
-                                        <MultiSelectDropdown
-                                          options={param.value_option}
-                                          value={values[uniqueKey] || ""}
-                                          disabled={disabled}
-                                          onChange={(val) =>
-                                            handleParameterValueChange(
-                                              test.testname,
-                                              paramName,
-                                              { target: { value: val } },
-                                            )
-                                          }
-                                        />
-                                      ) : (
-                                        <Input
-                                          type="text"
-                                          value={values[uniqueKey] || ""}
-                                          onChange={
-                                            !disabled
-                                              ? (e) =>
+                                      {(() => {
+                                        const MULTI_SELECT_CODES = [
+                                          "UR19",
+                                          "UR20",
+                                          "UR23",
+                                        ];
+                                        const isMultiSelect =
+                                          hasValueOptions &&
+                                          !disabled &&
+                                          MULTI_SELECT_CODES.includes(
+                                            param.test_code,
+                                          );
+                                        const isSingleSelect =
+                                          hasValueOptions &&
+                                          !disabled &&
+                                          !MULTI_SELECT_CODES.includes(
+                                            param.test_code,
+                                          );
+
+                                        if (isMultiSelect) {
+                                          return (
+                                            <MultiSelectDropdown
+                                              options={param.value_option}
+                                              value={values[uniqueKey] || ""}
+                                              disabled={disabled}
+                                              onChange={(val) =>
+                                                handleParameterValueChange(
+                                                  test.testname,
+                                                  paramName,
+                                                  { target: { value: val } },
+                                                )
+                                              }
+                                            />
+                                          );
+                                        }
+
+                                        if (isSingleSelect) {
+                                          return (
+                                            <SelectWrapper>
+                                              <Select
+                                                value={values[uniqueKey] || ""}
+                                                onChange={(e) =>
                                                   handleParameterValueChange(
                                                     test.testname,
                                                     paramName,
                                                     e,
                                                   )
-                                              : undefined
-                                          }
-                                          disabled={disabled}
-                                          placeholder={
-                                            !disabled
-                                              ? "Enter value"
-                                              : "Value available"
-                                          }
-                                          // NEW: highlight input red if critical
-                                          style={
-                                            critical
-                                              ? {
-                                                  borderColor: "var(--danger)",
-                                                  backgroundColor: "#fff5f5",
                                                 }
-                                              : {}
-                                          }
-                                        />
-                                      )}
+                                                disabled={disabled}
+                                                style={
+                                                  critical
+                                                    ? {
+                                                        borderColor:
+                                                          "var(--danger)",
+                                                      }
+                                                    : {}
+                                                }
+                                              >
+                                                <option value="">
+                                                  Select value
+                                                </option>
+                                                {param.value_option.map(
+                                                  (option, optIndex) => (
+                                                    <option
+                                                      key={optIndex}
+                                                      value={option}
+                                                    >
+                                                      {option}
+                                                    </option>
+                                                  ),
+                                                )}
+                                              </Select>
+                                              <SelectIcon size={18} />
+                                            </SelectWrapper>
+                                          );
+                                        }
+
+                                        // No options — plain text input
+                                        return (
+                                          <Input
+                                            type="text"
+                                            value={values[uniqueKey] || ""}
+                                            onChange={
+                                              !disabled
+                                                ? (e) =>
+                                                    handleParameterValueChange(
+                                                      test.testname,
+                                                      paramName,
+                                                      e,
+                                                    )
+                                                : undefined
+                                            }
+                                            disabled={disabled}
+                                            placeholder={
+                                              !disabled
+                                                ? "Enter value"
+                                                : "Value available"
+                                            }
+                                            style={
+                                              critical
+                                                ? {
+                                                    borderColor:
+                                                      "var(--danger)",
+                                                    backgroundColor: "#fff5f5",
+                                                  }
+                                                : {}
+                                            }
+                                          />
+                                        );
+                                      })()}
                                     </FormGroup>
 
                                     <FormGroup>

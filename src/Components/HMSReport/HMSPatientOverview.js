@@ -915,11 +915,12 @@ const HMSPatientOverview = () => {
       return (
         patientDate >= startOfDay &&
         patientDate <= endOfDay &&
-        (!patientId || patient.patient_id.includes(patientId)) &&
-        (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
-        (!barcode ||
-          patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
-        (!patientName ||
+        (!patientName || // patientName now holds the unified search term
+          patient.patient_id
+            ?.toLowerCase()
+            .includes(patientName.toLowerCase()) ||
+          patient.ipnumber?.toLowerCase().includes(patientName.toLowerCase()) ||
+          patient.barcode?.toLowerCase().includes(patientName.toLowerCase()) ||
           patient.patient_name
             ?.toLowerCase()
             .includes(patientName.toLowerCase())) &&
@@ -2276,41 +2277,19 @@ const HMSPatientOverview = () => {
                 onChange={(e) => setEndDate(new Date(e.target.value))}
               />
             </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>OP Number</FilterLabel>
+            <FilterGroup style={{ gridColumn: "span 2" }}>
+              <FilterLabel>Search</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter OP Number"
-                value={patientId}
-                onChange={(e) => setPatientId(e.target.value)}
-              />
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>IP Number</FilterLabel>
-              <FilterInput
-                type="text"
-                placeholder="Enter IP Number"
-                value={IPNumber}
-                onChange={(e) => setIPNumber(e.target.value)}
-              />
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>Barcode</FilterLabel>
-              <FilterInput
-                type="text"
-                placeholder="Enter Barcode"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-              />
-            </FilterGroup>
-
-            <FilterGroup>
-              <FilterLabel>Patient Name</FilterLabel>
-              <FilterInput
-                type="text"
-                placeholder="Enter patient name"
+                placeholder="Search by OP Number, IP Number, Barcode or Patient Name"
                 value={patientName}
-                onChange={(e) => setPatientName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPatientName(val);
+                  setPatientId(val);
+                  setIPNumber(val);
+                  setBarcode(val);
+                }}
               />
             </FilterGroup>
             <FilterGroup>

@@ -462,6 +462,51 @@ const TestSorting = ({ patient, onClose }) => {
     }
   };
 
+  const handleDispatchAll = async () => {
+    const undispatched = tests.filter((t) => !dispatchedTests.has(t.test_id));
+
+    if (!undispatched.length) {
+      toast.info("All tests are already dispatched.");
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage(`Dispatching ${undispatched.length} test(s)...`);
+
+    let successCount = 0;
+    for (const test of undispatched) {
+      try {
+        const response = await apiRequest(
+          `${Labbaseurl}update_dispatch_status/${patient.barcode}/`,
+          "PATCH",
+          { test_id: test.test_id, created_date: test.created_date },
+          { "Content-Type": "application/json" },
+        );
+        if (response.success) {
+          successCount++;
+          setDispatchedTests((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(test.test_id);
+            return newSet;
+          });
+          setTests((prev) =>
+            prev.map((t) =>
+              t.test_id === test.test_id ? { ...t, dispatched: true } : t,
+            ),
+          );
+        }
+      } catch (error) {
+        console.error(`Failed to dispatch test ${test.test_name}:`, error);
+      }
+    }
+
+    setIsLoading(false);
+    setLoadingMessage("");
+    toast.success(
+      `${successCount} of ${undispatched.length} test(s) dispatched successfully!`,
+    );
+  };
+
   const handleSelectTest = (test) => {
     setSelectedTests((prev) => {
       const isSelected = prev.some((t) => t.test_id === test.test_id);
@@ -1599,6 +1644,18 @@ const TestSorting = ({ patient, onClose }) => {
           {selectedTests.length > 0 && (
             <SelectedCount>{selectedTests.length} selected</SelectedCount>
           )}
+          <DispatchButton
+            style={{ marginLeft: "auto" }}
+            dispatched={tests.every((t) => dispatchedTests.has(t.test_id))}
+            disabled={tests.every((t) => dispatchedTests.has(t.test_id))}
+            onClick={handleDispatchAll}
+            title="Dispatch all undispatched tests"
+          >
+            <Flag size={14} />
+            {tests.every((t) => dispatchedTests.has(t.test_id))
+              ? "All Dispatched"
+              : "Dispatch All"}
+          </DispatchButton>
         </SelectAllContainer>
 
         <TestList>
