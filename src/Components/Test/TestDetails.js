@@ -552,7 +552,7 @@ const calculateDerivedValues = (
   }
 
   if (currentTest.test_id === 467) {
-    const hba1c = valuesByTestCode["HbA1c"] || 0;
+    const hba1c = valuesByTestCode["ValueHbA1c"] || 0;
     const eagParam = allParams.find((p) => p.test_code === "HBA1C02");
     if (eagParam && hba1c) {
       const k = `${testname}_${eagParam.name || eagParam.test_name}`;
