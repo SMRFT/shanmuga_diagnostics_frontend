@@ -883,7 +883,10 @@ const HMSPatientOverview = () => {
 
     const microbiologyStatus = patient.department_statuses["Microbiology"];
     return (
-      microbiologyStatus === "Approved" || microbiologyStatus === "Dispatched"
+      microbiologyStatus === "Approved" ||
+      microbiologyStatus === "Partially Approved" ||
+      microbiologyStatus === "Partially Dispatched" ||
+      microbiologyStatus === "Dispatched"
     );
   };
   // Returns true if the patient has ONLY Microbiology as their department
@@ -894,6 +897,17 @@ const HMSPatientOverview = () => {
       .map((d) => d.trim())
       .filter(Boolean);
     return departments.length === 1 && departments[0] === "Microbiology";
+  };
+  const isOnlyMolecularBiology = (patient) => {
+    if (!patient.department) return false;
+    const departments = patient.department
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+    return (
+      departments.length > 0 &&
+      departments.every((d) => d === "Molecular Biology")
+    );
   };
 
   useEffect(() => {
@@ -1115,6 +1129,18 @@ const HMSPatientOverview = () => {
         setLoading(false);
         return null;
       }
+      // Skip Molecular Biology tests from the printed report
+      patientDetails.testdetails = patientDetails.testdetails.filter(
+        (test) => test.department !== "Molecular Biology",
+      );
+
+      if (patientDetails.testdetails.length === 0) {
+        toast.error(
+          "No printable test details found (Molecular Biology tests are excluded).",
+        );
+        setLoading(false);
+        return null;
+      }
 
       // Unicode character mapping
       const unicodeMap = {
@@ -1299,7 +1325,7 @@ const HMSPatientOverview = () => {
           : []),
 
         {
-          label: "Printed Date",
+          label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -2040,7 +2066,7 @@ const HMSPatientOverview = () => {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
               doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
+              yPos += 5;
             }
           });
 
@@ -2050,10 +2076,12 @@ const HMSPatientOverview = () => {
             doc.setFontSize(10);
             const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
             doc.text(verifiedByText, leftMargin, yPos);
-            yPos += 8;
+            yPos += 5;
           }
 
-          yPos += 4;
+          const isLastDepartment =
+            department === sortedDepartments[sortedDepartments.length - 1];
+          yPos += isLastDepartment ? 2 : 4;
         });
 
         currentYPosition = yPos;
@@ -2063,8 +2091,8 @@ const HMSPatientOverview = () => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
-        if (currentYPosition + 10 >= footerStart) {
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
+        if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
@@ -2406,8 +2434,9 @@ const HMSPatientOverview = () => {
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
                   const onlyMB = isOnlyMicrobiology(patient);
+                  const onlyMolBio = isOnlyMolecularBiology(patient);
                   const isPrintMailEnabled =
-                    !onlyMB && isPrintAndMailEnabled(status);
+                    !onlyMB && !onlyMolBio && isPrintAndMailEnabled(status);
                   const isSortingEnabledFlag =
                     !onlyMB && isSortingEnabled(status);
                   const badgeColor = getBadgeColor(status);

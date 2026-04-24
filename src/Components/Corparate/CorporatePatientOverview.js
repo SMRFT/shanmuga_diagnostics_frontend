@@ -1081,7 +1081,7 @@ const CorporatePatientOverview = () => {
             ) || "N/A",
         },
         {
-          label: "Printed Date",
+          label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -1816,7 +1816,7 @@ const CorporatePatientOverview = () => {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
               doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
+              yPos += 5;
             }
           });
 
@@ -1826,10 +1826,12 @@ const CorporatePatientOverview = () => {
             doc.setFontSize(10);
             const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
             doc.text(verifiedByText, leftMargin, yPos);
-            yPos += 8;
+            yPos += 5;
           }
 
-          yPos += 4;
+          const isLastDepartment =
+            department === sortedDepartments[sortedDepartments.length - 1];
+          yPos += isLastDepartment ? 2 : 4;
         });
 
         currentYPosition = yPos;
@@ -1839,8 +1841,8 @@ const CorporatePatientOverview = () => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
-        if (currentYPosition + 10 >= footerStart) {
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
+        if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;

@@ -363,8 +363,13 @@ const DepartmentBadge = styled.span`
   border: ${(props) => (props.isPending ? "2px solid #dc3545" : "none")};
   animation: ${(props) => (props.isPending ? "blink 1s infinite" : "none")};
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 `;
 const DepartmentCell = styled.div`
@@ -476,11 +481,11 @@ const TATIndicator = styled.div`
     if (props.secondsLeft < 7200) return "#ffc107";
     return "#28a745";
   }};
-  color: ${props => (props.secondsLeft !== null ? 'white' : 'var(--gray)')};
+  color: ${(props) => (props.secondsLeft !== null ? "white" : "var(--gray)")};
 `;
 const TATText = styled.span`
   white-space: nowrap;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   letter-spacing: 0.5px;
 `;
 const TATLabel = styled.div`
@@ -502,7 +507,6 @@ const formatTimeRemaining = (seconds) => {
   parts.push(`${secs}S`);
   return parts.join(":");
 };
-
 
 const PatientOverview = () => {
   const [patients, setPatients] = useState([]);
@@ -534,7 +538,8 @@ const PatientOverview = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("hms");
   const [isTestStatusModalOpen, setIsTestStatusModalOpen] = useState(false);
-  const [selectedPatientForStatus, setSelectedPatientForStatus] = useState(null);
+  const [selectedPatientForStatus, setSelectedPatientForStatus] =
+    useState(null);
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
@@ -631,7 +636,17 @@ const PatientOverview = () => {
       .filter(Boolean);
     return departments.length === 1 && departments[0] === "Microbiology";
   };
-
+  const isOnlyMolecularBiology = (patient) => {
+    if (!patient.department) return false;
+    const departments = patient.department
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+    return (
+      departments.length > 0 &&
+      departments.every((d) => d === "Molecular Biology")
+    );
+  };
 
   const TestStatusModal = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -689,28 +704,56 @@ const PatientOverview = () => {
                 return (
                   <TestStatusItem
                     key={index}
-                    highlight={test.status === 'Approved' || test.status === 'Dispatched'}
+                    highlight={
+                      test.status === "Approved" || test.status === "Dispatched"
+                    }
                   >
                     <div style={{ flex: 1 }}>
                       <TestNameText>{test.test_name}</TestNameText>
                       {test.sample_collected_time && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
-                          Collected: {format(new Date(test.sample_collected_time), "dd MMM yy, HH:mm:ss")}
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--gray)",
+                            marginTop: "0.25rem",
+                          }}
+                        >
+                          Collected:{" "}
+                          {format(
+                            new Date(test.sample_collected_time),
+                            "dd MMM yy, HH:mm:ss",
+                          )}
                         </div>
                       )}
                       {test.approve_time && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--gray)', marginTop: '0.25rem' }}>
-                          Approved: {format(new Date(test.approve_time), "dd MMM yy, HH:mm:ss")}
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--gray)",
+                            marginTop: "0.25rem",
+                          }}
+                        >
+                          Approved:{" "}
+                          {format(
+                            new Date(test.approve_time),
+                            "dd MMM yy, HH:mm:ss",
+                          )}
                         </div>
                       )}
                     </div>
-                    <StatusBadgeContainer style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                    <StatusBadgeContainer
+                      style={{
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        gap: "0.5rem",
+                      }}
+                    >
                       <Badge color={getBadgeColor(test.status)}>
                         {test.status}
                       </Badge>
                       {tatDisplay && (
                         <TATIndicator secondsLeft={liveSecondsLeft}>
-                          <div style={{ textAlign: 'center' }}>
+                          <div style={{ textAlign: "center" }}>
                             <TATLabel>{tatDisplay.label}</TATLabel>
                             <TATText>{tatDisplay.time}</TATText>
                           </div>
@@ -750,8 +793,12 @@ const PatientOverview = () => {
         (!B2B || patient.b2b === B2B) &&
         (!refBy || patient.refby === refBy) &&
         (!patientId || patient.patient_id.includes(patientId)) &&
-        (!barcode || patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
-        (!patientName || patient.patient_name?.toLowerCase().includes(patientName.toLowerCase())) &&
+        (!barcode ||
+          patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
+        (!patientName ||
+          patient.patient_name
+            ?.toLowerCase()
+            .includes(patientName.toLowerCase())) &&
         (!statusFilter || patientStatus === statusFilter) &&
         matchesDepartment
       );
@@ -785,7 +832,6 @@ const PatientOverview = () => {
     setDepartmentFilter("");
     setFilteredPatients(patients);
   };
-
 
   const handleWhatsAppShare = async (patient, withLetterpad = true) => {
     if (!patient || !patient.phone) {
@@ -836,7 +882,6 @@ const PatientOverview = () => {
     }
   };
 
-
   const handleSendEmail = async (patient, withLetterpad = true) => {
     try {
       const pdfBlob = await handlePrint(patient, withLetterpad, false);
@@ -861,13 +906,13 @@ const PatientOverview = () => {
         "attachments",
         new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
           type: "application/pdf",
-        })
+        }),
       );
       const emailResponse = await apiRequest(
         `${Labbaseurl}send-email/`,
         "POST",
         formData,
-        { "Content-Type": "multipart/form-data" }
+        { "Content-Type": "multipart/form-data" },
       );
       if (emailResponse.success) toast.success("Email sent successfully!");
       else toast.error(`Failed to send email: ${emailResponse.error}`);
@@ -881,7 +926,7 @@ const PatientOverview = () => {
     try {
       const response = await apiRequest(
         `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
-        "GET"
+        "GET",
       );
       if (!response.success) {
         toast.error(response.error || "Failed to fetch patient details");
@@ -900,7 +945,9 @@ const PatientOverview = () => {
       if (Array.isArray(patientDetails)) {
         patientDetails = {
           ...patientDetails[0],
-          testdetails: patientDetails.flatMap((record) => record.testdetails || []),
+          testdetails: patientDetails.flatMap(
+            (record) => record.testdetails || [],
+          ),
         };
       }
       if (
@@ -911,13 +958,39 @@ const PatientOverview = () => {
         setLoading(false);
         return null;
       }
+      // Skip Molecular Biology tests from the printed report
+      patientDetails.testdetails = patientDetails.testdetails.filter(
+        (test) => test.department !== "Molecular Biology",
+      );
+
+      if (patientDetails.testdetails.length === 0) {
+        toast.error(
+          "No printable test details found (Molecular Biology tests are excluded).",
+        );
+        setLoading(false);
+        return null;
+      }
 
       const unicodeMap = {
-        μ: "µ", α: "α", β: "β", γ: "γ", δ: "δ", Ω: "Ω",
-        "²": "²", "³": "³", "⁴": "⁴",
-        "°": "°", "±": "±", "×": "x", "÷": "/",
-        "\\u03bc": "µ", "\\u00b5": "µ", "\\u00b0": "°",
-        "\\u00b1": "±", "\\u00b2": "²", "\\u00b3": "³",
+        μ: "µ",
+        α: "α",
+        β: "β",
+        γ: "γ",
+        δ: "δ",
+        Ω: "Ω",
+        "²": "²",
+        "³": "³",
+        "⁴": "⁴",
+        "°": "°",
+        "±": "±",
+        "×": "x",
+        "÷": "/",
+        "\\u03bc": "µ",
+        "\\u00b5": "µ",
+        "\\u00b0": "°",
+        "\\u00b1": "±",
+        "\\u00b2": "²",
+        "\\u00b3": "³",
       };
       const processUnicodeText = (text) => {
         if (!text) return "";
@@ -936,9 +1009,9 @@ const PatientOverview = () => {
         return refNo.split("+")[0];
       };
       const designationMapping = {
-        "DESIG101": { position: 0, title: "Consultant Microbiologist" },
-        "DESIG100": { position: 1, title: "Consultant Pathologist" },
-        "DESIG099": { position: 2, title: "Consultant Biochemist" },
+        DESIG101: { position: 0, title: "Consultant Microbiologist" },
+        DESIG100: { position: 1, title: "Consultant Pathologist" },
+        DESIG099: { position: 2, title: "Consultant Biochemist" },
       };
       const consultants = [null, null, null];
       signaturesData.forEach((sig) => {
@@ -967,7 +1040,7 @@ const PatientOverview = () => {
         "Histopathology",
         "Immunohistochemistry",
         "Microbiology",
-        "Molecular Biology"
+        "Molecular Biology",
       ];
       const patientRefNo =
         patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
@@ -976,8 +1049,12 @@ const PatientOverview = () => {
       if (patientRefNoNumber !== "N/A") {
         const barcodeCanvas = document.createElement("canvas");
         JsBarcode(barcodeCanvas, patientRefNoNumber, {
-          format: "CODE128", lineColor: "#000", width: 1.5,
-          height: 10, displayValue: false, margin: 0,
+          format: "CODE128",
+          lineColor: "#000",
+          width: 1.5,
+          height: 10,
+          displayValue: false,
+          margin: 0,
         });
         barcodeImage = barcodeCanvas.toDataURL("image/png");
       }
@@ -1000,8 +1077,14 @@ const PatientOverview = () => {
       ];
       const leftDetails = [
         { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
-        { label: "Name", value: patientDetails.patientname || "No name provided" },
-        { label: "Age/Gender", value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}` },
+        {
+          label: "Name",
+          value: patientDetails.patientname || "No name provided",
+        },
+        {
+          label: "Age/Gender",
+          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`,
+        },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "N/A" },
         { label: "Source", value: patientDetails.B2B || "N/A" },
@@ -1009,11 +1092,19 @@ const PatientOverview = () => {
       const rightDetails = [
         {
           label: "Collected On",
-          value: format(new Date(patientDetails.testdetails[0].samplecollected_time), "dd MMM yy / HH:mm") || "N/A",
+          value:
+            format(
+              new Date(patientDetails.testdetails[0].samplecollected_time),
+              "dd MMM yy / HH:mm",
+            ) || "N/A",
         },
         {
           label: "Received On",
-          value: format(new Date(patientDetails.testdetails[0].received_time), "dd MMM yy / HH:mm") || "N/A",
+          value:
+            format(
+              new Date(patientDetails.testdetails[0].received_time),
+              "dd MMM yy / HH:mm",
+            ) || "N/A",
         },
         ...(patientDetails.testdetails[0].dispatch_time &&
         patientDetails.testdetails[0].dispatch_time !== "null"
@@ -1028,14 +1119,16 @@ const PatientOverview = () => {
             ]
           : []),
         {
-          label: "Printed Date",
+          label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
       const calculateMaxLabelWidth = (details) => {
         const tempDoc = new jsPDF();
-        return Math.max(...details.map((item) => tempDoc.getTextWidth(item.label)));
+        return Math.max(
+          ...details.map((item) => tempDoc.getTextWidth(item.label)),
+        );
       };
       const doc = new jsPDF();
       let pageCount = 1;
@@ -1169,7 +1262,15 @@ const PatientOverview = () => {
         yPos += 5;
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        const headers = ["Test", "Specimen", "", "Result", "Units", "Reference Value", "Method"];
+        const headers = [
+          "Test",
+          "Specimen",
+          "",
+          "Result",
+          "Units",
+          "Reference Value",
+          "Method",
+        ];
         let xPos = leftMargin;
         headers.forEach((header, index) => {
           if (header) doc.text(header, xPos, yPos);
@@ -1195,7 +1296,7 @@ const PatientOverview = () => {
               xPosition,
               signaturesY,
               signatureWidth,
-              15
+              15,
             );
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
@@ -1226,7 +1327,9 @@ const PatientOverview = () => {
         const numValue = Number.parseFloat(value);
         if (isNaN(numValue)) return null;
         if (reference.includes("-")) {
-          const [min, max] = reference.split("-").map((v) => Number.parseFloat(v));
+          const [min, max] = reference
+            .split("-")
+            .map((v) => Number.parseFloat(v));
           if (!isNaN(min) && !isNaN(max)) {
             if (numValue < min) return "L";
             if (numValue > max) return "H";
@@ -1293,8 +1396,15 @@ const PatientOverview = () => {
               doc.setFontSize(10);
               const textWidth = doc.getTextWidth(department.toUpperCase());
               const centerX = leftMargin + contentWidth / 2;
-              doc.text(department.toUpperCase(), centerX, yPos, { align: "center" });
-              doc.line(centerX - textWidth / 2, yPos + 2, centerX + textWidth / 2, yPos + 2);
+              doc.text(department.toUpperCase(), centerX, yPos, {
+                align: "center",
+              });
+              doc.line(
+                centerX - textWidth / 2,
+                yPos + 2,
+                centerX + textWidth / 2,
+                yPos + 2,
+              );
               yPos += 10;
             }
             const parametersBySubtitle = {};
@@ -1337,14 +1447,21 @@ const PatientOverview = () => {
               testNameLines.length,
               valueLines.length,
               referenceLines.length,
-              methodLines.length
+              methodLines.length,
             );
             const lineHeight = 4;
             const actualRowHeight = maxLines * lineHeight + 2;
             yPos = checkForNewPage(yPos, actualRowHeight);
             let xPos = leftMargin;
             doc.setFont("helvetica", "bold");
-            renderWrappedText(doc, testNameText, colWidths[0] - 2, xPos, yPos, lineHeight);
+            renderWrappedText(
+              doc,
+              testNameText,
+              colWidths[0] - 2,
+              xPos,
+              yPos,
+              lineHeight,
+            );
             xPos += colWidths[0];
             doc.setFont("helvetica", "normal");
             doc.text(test.specimen_type || "", xPos, yPos);
@@ -1381,7 +1498,14 @@ const PatientOverview = () => {
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
-              renderWrappedText(doc, valueText, colWidths[3] - 2, xPos, yPos, lineHeight);
+              renderWrappedText(
+                doc,
+                valueText,
+                colWidths[3] - 2,
+                xPos,
+                yPos,
+                lineHeight,
+              );
             }
             xPos += colWidths[3];
             renderUnicodeText(test.unit || "", xPos, yPos);
@@ -1423,7 +1547,7 @@ const PatientOverview = () => {
                   colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
                   leftMargin,
                   yPos,
-                  3.5
+                  3.5,
                 );
                 yPos += commentHeight + 2;
               }
@@ -1459,7 +1583,7 @@ const PatientOverview = () => {
                 const paramReferenceLines = wrapTextAndGetLines(
                   doc,
                   currentTest.reference_range || "",
-                  colWidths[5] - 2
+                  colWidths[5] - 2,
                 );
                 const paramMethodLines = wrapTextAndGetLines(
                   doc,
@@ -1470,7 +1594,7 @@ const PatientOverview = () => {
                   paramNameLines.length,
                   paramValueLines.length,
                   paramReferenceLines.length,
-                  paramMethodLines.length
+                  paramMethodLines.length,
                 );
                 const paramLineHeight = 4;
                 const paramActualRowHeight =
@@ -1478,7 +1602,14 @@ const PatientOverview = () => {
                 yPos = checkForNewPage(yPos, paramActualRowHeight);
                 let xPos = leftMargin;
                 doc.setFont("helvetica", "normal");
-                renderWrappedText(doc, paramNameText, colWidths[0] - 2, xPos, yPos, paramLineHeight);
+                renderWrappedText(
+                  doc,
+                  paramNameText,
+                  colWidths[0] - 2,
+                  xPos,
+                  yPos,
+                  paramLineHeight,
+                );
                 xPos += colWidths[0];
                 doc.text(currentTest.specimen_type || "", xPos, yPos);
                 xPos += colWidths[1];
@@ -1517,7 +1648,14 @@ const PatientOverview = () => {
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
-                  renderWrappedText(doc, paramValueText, colWidths[3] - 2, xPos, yPos, paramLineHeight);
+                  renderWrappedText(
+                    doc,
+                    paramValueText,
+                    colWidths[3] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
                 }
                 xPos += colWidths[3];
                 renderUnicodeText(currentTest.unit || "", xPos, yPos);
@@ -1528,7 +1666,7 @@ const PatientOverview = () => {
                   colWidths[5] - 2,
                   xPos,
                   yPos,
-                  paramLineHeight
+                  paramLineHeight,
                 );
                 xPos += colWidths[5];
                 doc.setTextColor(0, 0, 0);
@@ -1554,7 +1692,7 @@ const PatientOverview = () => {
                       2,
                     leftMargin,
                     yPos,
-                    3.5
+                    3.5,
                   );
                   yPos += paramCommentHeight + 2;
                 }
@@ -1571,7 +1709,7 @@ const PatientOverview = () => {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
               doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
+              yPos += 5;
             }
           });
           if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
@@ -1582,17 +1720,19 @@ const PatientOverview = () => {
               leftMargin,
               yPos,
             );
-            yPos += 8;
+            yPos += 5;
           }
-          yPos += 4;
+          const isLastDepartment =
+            department === sortedDepartments[sortedDepartments.length - 1];
+          yPos += isLastDepartment ? 2 : 4;
         });
         currentYPosition = yPos;
       }
       isTableStarted = false;
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
-        if (currentYPosition + 10 >= footerStart) {
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
+        if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
@@ -1704,38 +1844,38 @@ const PatientOverview = () => {
     return departments.map((dept) => {
       const backendStatus = departmentStatuses[dept] || "Pending";
       let status = backendStatus;
-      let color = '#dc3545';
+      let color = "#dc3545";
       let isPending = true;
       switch (backendStatus) {
-        case 'Dispatched':
-          color = '#155724';
+        case "Dispatched":
+          color = "#155724";
           isPending = false;
           break;
-        case 'Approved':
-          color = '#28a745';
+        case "Approved":
+          color = "#28a745";
           isPending = false;
           break;
-        case 'Tested':
-          color = '#d63384';
+        case "Tested":
+          color = "#d63384";
           isPending = false;
           break;
-        case 'Received':
-          color = '#17a2b8';
+        case "Received":
+          color = "#17a2b8";
           isPending = false;
           break;
-        case 'Collected':
-          color = '#0d6efd';
+        case "Collected":
+          color = "#0d6efd";
           isPending = false;
           break;
-        case 'In Progress':
-          color = '#ffc107';
+        case "In Progress":
+          color = "#ffc107";
           isPending = false;
-          status = 'In Progress';
+          status = "In Progress";
           break;
         default:
-          color = '#dc3545';
+          color = "#dc3545";
           isPending = true;
-          status = 'Pending';
+          status = "Pending";
       }
       return { department: dept, status, color, isPending };
     });
@@ -1784,7 +1924,6 @@ const PatientOverview = () => {
 
         <FiltersContainer>
           <FilterRow>
-
             <FilterGroup>
               <FilterLabel>Start Date</FilterLabel>
               <FilterInput
@@ -1893,7 +2032,9 @@ const PatientOverview = () => {
                 <option value="Cytology">Cytology</option>
                 <option value="Genetics">Genetics</option>
                 <option value="Histopathology">Histopathology</option>
-                <option value="Immunohistochemistry">Immunohistochemistry</option>
+                <option value="Immunohistochemistry">
+                  Immunohistochemistry
+                </option>
                 <option value="Microbiology">Microbiology</option>
                 <option value="Molecular Biology">Molecular Biology</option>
               </FilterSelect>
@@ -1955,10 +2096,13 @@ const PatientOverview = () => {
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
                   const onlyMB = isOnlyMicrobiology(patient);
+                  const onlyMolBio = isOnlyMolecularBiology(patient);
                   const isPrintMailEnabled =
-                    !onlyMB && isPrintAndMailEnabled(status);
+                    !onlyMB && !onlyMolBio && isPrintAndMailEnabled(status);
                   const isSortingEnabledFlag =
                     !onlyMB && isSortingEnabled(status);
+                  const isWhatsAppEmailEnabled =
+                    !onlyMB && !onlyMolBio && isPrintAndMailEnabled(status);
                   const badgeColor = getBadgeColor(status);
 
                   return (
@@ -1989,7 +2133,9 @@ const PatientOverview = () => {
                         <DepartmentCell>
                           {getDepartmentStatus(patient).map((deptInfo, idx) => (
                             <DepartmentRow key={idx}>
-                              <span style={{ whiteSpace: 'nowrap' }}>{deptInfo.department}</span>
+                              <span style={{ whiteSpace: "nowrap" }}>
+                                {deptInfo.department}
+                              </span>
                               <DepartmentBadge
                                 color={deptInfo.color}
                                 isPending={deptInfo.isPending}
@@ -2010,9 +2156,9 @@ const PatientOverview = () => {
                             }}
                             title="View Test Details"
                             style={{
-                              width: '1.75rem',
-                              height: '1.75rem',
-                              marginLeft: '0.5rem'
+                              width: "1.75rem",
+                              height: "1.75rem",
+                              marginLeft: "0.5rem",
                             }}
                           >
                             <Eye size={14} />
@@ -2028,7 +2174,11 @@ const PatientOverview = () => {
                         <ActionContainer>
                           <ActionButton
                             onClick={() => openMBTestModal(patient)}
-                            title={isMBSortingEnabledFlag ? "Sort M/B Tests" : "Microbiology not approved"}
+                            title={
+                              isMBSortingEnabledFlag
+                                ? "Sort M/B Tests"
+                                : "Microbiology not approved"
+                            }
                             disabled={!isMBSortingEnabledFlag}
                           >
                             <List size={16} />
@@ -2060,13 +2210,13 @@ const PatientOverview = () => {
                           {/* WHATSAPP dropdown trigger */}
                           <PrintDropdown
                             onMouseEnter={(e) =>
-                              isPrintMailEnabled &&
+                              isWhatsAppEmailEnabled && // ← changed
                               showDropdown(patient.patient_id, "whatsapp", e)
                             }
                             onMouseLeave={hideDropdown}
                           >
                             <ActionButton
-                              disabled={!isPrintMailEnabled}
+                              disabled={!isWhatsAppEmailEnabled} // ← changed
                               title="Share via WhatsApp"
                             >
                               <MessageCircle size={16} />
@@ -2076,21 +2226,34 @@ const PatientOverview = () => {
                           {/* EMAIL dropdown trigger */}
                           <PrintDropdown
                             onMouseEnter={(e) =>
-                              isPrintMailEnabled &&
+                              isWhatsAppEmailEnabled && // ← changed
                               patient.email &&
                               showDropdown(patient.patient_id, "email", e)
                             }
                             onMouseLeave={hideDropdown}
                           >
                             <ActionButton
-                              disabled={!isPrintMailEnabled || !patient.email}
-                              title={patient.email ? "Send Email" : "Email not available"}
+                              disabled={
+                                !isWhatsAppEmailEnabled || !patient.email
+                              } // ← changed
+                              title={
+                                patient.email
+                                  ? "Send Email"
+                                  : "Email not available"
+                              }
                               style={{
                                 opacity: !patient.email ? 0.5 : 1,
-                                cursor: !patient.email ? "not-allowed" : "pointer"
+                                cursor: !patient.email
+                                  ? "not-allowed"
+                                  : "pointer",
                               }}
                             >
-                              <Mail size={16} color={patient.email ? "currentColor" : "var(--gray)"} />
+                              <Mail
+                                size={16}
+                                color={
+                                  patient.email ? "currentColor" : "var(--gray)"
+                                }
+                              />
                             </ActionButton>
                           </PrintDropdown>
                         </ActionContainer>
@@ -2118,7 +2281,8 @@ const PatientOverview = () => {
             borderTop: "1px solid var(--gray-light)",
           }}
         >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+          Showing {filteredPatients.length}{" "}
+          {filteredPatients.length === 1 ? "entry" : "entries"}
         </div>
       </Card>
 

@@ -342,7 +342,93 @@ const MultiSelect = styled.select`
     cursor: not-allowed;
   }
 `;
+const InterpretationSection = styled.div`
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+`;
+const InterpretationTitle = styled.div`
+  background: linear-gradient(135deg, var(--secondary), var(--primary));
+  color: white;
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+`;
+const InterpretationTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  th {
+    background-color: #f0f3ff;
+    color: var(--secondary);
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid var(--gray-light);
+    border-right: 1px solid var(--gray-light);
+    &:last-child {
+      border-right: none;
+    }
+  }
+  td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--gray-light);
+    border-right: 1px solid var(--gray-light);
+    vertical-align: middle;
+    &:last-child {
+      border-right: none;
+    }
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  tr:nth-child(even) td {
+    background-color: #fafbff;
+  }
+`;
 
+const LodTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  th {
+    background-color: #f0f3ff;
+    color: var(--secondary);
+    padding: 0.6rem 1rem;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid var(--gray-light);
+  }
+  th.sample-header {
+    background-color: #f0f3ff;
+    text-align: left;
+  }
+  th.group-header {
+    background-color: #e8ecff;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+  td {
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--gray-light);
+    vertical-align: middle;
+    text-align: center;
+  }
+  td.sample-cell {
+    text-align: left;
+    font-weight: 600;
+    background-color: #fafbff;
+  }
+  tr:hover td {
+    background-color: #f0f3ff;
+  }
+  tr:hover td.sample-cell {
+    background-color: #e8ecff;
+  }
+`;
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const ALL_CALCULATED_FIELDS = [
@@ -819,6 +905,7 @@ function TestDetails() {
   const navigate = useNavigate();
   const verified_by = localStorage.getItem("name") || "";
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+  const [specimenSelections, setSpecimenSelections] = useState({});
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
 
@@ -896,6 +983,7 @@ function TestDetails() {
             method: test.method,
             sample_status: test.sample_status,
             parametersBySubtitle: {},
+            specimen_options: test.specimen_options || [],
           };
         }
 
@@ -931,6 +1019,10 @@ function TestDetails() {
           groupedTests[tName].test_code = test.test_code;
           groupedTests[tName].processing_status = test.processing_status;
           groupedTests[tName].value_option = test.value_option || [];
+          groupedTests[tName].interpretation = test.interpretation || {}; // ADD
+          groupedTests[tName].critical_range = test.critical_range || {}; // ADD
+          groupedTests[tName].specimen_options = test.specimen_options || []; // ADD
+          groupedTests[tName].lod = test.lod || null; // ADD
         }
       });
 
@@ -1435,6 +1527,9 @@ function TestDetails() {
             device_id: test.device_id,
             test_id: test.test_id,
             test_code: test.test_code,
+            ...(specimenSelections[test.testname]
+              ? { specimen_type: specimenSelections[test.testname] }
+              : {}), // only include if user selected from dropdown
             value: values[test.testname] || "",
             remarks: remarks[test.testname] || "",
             comment: comments[test.testname] || "",
@@ -1662,12 +1757,38 @@ function TestDetails() {
                   <>
                     <FormRow>
                       <FormGroup>
-                        <Label>Specimen Type</Label>
-                        <Input
-                          type="text"
-                          value={test.specimen_type || ""}
-                          disabled
-                        />
+                        <Label>
+                          Specimen Type
+                          {test.specimen_options &&
+                            test.specimen_options.length > 0 && (
+                              <span style={{ color: "red" }}> *</span>
+                            )}
+                        </Label>
+                        {test.specimen_options &&
+                        test.specimen_options.length > 0 ? (
+                          <SelectWrapper>
+                            <Select
+                              value={specimenSelections[test.testname] || ""}
+                              onChange={(e) =>
+                                setSpecimenSelections((prev) => ({
+                                  ...prev,
+                                  [test.testname]: e.target.value,
+                                }))
+                              }
+                              required
+                            >
+                              <option value="">Select specimen type</option>
+                              {test.specimen_options.map((opt, i) => (
+                                <option key={i} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </Select>
+                            <SelectIcon size={18} />
+                          </SelectWrapper>
+                        ) : (
+                          <Input value={test.specimen_type || ""} disabled />
+                        )}
                       </FormGroup>
                       <FormGroup>
                         <Label>Unit</Label>
@@ -1686,6 +1807,121 @@ function TestDetails() {
                         <Input type="text" value={test.method || ""} disabled />
                       </FormGroup>
                     </FormRow>
+                    {/* ── Interpretation table ── */}
+                    {test.interpretation &&
+                      Object.keys(test.interpretation).length > 0 && (
+                        <InterpretationSection>
+                          <InterpretationTitle>
+                            Interpretation
+                          </InterpretationTitle>
+                          <InterpretationTable>
+                            <thead>
+                              <tr>
+                                <th>Results</th>
+                                <th>Comments</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Object.entries(test.interpretation).map(
+                                ([result, comment], i) => (
+                                  <tr key={i}>
+                                    <td style={{ fontWeight: 500 }}>
+                                      {result}
+                                    </td>
+                                    <td>{comment}</td>
+                                  </tr>
+                                ),
+                              )}
+                            </tbody>
+                          </InterpretationTable>
+                        </InterpretationSection>
+                      )}
+
+                    {/* ── Critical range table ── */}
+                    {test.critical_range &&
+                      Object.keys(test.critical_range).length > 0 && (
+                        <InterpretationSection>
+                          <InterpretationTitle>
+                            Critical Range
+                          </InterpretationTitle>
+                          <InterpretationTable>
+                            <thead>
+                              <tr>
+                                <th>Result</th>
+                                <th>Ct Value</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Object.entries(test.critical_range).map(
+                                ([result, ctvalue], i) => (
+                                  <tr key={i}>
+                                    <td style={{ fontWeight: 500 }}>
+                                      {result}
+                                    </td>
+                                    <td>{ctvalue}</td>
+                                  </tr>
+                                ),
+                              )}
+                            </tbody>
+                          </InterpretationTable>
+                        </InterpretationSection>
+                      )}
+                    {/* ── LOD table ── */}
+                    {test.lod &&
+                      Object.keys(test.lod).length > 0 &&
+                      (() => {
+                        const samples = Object.keys(test.lod);
+                        const maxGenotypes = Math.max(
+                          ...samples.map((s) => test.lod[s].length),
+                        );
+                        const genotypeLabels = Array.from(
+                          { length: maxGenotypes },
+                          (_, i) => `Genotype ${i + 1}`,
+                        );
+
+                        return (
+                          <InterpretationSection>
+                            <InterpretationTitle>
+                              LOD in IU/ml
+                            </InterpretationTitle>
+                            <LodTable>
+                              <thead>
+                                <tr>
+                                  <th className="sample-header" rowSpan={2}>
+                                    SAMPLE
+                                  </th>
+                                  <th
+                                    colSpan={maxGenotypes}
+                                    style={{
+                                      textAlign: "center",
+                                      backgroundColor: "#e8ecff",
+                                    }}
+                                  >
+                                    LOD in IU/ml
+                                  </th>
+                                </tr>
+                                <tr>
+                                  {genotypeLabels.map((label, i) => (
+                                    <th key={i} className="group-header">
+                                      {label}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {samples.map((sample, rowIdx) => (
+                                  <tr key={rowIdx}>
+                                    <td className="sample-cell">{sample}</td>
+                                    {test.lod[sample].map((val, colIdx) => (
+                                      <td key={colIdx}>{val}</td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </LodTable>
+                          </InterpretationSection>
+                        );
+                      })()}
 
                     <FormRow>
                       <FormGroup>

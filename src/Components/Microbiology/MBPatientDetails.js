@@ -1,13 +1,33 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { format } from "date-fns"
-import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components"
-import { Calendar, Search, AlertCircle, ChevronRight, CheckCircle, RefreshCcw, Clock, User, Tag, FileText, CalendarDays, Users, Stethoscope,X } from 'lucide-react'
-import DatePicker from "react-datepicker"
-import "react-datepicker/dist/react-datepicker.css"
-import { useNavigate, useLocation } from "react-router-dom"
-import apiRequest from "../Auth/apiRequest"
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import styled, {
+  createGlobalStyle,
+  ThemeProvider,
+  keyframes,
+  css,
+} from "styled-components";
+import {
+  Calendar,
+  Search,
+  AlertCircle,
+  ChevronRight,
+  CheckCircle,
+  RefreshCcw,
+  Clock,
+  User,
+  Tag,
+  FileText,
+  CalendarDays,
+  Users,
+  Stethoscope,
+  X,
+} from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { useNavigate, useLocation } from "react-router-dom";
+import apiRequest from "../Auth/apiRequest";
 
 // Theme
 const theme = {
@@ -49,7 +69,7 @@ const theme = {
     default: "all 0.2s ease-in-out",
     slow: "all 0.3s ease-in-out",
   },
-}
+};
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -104,7 +124,7 @@ const GlobalStyle = createGlobalStyle`
     background-color: ${(props) => props.theme.colors.primary};
     color: white;
   }
-`
+`;
 
 // Styled Components
 const Container = styled.div`
@@ -119,12 +139,12 @@ const Container = styled.div`
     margin: 1rem;
     padding: 1rem;
   }
-`
+`;
 
 const Header = styled.div`
   margin-bottom: 2rem;
   text-align: center;
-`
+`;
 
 const Title = styled.h1`
   color: ${(props) => props.theme.colors.primary};
@@ -135,7 +155,7 @@ const Title = styled.h1`
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     font-size: 1.5rem;
   }
-`
+`;
 
 const Controls = styled.div`
   display: flex;
@@ -149,7 +169,7 @@ const Controls = styled.div`
     flex-direction: column;
     align-items: stretch;
   }
-`
+`;
 
 const DateRangeWrapper = styled.div`
   display: flex;
@@ -161,13 +181,13 @@ const DateRangeWrapper = styled.div`
     flex-direction: column;
     width: 100%;
   }
-`
+`;
 
 const DatePickerWrapper = styled.div`
   gap: 0.1rem;
   align-items: center;
   background: ${(props) => props.theme.colors.backgroundAlt};
-  padding: 0.50rem;
+  padding: 0.5rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
   border: 1px solid ${(props) => props.theme.colors.border};
   transition: ${(props) => props.theme.transitions.default};
@@ -200,7 +220,7 @@ const DatePickerWrapper = styled.div`
       outline: none;
     }
   }
-`
+`;
 
 const SearchWrapper = styled.div`
   position: relative;
@@ -210,7 +230,7 @@ const SearchWrapper = styled.div`
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     max-width: 100%;
   }
-`
+`;
 
 const SearchInput = styled.input`
   width: 100%;
@@ -225,7 +245,7 @@ const SearchInput = styled.input`
     border-color: ${(props) => props.theme.colors.primary};
     box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
   }
-`
+`;
 
 const SearchIcon = styled.div`
   position: absolute;
@@ -234,7 +254,7 @@ const SearchIcon = styled.div`
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
   pointer-events: none;
-`
+`;
 
 const TableWrapper = styled.div`
   position: relative;
@@ -242,14 +262,14 @@ const TableWrapper = styled.div`
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   box-shadow: ${(props) => props.theme.shadows.sm};
-`
+`;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;
-`
+`;
 
 const Th = styled.th`
   padding: 1rem;
@@ -269,7 +289,7 @@ const Th = styled.th`
   &:last-child {
     padding-right: 1.5rem;
   }
-`
+`;
 
 const Td = styled.td`
   padding: 1rem;
@@ -284,7 +304,7 @@ const Td = styled.td`
   &:last-child {
     padding-right: 1.5rem;
   }
-`
+`;
 
 const Tr = styled.tr`
   &:hover {
@@ -294,7 +314,7 @@ const Tr = styled.tr`
   &:last-child td {
     border-bottom: none;
   }
-`
+`;
 
 const TestButton = styled.button`
   display: inline-flex;
@@ -325,7 +345,7 @@ const TestButton = styled.button`
     cursor: not-allowed;
     opacity: 0.6;
   }
-`
+`;
 
 const TestNameRow = styled.div`
   display: flex;
@@ -333,7 +353,7 @@ const TestNameRow = styled.div`
   justify-content: space-between;
   width: 100%;
   gap: 0.5rem;
-`
+`;
 
 const UserInfoRow = styled.div`
   display: flex;
@@ -342,7 +362,7 @@ const UserInfoRow = styled.div`
   font-size: 0.75rem;
   color: ${(props) => props.theme.colors.textLight};
   margin-top: 0.25rem;
-`
+`;
 
 const UserBadge = styled.span`
   display: inline-flex;
@@ -352,7 +372,7 @@ const UserBadge = styled.span`
   background: ${(props) => props.theme.colors.background};
   border-radius: ${(props) => props.theme.borderRadius.sm};
   white-space: nowrap;
-`
+`;
 
 const StatusBadge = styled.span`
   display: inline-flex;
@@ -370,20 +390,20 @@ const StatusBadge = styled.span`
         return css`
           background-color: ${props.theme.colors.success}20;
           color: ${props.theme.colors.success};
-        `
+        `;
       case "Rerun Initiated":
         return css`
           background-color: ${props.theme.colors.danger}20;
           color: ${props.theme.colors.danger};
-        `
+        `;
       default:
         return css`
           background-color: ${props.theme.colors.warning}20;
           color: ${props.theme.colors.warning};
-        `
+        `;
     }
   }}
-`
+`;
 
 const EmptyState = styled.div`
   display: flex;
@@ -395,13 +415,13 @@ const EmptyState = styled.div`
   background: ${(props) => props.theme.colors.backgroundAlt};
   border-radius: ${(props) => props.theme.borderRadius.lg};
   border: 2px dashed ${(props) => props.theme.colors.border};
-`
+`;
 
 const EmptyStateText = styled.p`
   color: ${(props) => props.theme.colors.textLight};
   margin-top: 1rem;
   max-width: 24rem;
-`
+`;
 
 const LoadingSpinner = styled.div`
   display: inline-block;
@@ -417,14 +437,14 @@ const LoadingSpinner = styled.div`
       transform: rotate(360deg);
     }
   }
-`
+`;
 
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 3rem;
-`
+`;
 
 const PatientInfo = styled.div`
   display: flex;
@@ -436,19 +456,19 @@ const PatientInfo = styled.div`
   svg {
     color: ${(props) => props.theme.colors.textLight};
   }
-`
+`;
 
 const TestList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-`
+`;
 
 const DateRangeLabel = styled.span`
   color: ${(props) => props.theme.colors.textLight};
   font-size: 0.875rem;
   margin: 0 0.5rem;
-`
+`;
 
 const FilterSelect = styled.select`
   padding: 0.75rem 2.5rem 0.75rem 1rem;
@@ -479,12 +499,12 @@ const FilterSelect = styled.select`
   @media (max-width: ${(props) => props.theme.breakpoints.md}) {
     width: 100%;
   }
-`
+`;
 
 const blink = keyframes`
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
-`
+`;
 
 const EmergencyBadge = styled.span`
   display: inline-flex;
@@ -512,11 +532,37 @@ const EmergencyBadge = styled.span`
       background-color: ${props.theme.colors.success}20;
       color: ${props.theme.colors.success};
     `}
-`
+`;
+const ReportStatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: ${(props) => props.theme.borderRadius.full};
+  white-space: nowrap;
+
+  ${(props) =>
+    props.preliminary &&
+    css`
+      background-color: #7b2ff720;
+      color: #7b2ff7;
+      border: 1px solid #7b2ff7;
+    `}
+
+  ${(props) =>
+    props.final &&
+    css`
+      background-color: ${props.theme.colors.success}20;
+      color: ${props.theme.colors.success};
+      border: 1px solid ${props.theme.colors.success};
+    `}
+`;
 
 const DepartmentGroup = styled.div`
   margin-bottom: 0.75rem;
-`
+`;
 
 const DepartmentHeader = styled.div`
   display: flex;
@@ -529,7 +575,7 @@ const DepartmentHeader = styled.div`
   font-weight: 600;
   font-size: 0.875rem;
   color: ${(props) => props.theme.colors.primary};
-`
+`;
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -542,7 +588,7 @@ const ModalOverlay = styled.div`
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
-`
+`;
 
 const ModalContainer = styled.div`
   background: white;
@@ -550,21 +596,21 @@ const ModalContainer = styled.div`
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   max-width: 500px;
   width: 100%;
-`
+`;
 
 const ModalHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  border-bottom: 1px solid #E5E7EB;
-`
+  border-bottom: 1px solid #e5e7eb;
+`;
 
 const ModalTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1F2937;
-`
+  color: #1f2937;
+`;
 
 const CloseButton = styled.button`
   display: flex;
@@ -574,277 +620,297 @@ const CloseButton = styled.button`
   height: 2rem;
   border: none;
   background: transparent;
-  color: #6B7280;
+  color: #6b7280;
   cursor: pointer;
   border-radius: 0.375rem;
 
   &:hover {
-    background: #F4F6F9;
-    color: #1F2937;
+    background: #f4f6f9;
+    color: #1f2937;
   }
-`
+`;
 
 const ModalBody = styled.div`
   padding: 1.5rem;
-`
+`;
 
 const ModalDescription = styled.p`
-  color: #6B7280;
+  color: #6b7280;
   margin-bottom: 1.5rem;
   font-size: 0.875rem;
-`
+`;
 
 const OptionButton = styled.button`
   width: 100%;
   padding: 1rem;
   margin-bottom: 0.75rem;
-  border: 2px solid #E5E7EB;
+  border: 2px solid #e5e7eb;
   border-radius: 0.5rem;
   background: white;
-  color: #1F2937;
+  color: #1f2937;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   text-align: left;
 
   &:hover {
-    border-color: #0178A1;
-    background: #F9FBFC;
-    color: #0178A1;
+    border-color: #0178a1;
+    background: #f9fbfc;
+    color: #0178a1;
   }
 
   &:last-child {
     margin-bottom: 0;
   }
-`
+`;
 
 // Main Component
 const MBPatientDetails = () => {
-  const getDefaultFromDate = () => new Date()
-  const getDefaultToDate = () => new Date()
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [patientDetails, setPatientDetails] = useState([])
-  const [fromDate, setFromDate] = useState(getDefaultFromDate())
-  const [toDate, setToDate] = useState(getDefaultToDate())
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [emergencyFilter, setEmergencyFilter] = useState("all")
-  const [fromFilter, setFromFilter] = useState("all")
-  const [opipFilter, setOpipFilter] = useState("all")
-  const [departmentFilter, setDepartmentFilter] = useState("all")
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [showModal, setShowModal] = useState(false)
-  const [selectedTest, setSelectedTest] = useState(null)
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
-
-  // Handle navigation state from previous page
-  useEffect(() => {
-    if (location.state?.fromDate || location.state?.toDate || location.state?.barcode) {
-      console.log("[v0] Navigation state received:", location.state)
-
-      if (location.state.fromDate) {
-        const newFromDate = new Date(location.state.fromDate)
-        console.log("[v0] Setting fromDate from state:", newFromDate)
-        setFromDate(newFromDate)
-      }
-
-      if (location.state.toDate) {
-        const newToDate = new Date(location.state.toDate)
-        console.log("[v0] Setting toDate from state:", newToDate)
-        setToDate(newToDate)
-      }
-
-      if (location.state.barcode) {
-        console.log("[v0] Setting search query from state:", location.state.barcode)
-        setSearchQuery(location.state.barcode)
-      }
-    }
-  }, [location.state])
+  const [searchQuery, setSearchQuery] = useState(location.state?.barcode || "");
+  const [patientDetails, setPatientDetails] = useState([]);
+  const [fromDate, setFromDate] = useState(
+    location.state?.fromDate ? new Date(location.state.fromDate) : new Date(),
+  );
+  const [toDate, setToDate] = useState(
+    location.state?.toDate ? new Date(location.state.toDate) : new Date(),
+  );
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [emergencyFilter, setEmergencyFilter] = useState("all");
+  const [fromFilter, setFromFilter] = useState("all");
+  const [opipFilter, setOpipFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   // Fetch patient details from API
   useEffect(() => {
     const fetchPatientDetails = async () => {
-      console.log("[v0] Fetching patient details with dates:", { fromDate, toDate })
-      setLoading(true)
-      setError(null)
+      console.log("[v0] Fetching patient details with dates:", {
+        fromDate,
+        toDate,
+      });
+      setLoading(true);
+      setError(null);
 
       try {
-        const formattedFromDate = format(fromDate, "yyyy-MM-dd")
-        const formattedToDate = format(toDate, "yyyy-MM-dd")
-        console.log("[v0] Formatted dates:", { formattedFromDate, formattedToDate })
+        const formattedFromDate = format(fromDate, "yyyy-MM-dd");
+        const formattedToDate = format(toDate, "yyyy-MM-dd");
+        console.log("[v0] Formatted dates:", {
+          formattedFromDate,
+          formattedToDate,
+        });
 
         const patientResponse = await apiRequest(
           `${Labbaseurl}micro_biology_testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
           "GET",
-        )
+        );
 
-        console.log("[v0] API Response:", patientResponse)
+        console.log("[v0] API Response:", patientResponse);
 
         if (!patientResponse.success) {
-          throw new Error(patientResponse.error || "Failed to fetch patient data")
+          throw new Error(
+            patientResponse.error || "Failed to fetch patient data",
+          );
         }
 
-        console.log("[v0] Patient data received:", patientResponse.data?.length || 0, "records")
-        setPatientDetails(patientResponse.data)
-        setError(null)
+        console.log(
+          "[v0] Patient data received:",
+          patientResponse.data?.length || 0,
+          "records",
+        );
+        setPatientDetails(patientResponse.data);
+        setError(null);
       } catch (err) {
-        console.error("[v0] Error fetching patient details:", err)
-        setError(err.message || "Failed to fetch patient details. Please try again.")
-        setPatientDetails([])
+        console.error("[v0] Error fetching patient details:", err);
+        setError(
+          err.message || "Failed to fetch patient details. Please try again.",
+        );
+        setPatientDetails([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchPatientDetails()
-  }, [fromDate, toDate, Labbaseurl])
+    fetchPatientDetails();
+  }, [fromDate, toDate, Labbaseurl]);
 
   // Update handleParameterTypeSelect function to include test_code
-const handleParameterTypeSelect = (parameterType) => {
-  if (!selectedTest) return
+  const handleParameterTypeSelect = (parameterType) => {
+    if (!selectedTest) return;
 
-  const { patient_id, patientname, age, barcode, location_id, test, date, created_date } = selectedTest
-  
-  const formattedPatientDate = date ? format(new Date(date), "yyyy-MM-dd") : ""
-  const rawCreated = created_date || ""
-  const formattedCreatedDate = rawCreated ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd") : ""
-  const encodedBarcode = encodeURIComponent(barcode || "")
+    const {
+      patient_id,
+      patientname,
+      age,
+      barcode,
+      location_id,
+      test,
+      date,
+      created_date,
+    } = selectedTest;
 
-  setShowModal(false)
-  
-  navigate(
-    `/MBTestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patient_id}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
-      location_id || "Shanmuga Referrence Lab"
-    }&test_id=${test.test_id}&parameter_type=${parameterType}&test_code=${test.test_code}`,
-    {
-      state: {
-        fromDate: fromDate,
-        toDate: toDate,
-        barcode: barcode,
+    const formattedPatientDate = date
+      ? format(new Date(date), "yyyy-MM-dd")
+      : "";
+    const rawCreated = created_date || "";
+    const formattedCreatedDate = rawCreated
+      ? format(new Date(rawCreated.replace("T", " ") + "Z"), "yyyy-MM-dd")
+      : "";
+    const encodedBarcode = encodeURIComponent(barcode || "");
+
+    setShowModal(false);
+
+    navigate(
+      `/MBTestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patient_id}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
+        location_id || "Shanmuga Referrence Lab"
+      }&test_id=${test.test_id}&parameter_type=${parameterType}&test_code=${test.test_code}`,
+      {
+        state: {
+          fromDate: fromDate,
+          toDate: toDate,
+          barcode: barcode,
+        },
       },
-    },
-  )
-}
+    );
+  };
 
   const handleTestClick = (patient, test) => {
-  setSelectedTest({
-    patient_id: patient.patient_id,
-    patientname: patient.patientname,
-    age: patient.age,
-    barcode: patient.barcode,
-    location_id: patient.location_id,
-    date: patient.date,
-    created_date: patient.created_date,
-    test: test
-  })
-  setShowModal(true)
-}
+    setSelectedTest({
+      patient_id: patient.patient_id,
+      patientname: patient.patientname,
+      age: patient.age,
+      barcode: patient.barcode,
+      location_id: patient.location_id,
+      date: patient.date,
+      created_date: patient.created_date,
+      test: test,
+    });
+    setShowModal(true);
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "Approved":
-        return <CheckCircle size={12} />
+        return <CheckCircle size={12} />;
       case "Rerun Initiated":
-        return <RefreshCcw size={12} />
+        return <RefreshCcw size={12} />;
       default:
-        return <Clock size={12} />
+        return <Clock size={12} />;
     }
-  }
+  };
 
   const getTestStatus = (test) => {
     if (!test.test_value_exists) {
-      return "Waiting for Technician's Approval"
+      return "Waiting for Technician's Approval";
     }
-    return test.rerun ? "Rerun Initiated" : test.approve ? "Approved" : "Waiting for Doctor's Approval"
-  }
-
+    // If this specific test is preliminary and approved, allow re-entry for final report
+    if (test.is_preliminary && test.approve) {
+      return "Waiting for Technician's Approval";
+    }
+    return test.rerun
+      ? "Rerun Initiated"
+      : test.approve
+        ? "Approved"
+        : "Waiting for Doctor's Approval";
+  };
   // Group tests by department
   const groupTestsByDepartment = (testdetails) => {
-    const grouped = {}
-    testdetails.forEach(test => {
-      const dept = test.department || "Other"
+    const grouped = {};
+    testdetails.forEach((test) => {
+      const dept = test.department || "Other";
       if (!grouped[dept]) {
-        grouped[dept] = []
+        grouped[dept] = [];
       }
-      grouped[dept].push(test)
-    })
-    return grouped
-  }
+      grouped[dept].push(test);
+    });
+    return grouped;
+  };
 
   // Get unique departments from all patients
   const getAllDepartments = () => {
-    const departments = new Set()
-    patientDetails.forEach(patient => {
-      patient.testdetails?.forEach(test => {
+    const departments = new Set();
+    patientDetails.forEach((patient) => {
+      patient.testdetails?.forEach((test) => {
         if (test.department) {
-          departments.add(test.department)
+          departments.add(test.department);
         }
-      })
-    })
-    return Array.from(departments).sort()
-  }
+      });
+    });
+    return Array.from(departments).sort();
+  };
 
   const filteredPatients = patientDetails.filter((patient) => {
     const matchesSearch =
-      (patient.patientname || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.barcode || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.patient_id || "").toLowerCase().includes(searchQuery.toLowerCase())
+      (patient.patientname || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (patient.barcode || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (patient.patient_id || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    if (!matchesSearch) return false
+    if (!matchesSearch) return false;
 
-    const patientLocation = patient.location_id || "Shanmuga Reference Lab"
-    const matchesFrom = fromFilter === "all" || patientLocation === fromFilter
+    const patientLocation = patient.location_id || "Shanmuga Reference Lab";
+    const matchesFrom = fromFilter === "all" || patientLocation === fromFilter;
 
-    if (!matchesFrom) return false
+    if (!matchesFrom) return false;
 
     // OP/IP filter
-    const matchesOpIp = opipFilter === "all" || patient.opiptype === opipFilter
+    const matchesOpIp = opipFilter === "all" || patient.opiptype === opipFilter;
 
-    if (!matchesOpIp) return false
+    if (!matchesOpIp) return false;
 
     // Emergency filter
     const matchesEmergency =
       emergencyFilter === "all" ||
       (emergencyFilter === "emergency" && patient.is_emergency) ||
-      (emergencyFilter === "normal" && !patient.is_emergency)
+      (emergencyFilter === "normal" && !patient.is_emergency);
 
-    if (!matchesEmergency) return false
+    if (!matchesEmergency) return false;
 
     // Department filter
     if (departmentFilter !== "all") {
-      const hasDepartment = patient.testdetails?.some(test => test.department === departmentFilter)
-      if (!hasDepartment) return false
+      const hasDepartment = patient.testdetails?.some(
+        (test) => test.department === departmentFilter,
+      );
+      if (!hasDepartment) return false;
     }
 
     // Status filter
-    if (statusFilter === "all") return true
+    if (statusFilter === "all") return true;
 
     return patient.testdetails?.some((test) => {
-      const testStatus = getTestStatus(test)
+      const testStatus = getTestStatus(test, patient.is_preliminary);
       if (statusFilter === "technician") {
-        return testStatus === "Waiting for Technician's Approval"
+        return testStatus === "Waiting for Technician's Approval";
       } else if (statusFilter === "doctor") {
-        return testStatus === "Waiting for Doctor's Approval"
+        return testStatus === "Waiting for Doctor's Approval";
       } else if (statusFilter === "approved") {
-        return testStatus === "Approved"
+        return testStatus === "Approved";
       } else if (statusFilter === "rerun") {
-        return testStatus === "Rerun Initiated"
+        return testStatus === "Rerun Initiated";
       }
-      return false
-    })
-  })
+      return false;
+    });
+  });
 
   // Get unique locations
   const getUniqueLocations = () => {
-    const locations = new Set()
-    patientDetails.forEach(p => {
-      locations.add(p.location_id || "Shanmuga Reference Lab")
-    })
-    return Array.from(locations).sort()
-  }
+    const locations = new Set();
+    patientDetails.forEach((p) => {
+      locations.add(p.location_id || "Shanmuga Reference Lab");
+    });
+    return Array.from(locations).sort();
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -901,27 +967,43 @@ const handleParameterTypeSelect = (parameterType) => {
             />
           </SearchWrapper>
 
-          <FilterSelect value={fromFilter} onChange={(e) => setFromFilter(e.target.value)}>
+          <FilterSelect
+            value={fromFilter}
+            onChange={(e) => setFromFilter(e.target.value)}
+          >
             <option value="all">All Locations</option>
             {getUniqueLocations().map((location, idx) => (
-              <option key={idx} value={location}>{location}</option>
+              <option key={idx} value={location}>
+                {location}
+              </option>
             ))}
           </FilterSelect>
 
-          <FilterSelect value={opipFilter} onChange={(e) => setOpipFilter(e.target.value)}>
+          <FilterSelect
+            value={opipFilter}
+            onChange={(e) => setOpipFilter(e.target.value)}
+          >
             <option value="all">All Type</option>
             <option value="OP">OP</option>
             <option value="IP">IP</option>
           </FilterSelect>
 
-          <FilterSelect value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+          <FilterSelect
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+          >
             <option value="all">All Departments</option>
             {getAllDepartments().map((dept, idx) => (
-              <option key={idx} value={dept}>{dept}</option>
+              <option key={idx} value={dept}>
+                {dept}
+              </option>
             ))}
           </FilterSelect>
 
-          <FilterSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <FilterSelect
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value="all">All Status</option>
             <option value="technician">Waiting for Technician</option>
             <option value="doctor">Waiting for Doctor</option>
@@ -929,7 +1011,10 @@ const handleParameterTypeSelect = (parameterType) => {
             <option value="rerun">Rerun Initiated</option>
           </FilterSelect>
 
-          <FilterSelect value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
+          <FilterSelect
+            value={emergencyFilter}
+            onChange={(e) => setEmergencyFilter(e.target.value)}
+          >
             <option value="all">All Priority</option>
             <option value="emergency">Emergency</option>
             <option value="normal">Normal</option>
@@ -948,7 +1033,9 @@ const handleParameterTypeSelect = (parameterType) => {
         ) : filteredPatients.length === 0 ? (
           <EmptyState>
             <AlertCircle size={24} color={theme.colors.textLight} />
-            <EmptyStateText>No received tests available for the selected filters.</EmptyStateText>
+            <EmptyStateText>
+              No received tests available for the selected filters.
+            </EmptyStateText>
           </EmptyState>
         ) : (
           <TableWrapper>
@@ -966,8 +1053,10 @@ const handleParameterTypeSelect = (parameterType) => {
               </thead>
               <tbody>
                 {filteredPatients.map((patient, index) => {
-                  const groupedTests = groupTestsByDepartment(patient.testdetails || [])
-                  
+                  const groupedTests = groupTestsByDepartment(
+                    patient.testdetails || [],
+                  );
+
                   return (
                     <Tr key={index}>
                       <Td>
@@ -976,15 +1065,26 @@ const handleParameterTypeSelect = (parameterType) => {
                           {patient.date
                             ? format(new Date(patient.date), "MMM dd, yyyy")
                             : patient.created_date
-                            ? format(new Date(patient.created_date), "MMM dd, yyyy")
-                            : "N/A"}
+                              ? format(
+                                  new Date(patient.created_date),
+                                  "MMM dd, yyyy",
+                                )
+                              : "N/A"}
                         </PatientInfo>
                       </Td>
                       <Td>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "0.5rem",
+                          }}
+                        >
                           <PatientInfo>
                             <User size={14} />
-                            <strong>{patient.patientname || "Unknown Patient"}</strong>
+                            <strong>
+                              {patient.patientname || "Unknown Patient"}
+                            </strong>
                           </PatientInfo>
                           <PatientInfo>
                             <Tag size={14} />
@@ -996,7 +1096,8 @@ const handleParameterTypeSelect = (parameterType) => {
                           </PatientInfo>
                           <PatientInfo>
                             <User size={14} />
-                            Age: {patient.age || "Unknown"} | {patient.gender || "N/A"}
+                            Age: {patient.age || "Unknown"} |{" "}
+                            {patient.gender || "N/A"}
                           </PatientInfo>
                         </div>
                       </Td>
@@ -1006,7 +1107,9 @@ const handleParameterTypeSelect = (parameterType) => {
                         </StatusBadge>
                       </Td>
                       <Td>
-                        <PatientInfo>{patient.location_id || "Shanmuga Reference Lab"}</PatientInfo>
+                        <PatientInfo>
+                          {patient.location_id || "Shanmuga Reference Lab"}
+                        </PatientInfo>
                       </Td>
                       <Td>
                         {patient.is_emergency ? (
@@ -1021,92 +1124,133 @@ const handleParameterTypeSelect = (parameterType) => {
                           </EmergencyBadge>
                         )}
                       </Td>
+
                       <Td>
-                        {Object.entries(groupedTests).map(([department, tests]) => (
-                          <DepartmentGroup key={department}>
-                            <DepartmentHeader>
-                              <Stethoscope size={14} />
-                              {department}
-                            </DepartmentHeader>
-                            <TestList>
-                              {tests.map((test, idx) => {
-                                const testStatus = getTestStatus(test)
-                                return (
-                                  <TestButton
-                                    key={idx}
-                                   onClick={() => handleTestClick(patient, test)}
-                                    title={
-                                      testStatus === "Waiting for Technician's Approval"
-                                        ? "Enter Test Values"
-                                        : testStatus === "Rerun Initiated"
-                                        ? "Rerun Test"
-                                        : "Test Cannot Be Edited"
-                                    }
-                                    disabled={
-                                      !(
-                                        testStatus === "Waiting for Technician's Approval" ||
-                                        testStatus === "Rerun Initiated"
-                                      )
-                                    }
-                                  >
-                                    <TestNameRow>
-                                      <span>
-                                        {test.test_id} - {test.testname}
-                                      </span>
-                                      <ChevronRight size={16} />
-                                    </TestNameRow>
-                                    <UserInfoRow>
-                                      {test.collectd_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          C/B: {test.collectd_by}
-                                        </UserBadge>
-                                      )}
-                                      {test.received_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          R/B: {test.received_by}
-                                        </UserBadge>
-                                      )}
-                                      {test.verified_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          V/B: {test.verified_by}
-                                        </UserBadge>
-                                      )}
-                                      {test.rerun_by && (
-                                        <UserBadge>
-                                          <Users size={10} />
-                                          RR/B: {test.rerun_by}
-                                        </UserBadge>
-                                      )}
-                                    </UserInfoRow>
-                                  </TestButton>
-                                )
-                              })}
-                            </TestList>
-                          </DepartmentGroup>
-                        ))}
+                        {Object.entries(groupedTests).map(
+                          ([department, tests]) => (
+                            <DepartmentGroup key={department}>
+                              <DepartmentHeader>
+                                <Stethoscope size={14} />
+                                {department}
+                              </DepartmentHeader>
+                              <TestList>
+                                {tests.map((test, idx) => {
+                                  const testStatus = getTestStatus(
+                                    test,
+                                    patient.is_preliminary,
+                                  );
+                                  return (
+                                    <TestButton
+                                      key={idx}
+                                      onClick={() =>
+                                        handleTestClick(patient, test)
+                                      }
+                                      title={
+                                        testStatus ===
+                                        "Waiting for Technician's Approval"
+                                          ? test.is_preliminary && test.approve
+                                            ? "Enter Final Report"
+                                            : "Enter Test Values"
+                                          : testStatus === "Rerun Initiated"
+                                            ? "Rerun Test"
+                                            : "Test Cannot Be Edited"
+                                      }
+                                      disabled={
+                                        !(
+                                          testStatus ===
+                                            "Waiting for Technician's Approval" ||
+                                          testStatus === "Rerun Initiated"
+                                        )
+                                      }
+                                    >
+                                      <TestNameRow>
+                                        <span>
+                                          {test.test_id} - {test.testname}
+                                        </span>
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "0.5rem",
+                                          }}
+                                        >
+                                          {test.is_preliminary && (
+                                            <span
+                                              style={{
+                                                fontSize: "0.65rem",
+                                                fontWeight: 700,
+                                                padding: "0.15rem 0.5rem",
+                                                borderRadius: "9999px",
+                                                backgroundColor: "#7b2ff720",
+                                                color: "#7b2ff7",
+                                                border: "1px solid #7b2ff7",
+                                                whiteSpace: "nowrap",
+                                              }}
+                                            >
+                                              Preliminary
+                                            </span>
+                                          )}
+                                          <ChevronRight size={16} />
+                                        </div>
+                                      </TestNameRow>
+                                      <UserInfoRow>
+                                        {test.collectd_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            C/B: {test.collectd_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.received_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            R/B: {test.received_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.verified_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            V/B: {test.verified_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.rerun_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            RR/B: {test.rerun_by}
+                                          </UserBadge>
+                                        )}
+                                      </UserInfoRow>
+                                    </TestButton>
+                                  );
+                                })}
+                              </TestList>
+                            </DepartmentGroup>
+                          ),
+                        )}
                       </Td>
                       <Td>
-                        {Object.entries(groupedTests).map(([department, tests]) => (
-                          <DepartmentGroup key={department}>
-                            <TestList>
-                              {tests.map((test, idx) => {
-                                const testStatus = getTestStatus(test)
-                                return (
-                                  <StatusBadge key={idx} status={testStatus}>
-                                    {getStatusIcon(testStatus)}
-                                    {testStatus}
-                                  </StatusBadge>
-                                )
-                              })}
-                            </TestList>
-                          </DepartmentGroup>
-                        ))}
+                        {Object.entries(groupedTests).map(
+                          ([department, tests]) => (
+                            <DepartmentGroup key={department}>
+                              <TestList>
+                                {tests.map((test, idx) => {
+                                  const testStatus = getTestStatus(
+                                    test,
+                                    patient.is_preliminary,
+                                  );
+                                  return (
+                                    <StatusBadge key={idx} status={testStatus}>
+                                      {getStatusIcon(testStatus)}
+                                      {testStatus}
+                                    </StatusBadge>
+                                  );
+                                })}
+                              </TestList>
+                            </DepartmentGroup>
+                          ),
+                        )}
                       </Td>
                     </Tr>
-                  )
+                  );
                 })}
               </tbody>
             </Table>
@@ -1121,48 +1265,67 @@ const handleParameterTypeSelect = (parameterType) => {
             borderTop: `1px solid ${theme.colors.border}`,
           }}
         >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+          Showing {filteredPatients.length}{" "}
+          {filteredPatients.length === 1 ? "entry" : "entries"}
         </div>
 
-       
-{showModal && (
-  <ModalOverlay onClick={() => setShowModal(false)}>
-    <ModalContainer onClick={(e) => e.stopPropagation()}>
-      <ModalHeader>
-        <ModalTitle>Select Parameter Type</ModalTitle>
-        <CloseButton onClick={() => setShowModal(false)}>
-          <X size={20} />
-        </CloseButton>
-      </ModalHeader>
-      <ModalBody>
-        <ModalDescription>
-          Please select the parameter type for {selectedTest?.test?.testname || 'this test'}:
-        </ModalDescription>
-        <OptionButton onClick={() => handleParameterTypeSelect('GNB')}>
-          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>GNB</div>
-          <div style={{ fontSize: '0.875rem', color: '#6B7280' }}>
-            Gram-Negative Bacteria Parameters
-          </div>
-        </OptionButton>
-        <OptionButton onClick={() => handleParameterTypeSelect('GPC')}>
-          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>GPC</div>
-          <div style={{ fontSize: '0.875rem', color: '#6B7280' }}>
-            Gram-Positive Cocci Parameters
-          </div>
-        </OptionButton>
-        <OptionButton onClick={() => handleParameterTypeSelect('Normal')}>
-          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Normal</div>
-          <div style={{ fontSize: '0.875rem', color: '#6B7280' }}>
-            Remarks Only (No Parameters)
-          </div>
-        </OptionButton>
-      </ModalBody>
-    </ModalContainer>
-  </ModalOverlay>
-)}
+        {showModal && (
+          <ModalOverlay onClick={() => setShowModal(false)}>
+            <ModalContainer onClick={(e) => e.stopPropagation()}>
+              <ModalHeader>
+                <ModalTitle>Select Parameter Type</ModalTitle>
+                <CloseButton onClick={() => setShowModal(false)}>
+                  <X size={20} />
+                </CloseButton>
+              </ModalHeader>
+              <ModalBody>
+                <ModalDescription>
+                  Please select the parameter type for{" "}
+                  {selectedTest?.test?.testname || "this test"}:
+                </ModalDescription>
+                <OptionButton onClick={() => handleParameterTypeSelect("GNB")}>
+                  <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+                    GNB
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6B7280" }}>
+                    Gram-Negative Bacteria Parameters
+                  </div>
+                </OptionButton>
+                <OptionButton onClick={() => handleParameterTypeSelect("GPC")}>
+                  <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+                    GPC
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6B7280" }}>
+                    Gram-Positive Cocci Parameters
+                  </div>
+                </OptionButton>
+                <OptionButton
+                  onClick={() => handleParameterTypeSelect("Normal")}
+                >
+                  <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+                    Normal
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6B7280" }}>
+                    Remarks Only (No Parameters)
+                  </div>
+                </OptionButton>
+                <OptionButton
+                  onClick={() => handleParameterTypeSelect("Preliminary")}
+                >
+                  <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+                    Preliminary Report
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "#6B7280" }}>
+                    Remarks Only (No Parameters)
+                  </div>
+                </OptionButton>
+              </ModalBody>
+            </ModalContainer>
+          </ModalOverlay>
+        )}
       </Container>
     </ThemeProvider>
-  )
-}
+  );
+};
 
-export default MBPatientDetails
+export default MBPatientDetails;

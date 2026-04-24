@@ -635,7 +635,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
             ) || "N/A",
         },
         {
-          label: "Printed Date",
+          label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -1394,7 +1394,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
               doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
+              yPos += 5;
             }
           });
 
@@ -1404,10 +1404,12 @@ const CorporateTestSorting = ({ patient, onClose }) => {
             doc.setFontSize(10);
             const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
             doc.text(verifiedByText, leftMargin, yPos);
-            yPos += 8;
+            yPos += 5;
           }
 
-          yPos += 4;
+          const isLastDepartment =
+            department === sortedDepartments[sortedDepartments.length - 1];
+          yPos += isLastDepartment ? 2 : 4;
         });
 
         currentYPosition = yPos;
@@ -1417,8 +1419,8 @@ const CorporateTestSorting = ({ patient, onClose }) => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15); // CHANGED from 10 to 15
-        if (currentYPosition + 10 >= footerStart) {
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5); // CHANGED from 10 to 15
+        if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
@@ -1547,30 +1549,32 @@ const CorporateTestSorting = ({ patient, onClose }) => {
           </Button>
 
           <ButtonGroup>
-            <Button
-              primary
-              disabled={selectedTests.length === 0}
-              onClick={() => setShowPrintOptions(!showPrintOptions)}
-            >
-              <Printer size={16} />
-              Print Options
-              {showPrintOptions ? (
-                <ChevronUp size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
-            </Button>
+            <div style={{ position: "relative" }}>
+              <Button
+                primary
+                disabled={selectedTests.length === 0}
+                onClick={() => setShowPrintOptions(!showPrintOptions)}
+              >
+                <Printer size={16} />
+                Print Options
+                {showPrintOptions ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </Button>
 
-            <PrintOptions show={showPrintOptions}>
-              <PrintOption onClick={() => handlePrint(true)}>
-                <Printer size={16} />
-                Print with Letterhead
-              </PrintOption>
-              <PrintOption onClick={() => handlePrint(false)}>
-                <Printer size={16} />
-                Print without Letterhead
-              </PrintOption>
-            </PrintOptions>
+              <PrintOptions show={showPrintOptions}>
+                <PrintOption onClick={() => handlePrint(true)}>
+                  <Printer size={16} />
+                  Print with Letterhead
+                </PrintOption>
+                <PrintOption onClick={() => handlePrint(false)}>
+                  <Printer size={16} />
+                  Print without Letterhead
+                </PrintOption>
+              </PrintOptions>
+            </div>
           </ButtonGroup>
         </ModalFooter>
       </ModalContent>

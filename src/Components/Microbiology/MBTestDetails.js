@@ -314,7 +314,9 @@ const RemarksSection = styled.div`
 
 const SubtitleSection = styled.div`
   margin-bottom: 2rem;
-  &:last-child { margin-bottom: 0; }
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const SubtitleHeader = styled.div`
@@ -444,7 +446,7 @@ const TableRow = styled.tr`
   &:nth-child(even) {
     background-color: var(--light);
   }
-  
+
   &:hover {
     background-color: #e3f2fd;
   }
@@ -464,7 +466,7 @@ const ModalButtonContainer = styled.div`
 
 const CancelButton = styled(Button)`
   background-color: var(--gray);
-  
+
   &:hover {
     background-color: var(--dark);
   }
@@ -472,7 +474,7 @@ const CancelButton = styled(Button)`
 
 const ConfirmButton = styled(Button)`
   background-color: var(--success);
-  
+
   &:hover {
     background-color: var(--info);
   }
@@ -483,11 +485,14 @@ const ResultBadge = styled.span`
   border-radius: 12px;
   font-size: 0.875rem;
   font-weight: 600;
-  background-color: ${props => 
-    props.type === 'Sensitive' ? '#4caf50' : 
-    props.type === 'Intermediate' ? '#ff9800' : 
-    props.type === 'Nil' ? '#0f0d0a' : 
-    '#f44336'};
+  background-color: ${(props) =>
+    props.type === "Sensitive"
+      ? "#4caf50"
+      : props.type === "Intermediate"
+        ? "#ff9800"
+        : props.type === "Nil"
+          ? "#0f0d0a"
+          : "#f44336"};
   color: white;
 `;
 
@@ -538,22 +543,33 @@ function MBTestDetails() {
   const colonyCountOptions = [
     ">10,000 CFU /mL",
     ">50,000 CFU /mL",
-    ">1,00,000 CFU /mL"
+    ">1,00,000 CFU /mL",
   ];
 
   // Update the remarksOptions constant to include shorter titles:
-const remarksOptions = [
-  {
-    title: "24hrs - No growth",
-    text: "No growth in culture, Culture is sterile after 24 hrs of incubation."
-  },
-  {
-    title: "48hrs - No growth",
-    text: "No significant Growth in culture after 48 hrs of incubation."
-  }
-];
+  const remarksOptions = [
+    {
+      title: "24hrs - No growth",
+      text: "No growth in culture, Culture is sterile after 24 hrs of incubation.",
+    },
+    {
+      title: "48hrs - No growth",
+      text: "No significant Growth in culture after 48 hrs of incubation.",
+    },
+  ];
+  const preliminaryRemarksOptions = [
+    {
+      title: "Preliminary Report",
+      text: "Growth in culture, The Colonies of bacteria shows 'Gram-Negative Bacilli / Gram-Positive Cocci / Gram-Positive Bacilli in the smear'. The final report will be issued after the identification and sensitivity testing of the organism.",
+    },
+  ];
 
-  const fetchTestDetails = async (barcode, test_id = null, testName = null, parameterType = null) => {
+  const fetchTestDetails = async (
+    barcode,
+    test_id = null,
+    testName = null,
+    parameterType = null,
+  ) => {
     try {
       setLoading(true);
       setError(null);
@@ -573,7 +589,7 @@ const remarksOptions = [
 
       const response = await apiRequest(
         `${Labbaseurl}mb-compare_test_details/?${queryParams}`,
-        "GET"
+        "GET",
       );
 
       let actualResponse;
@@ -588,7 +604,9 @@ const remarksOptions = [
       }
 
       if (actualResponse.filtered_by_test) {
-        console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
+        console.log(
+          `DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`,
+        );
       }
 
       if (
@@ -597,7 +615,7 @@ const remarksOptions = [
       ) {
         setProcessedRecords(actualResponse.processed_records);
         console.log(
-          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`
+          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`,
         );
       } else {
         console.log("DEBUG: No processed records found in response");
@@ -614,7 +632,7 @@ const remarksOptions = [
         allTests = actualResponse;
       } else {
         throw new Error(
-          "Invalid response structure: test data is not an array"
+          "Invalid response structure: test data is not an array",
         );
       }
 
@@ -624,8 +642,8 @@ const remarksOptions = [
         return;
       }
 
-      const filteredTests = testName 
-        ? allTests.filter(test => test.testname === testName)
+      const filteredTests = testName
+        ? allTests.filter((test) => test.testname === testName)
         : allTests;
 
       const groupedTests = {};
@@ -689,15 +707,20 @@ const remarksOptions = [
       let tempResults = {};
 
       transformedTests.forEach((test) => {
-        if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
-          Object.values(test.parametersBySubtitle).flat().forEach((param) => {
-            const paramName = param.name || param.test_name;
-            const uniqueKey = `${test.testname}_${paramName}`;
-            const paramValue = param.value || "";
-            tempValues[uniqueKey] = paramValue;
-            tempInitialValues[uniqueKey] = paramValue;
-            tempResults[uniqueKey] = getResultStatus(paramValue);
-          });
+        if (
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
+        ) {
+          Object.values(test.parametersBySubtitle)
+            .flat()
+            .forEach((param) => {
+              const paramName = param.name || param.test_name;
+              const uniqueKey = `${test.testname}_${paramName}`;
+              const paramValue = param.value || "";
+              tempValues[uniqueKey] = paramValue;
+              tempInitialValues[uniqueKey] = paramValue;
+              tempResults[uniqueKey] = getResultStatus(paramValue);
+            });
         } else {
           const testValue = test.test_value || "";
           tempValues[test.testname] = testValue;
@@ -745,7 +768,7 @@ const remarksOptions = [
       ...prevValues,
       [uniqueKey]: value,
     }));
-    
+
     // Update result when value changes
     setParameterResults((prevResults) => ({
       ...prevResults,
@@ -756,7 +779,7 @@ const remarksOptions = [
   const handleResultChange = (testname, paramName, event) => {
     const { value } = event.target;
     const uniqueKey = paramName ? `${testname}_${paramName}` : testname;
-    
+
     setParameterResults((prevResults) => ({
       ...prevResults,
       [uniqueKey]: value,
@@ -809,66 +832,73 @@ const remarksOptions = [
 
   const preparePreviewData = () => {
     const preview = [];
-    
-    if (parameterType === 'Normal') {
+
+    if (parameterType === "Normal" || parameterType === "Preliminary") {
       testDetails.forEach((test) => {
         const previewItem = {
           testName: test.testname,
           department: test.department || "-",
           specimen_type: test.specimen_type || "-",
-          remarks: parameterRemarks || remarks[test.testname] || "-"
+          remarks: parameterRemarks || remarks[test.testname] || "-",
         };
-        
+
         if (test.specimen_type === "URINE") {
           previewItem.colony_count = colonyCount[test.testname] || "-";
         }
-        
+
         preview.push(previewItem);
       });
     } else {
       testDetails.forEach((test) => {
         const testRows = [];
-        
-        if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
-          Object.entries(test.parametersBySubtitle).forEach(([subtitle, parameters]) => {
-            parameters.forEach((param) => {
-              const paramName = param.name || param.test_name;
-              const uniqueKey = `${test.testname}_${paramName}`;
-              const value = values[uniqueKey] || "";
-              
-              testRows.push({
-                subtitle: subtitle,
-                antimicrobial: paramName,
-                zoneOfInhibition: value,
-                result: parameterResults[uniqueKey] || getResultStatus(value),
-                comment: parameterComments[uniqueKey] || "-",
+
+        if (
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
+        ) {
+          Object.entries(test.parametersBySubtitle).forEach(
+            ([subtitle, parameters]) => {
+              parameters.forEach((param) => {
+                const paramName = param.name || param.test_name;
+                const uniqueKey = `${test.testname}_${paramName}`;
+                const value = values[uniqueKey] || "";
+
+                testRows.push({
+                  subtitle: subtitle,
+                  antimicrobial: paramName,
+                  zoneOfInhibition: value,
+                  result: parameterResults[uniqueKey] || getResultStatus(value),
+                  comment: parameterComments[uniqueKey] || "-",
+                });
               });
-            });
-          });
+            },
+          );
         } else {
           testRows.push({
             subtitle: "-",
             antimicrobial: "-",
             zoneOfInhibition: values[test.testname] || "",
-            result: parameterResults[test.testname] || getResultStatus(values[test.testname]),
+            result:
+              parameterResults[test.testname] ||
+              getResultStatus(values[test.testname]),
             comment: comments[test.testname] || "-",
           });
         }
-        
+
         const previewItem = {
           testName: test.testname,
           rows: testRows,
-          remarks: parameterRemarks || remarks[test.testname] || "-"
+          remarks: parameterRemarks || remarks[test.testname] || "-",
         };
-        
+
         if (test.specimen_type === "URINE") {
           previewItem.colony_count = colonyCount[test.testname] || "-";
         }
-        
+
         preview.push(previewItem);
       });
     }
-    
+
     return preview;
   };
 
@@ -888,9 +918,10 @@ const remarksOptions = [
 
     try {
       const testDetailsData = testDetails.map((test) => {
-        const isNormalType = parameterType === 'Normal';
+        const isNormalType =
+          parameterType === "Normal" || parameterType === "Preliminary";
         const isUrineSpecimen = test.specimen_type === "URINE";
-        
+
         const baseData = {
           parameter_type: test.parameter_type,
           test_id: test.test_id,
@@ -907,25 +938,32 @@ const remarksOptions = [
         if (isUrineSpecimen) {
           baseData.colony_count = colonyCount[test.testname] || "";
         }
-        
+
         if (isNormalType) {
           return baseData;
         }
-        
-        if (test.parametersBySubtitle && Object.keys(test.parametersBySubtitle).length > 0) {
+
+        if (
+          test.parametersBySubtitle &&
+          Object.keys(test.parametersBySubtitle).length > 0
+        ) {
           const parameters = [];
-          Object.entries(test.parametersBySubtitle).forEach(([subtitle, params]) => {
-            params.forEach((param) => {
-              const paramName = param.name || param.test_name;
-              const uniqueKey = `${test.testname}_${paramName}`;
-              parameters.push({
-                test_code: param.test_code || "",
-                result: parameterResults[uniqueKey] || getResultStatus(values[uniqueKey]),
-                value: values[uniqueKey] || "",
-                comment: parameterComments[uniqueKey] || "",
+          Object.entries(test.parametersBySubtitle).forEach(
+            ([subtitle, params]) => {
+              params.forEach((param) => {
+                const paramName = param.name || param.test_name;
+                const uniqueKey = `${test.testname}_${paramName}`;
+                parameters.push({
+                  test_code: param.test_code || "",
+                  result:
+                    parameterResults[uniqueKey] ||
+                    getResultStatus(values[uniqueKey]),
+                  value: values[uniqueKey] || "",
+                  comment: parameterComments[uniqueKey] || "",
+                });
               });
-            });
-          });
+            },
+          );
 
           return {
             ...baseData,
@@ -934,7 +972,9 @@ const remarksOptions = [
         } else {
           return {
             ...baseData,
-            result: parameterResults[test.testname] || getResultStatus(values[test.testname]),
+            result:
+              parameterResults[test.testname] ||
+              getResultStatus(values[test.testname]),
             value: values[test.testname] || "",
             comment: comments[test.testname] || "",
           };
@@ -945,6 +985,7 @@ const remarksOptions = [
         date: date,
         barcode: barcode,
         locationId: locationId,
+        is_preliminary: parameterType === "Preliminary",
         testdetails: testDetailsData,
         processed_records: processedRecords,
       };
@@ -954,7 +995,7 @@ const remarksOptions = [
       const postResult = await apiRequest(
         `${Labbaseurl}mb-test-value/save/`,
         "POST",
-        payload
+        payload,
       );
 
       if (postResult.success) {
@@ -988,13 +1029,13 @@ const remarksOptions = [
     const barcode = location.state?.barcode;
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
-    
-    navigate("/MBPatientDetails", { 
-      state: { 
+
+    navigate("/MBPatientDetails", {
+      state: {
         barcode: barcode,
         fromDate: stateFromDate || new Date(),
-        toDate: stateToDate || new Date()
-      } 
+        toDate: stateToDate || new Date(),
+      },
     });
   };
 
@@ -1095,58 +1136,142 @@ const remarksOptions = [
             <TestCard key={index}>
               <TestHeader>{test.testname}</TestHeader>
               <TestContent>
-                {parameterType === 'Normal' ? (
+                {parameterType === "Normal" ? (
                   <>
                     <FormRow>
                       <FormGroup>
                         <Label>Specimen Type</Label>
-                        <Input type="text" value={test.specimen_type || ""} disabled />
+                        <Input
+                          type="text"
+                          value={test.specimen_type || ""}
+                          disabled
+                        />
                       </FormGroup>
-                      
                     </FormRow>
-                    
+
                     <RemarksSection>
-  <FormGroup>
-    <Label>
-      Impression <span style={{ color: "red" }}>*</span>
-    </Label>
-    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-      {remarksOptions.map((option, idx) => (
-        <Button
-          key={idx}
-          type="button"
-          onClick={() => {
-            setParameterRemarks(option.text);
-            handleRemarksChange(test.testname, { target: { value: option.text } });
-          }}
-          style={{
-            fontSize: '0.875rem',
-            padding: '0.5rem 0.75rem',
-            backgroundColor: 'var(--secondary)',
-            minWidth: '45%'
-          }}
-        >
-          {option.title}
-        </Button>
-      ))}
-    </div>
-    <TextArea
-      value={parameterRemarks || remarks[test.testname] || ""}
-      onChange={(e) => {
-        setParameterRemarks(e.target.value);
-        handleRemarksChange(test.testname, e);
-      }}
-      placeholder="Enter remarks or select from options above (required)"
-      style={{
-        borderColor:
-          (!parameterRemarks && !remarks[test.testname]) ||
-          (parameterRemarks?.trim() === "" && remarks[test.testname]?.trim() === "")
-            ? "red"
-            : undefined,
-      }}
-    />
-  </FormGroup>
-</RemarksSection>
+                      <FormGroup>
+                        <Label>
+                          Impression <span style={{ color: "red" }}>*</span>
+                        </Label>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "0.5rem",
+                            marginBottom: "0.5rem",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {remarksOptions.map((option, idx) => (
+                            <Button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setParameterRemarks(option.text);
+                                handleRemarksChange(test.testname, {
+                                  target: { value: option.text },
+                                });
+                              }}
+                              style={{
+                                fontSize: "0.875rem",
+                                padding: "0.5rem 0.75rem",
+                                backgroundColor: "var(--secondary)",
+                                minWidth: "45%",
+                              }}
+                            >
+                              {option.title}
+                            </Button>
+                          ))}
+                        </div>
+                        <TextArea
+                          value={
+                            parameterRemarks || remarks[test.testname] || ""
+                          }
+                          onChange={(e) => {
+                            setParameterRemarks(e.target.value);
+                            handleRemarksChange(test.testname, e);
+                          }}
+                          placeholder="Enter remarks or select from options above (required)"
+                          style={{
+                            borderColor:
+                              (!parameterRemarks && !remarks[test.testname]) ||
+                              (parameterRemarks?.trim() === "" &&
+                                remarks[test.testname]?.trim() === "")
+                                ? "red"
+                                : undefined,
+                          }}
+                        />
+                      </FormGroup>
+                    </RemarksSection>
+                  </>
+                ) : parameterType === "Preliminary" ? (
+                  <>
+                    <FormRow>
+                      <FormGroup>
+                        <Label>Specimen Type</Label>
+                        <Input
+                          type="text"
+                          value={test.specimen_type || ""}
+                          disabled
+                        />
+                      </FormGroup>
+                    </FormRow>
+
+                    <RemarksSection>
+                      <FormGroup>
+                        <Label>
+                          Preliminary Report Impression{" "}
+                          <span style={{ color: "red" }}>*</span>
+                        </Label>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "0.5rem",
+                            marginBottom: "0.5rem",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {preliminaryRemarksOptions.map((option, idx) => (
+                            <Button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setParameterRemarks(option.text);
+                                handleRemarksChange(test.testname, {
+                                  target: { value: option.text },
+                                });
+                              }}
+                              style={{
+                                fontSize: "0.875rem",
+                                padding: "0.5rem 0.75rem",
+                                backgroundColor: "#7b2ff7",
+                                minWidth: "45%",
+                              }}
+                            >
+                              {option.title}
+                            </Button>
+                          ))}
+                        </div>
+                        <TextArea
+                          value={
+                            parameterRemarks || remarks[test.testname] || ""
+                          }
+                          onChange={(e) => {
+                            setParameterRemarks(e.target.value);
+                            handleRemarksChange(test.testname, e);
+                          }}
+                          placeholder="Enter preliminary report impression (required)"
+                          style={{
+                            borderColor:
+                              (!parameterRemarks && !remarks[test.testname]) ||
+                              (parameterRemarks?.trim() === "" &&
+                                remarks[test.testname]?.trim() === "")
+                                ? "red"
+                                : undefined,
+                          }}
+                        />
+                      </FormGroup>
+                    </RemarksSection>
                   </>
                 ) : (
                   <>
@@ -1162,14 +1287,19 @@ const remarksOptions = [
                               disabled
                             />
                           </FormGroup>
-                          
+
                           {test.specimen_type === "URINE" && (
                             <FormGroup>
-                              <Label>Colony Count <span style={{ color: "red" }}>*</span></Label>
+                              <Label>
+                                Colony Count{" "}
+                                <span style={{ color: "red" }}>*</span>
+                              </Label>
                               <SelectWrapper>
                                 <Select
                                   value={colonyCount[test.testname] || ""}
-                                  onChange={(e) => handleColonyCountChange(test.testname, e)}
+                                  onChange={(e) =>
+                                    handleColonyCountChange(test.testname, e)
+                                  }
                                   required
                                 >
                                   <option value="">Select colony count</option>
@@ -1183,25 +1313,63 @@ const remarksOptions = [
                               </SelectWrapper>
                             </FormGroup>
                           )}
-                          
+
                           <FormGroup>
                             <Label>Result</Label>
                             <SelectWrapper>
                               <Select
-                                value={parameterResults[test.testname] || getResultStatus(values[test.testname])}
-                                onChange={(e) => handleResultChange(test.testname, null, e)}
+                                value={
+                                  parameterResults[test.testname] ||
+                                  getResultStatus(values[test.testname])
+                                }
+                                onChange={(e) =>
+                                  handleResultChange(test.testname, null, e)
+                                }
                                 style={{
-                                  color: (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Sensitive' ? '#4caf50' : 
-                                         (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Intermediate' ? '#ff9800' : 
-                                         (parameterResults[test.testname] || getResultStatus(values[test.testname])) === 'Nil' ? '#151310' : 
-                                         '#f44336',
-                                  fontWeight: '600'
+                                  color:
+                                    (parameterResults[test.testname] ||
+                                      getResultStatus(
+                                        values[test.testname],
+                                      )) === "Sensitive"
+                                      ? "#4caf50"
+                                      : (parameterResults[test.testname] ||
+                                            getResultStatus(
+                                              values[test.testname],
+                                            )) === "Intermediate"
+                                        ? "#ff9800"
+                                        : (parameterResults[test.testname] ||
+                                              getResultStatus(
+                                                values[test.testname],
+                                              )) === "Nil"
+                                          ? "#151310"
+                                          : "#f44336",
+                                  fontWeight: "600",
                                 }}
                               >
-                                <option value="Sensitive" style={{ color: '#4caf50' }}>Sensitive</option>
-                                <option value="Intermediate" style={{ color: '#ff9800' }}>Intermediate</option>
-                                <option value="Resistant" style={{ color: '#f44336' }}>Resistant</option>
-                                <option value="Nil" style={{ color: '#1f1a1a' }}>Nil</option>
+                                <option
+                                  value="Sensitive"
+                                  style={{ color: "#4caf50" }}
+                                >
+                                  Sensitive
+                                </option>
+                                <option
+                                  value="Intermediate"
+                                  style={{ color: "#ff9800" }}
+                                >
+                                  Intermediate
+                                </option>
+                                <option
+                                  value="Resistant"
+                                  style={{ color: "#f44336" }}
+                                >
+                                  Resistant
+                                </option>
+                                <option
+                                  value="Nil"
+                                  style={{ color: "#1f1a1a" }}
+                                >
+                                  Nil
+                                </option>
                               </Select>
                               <SelectIcon size={18} />
                             </SelectWrapper>
@@ -1211,19 +1379,25 @@ const remarksOptions = [
                         <FormRow>
                           <FormGroup>
                             <Label>Value</Label>
-                            {test.value_option && test.value_option.length > 0 ? (
-                              (!initialValues[test.testname] || initialValues[test.testname].trim() === "") ? (
+                            {test.value_option &&
+                            test.value_option.length > 0 ? (
+                              !initialValues[test.testname] ||
+                              initialValues[test.testname].trim() === "" ? (
                                 <SelectWrapper>
                                   <Select
                                     value={values[test.testname] || ""}
-                                    onChange={(e) => handleValueChange(test.testname, e)}
+                                    onChange={(e) =>
+                                      handleValueChange(test.testname, e)
+                                    }
                                   >
                                     <option value="">Select value</option>
-                                    {test.value_option.map((option, optIndex) => (
-                                      <option key={optIndex} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
+                                    {test.value_option.map(
+                                      (option, optIndex) => (
+                                        <option key={optIndex} value={option}>
+                                          {option}
+                                        </option>
+                                      ),
+                                    )}
                                   </Select>
                                   <SelectIcon size={18} />
                                 </SelectWrapper>
@@ -1264,57 +1438,68 @@ const remarksOptions = [
                           <CommentLabel>Comments (Optional)</CommentLabel>
                           <CommentTextArea
                             value={comments[test.testname] || ""}
-                            onChange={(e) => handleCommentChange(test.testname, e)}
+                            onChange={(e) =>
+                              handleCommentChange(test.testname, e)
+                            }
                             placeholder="Add any comments or observations..."
                           />
                         </CommentBox>
 
                         {(!initialValues[test.testname] ||
-  initialValues[test.testname].trim() === "") &&
-  values[test.testname] &&
-  values[test.testname].trim() !== "" && (
-    <RemarksSection>
-      <FormGroup>
-        <Label>
-          Remarks (Required for edited values){" "}
-          <span style={{ color: "red" }}>*</span>
-        </Label>
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-          {remarksOptions.map((option, idx) => (
-            <Button
-              key={idx}
-              type="button"
-              onClick={() => {
-                handleRemarksChange(test.testname, { target: { value: option.text } });
-              }}
-              style={{
-                fontSize: '0.875rem',
-                padding: '0.5rem 0.75rem',
-                backgroundColor: 'var(--secondary)',
-                minWidth: '45%'
-              }}
-            >
-              {option.title}
-            </Button>
-          ))}
-        </div>
-        <TextArea
-          value={remarks[test.testname] || ""}
-          onChange={(e) =>
-            handleRemarksChange(test.testname, e)
-          }
-          placeholder="Enter remarks or select from options above (required)"
-          style={{
-            borderColor:
-              !remarks[test.testname] ||
-              remarks[test.testname].trim() === ""
-                ? "red"
-                : undefined,
-          }}
-        />
-      </FormGroup>
-    </RemarksSection>
-  )}
+                          initialValues[test.testname].trim() === "") &&
+                          values[test.testname] &&
+                          values[test.testname].trim() !== "" && (
+                            <RemarksSection>
+                              <FormGroup>
+                                <Label>
+                                  Remarks (Required for edited values){" "}
+                                  <span style={{ color: "red" }}>*</span>
+                                </Label>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {remarksOptions.map((option, idx) => (
+                                    <Button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => {
+                                        handleRemarksChange(test.testname, {
+                                          target: { value: option.text },
+                                        });
+                                      }}
+                                      style={{
+                                        fontSize: "0.875rem",
+                                        padding: "0.5rem 0.75rem",
+                                        backgroundColor: "var(--secondary)",
+                                        minWidth: "45%",
+                                      }}
+                                    >
+                                      {option.title}
+                                    </Button>
+                                  ))}
+                                </div>
+                                <TextArea
+                                  value={remarks[test.testname] || ""}
+                                  onChange={(e) =>
+                                    handleRemarksChange(test.testname, e)
+                                  }
+                                  placeholder="Enter remarks or select from options above (required)"
+                                  style={{
+                                    borderColor:
+                                      !remarks[test.testname] ||
+                                      remarks[test.testname].trim() === ""
+                                        ? "red"
+                                        : undefined,
+                                  }}
+                                />
+                              </FormGroup>
+                            </RemarksSection>
+                          )}
                       </>
                     ) : (
                       <ParameterSection>
@@ -1327,23 +1512,37 @@ const remarksOptions = [
                           }}
                         >
                           <ParameterTitle>
-                            Parameters ({Object.values(test.parametersBySubtitle).flat().length})
+                            Parameters (
+                            {
+                              Object.values(test.parametersBySubtitle).flat()
+                                .length
+                            }
+                            )
                           </ParameterTitle>
                         </div>
 
                         <FormRow style={{ marginBottom: "1.5rem" }}>
                           <FormGroup>
                             <Label>Specimen Type</Label>
-                            <Input type="text" value={test.specimen_type || ""} disabled />
+                            <Input
+                              type="text"
+                              value={test.specimen_type || ""}
+                              disabled
+                            />
                           </FormGroup>
-                          
+
                           {test.specimen_type === "URINE" && (
                             <FormGroup>
-                              <Label>Colony Count <span style={{ color: "red" }}>*</span></Label>
+                              <Label>
+                                Colony Count{" "}
+                                <span style={{ color: "red" }}>*</span>
+                              </Label>
                               <SelectWrapper>
                                 <Select
                                   value={colonyCount[test.testname] || ""}
-                                  onChange={(e) => handleColonyCountChange(test.testname, e)}
+                                  onChange={(e) =>
+                                    handleColonyCountChange(test.testname, e)
+                                  }
                                   required
                                 >
                                   <option value="">Select colony count</option>
@@ -1357,157 +1556,265 @@ const remarksOptions = [
                               </SelectWrapper>
                             </FormGroup>
                           )}
-                          
+
                           <FormGroup>
                             <Label>Department</Label>
-                            <Input type="text" value={test.department || ""} disabled />
+                            <Input
+                              type="text"
+                              value={test.department || ""}
+                              disabled
+                            />
                           </FormGroup>
                           <FormGroup>
                             <Label>NABL</Label>
-                            <Input type="text" value={test.NABL ? "Yes" : "No"} disabled />
+                            <Input
+                              type="text"
+                              value={test.NABL ? "Yes" : "No"}
+                              disabled
+                            />
                           </FormGroup>
                         </FormRow>
 
-                        {Object.entries(test.parametersBySubtitle).map(([subtitle, parameters], subtitleIndex) => (
-                          <SubtitleSection key={subtitleIndex}>
-                            <SubtitleHeader>{subtitle}</SubtitleHeader>
-                            <ParameterGrid>
-                              {parameters.map((param, paramIndex) => {
-                                const paramName = param.name || param.test_name;
-                                const uniqueKey = `${test.testname}_${paramName}`;
-                                const hasValueOptions = param.value_option && param.value_option.length > 0;
-                                const isDisabled = initialValues[uniqueKey] && initialValues[uniqueKey].trim() !== "";
+                        {Object.entries(test.parametersBySubtitle).map(
+                          ([subtitle, parameters], subtitleIndex) => (
+                            <SubtitleSection key={subtitleIndex}>
+                              <SubtitleHeader>{subtitle}</SubtitleHeader>
+                              <ParameterGrid>
+                                {parameters.map((param, paramIndex) => {
+                                  const paramName =
+                                    param.name || param.test_name;
+                                  const uniqueKey = `${test.testname}_${paramName}`;
+                                  const hasValueOptions =
+                                    param.value_option &&
+                                    param.value_option.length > 0;
+                                  const isDisabled =
+                                    initialValues[uniqueKey] &&
+                                    initialValues[uniqueKey].trim() !== "";
 
-                                return (
-                                  <ParameterCard key={paramIndex}>
-                                    <FormRow>
-                                      <FormGroup>
-                                        <Label>Antimicrobial</Label>
-                                        <WrappedInput
-                                          as="textarea"
-                                          value={paramName}
-                                          disabled
-                                          style={{ resize: "none" }}
-                                        />
-                                      </FormGroup>
-                                      <FormGroup>
-                                        <Label>Result</Label>
-                                        <SelectWrapper>
-                                          <Select
-                                            value={parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])}
-                                            onChange={(e) => handleResultChange(test.testname, paramName, e)}
-                                            style={{
-                                              color: (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Sensitive' ? '#4caf50' : 
-                                                     (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Intermediate' ? '#ff9800' : 
-                                                     (parameterResults[uniqueKey] || getResultStatus(values[uniqueKey])) === 'Nil' ? '#100e0b' : 
-                                                     '#f44336',
-                                              fontWeight: '600'
-                                            }}
-                                          >
-                                            <option value="Sensitive" style={{ color: '#4caf50' }}>Sensitive</option>
-                                            <option value="Intermediate" style={{ color: '#ff9800' }}>Intermediate</option>
-                                            <option value="Resistant" style={{ color: '#f44336' }}>Resistant</option>
-                                            <option value="Nil" style={{ color: '#111010' }}>Nil</option>
-                                          </Select>
-                                          <SelectIcon size={18} />
-                                        </SelectWrapper>
-                                      </FormGroup>
-
-                                      <FormGroup>
-                                        <Label>Zone of Inhibition (mm)</Label>
-                                        {hasValueOptions ? (
+                                  return (
+                                    <ParameterCard key={paramIndex}>
+                                      <FormRow>
+                                        <FormGroup>
+                                          <Label>Antimicrobial</Label>
+                                          <WrappedInput
+                                            as="textarea"
+                                            value={paramName}
+                                            disabled
+                                            style={{ resize: "none" }}
+                                          />
+                                        </FormGroup>
+                                        <FormGroup>
+                                          <Label>Result</Label>
                                           <SelectWrapper>
                                             <Select
-                                              value={values[uniqueKey] || ""}
-                                              onChange={(e) => handleParameterValueChange(test.testname, paramName, e)}
-                                              disabled={isDisabled}
+                                              value={
+                                                parameterResults[uniqueKey] ||
+                                                getResultStatus(
+                                                  values[uniqueKey],
+                                                )
+                                              }
+                                              onChange={(e) =>
+                                                handleResultChange(
+                                                  test.testname,
+                                                  paramName,
+                                                  e,
+                                                )
+                                              }
+                                              style={{
+                                                color:
+                                                  (parameterResults[
+                                                    uniqueKey
+                                                  ] ||
+                                                    getResultStatus(
+                                                      values[uniqueKey],
+                                                    )) === "Sensitive"
+                                                    ? "#4caf50"
+                                                    : (parameterResults[
+                                                          uniqueKey
+                                                        ] ||
+                                                          getResultStatus(
+                                                            values[uniqueKey],
+                                                          )) === "Intermediate"
+                                                      ? "#ff9800"
+                                                      : (parameterResults[
+                                                            uniqueKey
+                                                          ] ||
+                                                            getResultStatus(
+                                                              values[uniqueKey],
+                                                            )) === "Nil"
+                                                        ? "#100e0b"
+                                                        : "#f44336",
+                                                fontWeight: "600",
+                                              }}
                                             >
-                                              <option value="">Select value</option>
-                                              {param.value_option.map((option, optIndex) => (
-                                                <option key={optIndex} value={option}>
-                                                  {option}
-                                                </option>
-                                              ))}
+                                              <option
+                                                value="Sensitive"
+                                                style={{ color: "#4caf50" }}
+                                              >
+                                                Sensitive
+                                              </option>
+                                              <option
+                                                value="Intermediate"
+                                                style={{ color: "#ff9800" }}
+                                              >
+                                                Intermediate
+                                              </option>
+                                              <option
+                                                value="Resistant"
+                                                style={{ color: "#f44336" }}
+                                              >
+                                                Resistant
+                                              </option>
+                                              <option
+                                                value="Nil"
+                                                style={{ color: "#111010" }}
+                                              >
+                                                Nil
+                                              </option>
                                             </Select>
                                             <SelectIcon size={18} />
                                           </SelectWrapper>
-                                        ) : (
-                                          <Input
-                                            type="text"
-                                            value={values[uniqueKey] || ""}
-                                            onChange={(e) => handleParameterValueChange(test.testname, paramName, e)}
-                                            disabled={isDisabled}
-                                            placeholder={!isDisabled ? "Enter value" : "Value available"}
-                                          />
-                                        )}
-                                      </FormGroup>
-                                    </FormRow>
+                                        </FormGroup>
 
-                                    <CommentBox>
-                                      <CommentLabel>Comments (Optional)</CommentLabel>
-                                      <CommentTextArea
-                                        value={parameterComments[uniqueKey] || ""}
-                                        onChange={(e) => handleParameterCommentChange(test.testname, paramName, e)}
-                                        placeholder="Add any comments or observations for this parameter..."
-                                      />
-                                    </CommentBox>
-                                  </ParameterCard>
-                                );
-                              })}
-                            </ParameterGrid>
-                          </SubtitleSection>
-                        ))}
+                                        <FormGroup>
+                                          <Label>Zone of Inhibition (mm)</Label>
+                                          {hasValueOptions ? (
+                                            <SelectWrapper>
+                                              <Select
+                                                value={values[uniqueKey] || ""}
+                                                onChange={(e) =>
+                                                  handleParameterValueChange(
+                                                    test.testname,
+                                                    paramName,
+                                                    e,
+                                                  )
+                                                }
+                                                disabled={isDisabled}
+                                              >
+                                                <option value="">
+                                                  Select value
+                                                </option>
+                                                {param.value_option.map(
+                                                  (option, optIndex) => (
+                                                    <option
+                                                      key={optIndex}
+                                                      value={option}
+                                                    >
+                                                      {option}
+                                                    </option>
+                                                  ),
+                                                )}
+                                              </Select>
+                                              <SelectIcon size={18} />
+                                            </SelectWrapper>
+                                          ) : (
+                                            <Input
+                                              type="text"
+                                              value={values[uniqueKey] || ""}
+                                              onChange={(e) =>
+                                                handleParameterValueChange(
+                                                  test.testname,
+                                                  paramName,
+                                                  e,
+                                                )
+                                              }
+                                              disabled={isDisabled}
+                                              placeholder={
+                                                !isDisabled
+                                                  ? "Enter value"
+                                                  : "Value available"
+                                              }
+                                            />
+                                          )}
+                                        </FormGroup>
+                                      </FormRow>
 
-                        {Object.values(test.parametersBySubtitle).flat().some((param) => {
-  const paramName = param.name || param.test_name;
-  const uniqueKey = `${test.testname}_${paramName}`;
-  const initialValue = initialValues[uniqueKey];
-  const currentValue = values[uniqueKey];
-  return (
-    (!initialValue || initialValue.trim() === "") &&
-    currentValue &&
-    currentValue.trim() !== ""
-  );
-}) && (
-  <RemarksSection>
-    <FormGroup>
-      <Label>
-        Impression <span style={{ color: "red" }}>*</span>
-      </Label>
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-        {remarksOptions.map((option, idx) => (
-          <Button
-            key={idx}
-            type="button"
-            onClick={() => {
-              setParameterRemarks(option.text);
-            }}
-            style={{
-              fontSize: '0.875rem',
-              padding: '0.5rem 0.75rem',
-              backgroundColor: 'var(--secondary)',
-              minWidth: '45%'
-            }}
-          >
-            {option.title}
-          </Button>
-        ))}
-      </div>
-      <TextArea
-        value={parameterRemarks || ""}
-        onChange={handleParameterRemarksChange}
-        placeholder="Enter remarks or select from options above (required)"
-        style={{
-          borderColor:
-            !parameterRemarks ||
-            parameterRemarks.trim() === ""
-              ? "red"
-              : undefined,
-        }}
-      />
-    </FormGroup>
-  </RemarksSection>
-)}
+                                      <CommentBox>
+                                        <CommentLabel>
+                                          Comments (Optional)
+                                        </CommentLabel>
+                                        <CommentTextArea
+                                          value={
+                                            parameterComments[uniqueKey] || ""
+                                          }
+                                          onChange={(e) =>
+                                            handleParameterCommentChange(
+                                              test.testname,
+                                              paramName,
+                                              e,
+                                            )
+                                          }
+                                          placeholder="Add any comments or observations for this parameter..."
+                                        />
+                                      </CommentBox>
+                                    </ParameterCard>
+                                  );
+                                })}
+                              </ParameterGrid>
+                            </SubtitleSection>
+                          ),
+                        )}
+
+                        {Object.values(test.parametersBySubtitle)
+                          .flat()
+                          .some((param) => {
+                            const paramName = param.name || param.test_name;
+                            const uniqueKey = `${test.testname}_${paramName}`;
+                            const initialValue = initialValues[uniqueKey];
+                            const currentValue = values[uniqueKey];
+                            return (
+                              (!initialValue || initialValue.trim() === "") &&
+                              currentValue &&
+                              currentValue.trim() !== ""
+                            );
+                          }) && (
+                          <RemarksSection>
+                            <FormGroup>
+                              <Label>
+                                Impression{" "}
+                                <span style={{ color: "red" }}>*</span>
+                              </Label>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                {remarksOptions.map((option, idx) => (
+                                  <Button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => {
+                                      setParameterRemarks(option.text);
+                                    }}
+                                    style={{
+                                      fontSize: "0.875rem",
+                                      padding: "0.5rem 0.75rem",
+                                      backgroundColor: "var(--secondary)",
+                                      minWidth: "45%",
+                                    }}
+                                  >
+                                    {option.title}
+                                  </Button>
+                                ))}
+                              </div>
+                              <TextArea
+                                value={parameterRemarks || ""}
+                                onChange={handleParameterRemarksChange}
+                                placeholder="Enter remarks or select from options above (required)"
+                                style={{
+                                  borderColor:
+                                    !parameterRemarks ||
+                                    parameterRemarks.trim() === ""
+                                      ? "red"
+                                      : undefined,
+                                }}
+                              />
+                            </FormGroup>
+                          </RemarksSection>
+                        )}
                       </ParameterSection>
                     )}
                   </>
@@ -1534,7 +1841,7 @@ const remarksOptions = [
               </CloseButton>
             </ModalHeader>
 
-            {parameterType === 'Normal' ? (
+            {parameterType === "Normal" || parameterType === "Preliminary" ? (
               <>
                 <PreviewTable>
                   <thead>
@@ -1542,7 +1849,7 @@ const remarksOptions = [
                       <TableHeader>Test Name</TableHeader>
                       <TableHeader>Department</TableHeader>
                       <TableHeader>Specimen Type</TableHeader>
-                      {previewData.some(item => item.colony_count) && (
+                      {previewData.some((item) => item.colony_count) && (
                         <TableHeader>Colony Count</TableHeader>
                       )}
                     </tr>
@@ -1553,23 +1860,35 @@ const remarksOptions = [
                         <TableCell>{item.testName}</TableCell>
                         <TableCell>{item.department}</TableCell>
                         <TableCell>{item.specimen_type}</TableCell>
-                        {previewData.some(i => i.colony_count) && (
+                        {previewData.some((i) => i.colony_count) && (
                           <TableCell>{item.colony_count || "-"}</TableCell>
                         )}
                       </TableRow>
                     ))}
                   </tbody>
                 </PreviewTable>
-                
-                <div style={{ 
-                  marginTop: '1.5rem', 
-                  padding: '1rem', 
-                  backgroundColor: 'var(--light)', 
-                  borderRadius: 'var(--border-radius)',
-                  border: '1px solid var(--gray-light)'
-                }}>
-                  <strong style={{ color: 'var(--secondary)', fontSize: '1rem' }}>Impression:</strong>
-                  <p style={{ marginTop: '0.5rem', color: 'var(--dark)', whiteSpace: 'pre-wrap' }}>
+
+                <div
+                  style={{
+                    marginTop: "1.5rem",
+                    padding: "1rem",
+                    backgroundColor: "var(--light)",
+                    borderRadius: "var(--border-radius)",
+                    border: "1px solid var(--gray-light)",
+                  }}
+                >
+                  <strong
+                    style={{ color: "var(--secondary)", fontSize: "1rem" }}
+                  >
+                    Impression:
+                  </strong>
+                  <p
+                    style={{
+                      marginTop: "0.5rem",
+                      color: "var(--dark)",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
                     {previewData[0]?.remarks || "-"}
                   </p>
                 </div>
@@ -1577,29 +1896,33 @@ const remarksOptions = [
             ) : (
               <>
                 {previewData.map((testData, testIndex) => (
-                  <div key={testIndex} style={{ marginBottom: '2rem' }}>
-                    <div style={{ 
-                      backgroundColor: 'var(--primary)', 
-                      color: 'white', 
-                      padding: '0.75rem 1rem',
-                      fontWeight: '600',
-                      fontSize: '1.125rem',
-                      borderRadius: '8px 8px 0 0'
-                    }}>
+                  <div key={testIndex} style={{ marginBottom: "2rem" }}>
+                    <div
+                      style={{
+                        backgroundColor: "var(--primary)",
+                        color: "white",
+                        padding: "0.75rem 1rem",
+                        fontWeight: "600",
+                        fontSize: "1.125rem",
+                        borderRadius: "8px 8px 0 0",
+                      }}
+                    >
                       {testData.testName}
                     </div>
-                    
+
                     {testData.colony_count && (
-                      <div style={{
-                        backgroundColor: '#fff3cd',
-                        padding: '0.75rem 1rem',
-                        borderLeft: '4px solid var(--warning)',
-                        marginBottom: '1rem'
-                      }}>
+                      <div
+                        style={{
+                          backgroundColor: "#fff3cd",
+                          padding: "0.75rem 1rem",
+                          borderLeft: "4px solid var(--warning)",
+                          marginBottom: "1rem",
+                        }}
+                      >
                         <strong>Colony Count:</strong> {testData.colony_count}
                       </div>
                     )}
-                    
+
                     <PreviewTable style={{ marginTop: 0 }}>
                       <thead>
                         <tr>
@@ -1618,7 +1941,9 @@ const remarksOptions = [
                             <TableCell>{row.zoneOfInhibition || "-"}</TableCell>
                             <TableCell>
                               {row.result !== "-" ? (
-                                <ResultBadge type={row.result}>{row.result}</ResultBadge>
+                                <ResultBadge type={row.result}>
+                                  {row.result}
+                                </ResultBadge>
                               ) : (
                                 "-"
                               )}
@@ -1628,18 +1953,34 @@ const remarksOptions = [
                         ))}
                       </tbody>
                     </PreviewTable>
-                    
+
                     {testData.remarks && testData.remarks !== "-" && (
-                      <div style={{ 
-                        marginTop: '0.5rem', 
-                        padding: '1rem', 
-                        backgroundColor: 'var(--light)', 
-                        borderRadius: '0 0 8px 8px',
-                        border: '1px solid var(--gray-light)',
-                        borderTop: 'none'
-                      }}>
-                        <strong style={{ color: 'var(--secondary)', fontSize: '0.875rem' }}>Impression:</strong>
-                        <p style={{ marginTop: '0.25rem', color: 'var(--dark)', fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>
+                      <div
+                        style={{
+                          marginTop: "0.5rem",
+                          padding: "1rem",
+                          backgroundColor: "var(--light)",
+                          borderRadius: "0 0 8px 8px",
+                          border: "1px solid var(--gray-light)",
+                          borderTop: "none",
+                        }}
+                      >
+                        <strong
+                          style={{
+                            color: "var(--secondary)",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          Impression:
+                        </strong>
+                        <p
+                          style={{
+                            marginTop: "0.25rem",
+                            color: "var(--dark)",
+                            fontSize: "0.875rem",
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
                           {testData.remarks}
                         </p>
                       </div>
@@ -1654,7 +1995,11 @@ const remarksOptions = [
                 <X size={18} />
                 Cancel
               </CancelButton>
-              <ConfirmButton type="button" onClick={handleConfirmSubmit} disabled={isSubmitting}>
+              <ConfirmButton
+                type="button"
+                onClick={handleConfirmSubmit}
+                disabled={isSubmitting}
+              >
                 <Check size={18} />
                 {isSubmitting ? "Submitting..." : "Confirm & Submit"}
               </ConfirmButton>
