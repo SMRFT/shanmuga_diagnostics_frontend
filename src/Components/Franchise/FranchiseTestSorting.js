@@ -507,6 +507,9 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
         "\\u00b1": "±",
         "\\u00b2": "²",
         "\\u00b3": "³",
+        "\\u2077": "⁷",
+        "\\u2079": "⁹",
+        "\\u00ae": "®",
       };
 
       const processUnicodeText = (text) => {
