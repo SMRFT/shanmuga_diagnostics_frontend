@@ -16,7 +16,7 @@ console.log("=== LAB INDEX.JS DEBUG ===");
 function setforlocaldev() {
   const dev_token = "";
   console.log("🔧 Development token is empty - will redirect to login");
-  const selectedBranch = "SHB005";
+  const selectedBranch = "SHB001";
   localStorage.setItem("selected_branch", selectedBranch);
   return dev_token;
 }

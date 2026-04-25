@@ -462,13 +462,17 @@ const DepartmentHeader = styled.div`
 `;
 
 const PatientDetails = () => {
-  const getDefaultFromDate = () => new Date();
-  const getDefaultToDate = () => new Date();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(location.state?.barcode || "");
   const [patientDetails, setPatientDetails] = useState([]);
-  const [fromDate, setFromDate] = useState(getDefaultFromDate());
-  const [toDate, setToDate] = useState(getDefaultToDate());
+  const [fromDate, setFromDate] = useState(
+    location.state?.fromDate ? new Date(location.state.fromDate) : new Date(),
+  );
+  const [toDate, setToDate] = useState(
+    location.state?.toDate ? new Date(location.state.toDate) : new Date(),
+  );
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -476,22 +480,7 @@ const PatientDetails = () => {
   const [fromFilter, setFromFilter] = useState("all");
   const [opipFilter, setOpipFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
-  const navigate = useNavigate();
-  const location = useLocation();
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
-
-  useEffect(() => {
-    if (
-      location.state?.fromDate ||
-      location.state?.toDate ||
-      location.state?.barcode
-    ) {
-      if (location.state.fromDate)
-        setFromDate(new Date(location.state.fromDate));
-      if (location.state.toDate) setToDate(new Date(location.state.toDate));
-      if (location.state.barcode) setSearchQuery(location.state.barcode);
-    }
-  }, [location.state]);
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
@@ -831,6 +820,19 @@ const PatientDetails = () => {
                             <Tag size={14} />
                             ID: {patient.patient_id || "Unknown ID"}
                           </PatientInfo>
+                          {patient.ref_doctor && (
+                            <PatientInfo>
+                              <Tag size={14} />
+                              Ref. By:{" "}
+                              {patient.ref_doctor || "Unknown Referral"}
+                            </PatientInfo>
+                          )}
+                          {patient.phone && (
+                            <PatientInfo>
+                              <Tag size={14} />
+                              Phone: {patient.phone || "Unknown Phone"}
+                            </PatientInfo>
+                          )}
                           <PatientInfo>
                             <FileText size={14} />
                             Barcode: {patient.barcode || "N/A"}

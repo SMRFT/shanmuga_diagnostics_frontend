@@ -347,6 +347,20 @@ const LoadingText = styled.p`
   font-weight: 500;
 `;
 
+const PreliminaryBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background-color: #7b2ff720;
+  color: #7b2ff7;
+  border: 1px solid #7b2ff7;
+  white-space: nowrap;
+  margin-left: 8px;
+`;
+
 const HMSMBTestSorting = ({ patient, onClose }) => {
   const [tests, setTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -387,6 +401,8 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
               NABL: test.NABL || false,
               dispatched: test.dispatch || false,
               created_date: test.created_date, // Changed from test.dispatched to test.dispatch
+              is_preliminary: test.is_preliminary || false, // ← ADD
+              record_id: test.record_id || null,
             }));
 
             setTests(testsWithDispatch);
@@ -395,7 +411,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
             const dispatchedSet = new Set();
             testsWithDispatch.forEach((test) => {
               if (test.dispatched) {
-                dispatchedSet.add(test.test_id);
+                dispatchedSet.add(test.record_id);
               }
             });
             setDispatchedTests(dispatchedSet);
@@ -445,14 +461,14 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
         // Update the dispatched tests set
         setDispatchedTests((prev) => {
           const newSet = new Set(prev);
-          newSet.add(test.test_id);
+          newSet.add(test.record_id);
           return newSet;
         });
 
         // Update the tests array
         setTests((prev) =>
           prev.map((t) =>
-            t.test_id === test.test_id ? { ...t, dispatched: true } : t,
+            t.record_id === test.record_id ? { ...t, dispatched: true } : t,
           ),
         );
       } else {
@@ -466,9 +482,9 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
 
   const handleSelectTest = (test) => {
     setSelectedTests((prev) => {
-      const isSelected = prev.some((t) => t.test_id === test.test_id);
+      const isSelected = prev.some((t) => t.record_id === test.record_id);
       return isSelected
-        ? prev.filter((t) => t.test_id !== test.test_id)
+        ? prev.filter((t) => t.record_id !== test.record_id)
         : [...prev, test];
     });
   };
@@ -489,11 +505,17 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
     }
 
     try {
-      console.log("Fetching patient details for barcode:", patient.barcode);
-      const response = await apiRequest(
-        `${Labbaseurl}hms_mb_get_patient_test_details/?barcode=${patient.barcode}`,
-        "GET",
-      );
+      // Build comma-separated record_ids from selected tests
+      const recordIds = selectedTests
+        .map((t) => t.record_id)
+        .filter(Boolean)
+        .join(",");
+
+      const url = recordIds
+        ? `${Labbaseurl}hms_mb_get_patient_test_details/?barcode=${patient.barcode}&record_ids=${encodeURIComponent(recordIds)}`
+        : `${Labbaseurl}hms_mb_get_patient_test_details/?barcode=${patient.barcode}`;
+
+      const response = await apiRequest(url, "GET");
 
       if (!response.success) {
         console.error("Failed to fetch patient details:", response.error);
@@ -531,11 +553,19 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
 
       // Filter tests by test_id
       const orderedTests = selectedTests
-        .map((selectedTest) =>
-          patientDetails.testdetails.find(
-            (t) => t.test_id === selectedTest.test_id,
-          ),
-        )
+        .map((selectedTest) => {
+          const testDetail = patientDetails.testdetails.find(
+            (t) => t.record_id === selectedTest.record_id, // ← clean match by record_id
+          );
+          if (testDetail) {
+            return {
+              ...testDetail,
+              record_id: selectedTest.record_id,
+              is_preliminary: testDetail.is_preliminary,
+            };
+          }
+          return null;
+        })
         .filter((test) => test);
 
       console.log("Ordered Tests:", orderedTests);
@@ -665,7 +695,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
             ]
           : []),
         {
-          label: "Printed Date",
+          label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -742,7 +772,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 18,
+                rightValueX + doc.getTextWidth(right.value) - 21,
                 patientInfoY + 4,
                 25,
                 10,
@@ -926,8 +956,12 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
 
       // Sort orderedTests by the selection order
       orderedTests.sort((a, b) => {
-        const indexA = selectedTests.findIndex((t) => t.test_id === a.test_id);
-        const indexB = selectedTests.findIndex((t) => t.test_id === b.test_id);
+        const indexA = selectedTests.findIndex(
+          (t) => t.record_id === a.record_id,
+        );
+        const indexB = selectedTests.findIndex(
+          (t) => t.record_id === b.record_id,
+        );
         return indexA - indexB;
       });
 
@@ -959,6 +993,16 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
           doc.text(test.testname, leftMargin, yPos);
+          if (test.is_preliminary) {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(9);
+            doc.setTextColor(123, 47, 247); // purple color matching badge
+            doc.text("[ Preliminary Report ]", leftMargin, yPos + 5);
+            doc.setTextColor(0, 0, 0); // reset to black
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            yPos += 5; // extra space for the label
+          }
           yPos += 6;
 
           // Calculate max label width for proper alignment
@@ -996,18 +1040,35 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
           }
 
           // Display Remarks (if exists)
+          // Display Remarks (if exists)
           if (test.remarks && test.remarks.trim() !== "") {
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
-            // Check is_AG_title to determine the label
             const remarksLabel = test.is_AG_title
               ? "Sputum for AFB"
               : "Organism Isolated";
+
+            // Check if page break needed before rendering
+            const estimatedLines = doc.splitTextToSize(
+              test.remarks,
+              contentWidth - (valueX - leftMargin) - 2,
+            ).length;
+            yPos = checkForNewPage(yPos, estimatedLines * 5 + 4);
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
             doc.text(remarksLabel, leftMargin, yPos);
             doc.text(":", colonX, yPos);
             doc.setFont("helvetica", "normal");
-            doc.text(test.remarks, valueX, yPos);
-            yPos += 6;
+
+            const maxValueWidth = rightMargin - valueX - 2; // remaining width after label
+            const remarksHeight = renderWrappedText(
+              doc,
+              test.remarks,
+              maxValueWidth,
+              valueX,
+              yPos,
+              5,
+            );
+            yPos += remarksHeight + 2;
           } else {
             yPos += 2;
           }
@@ -1136,15 +1197,15 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
 
           // Display "Verified by"
           if (test.verified_by && test.verified_by.trim() !== "") {
-            yPos += 14;
+            yPos += 10;
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-            yPos += 8;
+            yPos += 4;
           }
 
           // Add spacing between tests
-          yPos += 6;
+          yPos += testIndex === orderedTests.length - 1 ? 2 : 6;
         });
 
         currentYPosition = yPos;
@@ -1155,7 +1216,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
-        if (currentYPosition + 10 >= footerStart) {
+        if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
@@ -1255,9 +1316,9 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
           ) : (
             filteredTests.map((test) => {
               const isSelected = selectedTests.some(
-                (t) => t.test_id === test.test_id,
+                (t) => t.record_id === test.record_id,
               );
-              const isDispatched = dispatchedTests.has(test.test_id);
+              const isDispatched = dispatchedTests.has(test.record_id);
 
               return (
                 <TestItem
@@ -1271,6 +1332,9 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
                     <TestName selected={isSelected}>
                       {test.testname}
                       {test.NABL && <span className="nabl-asterisk">*</span>}
+                      {test.is_preliminary && ( // ← ADD
+                        <PreliminaryBadge>Preliminary</PreliminaryBadge>
+                      )}
                     </TestName>
                   </TestInfo>
                   <DispatchButton

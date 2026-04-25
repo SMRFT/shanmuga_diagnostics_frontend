@@ -353,6 +353,7 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
               NABL: test.NABL || false,
               dispatched: test.dispatch || false,
               created_date: test.created_date, // Changed from test.dispatched to test.dispatch
+              department: test.department || "",
             }));
 
             setTests(testsWithDispatch);
@@ -390,19 +391,36 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
   }, [patient.patient_id, patient.barcode, patient.date]);
 
   const handleSelectTest = (test) => {
+    const isMolBio = test.department === "Molecular Biology";
+
     setSelectedTests((prev) => {
       const isSelected = prev.some((t) => t.test_id === test.test_id);
-      return isSelected
-        ? prev.filter((t) => t.test_id !== test.test_id)
-        : [...prev, test];
+
+      if (isSelected) {
+        return prev.filter((t) => t.test_id !== test.test_id);
+      }
+
+      if (isMolBio) {
+        // Select this Mol Bio test only — clear everything else
+        return [test];
+      }
+
+      // Non-Mol Bio selected — clear any Mol Bio and add this one
+      const withoutMolBio = prev.filter(
+        (t) => t.department !== "Molecular Biology",
+      );
+      return [...withoutMolBio, test];
     });
   };
 
   const handleSelectAll = () => {
+    const nonMolBioTests = tests.filter(
+      (t) => t.department !== "Molecular Biology",
+    );
     if (selectAllChecked) {
       setSelectedTests([]);
     } else {
-      setSelectedTests([...tests]);
+      setSelectedTests([...nonMolBioTests]);
     }
     setSelectAllChecked(!selectAllChecked);
   };
@@ -505,6 +523,22 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
           const regex = new RegExp(unicode, "g");
           processedText = processedText.replace(regex, unicodeMap[unicode]);
         });
+        // Additional sanitization for characters jsPDF can't space correctly
+        processedText = processedText
+          .replace(/®/g, "(R)")
+          .replace(/™/g, "(TM)")
+          .replace(/\u00ae/g, "(R)")
+          .replace(/\u2013/g, "-") // en dash
+          .replace(/\u2014/g, "--") // em dash
+          .replace(/\u2018/g, "'") // left single quote
+          .replace(/\u2019/g, "'") // right single quote
+          .replace(/\u201c/g, '"') // left double quote
+          .replace(/\u201d/g, '"') // right double quote
+          .replace(/\u2026/g, "...") // ellipsis
+          .replace(/\u00b0/g, " deg") // degree
+          .replace(/\n/g, " ") // newlines to space
+          .replace(/\s+/g, " ") // collapse multiple spaces
+          .trim();
         return processedText;
       };
 
@@ -615,6 +649,7 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
           value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
+        { label: "Branch", value: patientDetails.branch || "N/A" },
       ];
 
       const rightDetails = [
@@ -634,8 +669,21 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
               "dd MMM yy / HH:mm",
             ) || "N/A",
         },
+        ...(patientDetails.testdetails[0].dispatch_time &&
+        patientDetails.testdetails[0].dispatch_time !== "null"
+          ? [
+              {
+                label: "Released On",
+                value: format(
+                  new Date(patientDetails.testdetails[0].dispatch_time),
+                  "dd MMM yy / HH:mm",
+                ),
+              },
+            ]
+          : []),
+
         {
-          label: "Printed Date",
+          label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -651,6 +699,7 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
       const doc = new jsPDF();
       let pageCount = 1;
       let isTableStarted = false;
+      let isMolBioSection = false;
 
       const addPatientInfo = (yPos) => {
         const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
@@ -666,31 +715,37 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
         doc.setFontSize(10);
         let patientInfoY = yPos;
 
-        for (let i = 0; i < leftDetails.length; i++) {
+        // FIX: Use the maximum length of both arrays
+        const maxLength = Math.max(leftDetails.length, rightDetails.length);
+
+        for (let i = 0; i < maxLength; i++) {
           const left = leftDetails[i];
           const right = rightDetails[i];
 
-          // Handle left side
-          doc.setFont("helvetica", "bold");
-          doc.text(left.label, leftLabelX, patientInfoY);
-          doc.text(":", leftColonX, patientInfoY);
-          doc.setFont("helvetica", "normal");
+          // Handle left side (only if exists)
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, leftLabelX, patientInfoY);
+            doc.text(":", leftColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
 
-          // Wrap left value to prevent overlap with right side
-          const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-          const leftValueLines = wrapTextAndGetLines(
-            doc,
-            left.value,
-            maxLeftValueWidth,
-          );
+            const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+            const leftValueLines = wrapTextAndGetLines(
+              doc,
+              left.value,
+              maxLeftValueWidth,
+            );
 
-          leftValueLines.forEach((line, lineIndex) => {
-            doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
-          });
+            leftValueLines.forEach((line, lineIndex) => {
+              doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
+            });
 
-          const leftRowHeight = leftValueLines.length * 4;
+            var leftRowHeight = leftValueLines.length * 4;
+          } else {
+            var leftRowHeight = 5; // Default height when no left detail
+          }
 
-          // Handle right side
+          // Handle right side (only if exists)
           if (right) {
             doc.setFont("helvetica", "bold");
             doc.text(right.label, rightLabelX, patientInfoY);
@@ -706,7 +761,7 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 10,
+                rightValueX + doc.getTextWidth(right.value) - 15,
                 patientInfoY + 4,
                 25,
                 10,
@@ -869,7 +924,7 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
 
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 5); // CHANGED from 10 to 5
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
 
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
@@ -879,7 +934,8 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
           newYPos += 10;
-          if (isTableStarted) {
+          // Only draw table header if NOT in mol bio section
+          if (isTableStarted && !isMolBioSection) {
             newYPos = drawTableHeader(newYPos);
           }
           return newYPos;
@@ -1385,40 +1441,467 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
               });
             });
 
-            // Display "Verified by" under each test if multiple verifiers in department
+            // Display "Verified by" under each test if multiple verifiers — skip Molecular Biology
             if (
               hasMultipleVerifiers &&
               test.verified_by &&
-              test.verified_by.trim() !== ""
+              test.verified_by.trim() !== "" &&
+              department !== "Molecular Biology"
             ) {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
               doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
+              yPos += 5;
             }
           });
 
-          // Display "Verified by" once at end of department only if single verifier
-          if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
+          // Display "Verified by" once at end of department — skip Molecular Biology
+          if (
+            !hasMultipleVerifiers &&
+            verifiedBySet.size > 0 &&
+            department !== "Molecular Biology"
+          ) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
             doc.text(verifiedByText, leftMargin, yPos);
-            yPos += 8;
+            yPos += 5;
           }
 
-          yPos += 4;
+          const isLastDepartment =
+            department === sortedDepartments[sortedDepartments.length - 1];
+          yPos += isLastDepartment ? 2 : 4;
         });
 
         currentYPosition = yPos;
       }
+      isMolBioSection = true;
+      // ── Render interpretation, critical_range, lod, labels ──────────────────
+      const molBioTests = orderedTests.filter(
+        (test) =>
+          test.department === "Molecular Biology" &&
+          (test.interpretation ||
+            test.critical_range ||
+            test.lod ||
+            test.labels),
+      );
+
+      if (molBioTests.length > 0) {
+        currentYPosition += 4;
+
+        molBioTests.forEach((test) => {
+          // ── Interpretation ─────────────────────────────────────────────────
+          // ── Interpretation ─────────────────────────────────────────────────
+          const interpretation = test.interpretation;
+          if (
+            interpretation &&
+            typeof interpretation === "object" &&
+            Object.keys(interpretation).length > 0
+          ) {
+            currentYPosition = checkForNewPage(currentYPosition, 10);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("INTERPRETATION:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const interpColWidths = [contentWidth * 0.35, contentWidth * 0.65];
+            const interpTableX = leftMargin;
+            const rowH = 7;
+
+            // Header row
+            currentYPosition = checkForNewPage(currentYPosition, rowH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              interpTableX,
+              currentYPosition,
+              interpColWidths[0],
+              rowH,
+              "FD",
+            );
+            doc.rect(
+              interpTableX + interpColWidths[0],
+              currentYPosition,
+              interpColWidths[1],
+              rowH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text("RESULTS", interpTableX + 2, currentYPosition + 4.5);
+            doc.text(
+              "COMMENTS",
+              interpTableX + interpColWidths[0] + 2,
+              currentYPosition + 4.5,
+            );
+            currentYPosition += rowH;
+            doc.setFillColor(255, 255, 255);
+
+            // Data rows
+            doc.setFont("helvetica", "normal");
+            Object.entries(interpretation).forEach(([result, comment]) => {
+              const resultLines = wrapTextAndGetLines(
+                doc,
+                result,
+                interpColWidths[0] - 4,
+              );
+              const commentLines = wrapTextAndGetLines(
+                doc,
+                comment,
+                interpColWidths[1] - 4,
+              );
+              const rowLines = Math.max(
+                resultLines.length,
+                commentLines.length,
+              );
+              const dataRowH = rowLines * 5 + 3;
+
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.rect(
+                interpTableX,
+                currentYPosition,
+                interpColWidths[0],
+                dataRowH,
+              );
+              doc.rect(
+                interpTableX + interpColWidths[0],
+                currentYPosition,
+                interpColWidths[1],
+                dataRowH,
+              );
+
+              resultLines.forEach((line, i) =>
+                doc.text(line, interpTableX + 2, currentYPosition + 4 + i * 5),
+              );
+              commentLines.forEach((line, i) =>
+                doc.text(
+                  line,
+                  interpTableX + interpColWidths[0] + 2,
+                  currentYPosition + 4 + i * 5,
+                ),
+              );
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+
+          // ── Critical Range ─────────────────────────────────────────────────
+          const criticalRange = test.critical_range;
+          if (
+            criticalRange &&
+            typeof criticalRange === "object" &&
+            Object.keys(criticalRange).length > 0
+          ) {
+            currentYPosition = checkForNewPage(currentYPosition, 10);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("CRITICAL RANGE:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const crColWidths = [contentWidth * 0.35, contentWidth * 0.65];
+            const crTableX = leftMargin;
+            const crRowH = 7;
+
+            // Header row
+            currentYPosition = checkForNewPage(currentYPosition, crRowH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(crTableX, currentYPosition, crColWidths[0], crRowH, "FD");
+            doc.rect(
+              crTableX + crColWidths[0],
+              currentYPosition,
+              crColWidths[1],
+              crRowH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text("RESULT", crTableX + 2, currentYPosition + 4.5);
+            doc.text(
+              "Ct VALUE",
+              crTableX + crColWidths[0] + 2,
+              currentYPosition + 4.5,
+            );
+            currentYPosition += crRowH;
+            doc.setFillColor(255, 255, 255);
+
+            // Data rows
+            doc.setFont("helvetica", "normal");
+            Object.entries(criticalRange).forEach(([result, ctvalue]) => {
+              const resultLines = wrapTextAndGetLines(
+                doc,
+                result,
+                crColWidths[0] - 4,
+              );
+              const valueLines = wrapTextAndGetLines(
+                doc,
+                String(ctvalue),
+                crColWidths[1] - 4,
+              );
+              const rowLines = Math.max(resultLines.length, valueLines.length);
+              const dataRowH = rowLines * 5 + 3;
+
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.rect(crTableX, currentYPosition, crColWidths[0], dataRowH);
+              doc.rect(
+                crTableX + crColWidths[0],
+                currentYPosition,
+                crColWidths[1],
+                dataRowH,
+              );
+
+              resultLines.forEach((line, i) =>
+                doc.text(line, crTableX + 2, currentYPosition + 4 + i * 5),
+              );
+              valueLines.forEach((line, i) =>
+                doc.text(
+                  line,
+                  crTableX + crColWidths[0] + 2,
+                  currentYPosition + 4 + i * 5,
+                ),
+              );
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+
+          // ── LOD ────────────────────────────────────────────────────────────
+          const lod = test.lod;
+          if (lod && typeof lod === "object" && Object.keys(lod).length > 0) {
+            const samples = Object.keys(lod);
+            const maxGenotypes = Math.max(...samples.map((s) => lod[s].length));
+            const genotypeLabels = Array.from(
+              { length: maxGenotypes },
+              (_, i) => `Genotype ${i + 1}`,
+            );
+
+            currentYPosition = checkForNewPage(currentYPosition, 14);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("LOD in IU/ml:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const totalCols = 1 + maxGenotypes;
+            const lodColWidth = contentWidth / totalCols;
+            const lodTableX = leftMargin;
+            const lodHeaderH = 7;
+
+            // Row 1: blank SAMPLE cell + merged "LOD in IU/ml" header
+            currentYPosition = checkForNewPage(currentYPosition, lodHeaderH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              lodTableX,
+              currentYPosition,
+              lodColWidth,
+              lodHeaderH,
+              "FD",
+            );
+            doc.rect(
+              lodTableX + lodColWidth,
+              currentYPosition,
+              lodColWidth * maxGenotypes,
+              lodHeaderH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text(
+              "LOD in IU/ml",
+              lodTableX + lodColWidth + (lodColWidth * maxGenotypes) / 2,
+              currentYPosition + 4.5,
+              { align: "center" },
+            );
+            currentYPosition += lodHeaderH;
+
+            // Row 2: SAMPLE label + genotype sub-headers
+            currentYPosition = checkForNewPage(currentYPosition, lodHeaderH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              lodTableX,
+              currentYPosition,
+              lodColWidth,
+              lodHeaderH,
+              "FD",
+            );
+            doc.text("SAMPLE", lodTableX + 2, currentYPosition + 4.5);
+            genotypeLabels.forEach((label, i) => {
+              doc.setFillColor(230, 230, 230);
+              doc.rect(
+                lodTableX + lodColWidth * (i + 1),
+                currentYPosition,
+                lodColWidth,
+                lodHeaderH,
+                "FD",
+              );
+              doc.text(
+                label,
+                lodTableX + lodColWidth * (i + 1) + 2,
+                currentYPosition + 4.5,
+              );
+            });
+            currentYPosition += lodHeaderH;
+
+            // Reset fill to white before data rows
+            doc.setFillColor(255, 255, 255);
+            doc.setFont("helvetica", "normal");
+
+            // Data rows
+            samples.forEach((sample) => {
+              const dataRowH = 7;
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.setFillColor(255, 255, 255);
+              doc.rect(
+                lodTableX,
+                currentYPosition,
+                lodColWidth,
+                dataRowH,
+                "FD",
+              );
+              doc.setFont("helvetica", "bold");
+              doc.text(sample, lodTableX + 2, currentYPosition + 4.5);
+              doc.setFont("helvetica", "normal");
+              lod[sample].forEach((val, i) => {
+                doc.setFillColor(255, 255, 255);
+                doc.rect(
+                  lodTableX + lodColWidth * (i + 1),
+                  currentYPosition,
+                  lodColWidth,
+                  dataRowH,
+                  "FD",
+                );
+                doc.text(
+                  String(val),
+                  lodTableX + lodColWidth * (i + 1) + 2,
+                  currentYPosition + 4.5,
+                );
+              });
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+          // ── Labels ─────────────────────────────────────────────────────────
+          const labels = test.labels;
+          if (Array.isArray(labels) && labels.length > 0) {
+            // Helper: justify a single line of text within maxWidth
+            const justifyLine = (line, x, y, maxWidth, isLastLine) => {
+              if (isLastLine || line.trim() === "") {
+                doc.text(line, x, y);
+                return;
+              }
+              const words = line
+                .trim()
+                .split(" ")
+                .filter((w) => w.length > 0);
+              if (words.length <= 1) {
+                doc.text(line, x, y);
+                return;
+              }
+              const totalTextWidth = words.reduce(
+                (sum, word) => sum + doc.getTextWidth(word),
+                0,
+              );
+              const totalSpaceWidth = maxWidth - totalTextWidth;
+              const spaceWidth = totalSpaceWidth / (words.length - 1);
+
+              // Guard: if spaceWidth is unreasonably large, just left-align
+              if (spaceWidth > 10 || spaceWidth < 0) {
+                doc.text(words.join(" "), x, y);
+                return;
+              }
+
+              let currentX = x;
+              words.forEach((word, i) => {
+                doc.text(word, currentX, y);
+                currentX +=
+                  doc.getTextWidth(word) +
+                  (i < words.length - 1 ? spaceWidth : 0);
+              });
+            };
+
+            labels.forEach((labelObj) => {
+              const sortedKeys = Object.keys(labelObj).sort((a, b) => {
+                const numA = parseInt(a.split("-")[0]) || 0;
+                const numB = parseInt(b.split("-")[0]) || 0;
+                return numA - numB;
+              });
+
+              sortedKeys.forEach((key) => {
+                const rawText = labelObj[key];
+                if (!rawText) return;
+
+                const dashIndex = key.indexOf("-");
+                const orderNum =
+                  dashIndex !== -1 ? key.substring(0, dashIndex) : "";
+                const labelName =
+                  dashIndex !== -1
+                    ? key.substring(dashIndex + 1).toUpperCase()
+                    : key.toUpperCase();
+                const bodyText = processUnicodeText(rawText)
+                  .replace(/\n/g, " ")
+                  .replace(/\s+/g, " ")
+                  .trim();
+                const prefix = `${orderNum}. ${labelName}: `;
+
+                const indentX = leftMargin + 4;
+                const bodyMaxWidth = contentWidth - 8;
+
+                doc.setFontSize(8.5);
+                doc.setFont("helvetica", "normal");
+                const bodyLines = doc.splitTextToSize(bodyText, bodyMaxWidth);
+
+                const blockHeight = 5 + bodyLines.length * 5 + 3;
+                currentYPosition = checkForNewPage(
+                  currentYPosition,
+                  blockHeight,
+                );
+
+                // Bold prefix on its own line
+                currentYPosition = checkForNewPage(
+                  currentYPosition,
+                  blockHeight,
+                );
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.text(prefix, leftMargin, currentYPosition);
+                currentYPosition += 5;
+
+                // Justified body lines
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8.5);
+                const lastLineIndex = bodyLines.length - 1;
+                bodyLines.forEach((line, i) => {
+                  const lineWidth = doc.getTextWidth(line.trim());
+                  const isLast =
+                    i === lastLineIndex || lineWidth < bodyMaxWidth * 0.75;
+                  currentYPosition = checkForNewPage(currentYPosition, 5);
+                  // Reset font after every page break — checkForNewPage renders patient info at size 10
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(8.5);
+                  justifyLine(
+                    line,
+                    indentX,
+                    currentYPosition,
+                    bodyMaxWidth,
+                    isLast,
+                  );
+                  currentYPosition += 5;
+                });
+
+                currentYPosition += 3;
+              });
+            });
+            currentYPosition += 2;
+          }
+          currentYPosition += 4;
+        });
+      }
+      isMolBioSection = false;
+      // ── End of mol bio block ──────────────────────────────────────────────────
 
       isTableStarted = false;
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15); // CHANGED from 10 to 15
-        if (currentYPosition + 10 >= footerStart) {
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5); // CHANGED from 10 to 15
+        if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
@@ -1429,6 +1912,31 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
       };
 
       currentYPosition = ensureSpaceForFooter(currentYPosition);
+
+      // ── Verified by for Molecular Biology ──────────────────────────────────
+      const molBioVerifiedSet = new Set();
+      orderedTests.forEach((test) => {
+        if (
+          test.department === "Molecular Biology" &&
+          test.verified_by &&
+          test.verified_by.trim() !== ""
+        ) {
+          molBioVerifiedSet.add(test.verified_by.trim());
+        }
+      });
+
+      if (molBioVerifiedSet.size > 0) {
+        currentYPosition = checkForNewPage(currentYPosition, 10);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(
+          `Verified by: ${Array.from(molBioVerifiedSet).join(", ")}`,
+          leftMargin,
+          currentYPosition,
+        );
+        currentYPosition += 8;
+      }
+      // ── End verified by ─────────────────────────────────────────────────────
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
@@ -1547,30 +2055,32 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
           </Button>
 
           <ButtonGroup>
-            <Button
-              primary
-              disabled={selectedTests.length === 0}
-              onClick={() => setShowPrintOptions(!showPrintOptions)}
-            >
-              <Printer size={16} />
-              Print Options
-              {showPrintOptions ? (
-                <ChevronUp size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
-            </Button>
+            <div style={{ position: "relative" }}>
+              <Button
+                primary
+                disabled={selectedTests.length === 0}
+                onClick={() => setShowPrintOptions(!showPrintOptions)}
+              >
+                <Printer size={16} />
+                Print Options
+                {showPrintOptions ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </Button>
 
-            <PrintOptions show={showPrintOptions}>
-              <PrintOption onClick={() => handlePrint(true)}>
-                <Printer size={16} />
-                Print with Letterhead
-              </PrintOption>
-              <PrintOption onClick={() => handlePrint(false)}>
-                <Printer size={16} />
-                Print without Letterhead
-              </PrintOption>
-            </PrintOptions>
+              <PrintOptions show={showPrintOptions}>
+                <PrintOption onClick={() => handlePrint(true)}>
+                  <Printer size={16} />
+                  Print with Letterhead
+                </PrintOption>
+                <PrintOption onClick={() => handlePrint(false)}>
+                  <Printer size={16} />
+                  Print without Letterhead
+                </PrintOption>
+              </PrintOptions>
+            </div>
           </ButtonGroup>
         </ModalFooter>
       </ModalContent>

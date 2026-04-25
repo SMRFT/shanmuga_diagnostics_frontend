@@ -464,6 +464,105 @@ const RequiredHint = styled.span`
   margin-top: 0.2rem;
   font-style: italic;
 `;
+
+const ExpandToggleCell = styled.td`
+  padding: 0.25rem 1rem !important;
+  background-color: rgba(67, 97, 238, 0.04);
+  border-bottom: 1px solid var(--gray-light);
+`;
+
+const ExpandButton = styled.button`
+  background: none;
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: var(--transition);
+  &:hover {
+    background-color: rgba(67, 97, 238, 0.08);
+  }
+`;
+
+const ExpandedRow = styled.tr`
+  background-color: #fafbff !important;
+  &:hover {
+    background-color: #fafbff !important;
+  }
+`;
+
+const ExpandedCell = styled.td`
+  padding: 1rem 2rem !important;
+  border-bottom: 2px solid var(--gray-light);
+`;
+
+const InfoTableSection = styled.div`
+  margin-bottom: 1rem;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const InfoTableTitle = styled.div`
+  background: linear-gradient(135deg, var(--secondary), var(--primary));
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+`;
+
+const InfoTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  th {
+    background-color: #f0f3ff;
+    color: var(--secondary);
+    padding: 0.5rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid var(--gray-light);
+    border-right: 1px solid var(--gray-light);
+    &:last-child {
+      border-right: none;
+    }
+  }
+  th.center {
+    text-align: center;
+  }
+  td {
+    padding: 0.45rem 1rem;
+    border-bottom: 1px solid var(--gray-light);
+    border-right: 1px solid var(--gray-light);
+    vertical-align: middle;
+    &:last-child {
+      border-right: none;
+    }
+  }
+  td.center {
+    text-align: center;
+  }
+  td.bold {
+    font-weight: 600;
+    background-color: #fafbff;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  tr:nth-child(even) td:not(.bold) {
+    background-color: #fafbff;
+  }
+`;
 // ─────────────────────────────────────────────────────────────────────────────
 
 function DoctorForm() {
@@ -484,6 +583,7 @@ function DoctorForm() {
   const queryParams = new URLSearchParams(location.search);
   const selectedDate = queryParams.get("date");
   const patientId = queryParams.get("patient_id");
+  const [expandedRows, setExpandedRows] = useState({});
 
   // True when the record's locationId starts with "CHC" (case-sensitive)
   const isCHC =
@@ -783,6 +883,9 @@ function DoctorForm() {
   };
 
   const handleBack = () => navigate("/PatientList");
+  const toggleExpand = (key) => {
+    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const getRomanNumeral = (num) => {
     const romanNumerals = [
@@ -914,6 +1017,11 @@ function DoctorForm() {
               </td>
             </TestHeaderRow>,
           );
+          const infoTables = renderInfoTables(
+            detail,
+            `${recordIndex}-${detailIndex}`,
+          );
+          if (infoTables) rows.push(infoTables);
 
           // ── Parameter sub-rows ────────────────────────────────────────────
           const groupedParams = {};
@@ -1055,6 +1163,11 @@ function DoctorForm() {
               </td>
             </TestHeaderRow>,
           );
+          const infoTables = renderInfoTables(
+            detail,
+            `${recordIndex}-${detailIndex}`,
+          );
+          if (infoTables) rows.push(infoTables);
           testNumber++;
         }
       });
@@ -1080,6 +1193,158 @@ function DoctorForm() {
       </Container>
     );
   }
+
+  const renderInfoTables = (detail, expandKey) => {
+    const hasInterpretation =
+      detail.interpretation &&
+      typeof detail.interpretation === "object" &&
+      Object.keys(detail.interpretation).length > 0;
+
+    const hasCriticalRange =
+      detail.critical_range &&
+      typeof detail.critical_range === "object" &&
+      Object.keys(detail.critical_range).length > 0;
+
+    const hasLod =
+      detail.lod &&
+      typeof detail.lod === "object" &&
+      Object.keys(detail.lod).length > 0;
+
+    if (!hasInterpretation && !hasCriticalRange && !hasLod) return null;
+
+    const totalCols = isCHC ? 12 : 11;
+
+    return (
+      <>
+        {/* Toggle button row */}
+        <tr key={`toggle-${expandKey}`}>
+          <ExpandToggleCell colSpan={totalCols}>
+            <ExpandButton onClick={() => toggleExpand(expandKey)}>
+              {expandedRows[expandKey] ? "▲ Hide" : "▼ View"} Interpretation /
+              LOD
+            </ExpandButton>
+          </ExpandToggleCell>
+        </tr>
+
+        {/* Expanded content row */}
+        {expandedRows[expandKey] && (
+          <ExpandedRow key={`expanded-${expandKey}`}>
+            <ExpandedCell colSpan={totalCols}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                {/* Interpretation */}
+                {hasInterpretation && (
+                  <InfoTableSection>
+                    <InfoTableTitle>Interpretation</InfoTableTitle>
+                    <InfoTable>
+                      <thead>
+                        <tr>
+                          <th>Result</th>
+                          <th>Comment</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(detail.interpretation).map(
+                          ([result, comment], i) => (
+                            <tr key={i}>
+                              <td style={{ fontWeight: 500 }}>{result}</td>
+                              <td>{comment}</td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </InfoTable>
+                  </InfoTableSection>
+                )}
+
+                {/* Critical Range */}
+                {hasCriticalRange && (
+                  <InfoTableSection>
+                    <InfoTableTitle>Critical Range</InfoTableTitle>
+                    <InfoTable>
+                      <thead>
+                        <tr>
+                          <th>Result</th>
+                          <th>Ct Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(detail.critical_range).map(
+                          ([result, ctvalue], i) => (
+                            <tr key={i}>
+                              <td style={{ fontWeight: 500 }}>{result}</td>
+                              <td>{ctvalue}</td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </InfoTable>
+                  </InfoTableSection>
+                )}
+              </div>
+
+              {/* LOD — full width below */}
+              {hasLod &&
+                (() => {
+                  const samples = Object.keys(detail.lod);
+                  const maxGenotypes = Math.max(
+                    ...samples.map((s) => detail.lod[s].length),
+                  );
+                  const genotypeLabels = Array.from(
+                    { length: maxGenotypes },
+                    (_, i) => `Genotype ${i + 1}`,
+                  );
+                  return (
+                    <InfoTableSection
+                      style={{
+                        marginTop:
+                          hasInterpretation || hasCriticalRange ? "1rem" : 0,
+                      }}
+                    >
+                      <InfoTableTitle>LOD in IU/ml</InfoTableTitle>
+                      <InfoTable>
+                        <thead>
+                          <tr>
+                            <th rowSpan={2}>SAMPLE</th>
+                            <th colSpan={maxGenotypes} className="center">
+                              LOD in IU/ml
+                            </th>
+                          </tr>
+                          <tr>
+                            {genotypeLabels.map((label, i) => (
+                              <th key={i} className="center">
+                                {label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {samples.map((sample, rowIdx) => (
+                            <tr key={rowIdx}>
+                              <td className="bold">{sample}</td>
+                              {detail.lod[sample].map((val, colIdx) => (
+                                <td key={colIdx} className="center">
+                                  {val}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </InfoTable>
+                    </InfoTableSection>
+                  );
+                })()}
+            </ExpandedCell>
+          </ExpandedRow>
+        )}
+      </>
+    );
+  };
 
   return (
     <Container>

@@ -542,6 +542,49 @@ const StatusBadgeContainer = styled.div`
   gap: 0.5rem;
 `;
 
+const TATIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  min-width: 120px;
+  justify-content: center;
+  background-color: ${(props) => {
+    if (!props.secondsLeft && props.secondsLeft !== 0) return "transparent";
+    if (props.secondsLeft < 0) return "#dc3545";
+    if (props.secondsLeft < 7200) return "#ffc107";
+    return "#28a745";
+  }};
+  color: ${(props) => (props.secondsLeft !== null ? "white" : "var(--gray)")};
+`;
+const TATText = styled.span`
+  white-space: nowrap;
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.5px;
+`;
+const TATLabel = styled.div`
+  font-size: 0.7rem;
+  opacity: 0.9;
+`;
+
+const formatTimeRemaining = (seconds) => {
+  if (seconds === null || seconds === undefined) return null;
+  const absSeconds = Math.abs(seconds);
+  const days = Math.floor(absSeconds / 86400);
+  const hours = Math.floor((absSeconds % 86400) / 3600);
+  const minutes = Math.floor((absSeconds % 3600) / 60);
+  const secs = Math.floor(absSeconds % 60);
+  let parts = [];
+  if (days > 0) parts.push(`${days}D`);
+  if (hours > 0 || days > 0) parts.push(`${hours}H`);
+  if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes}M`);
+  parts.push(`${secs}S`);
+  return parts.join(":");
+};
+
 const FranchiseOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -642,9 +685,41 @@ const FranchiseOverview = () => {
   }, [startDate, endDate]);
 
   const TestStatusModal = () => {
-    if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
+    const [currentTime, setCurrentTime] = useState(new Date());
+    useEffect(() => {
+      if (!isTestStatusModalOpen) return;
+      const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+      return () => clearInterval(timer);
+    }, [isTestStatusModalOpen]);
 
+    if (!isTestStatusModalOpen || !selectedPatientForStatus) return null;
     const testStatuses = selectedPatientForStatus.test_statuses || [];
+
+    const calculateLiveSecondsLeft = (test) => {
+      if (test.tat_status === "completed") return test.seconds_left;
+      if (test.tat_status === "pending" && test.tat_deadline) {
+        const deadline = new Date(test.tat_deadline);
+        return Math.floor((deadline - currentTime) / 1000);
+      }
+      return test.seconds_left;
+    };
+
+    const formatTATDisplay = (test) => {
+      if (!test.tat_time) return null;
+      const liveSecondsLeft = calculateLiveSecondsLeft(test);
+      if (test.tat_status === "completed") {
+        const timeStr = formatTimeRemaining(liveSecondsLeft);
+        return liveSecondsLeft >= 0
+          ? { label: "Completed", time: `${timeStr} early`, isOverdue: false }
+          : { label: "Completed", time: `${timeStr} late`, isOverdue: true };
+      } else if (test.tat_status === "pending") {
+        const timeStr = formatTimeRemaining(liveSecondsLeft);
+        return liveSecondsLeft > 0
+          ? { label: "Time Left", time: timeStr, isOverdue: false }
+          : { label: "Overdue", time: timeStr, isOverdue: true };
+      }
+      return { label: "TAT", time: test.tat_time, isOverdue: false };
+    };
 
     return (
       <ModalOverlay onClick={() => setIsTestStatusModalOpen(false)}>
@@ -657,22 +732,73 @@ const FranchiseOverview = () => {
               <X size={24} />
             </CloseButton>
           </ModalHeader>
-
           <TestStatusList>
             {testStatuses.length > 0 ? (
-              testStatuses.map((test, index) => (
-                <TestStatusItem
-                  key={index}
-                  highlight={
-                    test.status === "Approved" || test.status === "Dispatched"
-                  }
-                >
-                  <TestNameText>{test.test_name}</TestNameText>
-                  <Badge color={getBadgeColor(test.status)}>
-                    {test.status}
-                  </Badge>
-                </TestStatusItem>
-              ))
+              testStatuses.map((test, index) => {
+                const tatDisplay = formatTATDisplay(test);
+                const liveSecondsLeft = calculateLiveSecondsLeft(test);
+                return (
+                  <TestStatusItem
+                    key={index}
+                    highlight={
+                      test.status === "Approved" || test.status === "Dispatched"
+                    }
+                  >
+                    <div style={{ flex: 1 }}>
+                      <TestNameText>{test.test_name}</TestNameText>
+                      {test.sample_collected_time && (
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--gray)",
+                            marginTop: "0.25rem",
+                          }}
+                        >
+                          Collected:{" "}
+                          {format(
+                            new Date(test.sample_collected_time),
+                            "dd MMM yy, HH:mm:ss",
+                          )}
+                        </div>
+                      )}
+                      {test.approve_time && (
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--gray)",
+                            marginTop: "0.25rem",
+                          }}
+                        >
+                          Approved:{" "}
+                          {format(
+                            new Date(test.approve_time),
+                            "dd MMM yy, HH:mm:ss",
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <StatusBadgeContainer
+                      style={{
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <Badge color={getBadgeColor(test.status)}>
+                        {test.status}
+                      </Badge>
+                      {tatDisplay && (
+                        <TATIndicator secondsLeft={liveSecondsLeft}>
+                          <div style={{ textAlign: "center" }}>
+                            <TATLabel>{tatDisplay.label}</TATLabel>
+                            <TATText>{tatDisplay.time}</TATText>
+                          </div>
+                        </TATIndicator>
+                      )}
+                    </StatusBadgeContainer>
+                  </TestStatusItem>
+                );
+              })
             ) : (
               <NoData>No test status information available</NoData>
             )}
@@ -709,6 +835,17 @@ const FranchiseOverview = () => {
       .map((d) => d.trim())
       .filter(Boolean);
     return departments.length === 1 && departments[0] === "Microbiology";
+  };
+  const isOnlyMolecularBiology = (patient) => {
+    if (!patient.department) return false;
+    const departments = patient.department
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+    return (
+      departments.length > 0 &&
+      departments.every((d) => d === "Molecular Biology")
+    );
   };
 
   useEffect(() => {
@@ -929,6 +1066,18 @@ const FranchiseOverview = () => {
         setLoading(false);
         return null;
       }
+      // Skip Molecular Biology tests from the printed report
+      patientDetails.testdetails = patientDetails.testdetails.filter(
+        (test) => test.department !== "Molecular Biology",
+      );
+
+      if (patientDetails.testdetails.length === 0) {
+        toast.error(
+          "No printable test details found (Molecular Biology tests are excluded).",
+        );
+        setLoading(false);
+        return null;
+      }
 
       // Unicode character mapping
       const unicodeMap = {
@@ -1082,6 +1231,7 @@ const FranchiseOverview = () => {
           value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
+        { label: "Branch", value: patientDetails.branch || "SELF" },
       ];
 
       const rightDetails = [
@@ -1102,7 +1252,7 @@ const FranchiseOverview = () => {
             ) || "N/A",
         },
         {
-          label: "Printed Date",
+          label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
         },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -1173,7 +1323,7 @@ const FranchiseOverview = () => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 10,
+                rightValueX + doc.getTextWidth(right.value) - 15,
                 patientInfoY + 4,
                 25,
                 10,
@@ -1837,7 +1987,7 @@ const FranchiseOverview = () => {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
               doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
-              yPos += 8;
+              yPos += 5;
             }
           });
 
@@ -1847,10 +1997,12 @@ const FranchiseOverview = () => {
             doc.setFontSize(10);
             const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
             doc.text(verifiedByText, leftMargin, yPos);
-            yPos += 8;
+            yPos += 5;
           }
 
-          yPos += 4;
+          const isLastDepartment =
+            department === sortedDepartments[sortedDepartments.length - 1];
+          yPos += isLastDepartment ? 2 : 4;
         });
 
         currentYPosition = yPos;
@@ -1860,8 +2012,8 @@ const FranchiseOverview = () => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 15);
-        if (currentYPosition + 10 >= footerStart) {
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
+        if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
@@ -2203,8 +2355,9 @@ const FranchiseOverview = () => {
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
                   const onlyMB = isOnlyMicrobiology(patient);
+                  const onlyMolBio = isOnlyMolecularBiology(patient);
                   const isPrintMailEnabled =
-                    !onlyMB && isPrintAndMailEnabled(status);
+                    !onlyMB && !onlyMolBio && isPrintAndMailEnabled(status);
                   const isSortingEnabledFlag =
                     !onlyMB && isSortingEnabled(status);
                   const badgeColor = getBadgeColor(status);
