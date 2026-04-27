@@ -665,6 +665,40 @@ const SampleStatusUpdate = () => {
   const storedName = localStorage.getItem("name");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
+  // Add this inside the component, before the useEffects
+  const fetchSampleCollected = async () => {
+    setLoading(true);
+    try {
+      const localFromDate = new Date(fromDate);
+      localFromDate.setMinutes(
+        localFromDate.getMinutes() - localFromDate.getTimezoneOffset(),
+      );
+      const formattedFromDate = localFromDate.toISOString().split("T")[0];
+
+      const localToDate = new Date(toDate);
+      localToDate.setMinutes(
+        localToDate.getMinutes() - localToDate.getTimezoneOffset(),
+      );
+      const formattedToDate = localToDate.toISOString().split("T")[0];
+
+      const response = await apiRequest(
+        `${Labbaseurl}get_sample_collected/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
+        "GET",
+      );
+
+      if (response.success) {
+        setSamples(response.data.data || []);
+        setError(null);
+      } else {
+        setError(response.error);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -694,39 +728,8 @@ const SampleStatusUpdate = () => {
     if (Labbaseurl) fetchOutsourceLabs();
   }, [Labbaseurl]);
 
+  // Replace the existing fetchSampleCollected useEffect with:
   useEffect(() => {
-    const fetchSampleCollected = async () => {
-      setLoading(true);
-      try {
-        const localFromDate = new Date(fromDate);
-        localFromDate.setMinutes(
-          localFromDate.getMinutes() - localFromDate.getTimezoneOffset(),
-        );
-        const formattedFromDate = localFromDate.toISOString().split("T")[0];
-
-        const localToDate = new Date(toDate);
-        localToDate.setMinutes(
-          localToDate.getMinutes() - localToDate.getTimezoneOffset(),
-        );
-        const formattedToDate = localToDate.toISOString().split("T")[0];
-
-        const response = await apiRequest(
-          `${Labbaseurl}get_sample_collected/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
-          "GET",
-        );
-
-        if (response.success) {
-          setSamples(response.data.data || []);
-          setError(null);
-        } else {
-          setError(response.error);
-        }
-      } catch (err) {
-        setError("An unexpected error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchSampleCollected();
   }, [fromDate, toDate]);
 
@@ -928,9 +931,13 @@ const SampleStatusUpdate = () => {
   // ✅ closeModal with reload (same as HMS)
   const closeModal = () => {
     setSelectedPatient(null);
+    setStatusChanges({});
+    setRemarks({});
+    setSelectedTests([]);
+    setSelectedOutsourceLab({});
     setError(null);
     setSuccessMessage(null);
-    window.location.reload();
+    fetchSampleCollected(); // ← refetch with current dates instead of reloading
   };
 
   const filteredPatients = samples.filter((sample) => {

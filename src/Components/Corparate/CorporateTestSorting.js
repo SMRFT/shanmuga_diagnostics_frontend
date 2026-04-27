@@ -476,27 +476,50 @@ const CorporateTestSorting = ({ patient, onClose }) => {
         γ: "γ",
         δ: "δ",
         Ω: "Ω",
-        "²": "²",
-        "³": "³",
-        "⁴": "⁴",
-        "°": "°",
+        "²": "^2",
+        "³": "^3",
+        "⁴": "^4",
+        "°": " deg",
         "±": "±",
         "×": "x",
         "÷": "/",
         "\\u03bc": "µ",
         "\\u00b5": "µ",
-        "\\u00b0": "°",
+        "\\u00b0": " deg",
         "\\u00b1": "±",
-        "\\u00b2": "²",
-        "\\u00b3": "³",
-        "\\u2077": "⁷",
-        "\\u2079": "⁹",
-        "\\u00ae": "®",
+        "\\u00b2": "^2",
+        "\\u00b3": "^3",
+        "\\u2077": "^7",
+        "\\u2079": "^9",
+        "\\u00ae": "(R)",
       };
 
       const processUnicodeText = (text) => {
         if (!text) return "";
         let processedText = text;
+
+        // Step 0: Normalize ALL problem characters at codepoint level FIRST
+        processedText = processedText
+          .replace(/\s*[\u00ae®]\s*/g, "^R")
+          .replace(/\s*[\u2122™]\s*/g, "^TM")
+          .replace(/²|\u00b2/g, "^2")
+          .replace(/³|\u00b3/g, "^3")
+          .replace(/⁰|\u2070/g, "^0")
+          .replace(/¹|\u00b9/g, "^1")
+          .replace(/⁴|\u2074/g, "^4")
+          .replace(/⁵|\u2075/g, "^5")
+          .replace(/⁶|\u2076/g, "^6")
+          .replace(/⁷|\u2077/g, "^7")
+          .replace(/⁸|\u2078/g, "^8")
+          .replace(/⁹|\u2079/g, "^9")
+          .replace(/–|\u2013/g, "-")
+          .replace(/—|\u2014/g, "--")
+          .replace(/[\u2018\u2019\u02bc]/g, "'")
+          .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+          .replace(/…|\u2026/g, "...")
+          .replace(/°|\u00b0/g, " deg");
+
+        // Step 1: Handle \\uXXXX escape sequences from raw strings
         processedText = processedText.replace(
           /\\u([0-9a-fA-F]{4})/g,
           (match, hex) => {
@@ -504,10 +527,31 @@ const CorporateTestSorting = ({ patient, onClose }) => {
             return unicodeMap[char] || char;
           },
         );
+
+        // Step 2: Apply unicodeMap for any remaining literal characters
         Object.keys(unicodeMap).forEach((unicode) => {
           const regex = new RegExp(unicode, "g");
           processedText = processedText.replace(regex, unicodeMap[unicode]);
         });
+
+        // Step 3: Final cleanup
+        processedText = processedText
+          .replace(/\s*\^R\s*/g, "^R")
+          .replace(/\s*\^TM\s*/g, "^TM")
+          .replace(/\n/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        // Step 4: Safety net — catch ANY remaining special chars that survived all steps
+        processedText = processedText
+          .replace(/\s*[\u00ae®]\s*/g, "^R")
+          .replace(/\s*[\u2122™]\s*/g, "^TM")
+          .replace(/[\u00a9©]/g, "(C)")
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+          .replace(/[\u2013]/g, "-")
+          .replace(/[\u2014]/g, "--")
+          .replace(/[\u2026]/g, "...");
         return processedText;
       };
 
@@ -608,16 +652,17 @@ const CorporateTestSorting = ({ patient, onClose }) => {
       ];
 
       const leftDetails = [
-        { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
+        { label: "Patient ID", value: patientDetails.patient_id || "" },
         {
           label: "Name",
-          value: patientDetails.patientname || "No name provided",
+          value: patientDetails.patientname || "",
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`,
+          value: `${patientDetails.age || ""} ${patientDetails.age_type || ""}/ ${patientDetails.gender || ""}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
+        { label: "Branch", value: patientDetails.branch || "N/A" },
       ];
 
       const rightDetails = [
@@ -637,6 +682,19 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               "dd MMM yy / HH:mm",
             ) || "N/A",
         },
+        ...(patientDetails.testdetails[0].dispatch_time &&
+        patientDetails.testdetails[0].dispatch_time !== "null"
+          ? [
+              {
+                label: "Released On",
+                value: format(
+                  new Date(patientDetails.testdetails[0].dispatch_time),
+                  "dd MMM yy / HH:mm",
+                ),
+              },
+            ]
+          : []),
+
         {
           label: "Printed On",
           value: format(new Date(), "dd MMM yy / HH:mm"),
@@ -654,6 +712,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
       const doc = new jsPDF();
       let pageCount = 1;
       let isTableStarted = false;
+      let isMolBioSection = false;
 
       const addPatientInfo = (yPos) => {
         const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
@@ -669,31 +728,37 @@ const CorporateTestSorting = ({ patient, onClose }) => {
         doc.setFontSize(10);
         let patientInfoY = yPos;
 
-        for (let i = 0; i < leftDetails.length; i++) {
+        // FIX: Use the maximum length of both arrays
+        const maxLength = Math.max(leftDetails.length, rightDetails.length);
+
+        for (let i = 0; i < maxLength; i++) {
           const left = leftDetails[i];
           const right = rightDetails[i];
 
-          // Handle left side
-          doc.setFont("helvetica", "bold");
-          doc.text(left.label, leftLabelX, patientInfoY);
-          doc.text(":", leftColonX, patientInfoY);
-          doc.setFont("helvetica", "normal");
+          // Handle left side (only if exists)
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, leftLabelX, patientInfoY);
+            doc.text(":", leftColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
 
-          // Wrap left value to prevent overlap with right side
-          const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-          const leftValueLines = wrapTextAndGetLines(
-            doc,
-            left.value,
-            maxLeftValueWidth,
-          );
+            const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+            const leftValueLines = wrapTextAndGetLines(
+              doc,
+              left.value,
+              maxLeftValueWidth,
+            );
 
-          leftValueLines.forEach((line, lineIndex) => {
-            doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
-          });
+            leftValueLines.forEach((line, lineIndex) => {
+              doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
+            });
 
-          const leftRowHeight = leftValueLines.length * 4;
+            var leftRowHeight = leftValueLines.length * 4;
+          } else {
+            var leftRowHeight = 5; // Default height when no left detail
+          }
 
-          // Handle right side
+          // Handle right side (only if exists)
           if (right) {
             doc.setFont("helvetica", "bold");
             doc.text(right.label, rightLabelX, patientInfoY);
@@ -709,7 +774,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 15,
+                rightValueX + doc.getTextWidth(right.value) - 10,
                 patientInfoY + 4,
                 25,
                 10,
@@ -820,6 +885,55 @@ const CorporateTestSorting = ({ patient, onClose }) => {
         });
         return lines.length * lineHeight;
       };
+      const renderTextWithSuperscripts = (text, x, y, fontSize = 8.5) => {
+        if (!text) return;
+
+        const parts = text.split(/(\^\d+|\^R|\^TM)/);
+        let currentX = x;
+        const superFontSize = fontSize * 0.6;
+        const superRaise = fontSize * 0.25;
+
+        doc.setFontSize(fontSize);
+
+        parts.forEach((part) => {
+          if (part === "^R") {
+            // Draw ® manually: small circle with R inside
+            const circleRadius = superFontSize * 0.18;
+            const circleX = currentX + circleRadius;
+            const circleY = y - superRaise - circleRadius * 0.5;
+
+            // Draw circle
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.2);
+            doc.circle(circleX, circleY, circleRadius, "S");
+
+            // Draw R inside circle
+            doc.setFontSize(superFontSize * 0.7);
+            doc.setFont("helvetica", "normal");
+            const rWidth = doc.getTextWidth("R");
+            doc.text("R", circleX - rWidth / 2, circleY + superFontSize * 0.14);
+
+            doc.setFontSize(fontSize);
+            currentX += circleRadius * 2 + 0.5;
+          } else if (part === "^TM") {
+            doc.setFontSize(superFontSize);
+            doc.text("TM", currentX, y - superRaise);
+            currentX += doc.getTextWidth("TM");
+            doc.setFontSize(fontSize);
+          } else if (/^\^\d+$/.test(part)) {
+            const supText = part.slice(1);
+            doc.setFontSize(superFontSize);
+            doc.text(supText, currentX, y - superRaise);
+            currentX += doc.getTextWidth(supText);
+            doc.setFontSize(fontSize);
+          } else if (part) {
+            doc.text(part, currentX, y);
+            currentX += doc.getTextWidth(part);
+          }
+        });
+
+        doc.setFontSize(fontSize);
+      };
 
       // UPDATED: addSignatures function - Right-aligned with full name (MATCHING SECOND DOCUMENT)
       const addSignatures = () => {
@@ -872,7 +986,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
 
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 5); // CHANGED from 10 to 5
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
 
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
@@ -882,7 +996,8 @@ const CorporateTestSorting = ({ patient, onClose }) => {
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
           newYPos += 10;
-          if (isTableStarted) {
+          // Only draw table header if NOT in mol bio section
+          if (isTableStarted && !isMolBioSection) {
             newYPos = drawTableHeader(newYPos);
           }
           return newYPos;
@@ -1388,11 +1503,12 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               });
             });
 
-            // Display "Verified by" under each test if multiple verifiers in department
+            // Display "Verified by" under each test if multiple verifiers — skip Molecular Biology
             if (
               hasMultipleVerifiers &&
               test.verified_by &&
-              test.verified_by.trim() !== ""
+              test.verified_by.trim() !== "" &&
+              department !== "Molecular Biology"
             ) {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
@@ -1401,8 +1517,12 @@ const CorporateTestSorting = ({ patient, onClose }) => {
             }
           });
 
-          // Display "Verified by" once at end of department only if single verifier
-          if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
+          // Display "Verified by" once at end of department — skip Molecular Biology
+          if (
+            !hasMultipleVerifiers &&
+            verifiedBySet.size > 0 &&
+            department !== "Molecular Biology"
+          ) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
@@ -1417,6 +1537,460 @@ const CorporateTestSorting = ({ patient, onClose }) => {
 
         currentYPosition = yPos;
       }
+      isMolBioSection = true;
+      // ── Render interpretation, critical_range, lod, labels ──────────────────
+      const molBioTests = orderedTests.filter(
+        (test) =>
+          test.department === "Molecular Biology" &&
+          (test.interpretation ||
+            test.critical_range ||
+            test.lod ||
+            test.labels),
+      );
+
+      if (molBioTests.length > 0) {
+        currentYPosition += 4;
+
+        molBioTests.forEach((test) => {
+          // ── Interpretation ─────────────────────────────────────────────────
+          // ── Interpretation ─────────────────────────────────────────────────
+          const interpretation = test.interpretation;
+          if (
+            interpretation &&
+            typeof interpretation === "object" &&
+            Object.keys(interpretation).length > 0
+          ) {
+            currentYPosition = checkForNewPage(currentYPosition, 10);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("INTERPRETATION:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const interpColWidths = [contentWidth * 0.35, contentWidth * 0.65];
+            const interpTableX = leftMargin;
+            const rowH = 7;
+
+            // Header row
+            currentYPosition = checkForNewPage(currentYPosition, rowH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              interpTableX,
+              currentYPosition,
+              interpColWidths[0],
+              rowH,
+              "FD",
+            );
+            doc.rect(
+              interpTableX + interpColWidths[0],
+              currentYPosition,
+              interpColWidths[1],
+              rowH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text("RESULTS", interpTableX + 2, currentYPosition + 4.5);
+            doc.text(
+              "COMMENTS",
+              interpTableX + interpColWidths[0] + 2,
+              currentYPosition + 4.5,
+            );
+            currentYPosition += rowH;
+            doc.setFillColor(255, 255, 255);
+
+            // Data rows
+            doc.setFont("helvetica", "normal");
+            Object.entries(interpretation).forEach(([result, comment]) => {
+              // Process unicode in both result and comment
+              const processedResult = processUnicodeText(result);
+              const processedComment = processUnicodeText(comment);
+
+              const resultLines = wrapTextAndGetLines(
+                doc,
+                processedResult,
+                interpColWidths[0] - 4,
+              );
+              const commentLines = wrapTextAndGetLines(
+                doc,
+                processedComment,
+                interpColWidths[1] - 4,
+              );
+              const rowLines = Math.max(
+                resultLines.length,
+                commentLines.length,
+              );
+              const dataRowH = rowLines * 5 + 3;
+
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.rect(
+                interpTableX,
+                currentYPosition,
+                interpColWidths[0],
+                dataRowH,
+              );
+              doc.rect(
+                interpTableX + interpColWidths[0],
+                currentYPosition,
+                interpColWidths[1],
+                dataRowH,
+              );
+
+              // Render result lines — use superscript renderer if needed
+              resultLines.forEach((line, i) => {
+                const lineY = currentYPosition + 4 + i * 5;
+                if (/\^\d|\^R|\^TM/.test(line)) {
+                  renderTextWithSuperscripts(
+                    line,
+                    interpTableX + 2,
+                    lineY,
+                    8.5,
+                  );
+                } else {
+                  doc.text(line, interpTableX + 2, lineY);
+                }
+              });
+
+              // Render comment lines — use superscript renderer if needed
+              commentLines.forEach((line, i) => {
+                const lineY = currentYPosition + 4 + i * 5;
+                if (/\^\d|\^R|\^TM/.test(line)) {
+                  renderTextWithSuperscripts(
+                    line,
+                    interpTableX + interpColWidths[0] + 2,
+                    lineY,
+                    8.5,
+                  );
+                } else {
+                  doc.text(line, interpTableX + interpColWidths[0] + 2, lineY);
+                }
+              });
+
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+
+          // ── Critical Range ─────────────────────────────────────────────────
+          const criticalRange = test.critical_range;
+          if (
+            criticalRange &&
+            typeof criticalRange === "object" &&
+            Object.keys(criticalRange).length > 0
+          ) {
+            currentYPosition = checkForNewPage(currentYPosition, 10);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("CRITICAL RANGE:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const crColWidths = [contentWidth * 0.35, contentWidth * 0.65];
+            const crTableX = leftMargin;
+            const crRowH = 7;
+
+            // Header row
+            currentYPosition = checkForNewPage(currentYPosition, crRowH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(crTableX, currentYPosition, crColWidths[0], crRowH, "FD");
+            doc.rect(
+              crTableX + crColWidths[0],
+              currentYPosition,
+              crColWidths[1],
+              crRowH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text("RESULT", crTableX + 2, currentYPosition + 4.5);
+            doc.text(
+              "Ct VALUE",
+              crTableX + crColWidths[0] + 2,
+              currentYPosition + 4.5,
+            );
+            currentYPosition += crRowH;
+            doc.setFillColor(255, 255, 255);
+
+            // Data rows
+            doc.setFont("helvetica", "normal");
+            Object.entries(criticalRange).forEach(([result, ctvalue]) => {
+              const resultLines = wrapTextAndGetLines(
+                doc,
+                result,
+                crColWidths[0] - 4,
+              );
+              const valueLines = wrapTextAndGetLines(
+                doc,
+                String(ctvalue),
+                crColWidths[1] - 4,
+              );
+              const rowLines = Math.max(resultLines.length, valueLines.length);
+              const dataRowH = rowLines * 5 + 3;
+
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.rect(crTableX, currentYPosition, crColWidths[0], dataRowH);
+              doc.rect(
+                crTableX + crColWidths[0],
+                currentYPosition,
+                crColWidths[1],
+                dataRowH,
+              );
+
+              resultLines.forEach((line, i) =>
+                doc.text(line, crTableX + 2, currentYPosition + 4 + i * 5),
+              );
+              valueLines.forEach((line, i) =>
+                doc.text(
+                  line,
+                  crTableX + crColWidths[0] + 2,
+                  currentYPosition + 4 + i * 5,
+                ),
+              );
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+
+          // ── LOD ────────────────────────────────────────────────────────────
+          const lod = test.lod;
+          if (lod && typeof lod === "object" && Object.keys(lod).length > 0) {
+            const samples = Object.keys(lod);
+            const maxGenotypes = Math.max(...samples.map((s) => lod[s].length));
+            const genotypeLabels = Array.from(
+              { length: maxGenotypes },
+              (_, i) => `Genotype ${i + 1}`,
+            );
+
+            currentYPosition = checkForNewPage(currentYPosition, 14);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("LOD in IU/ml:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const totalCols = 1 + maxGenotypes;
+            const lodColWidth = contentWidth / totalCols;
+            const lodTableX = leftMargin;
+            const lodHeaderH = 7;
+
+            // Row 1: blank SAMPLE cell + merged "LOD in IU/ml" header
+            currentYPosition = checkForNewPage(currentYPosition, lodHeaderH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              lodTableX,
+              currentYPosition,
+              lodColWidth,
+              lodHeaderH,
+              "FD",
+            );
+            doc.rect(
+              lodTableX + lodColWidth,
+              currentYPosition,
+              lodColWidth * maxGenotypes,
+              lodHeaderH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text(
+              "LOD in IU/ml",
+              lodTableX + lodColWidth + (lodColWidth * maxGenotypes) / 2,
+              currentYPosition + 4.5,
+              { align: "center" },
+            );
+            currentYPosition += lodHeaderH;
+
+            // Row 2: SAMPLE label + genotype sub-headers
+            currentYPosition = checkForNewPage(currentYPosition, lodHeaderH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              lodTableX,
+              currentYPosition,
+              lodColWidth,
+              lodHeaderH,
+              "FD",
+            );
+            doc.text("SAMPLE", lodTableX + 2, currentYPosition + 4.5);
+            genotypeLabels.forEach((label, i) => {
+              doc.setFillColor(230, 230, 230);
+              doc.rect(
+                lodTableX + lodColWidth * (i + 1),
+                currentYPosition,
+                lodColWidth,
+                lodHeaderH,
+                "FD",
+              );
+              doc.text(
+                label,
+                lodTableX + lodColWidth * (i + 1) + 2,
+                currentYPosition + 4.5,
+              );
+            });
+            currentYPosition += lodHeaderH;
+
+            // Reset fill to white before data rows
+            doc.setFillColor(255, 255, 255);
+            doc.setFont("helvetica", "normal");
+
+            // Data rows
+            samples.forEach((sample) => {
+              const dataRowH = 7;
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.setFillColor(255, 255, 255);
+              doc.rect(
+                lodTableX,
+                currentYPosition,
+                lodColWidth,
+                dataRowH,
+                "FD",
+              );
+              doc.setFont("helvetica", "bold");
+              doc.text(sample, lodTableX + 2, currentYPosition + 4.5);
+              doc.setFont("helvetica", "normal");
+              lod[sample].forEach((val, i) => {
+                doc.setFillColor(255, 255, 255);
+                doc.rect(
+                  lodTableX + lodColWidth * (i + 1),
+                  currentYPosition,
+                  lodColWidth,
+                  dataRowH,
+                  "FD",
+                );
+                doc.text(
+                  String(val),
+                  lodTableX + lodColWidth * (i + 1) + 2,
+                  currentYPosition + 4.5,
+                );
+              });
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+          // ── Labels ─────────────────────────────────────────────────────────
+          const labels = test.labels;
+          if (Array.isArray(labels) && labels.length > 0) {
+            // Helper: justify a single line of text within maxWidth
+            const justifyLine = (line, x, y, maxWidth, isLastLine) => {
+              if (isLastLine || line.trim() === "") {
+                doc.text(line, x, y);
+                return;
+              }
+              const words = line
+                .trim()
+                .split(" ")
+                .filter((w) => w.length > 0);
+              if (words.length <= 1) {
+                doc.text(line, x, y);
+                return;
+              }
+              const totalTextWidth = words.reduce(
+                (sum, word) => sum + doc.getTextWidth(word),
+                0,
+              );
+              const totalSpaceWidth = maxWidth - totalTextWidth;
+              const spaceWidth = totalSpaceWidth / (words.length - 1);
+
+              // Guard: if spaceWidth is unreasonably large, just left-align
+              if (spaceWidth > 10 || spaceWidth < 0) {
+                doc.text(words.join(" "), x, y);
+                return;
+              }
+
+              let currentX = x;
+              words.forEach((word, i) => {
+                doc.text(word, currentX, y);
+                currentX +=
+                  doc.getTextWidth(word) +
+                  (i < words.length - 1 ? spaceWidth : 0);
+              });
+            };
+
+            labels.forEach((labelObj) => {
+              const sortedKeys = Object.keys(labelObj).sort((a, b) => {
+                const numA = parseInt(a.split("-")[0]) || 0;
+                const numB = parseInt(b.split("-")[0]) || 0;
+                return numA - numB;
+              });
+
+              sortedKeys.forEach((key) => {
+                const rawText = labelObj[key];
+                if (!rawText) return;
+
+                const dashIndex = key.indexOf("-");
+                const orderNum =
+                  dashIndex !== -1 ? key.substring(0, dashIndex) : "";
+                const labelName =
+                  dashIndex !== -1
+                    ? key.substring(dashIndex + 1).toUpperCase()
+                    : key.toUpperCase();
+                const bodyText = processUnicodeText(rawText)
+                  .replace(/\n/g, " ")
+                  .replace(/\s+/g, " ")
+                  .trim();
+                const prefix = `${orderNum}. ${labelName}: `;
+
+                const indentX = leftMargin + 4;
+                const bodyMaxWidth = contentWidth - 8;
+
+                doc.setFontSize(8.5);
+                doc.setFont("helvetica", "normal");
+                const bodyLines = doc.splitTextToSize(bodyText, bodyMaxWidth);
+
+                const blockHeight = 5 + bodyLines.length * 5 + 3;
+                currentYPosition = checkForNewPage(
+                  currentYPosition,
+                  blockHeight,
+                );
+
+                // Bold prefix on its own line
+                currentYPosition = checkForNewPage(
+                  currentYPosition,
+                  blockHeight,
+                );
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.text(prefix, leftMargin, currentYPosition);
+                currentYPosition += 5;
+
+                // Justified body lines
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8.5);
+                const lastLineIndex = bodyLines.length - 1;
+                bodyLines.forEach((line, i) => {
+                  const lineWidth = doc.getTextWidth(line.trim());
+                  const isLast =
+                    i === lastLineIndex || lineWidth < bodyMaxWidth * 0.75;
+                  currentYPosition = checkForNewPage(currentYPosition, 5);
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(8.5);
+
+                  // Use superscript renderer if line has ^N pattern
+                  if (/\^\d|\^R|\^TM/.test(line)) {
+                    renderTextWithSuperscripts(
+                      line,
+                      indentX,
+                      currentYPosition,
+                      8.5,
+                    );
+                  } else {
+                    justifyLine(
+                      line,
+                      indentX,
+                      currentYPosition,
+                      bodyMaxWidth,
+                      isLast,
+                    );
+                  }
+
+                  currentYPosition += 5;
+                });
+                currentYPosition += 3;
+              });
+            });
+            currentYPosition += 2;
+          }
+          currentYPosition += 4;
+        });
+      }
+      isMolBioSection = false;
+      // ── End of mol bio block ──────────────────────────────────────────────────
 
       isTableStarted = false;
 
@@ -1434,6 +2008,31 @@ const CorporateTestSorting = ({ patient, onClose }) => {
       };
 
       currentYPosition = ensureSpaceForFooter(currentYPosition);
+
+      // ── Verified by for Molecular Biology ──────────────────────────────────
+      const molBioVerifiedSet = new Set();
+      orderedTests.forEach((test) => {
+        if (
+          test.department === "Molecular Biology" &&
+          test.verified_by &&
+          test.verified_by.trim() !== ""
+        ) {
+          molBioVerifiedSet.add(test.verified_by.trim());
+        }
+      });
+
+      if (molBioVerifiedSet.size > 0) {
+        currentYPosition = checkForNewPage(currentYPosition, 10);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(
+          `Verified by: ${Array.from(molBioVerifiedSet).join(", ")}`,
+          leftMargin,
+          currentYPosition,
+        );
+        currentYPosition += 8;
+      }
+      // ── End verified by ─────────────────────────────────────────────────────
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");

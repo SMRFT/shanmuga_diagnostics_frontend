@@ -22,6 +22,7 @@ import {
   CalendarDays,
   Users,
   Stethoscope,
+  History,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -461,11 +462,48 @@ const DepartmentHeader = styled.div`
   color: ${(props) => props.theme.colors.primary};
 `;
 
+// ── NEW: History button styled component ──────────────────────────────────────
+const HistoryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: ${(props) => props.theme.borderRadius.full};
+  border: 1px solid ${(props) => props.theme.colors.primary}60;
+  background: ${(props) => props.theme.colors.primary}10;
+  color: ${(props) => props.theme.colors.primary};
+  cursor: pointer;
+  transition: ${(props) => props.theme.transitions.default};
+  white-space: nowrap;
+  &:hover {
+    background: ${(props) => props.theme.colors.primary};
+    color: white;
+    border-color: ${(props) => props.theme.colors.primary};
+    box-shadow: 0 2px 8px ${(props) => props.theme.colors.primary}40;
+  }
+`;
+
+const PriorityCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+`;
+// ─────────────────────────────────────────────────────────────────────────────
+
 const PatientDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [searchQuery, setSearchQuery] = useState(location.state?.barcode || "");
+  const [searchQuery, setSearchQuery] = useState(
+    location.state?.searchQuery ??
+      location.state?.barcode ??
+      location.state?.uhid ??
+      "",
+  );
   const [patientDetails, setPatientDetails] = useState([]);
   const [fromDate, setFromDate] = useState(
     location.state?.fromDate ? new Date(location.state.fromDate) : new Date(),
@@ -481,6 +519,28 @@ const PatientDetails = () => {
   const [opipFilter, setOpipFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  // ── Clear all filters on page reload ──────────────────────────────────────
+  useEffect(() => {
+    const isReload =
+      window.performance &&
+      (window.performance.navigation?.type === 1 ||
+        window.performance.getEntriesByType?.("navigation")?.[0]?.type ===
+          "reload");
+
+    // Only reset if it's a true reload AND there's no incoming navigation state
+    if (isReload && !location.state) {
+      setSearchQuery("");
+      setFromDate(new Date());
+      setToDate(new Date());
+      setStatusFilter("all");
+      setEmergencyFilter("all");
+      setFromFilter("all");
+      setOpipFilter("all");
+      setDepartmentFilter("all");
+    }
+  }, []);
+  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
@@ -511,7 +571,6 @@ const PatientDetails = () => {
     fetchPatientDetails();
   }, [fromDate, toDate, Labbaseurl]);
 
-  // ── UPDATED: gender is now included in the navigate URL ──
   const handlePatientClick = (
     patientId,
     patientname,
@@ -526,7 +585,7 @@ const PatientDetails = () => {
     phone,
     ref_doctor,
     barcode_by,
-    barcode_date, // NEW
+    barcode_date,
   ) => {
     const formattedPatientDate = patientDate
       ? format(new Date(patientDate), "yyyy-MM-dd")
@@ -538,21 +597,34 @@ const PatientDetails = () => {
     const encodedTestName = encodeURIComponent(testName || "");
     const encodedBarcode = encodeURIComponent(barcode || "");
     const encodedGender = encodeURIComponent(gender || "");
-    const encodedPhone = encodeURIComponent(phone || ""); // NEW
-    const encodedRefDoctor = encodeURIComponent(ref_doctor || ""); // NEW
-    const encodedBarcodeBy = encodeURIComponent(barcode_by || ""); // NEW
-    const encodedBarcodeDate = encodeURIComponent(barcode_date || ""); // NEW
+    const encodedPhone = encodeURIComponent(phone || "");
+    const encodedRefDoctor = encodeURIComponent(ref_doctor || "");
+    const encodedBarcodeBy = encodeURIComponent(barcode_by || "");
+    const encodedBarcodeDate = encodeURIComponent(barcode_date || "");
 
     navigate(
       `/TestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}` +
         `&patient_id=${patientId}&patientname=${patientname}&age=${age}` +
         `&gender=${encodedGender}&barcode=${encodedBarcode}` +
         `&locationId=${location_id || "Shanmuga Referrence Lab"}&test_id=${testId}` +
-        `&phone=${encodedPhone}&ref_doctor=${encodedRefDoctor}` + // NEW
-        `&barcode_by=${encodedBarcodeBy}&barcode_date=${encodedBarcodeDate}`, // NEW
+        `&phone=${encodedPhone}&ref_doctor=${encodedRefDoctor}` +
+        `&barcode_by=${encodedBarcodeBy}&barcode_date=${encodedBarcodeDate}`,
       { state: { fromDate, toDate, barcode } },
     );
   };
+
+  // ── NEW: Navigate to WorkList with patient_id pre-filled ─────────────────
+  const handleHistoryClick = (patientId) => {
+    navigate("/WorkList", {
+      state: {
+        uhid: patientId,
+        fromDate: fromDate ? fromDate.toISOString() : null,
+        toDate: toDate ? toDate.toISOString() : null,
+        searchQuery,
+      },
+    });
+  };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -837,7 +909,6 @@ const PatientDetails = () => {
                             <FileText size={14} />
                             Barcode: {patient.barcode || "N/A"}
                           </PatientInfo>
-                          {/* NEW: barcode_by and barcode_date in IST */}
                           {patient.barcode_by && (
                             <PatientInfo>
                               <User size={14} />
@@ -876,19 +947,58 @@ const PatientDetails = () => {
                           {patient.location_id || "Shanmuga Reference Lab"}
                         </PatientInfo>
                       </Td>
+
+                      {/* ── UPDATED Priority cell with History button ── */}
                       <Td>
-                        {patient.is_emergency ? (
-                          <EmergencyBadge emergency>
-                            <AlertCircle size={12} />
-                            Emergency
-                          </EmergencyBadge>
-                        ) : (
-                          <EmergencyBadge normal>
-                            <CheckCircle size={12} />
-                            Normal
-                          </EmergencyBadge>
-                        )}
+                        <PriorityCell>
+                          {patient.is_emergency ? (
+                            <EmergencyBadge emergency>
+                              <AlertCircle size={12} />
+                              Emergency
+                            </EmergencyBadge>
+                          ) : (
+                            <EmergencyBadge normal>
+                              <CheckCircle size={12} />
+                              Normal
+                            </EmergencyBadge>
+                          )}
+                          {patient.patient_id && (
+                            <HistoryButton
+                              onClick={() =>
+                                handleHistoryClick(patient.patient_id)
+                              }
+                              title={
+                                !(patient.location_id || "")
+                                  .toLowerCase()
+                                  .includes("hms")
+                                  ? "History only available for HMS patients"
+                                  : `View full history for ${patient.patientname}`
+                              }
+                              disabled={
+                                !(patient.location_id || "")
+                                  .toLowerCase()
+                                  .includes("hms")
+                              }
+                              style={
+                                !(patient.location_id || "")
+                                  .toLowerCase()
+                                  .includes("hms")
+                                  ? {
+                                      opacity: 0.4,
+                                      cursor: "not-allowed",
+                                      pointerEvents: "none",
+                                    }
+                                  : {}
+                              }
+                            >
+                              <History size={12} />
+                              History
+                            </HistoryButton>
+                          )}
+                        </PriorityCell>
                       </Td>
+                      {/* ─────────────────────────────────────────────── */}
+
                       <Td>
                         {Object.entries(groupedTests).map(
                           ([department, tests]) => (
@@ -908,17 +1018,17 @@ const PatientDetails = () => {
                                           patient.patient_id,
                                           patient.patientname,
                                           patient.age,
-                                          patient.gender, // ← NEW: pass gender
+                                          patient.gender,
                                           patient.barcode,
                                           patient.location_id,
                                           test.test_id,
                                           test.testname,
                                           patient.date,
                                           patient.created_date,
-                                          patient.phone, // NEW
-                                          patient.ref_doctor, // NEW
-                                          patient.barcode_by, // NEW
-                                          patient.barcode_date, // NEW
+                                          patient.phone,
+                                          patient.ref_doctor,
+                                          patient.barcode_by,
+                                          patient.barcode_date,
                                         )
                                       }
                                       title={

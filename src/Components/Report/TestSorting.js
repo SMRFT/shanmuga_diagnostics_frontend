@@ -615,27 +615,50 @@ const TestSorting = ({ patient, onClose }) => {
         γ: "γ",
         δ: "δ",
         Ω: "Ω",
-        "²": "²",
-        "³": "³",
-        "⁴": "⁴",
-        "°": "°",
+        "²": "^2",
+        "³": "^3",
+        "⁴": "^4",
+        "°": " deg",
         "±": "±",
         "×": "x",
         "÷": "/",
         "\\u03bc": "µ",
         "\\u00b5": "µ",
-        "\\u00b0": "°",
+        "\\u00b0": " deg",
         "\\u00b1": "±",
-        "\\u00b2": "²",
-        "\\u00b3": "³",
-        "\\u2077": "⁷",
-        "\\u2079": "⁹",
-        "\\u00ae": "®",
+        "\\u00b2": "^2",
+        "\\u00b3": "^3",
+        "\\u2077": "^7",
+        "\\u2079": "^9",
+        "\\u00ae": "(R)",
       };
 
       const processUnicodeText = (text) => {
         if (!text) return "";
         let processedText = text;
+
+        // Step 0: Normalize ALL problem characters at codepoint level FIRST
+        processedText = processedText
+          .replace(/\s*[\u00ae®]\s*/g, "^R")
+          .replace(/\s*[\u2122™]\s*/g, "^TM")
+          .replace(/²|\u00b2/g, "^2")
+          .replace(/³|\u00b3/g, "^3")
+          .replace(/⁰|\u2070/g, "^0")
+          .replace(/¹|\u00b9/g, "^1")
+          .replace(/⁴|\u2074/g, "^4")
+          .replace(/⁵|\u2075/g, "^5")
+          .replace(/⁶|\u2076/g, "^6")
+          .replace(/⁷|\u2077/g, "^7")
+          .replace(/⁸|\u2078/g, "^8")
+          .replace(/⁹|\u2079/g, "^9")
+          .replace(/–|\u2013/g, "-")
+          .replace(/—|\u2014/g, "--")
+          .replace(/[\u2018\u2019\u02bc]/g, "'")
+          .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+          .replace(/…|\u2026/g, "...")
+          .replace(/°|\u00b0/g, " deg");
+
+        // Step 1: Handle \\uXXXX escape sequences from raw strings
         processedText = processedText.replace(
           /\\u([0-9a-fA-F]{4})/g,
           (match, hex) => {
@@ -643,26 +666,31 @@ const TestSorting = ({ patient, onClose }) => {
             return unicodeMap[char] || char;
           },
         );
+
+        // Step 2: Apply unicodeMap for any remaining literal characters
         Object.keys(unicodeMap).forEach((unicode) => {
           const regex = new RegExp(unicode, "g");
           processedText = processedText.replace(regex, unicodeMap[unicode]);
         });
-        // Additional sanitization for characters jsPDF can't space correctly
+
+        // Step 3: Final cleanup
         processedText = processedText
-          .replace(/®/g, "(R)")
-          .replace(/™/g, "(TM)")
-          .replace(/\u00ae/g, "(R)")
-          .replace(/\u2013/g, "-") // en dash
-          .replace(/\u2014/g, "--") // em dash
-          .replace(/\u2018/g, "'") // left single quote
-          .replace(/\u2019/g, "'") // right single quote
-          .replace(/\u201c/g, '"') // left double quote
-          .replace(/\u201d/g, '"') // right double quote
-          .replace(/\u2026/g, "...") // ellipsis
-          .replace(/\u00b0/g, " deg") // degree
-          .replace(/\n/g, " ") // newlines to space
-          .replace(/\s+/g, " ") // collapse multiple spaces
+          .replace(/\s*\^R\s*/g, "^R")
+          .replace(/\s*\^TM\s*/g, "^TM")
+          .replace(/\n/g, " ")
+          .replace(/\s+/g, " ")
           .trim();
+
+        // Step 4: Safety net — catch ANY remaining special chars that survived all steps
+        processedText = processedText
+          .replace(/\s*[\u00ae®]\s*/g, "^R")
+          .replace(/\s*[\u2122™]\s*/g, "^TM")
+          .replace(/[\u00a9©]/g, "(C)")
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+          .replace(/[\u2013]/g, "-")
+          .replace(/[\u2014]/g, "--")
+          .replace(/[\u2026]/g, "...");
         return processedText;
       };
 
@@ -763,14 +791,14 @@ const TestSorting = ({ patient, onClose }) => {
       ];
 
       const leftDetails = [
-        { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
+        { label: "Patient ID", value: patientDetails.patient_id || "" },
         {
           label: "Name",
-          value: patientDetails.patientname || "No name provided",
+          value: patientDetails.patientname || "",
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type || ""}/ ${patientDetails.gender || "N/A"}`,
+          value: `${patientDetails.age || ""} ${patientDetails.age_type || ""}/ ${patientDetails.gender || ""}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "N/A" },
@@ -996,6 +1024,55 @@ const TestSorting = ({ patient, onClose }) => {
           doc.text(line, startX, yPos + index * lineHeight);
         });
         return lines.length * lineHeight;
+      };
+      const renderTextWithSuperscripts = (text, x, y, fontSize = 8.5) => {
+        if (!text) return;
+
+        const parts = text.split(/(\^\d+|\^R|\^TM)/);
+        let currentX = x;
+        const superFontSize = fontSize * 0.6;
+        const superRaise = fontSize * 0.25;
+
+        doc.setFontSize(fontSize);
+
+        parts.forEach((part) => {
+          if (part === "^R") {
+            // Draw ® manually: small circle with R inside
+            const circleRadius = superFontSize * 0.18;
+            const circleX = currentX + circleRadius;
+            const circleY = y - superRaise - circleRadius * 0.5;
+
+            // Draw circle
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.2);
+            doc.circle(circleX, circleY, circleRadius, "S");
+
+            // Draw R inside circle
+            doc.setFontSize(superFontSize * 0.7);
+            doc.setFont("helvetica", "normal");
+            const rWidth = doc.getTextWidth("R");
+            doc.text("R", circleX - rWidth / 2, circleY + superFontSize * 0.14);
+
+            doc.setFontSize(fontSize);
+            currentX += circleRadius * 2 + 0.5;
+          } else if (part === "^TM") {
+            doc.setFontSize(superFontSize);
+            doc.text("TM", currentX, y - superRaise);
+            currentX += doc.getTextWidth("TM");
+            doc.setFontSize(fontSize);
+          } else if (/^\^\d+$/.test(part)) {
+            const supText = part.slice(1);
+            doc.setFontSize(superFontSize);
+            doc.text(supText, currentX, y - superRaise);
+            currentX += doc.getTextWidth(supText);
+            doc.setFontSize(fontSize);
+          } else if (part) {
+            doc.text(part, currentX, y);
+            currentX += doc.getTextWidth(part);
+          }
+        });
+
+        doc.setFontSize(fontSize);
       };
 
       // UPDATED: addSignatures function - Right-aligned with full name (MATCHING SECOND DOCUMENT)
@@ -1664,14 +1741,18 @@ const TestSorting = ({ patient, onClose }) => {
             // Data rows
             doc.setFont("helvetica", "normal");
             Object.entries(interpretation).forEach(([result, comment]) => {
+              // Process unicode in both result and comment
+              const processedResult = processUnicodeText(result);
+              const processedComment = processUnicodeText(comment);
+
               const resultLines = wrapTextAndGetLines(
                 doc,
-                result,
+                processedResult,
                 interpColWidths[0] - 4,
               );
               const commentLines = wrapTextAndGetLines(
                 doc,
-                comment,
+                processedComment,
                 interpColWidths[1] - 4,
               );
               const rowLines = Math.max(
@@ -1694,16 +1775,36 @@ const TestSorting = ({ patient, onClose }) => {
                 dataRowH,
               );
 
-              resultLines.forEach((line, i) =>
-                doc.text(line, interpTableX + 2, currentYPosition + 4 + i * 5),
-              );
-              commentLines.forEach((line, i) =>
-                doc.text(
-                  line,
-                  interpTableX + interpColWidths[0] + 2,
-                  currentYPosition + 4 + i * 5,
-                ),
-              );
+              // Render result lines — use superscript renderer if needed
+              resultLines.forEach((line, i) => {
+                const lineY = currentYPosition + 4 + i * 5;
+                if (/\^\d|\^R|\^TM/.test(line)) {
+                  renderTextWithSuperscripts(
+                    line,
+                    interpTableX + 2,
+                    lineY,
+                    8.5,
+                  );
+                } else {
+                  doc.text(line, interpTableX + 2, lineY);
+                }
+              });
+
+              // Render comment lines — use superscript renderer if needed
+              commentLines.forEach((line, i) => {
+                const lineY = currentYPosition + 4 + i * 5;
+                if (/\^\d|\^R|\^TM/.test(line)) {
+                  renderTextWithSuperscripts(
+                    line,
+                    interpTableX + interpColWidths[0] + 2,
+                    lineY,
+                    8.5,
+                  );
+                } else {
+                  doc.text(line, interpTableX + interpColWidths[0] + 2, lineY);
+                }
+              });
+
               currentYPosition += dataRowH;
             });
             currentYPosition += 4;
@@ -1997,19 +2098,29 @@ const TestSorting = ({ patient, onClose }) => {
                   const isLast =
                     i === lastLineIndex || lineWidth < bodyMaxWidth * 0.75;
                   currentYPosition = checkForNewPage(currentYPosition, 5);
-                  // Reset font after every page break — checkForNewPage renders patient info at size 10
                   doc.setFont("helvetica", "normal");
                   doc.setFontSize(8.5);
-                  justifyLine(
-                    line,
-                    indentX,
-                    currentYPosition,
-                    bodyMaxWidth,
-                    isLast,
-                  );
+
+                  // Use superscript renderer if line has ^N pattern
+                  if (/\^\d|\^R|\^TM/.test(line)) {
+                    renderTextWithSuperscripts(
+                      line,
+                      indentX,
+                      currentYPosition,
+                      8.5,
+                    );
+                  } else {
+                    justifyLine(
+                      line,
+                      indentX,
+                      currentYPosition,
+                      bodyMaxWidth,
+                      isLast,
+                    );
+                  }
+
                   currentYPosition += 5;
                 });
-
                 currentYPosition += 3;
               });
             });
