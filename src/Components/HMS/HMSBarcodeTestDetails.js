@@ -398,8 +398,15 @@ const HMSBarcodeTestDetails = () => {
   const toast = useToast();
   const printSectionRef = useRef(null);
   const navigate = useNavigate();
-  const { patientId, selectedDate, gender, bill_no, bill_type } =
-    location.state || {};
+  const {
+    patientId,
+    selectedDate,
+    gender,
+    bill_no,
+    bill_type,
+    fromDate: fromDateParam,
+    toDate: toDateParam,
+  } = location.state || {};
   const [testDetails, setTestDetails] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -769,7 +776,12 @@ const HMSBarcodeTestDetails = () => {
   };
 
   const handleBack = () => {
-    navigate("/HMSBarcodeGeneration");
+    navigate("/HMSBarcodeGeneration", {
+      state: {
+        fromDate: fromDateParam || new Date().toISOString().split("T")[0],
+        toDate: toDateParam || new Date().toISOString().split("T")[0],
+      },
+    });
   };
 
   useEffect(() => {

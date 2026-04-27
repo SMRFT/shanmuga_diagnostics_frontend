@@ -1,10 +1,26 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { format } from "date-fns"
-import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components"
-import { Search, X, CheckCircle, AlertCircle, FileText, Clock, User, Calendar, Tag, Activity } from "lucide-react"
-import apiRequest from "../Auth/apiRequest"
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import styled, {
+  createGlobalStyle,
+  ThemeProvider,
+  keyframes,
+  css,
+} from "styled-components";
+import {
+  Search,
+  X,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+  Clock,
+  User,
+  Calendar,
+  Tag,
+  Activity,
+} from "lucide-react";
+import apiRequest from "../Auth/apiRequest";
 
 const blink = keyframes`
   0%, 100% { opacity: 1; }
@@ -53,7 +69,7 @@ const theme = {
     slow: "all 0.3s ease-in-out",
     fast: "all 0.1s ease-in-out",
   },
-}
+};
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -69,14 +85,14 @@ const GlobalStyle = createGlobalStyle`
     background-color: ${(props) => props.theme.colors.backgroundAlt};
     line-height: 1.5;
   }
-`
+`;
 
 // Styled components
 const Container = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
-`
+`;
 
 const Card = styled.div`
   background: ${(props) => props.theme.colors.background};
@@ -84,7 +100,7 @@ const Card = styled.div`
   box-shadow: ${(props) => props.theme.shadows.lg};
   padding: 2rem;
   margin-bottom: 2rem;
-`
+`;
 
 const Header = styled.div`
   display: flex;
@@ -93,7 +109,7 @@ const Header = styled.div`
   margin-bottom: 2rem;
   flex-wrap: wrap;
   gap: 1rem;
-`
+`;
 
 const Title = styled.h1`
   font-size: 1.875rem;
@@ -102,14 +118,14 @@ const Title = styled.h1`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-`
+`;
 
 const DatePickerWrapper = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-`
+`;
 
 const DateButton = styled.button`
   display: flex;
@@ -127,18 +143,18 @@ const DateButton = styled.button`
     border-color: ${(props) => props.theme.colors.primary};
     box-shadow: ${(props) => props.theme.shadows.sm};
   }
-`
+`;
 
 const DateDisplay = styled.span`
   font-size: 0.875rem;
   font-weight: 500;
-`
+`;
 
 const SearchContainer = styled.div`
   position: relative;
   flex: 1;
   min-width: 250px;
-`
+`;
 
 const SearchIcon = styled.div`
   position: absolute;
@@ -147,7 +163,7 @@ const SearchIcon = styled.div`
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
   z-index: 1;
-`
+`;
 
 const SearchInput = styled.input`
   width: 100%;
@@ -167,26 +183,26 @@ const SearchInput = styled.input`
   &::placeholder {
     color: ${(props) => props.theme.colors.textLight};
   }
-`
+`;
 const FilterContainer = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
   margin-bottom: 1rem;
   flex-wrap: wrap;
-`
+`;
 
 const TableContainer = styled.div`
   overflow-x: auto;
   border-radius: ${(props) => props.theme.borderRadius.lg};
   box-shadow: ${(props) => props.theme.shadows.sm};
-`
+`;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   background: ${(props) => props.theme.colors.background};
-`
+`;
 
 const Th = styled.th`
   background: ${(props) => props.theme.colors.backgroundAlt};
@@ -198,22 +214,22 @@ const Th = styled.th`
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-`
+`;
 
 const Td = styled.td`
   padding: 1rem;
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
   color: ${(props) => props.theme.colors.text};
   font-size: 0.875rem;
-`
+`;
 
 const Tr = styled.tr`
   transition: ${(props) => props.theme.transitions.fast};
-  
+
   &:hover {
     background: ${(props) => props.theme.colors.backgroundAlt};
   }
-`
+`;
 const EmergencyBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -239,7 +255,7 @@ const EmergencyBadge = styled.span`
       background-color: ${props.theme.colors.success}20;
       color: ${props.theme.colors.success};
     `}
-`
+`;
 
 const Button = styled.button`
   display: inline-flex;
@@ -252,7 +268,7 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: ${(props) => props.theme.transitions.default};
-  
+
   ${(props) =>
     props.primary &&
     `
@@ -264,7 +280,7 @@ const Button = styled.button`
       box-shadow: ${props.theme.shadows.md};
     }
   `}
-  
+
   ${(props) =>
     props.success &&
     `
@@ -292,7 +308,7 @@ const Button = styled.button`
     cursor: not-allowed;
     transform: none;
   }
-`
+`;
 
 const Modal = styled.div`
   position: fixed;
@@ -306,7 +322,7 @@ const Modal = styled.div`
   justify-content: center;
   z-index: 1200;
   padding: 1rem;
-`
+`;
 
 const ModalContent = styled.div`
   background: ${(props) => props.theme.colors.background};
@@ -316,7 +332,7 @@ const ModalContent = styled.div`
   max-width: 1200px;
   max-height: 90vh;
   overflow-y: auto;
-`
+`;
 
 const ModalHeader = styled.div`
   display: flex;
@@ -325,7 +341,7 @@ const ModalHeader = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
   background: ${(props) => props.theme.colors.backgroundAlt};
-`
+`;
 
 const ModalTitle = styled.h2`
   font-size: 1.25rem;
@@ -334,7 +350,7 @@ const ModalTitle = styled.h2`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-`
+`;
 
 const CloseButton = styled.button`
   background: none;
@@ -344,12 +360,12 @@ const CloseButton = styled.button`
   padding: 0.5rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
   transition: ${(props) => props.theme.transitions.default};
-  
+
   &:hover {
     background: ${(props) => props.theme.colors.border};
     color: ${(props) => props.theme.colors.text};
   }
-`
+`;
 
 const Select = styled.select`
   padding: 0.5rem 0.75rem;
@@ -360,7 +376,7 @@ const Select = styled.select`
   color: ${(props) => props.theme.colors.text};
   cursor: pointer;
   transition: ${(props) => props.theme.transitions.default};
-  
+
   &:focus {
     outline: none;
     border-color: ${(props) => props.theme.colors.primary};
@@ -371,7 +387,7 @@ const Select = styled.select`
     opacity: 0.5;
     cursor: not-allowed;
   }
-`
+`;
 
 const Textarea = styled.textarea`
   width: 100%;
@@ -383,7 +399,7 @@ const Textarea = styled.textarea`
   font-family: inherit;
   resize: vertical;
   transition: ${(props) => props.theme.transitions.default};
-  
+
   &:focus {
     outline: none;
     border-color: ${(props) => props.theme.colors.primary};
@@ -393,7 +409,7 @@ const Textarea = styled.textarea`
   &::placeholder {
     color: ${(props) => props.theme.colors.textLight};
   }
-`
+`;
 
 const Alert = styled.div`
   display: flex;
@@ -402,7 +418,7 @@ const Alert = styled.div`
   padding: 0.75rem 1rem;
   border-radius: ${(props) => props.theme.borderRadius.md};
   margin-bottom: 1rem;
-  
+
   ${(props) =>
     props.error &&
     `
@@ -410,7 +426,7 @@ const Alert = styled.div`
     color: #dc2626;
     border: 1px solid #fecaca;
   `}
-  
+
   ${(props) =>
     props.success &&
     `
@@ -418,25 +434,25 @@ const Alert = styled.div`
     color: #16a34a;
     border: 1px solid #bbf7d0;
   `}
-`
+`;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 4rem 2rem;
   color: ${(props) => props.theme.colors.textLight};
-`
+`;
 
 const EmptyStateText = styled.p`
   font-size: 1rem;
   margin-top: 1rem;
-`
+`;
 
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 4rem 2rem;
-`
+`;
 
 const LoadingSpinner = styled.div`
   width: 2rem;
@@ -445,13 +461,16 @@ const LoadingSpinner = styled.div`
   border-top: 2px solid ${(props) => props.theme.colors.primary};
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`
 
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+`;
 
 const PatientInfoCard = styled.div`
   background: ${(props) => props.theme.colors.backgroundAlt};
@@ -461,22 +480,22 @@ const PatientInfoCard = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
-`
+`;
 
 const PatientInfoItem = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-`
+`;
 
 const PatientInfoLabel = styled.span`
   font-weight: 500;
   color: ${(props) => props.theme.colors.textLight};
-`
+`;
 
 const PatientInfoValue = styled.span`
   color: ${(props) => props.theme.colors.text};
-`
+`;
 
 // Calendar components (same as HmsSampleStatus)
 const CalendarContainer = styled.div`
@@ -490,41 +509,45 @@ const CalendarContainer = styled.div`
   box-shadow: ${(props) => props.theme.shadows.lg};
   padding: 1rem;
   min-width: 280px;
-`
+`;
 
 const CalendarHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-`
+`;
 
 const CalendarGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 0.25rem;
   margin-bottom: 1rem;
-`
+`;
 
 const CalendarDay = styled.button`
   padding: 0.5rem;
   border: none;
-  background: ${(props) => (props.selected ? props.theme.colors.primary : "transparent")};
+  background: ${(props) =>
+    props.selected ? props.theme.colors.primary : "transparent"};
   color: ${(props) => (props.selected ? "white" : props.theme.colors.text)};
   border-radius: ${(props) => props.theme.borderRadius.sm};
   cursor: ${(props) => (props.disabled ? "default" : "pointer")};
   opacity: ${(props) => (props.disabled ? 0.3 : 1)};
-  
+
   &:hover:not(:disabled) {
-    background: ${(props) => (props.selected ? props.theme.colors.primaryHover : props.theme.colors.backgroundAlt)};
+    background: ${(props) =>
+      props.selected
+        ? props.theme.colors.primaryHover
+        : props.theme.colors.backgroundAlt};
   }
-`
+`;
 
 const ButtonGroup = styled.div`
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
-`
+`;
 const Checkbox = styled.input.attrs({ type: "checkbox" })`
   width: 1rem;
   height: 1rem;
@@ -533,25 +556,37 @@ const Checkbox = styled.input.attrs({ type: "checkbox" })`
 
 // Calendar component (same as HmsSampleStatus)
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate))
-  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
-  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay()
+  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
+  const daysInMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  const firstDayOfMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth(),
+    1,
+  ).getDay();
 
-  const days = []
+  const days = [];
   for (let i = 0; i < firstDayOfMonth; i++) {
-    days.push(null)
+    days.push(null);
   }
   for (let i = 1; i <= daysInMonth; i++) {
-    days.push(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i))
+    days.push(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i));
   }
 
   const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
-  }
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1),
+    );
+  };
 
   const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
-  }
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1),
+    );
+  };
 
   const isSelectedDate = (date) => {
     return (
@@ -559,8 +594,8 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
       date.getDate() === selectedDate.getDate() &&
       date.getMonth() === selectedDate.getMonth() &&
       date.getFullYear() === selectedDate.getFullYear()
-    )
-  }
+    );
+  };
 
   return (
     <CalendarContainer>
@@ -580,7 +615,12 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
           </div>
         ))}
         {days.map((day, index) => (
-          <CalendarDay key={index} selected={isSelectedDate(day)} onClick={() => day && onChange(day)} disabled={!day}>
+          <CalendarDay
+            key={index}
+            selected={isSelectedDate(day)}
+            onClick={() => day && onChange(day)}
+            disabled={!day}
+          >
             {day ? day.getDate() : ""}
           </CalendarDay>
         ))}
@@ -591,24 +631,24 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
         </Button>
       </ButtonGroup>
     </CalendarContainer>
-  )
-}
+  );
+};
 
 // Main component
 const HmsSampleStatusUpdate = () => {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [fromDate, setFromDate] = useState(new Date())
-  const [toDate, setToDate] = useState(new Date())
-  const [showFromDatePicker, setShowFromDatePicker] = useState(false)
-  const [showToDatePicker, setShowToDatePicker] = useState(false)
-  const [samples, setSamples] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [successMessage, setSuccessMessage] = useState(null)
-  const [selectedPatient, setSelectedPatient] = useState(null)
-  const [statusChanges, setStatusChanges] = useState({})
-  const storedName = localStorage.getItem("name")
-  const [remarks, setRemarks] = useState({})
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fromDate, setFromDate] = useState(new Date());
+  const [toDate, setToDate] = useState(new Date());
+  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+  const [samples, setSamples] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [statusChanges, setStatusChanges] = useState({});
+  const storedName = localStorage.getItem("name");
+  const [remarks, setRemarks] = useState({});
   const [currentTime, setCurrentTime] = useState(new Date());
   const [outsourceLabs, setOutsourceLabs] = useState([]);
   const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
@@ -616,10 +656,43 @@ const HmsSampleStatusUpdate = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [opIpFilter, setopIPFilter] = useState("All");
 
-  
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-   useEffect(() => {
+  // Add this inside the component, before the useEffects
+  const fetchSampleCollected = async () => {
+    setLoading(true);
+    try {
+      const localFromDate = new Date(fromDate);
+      localFromDate.setMinutes(
+        localFromDate.getMinutes() - localFromDate.getTimezoneOffset(),
+      );
+      const formattedFromDate = localFromDate.toISOString().split("T")[0];
+
+      const localToDate = new Date(toDate);
+      localToDate.setMinutes(
+        localToDate.getMinutes() - localToDate.getTimezoneOffset(),
+      );
+      const formattedToDate = localToDate.toISOString().split("T")[0];
+
+      const response = await apiRequest(
+        `${Labbaseurl}hms_get_sample_collected/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
+        "GET",
+      );
+
+      if (response.success) {
+        setSamples(response.data.data || []);
+        setError(null);
+      } else {
+        setError(response.error);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -628,313 +701,302 @@ const HmsSampleStatusUpdate = () => {
   }, []);
 
   // Fetch outsource labs on component mount
-    useEffect(() => {
-      const fetchOutsourceLabs = async () => {
-        try {
-          console.log("Fetching outsource labs from:", `${Labbaseurl}get_outsource_labs/`);
-          const response = await apiRequest(
-            `${Labbaseurl}get_outsource_labs/`,
-            "GET"
-          );
-  
-          console.log("Full API response:", response);
-          console.log("response.data:", response.data);
-          console.log("response.success:", response.success);
-  
-          // Handle different response structures
-          let labs = [];
-          
-          if (response && response.data) {
-            // Check if data is directly an array
-            if (Array.isArray(response.data)) {
-              labs = response.data;
-            }
-            // Check if data has a nested data property
-            else if (response.data.data && Array.isArray(response.data.data)) {
-              labs = response.data.data;
-            }
-            // Check if it's wrapped in success property
-            else if (response.success && Array.isArray(response.data)) {
-              labs = response.data;
-            }
-          }
-  
-          console.log("Extracted labs array:", labs);
-          console.log("Labs array length:", labs.length);
-          setOutsourceLabs(labs);
-          
-        } catch (err) {
-          console.error("Error fetching outsource labs:", err);
-          setOutsourceLabs([]);
-        }
-      };
-  
-      if (Labbaseurl) {
-        fetchOutsourceLabs();
-      }
-    }, [Labbaseurl]);
-
   useEffect(() => {
-    const fetchSampleCollected = async () => {
-      setLoading(true)
+    const fetchOutsourceLabs = async () => {
       try {
-        // Format both dates
-        const localFromDate = new Date(fromDate)
-        localFromDate.setMinutes(localFromDate.getMinutes() - localFromDate.getTimezoneOffset())
-        const formattedFromDate = localFromDate.toISOString().split("T")[0]
-
-        const localToDate = new Date(toDate)
-        localToDate.setMinutes(localToDate.getMinutes() - localToDate.getTimezoneOffset())
-        const formattedToDate = localToDate.toISOString().split("T")[0]
-
-        // Updated API call with date range
+        console.log(
+          "Fetching outsource labs from:",
+          `${Labbaseurl}get_outsource_labs/`,
+        );
         const response = await apiRequest(
-          `${Labbaseurl}hms_get_sample_collected/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
+          `${Labbaseurl}get_outsource_labs/`,
           "GET",
-        )
+        );
 
-        if (response.success) {
-          setSamples(response.data.data || [])
-          setError(null)
-        } else {
-          // Handle API errors
-          setError(response.error)
-          console.error("API Error:", response.error)
+        console.log("Full API response:", response);
+        console.log("response.data:", response.data);
+        console.log("response.success:", response.success);
+
+        // Handle different response structures
+        let labs = [];
+
+        if (response && response.data) {
+          // Check if data is directly an array
+          if (Array.isArray(response.data)) {
+            labs = response.data;
+          }
+          // Check if data has a nested data property
+          else if (response.data.data && Array.isArray(response.data.data)) {
+            labs = response.data.data;
+          }
+          // Check if it's wrapped in success property
+          else if (response.success && Array.isArray(response.data)) {
+            labs = response.data;
+          }
         }
-      } catch (err) {
-        // This catch block will rarely be hit since apiRequest handles most errors
-        setError("An unexpected error occurred")
-        console.error("Unexpected error:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
 
-    fetchSampleCollected()
-  }, [fromDate, toDate])
+        console.log("Extracted labs array:", labs);
+        console.log("Labs array length:", labs.length);
+        setOutsourceLabs(labs);
+      } catch (err) {
+        console.error("Error fetching outsource labs:", err);
+        setOutsourceLabs([]);
+      }
+    };
+
+    if (Labbaseurl) {
+      fetchOutsourceLabs();
+    }
+  }, [Labbaseurl]);
+
+  // Replace the existing fetchSampleCollected useEffect with:
+  useEffect(() => {
+    fetchSampleCollected();
+  }, [fromDate, toDate]);
 
   const handleStatusChange = (barcode, testIndex, newStatus) => {
-  setStatusChanges((prev) => ({
-    ...prev,
-    [barcode]: {
-      ...prev[barcode],
-      [testIndex]: newStatus,
-    },
-  }));
+    setStatusChanges((prev) => ({
+      ...prev,
+      [barcode]: {
+        ...prev[barcode],
+        [testIndex]: newStatus,
+      },
+    }));
 
-  // Clear remarks if not rejected
-  if (newStatus !== "Rejected") {
-    setRemarks((prev) => {
-      const updatedRemarks = { ...prev };
-      if (updatedRemarks[`${barcode}-${testIndex}`]) {
-        delete updatedRemarks[`${barcode}-${testIndex}`];
-      }
-      return updatedRemarks;
-    });
-  }
+    // Clear remarks if not rejected
+    if (newStatus !== "Rejected") {
+      setRemarks((prev) => {
+        const updatedRemarks = { ...prev };
+        if (updatedRemarks[`${barcode}-${testIndex}`]) {
+          delete updatedRemarks[`${barcode}-${testIndex}`];
+        }
+        return updatedRemarks;
+      });
+    }
 
-  // ADDED: Clear outsource lab if not outsource
-  if (newStatus !== "Outsource") {
-    setSelectedOutsourceLab((prev) => {
-      const updated = { ...prev };
-      if (updated[`${barcode}-${testIndex}`]) {
-        delete updated[`${barcode}-${testIndex}`];
-      }
-      return updated;
-    });
-  }
-};
+    // ADDED: Clear outsource lab if not outsource
+    if (newStatus !== "Outsource") {
+      setSelectedOutsourceLab((prev) => {
+        const updated = { ...prev };
+        if (updated[`${barcode}-${testIndex}`]) {
+          delete updated[`${barcode}-${testIndex}`];
+        }
+        return updated;
+      });
+    }
+  };
 
-const handleOutsourceLabChange = (barcode, testIndex, labName) => {
-  setSelectedOutsourceLab((prev) => ({
-    ...prev,
-    [`${barcode}-${testIndex}`]: labName,
-  }));
-};
+  const handleOutsourceLabChange = (barcode, testIndex, labName) => {
+    setSelectedOutsourceLab((prev) => ({
+      ...prev,
+      [`${barcode}-${testIndex}`]: labName,
+    }));
+  };
   const handleRemarksChange = (barcode, testIndex, value) => {
     setRemarks((prev) => ({
       ...prev,
       [`${barcode}-${testIndex}`]: value,
-    }))
-  }
+    }));
+  };
   const toggleSelectTest = (barcode, testIndex) => {
-  const isCurrentlySelected = selectedTests.includes(`${barcode}-${testIndex}`);
-  
-  if (isCurrentlySelected) {
-    // Uncheck - remove from selected and clear status
-    setSelectedTests((prevSelected) =>
-      prevSelected.filter((id) => id !== `${barcode}-${testIndex}`)
+    const isCurrentlySelected = selectedTests.includes(
+      `${barcode}-${testIndex}`,
     );
-    handleStatusChange(barcode, testIndex, "");
-  } else {
-    // Check - add to selected and set status to Received
-    setSelectedTests((prevSelected) => [...prevSelected, `${barcode}-${testIndex}`]);
-    handleStatusChange(barcode, testIndex, "Received");
-  }
-};
-const selectAllTests = (barcode) => {
-  const allTestIds = selectedPatient.testdetails.map((_, idx) => `${barcode}-${idx}`);
-  const allSelected = allTestIds.every(id => selectedTests.includes(id));
-  
-  if (allSelected) {
-    // Uncheck all
-    setSelectedTests([]);
-    selectedPatient.testdetails.forEach((_, testIndex) => {
+
+    if (isCurrentlySelected) {
+      // Uncheck - remove from selected and clear status
+      setSelectedTests((prevSelected) =>
+        prevSelected.filter((id) => id !== `${barcode}-${testIndex}`),
+      );
       handleStatusChange(barcode, testIndex, "");
-    });
-  } else {
-    // Check all
-    setSelectedTests(allTestIds);
-    selectedPatient.testdetails.forEach((_, testIndex) => {
+    } else {
+      // Check - add to selected and set status to Received
+      setSelectedTests((prevSelected) => [
+        ...prevSelected,
+        `${barcode}-${testIndex}`,
+      ]);
       handleStatusChange(barcode, testIndex, "Received");
-    });
-  }
-};
+    }
+  };
+  const selectAllTests = (barcode) => {
+    const allTestIds = selectedPatient.testdetails.map(
+      (_, idx) => `${barcode}-${idx}`,
+    );
+    const allSelected = allTestIds.every((id) => selectedTests.includes(id));
+
+    if (allSelected) {
+      // Uncheck all
+      setSelectedTests([]);
+      selectedPatient.testdetails.forEach((_, testIndex) => {
+        handleStatusChange(barcode, testIndex, "");
+      });
+    } else {
+      // Check all
+      setSelectedTests(allTestIds);
+      selectedPatient.testdetails.forEach((_, testIndex) => {
+        handleStatusChange(barcode, testIndex, "Received");
+      });
+    }
+  };
 
   const updateAllTests = async () => {
-  const barcode = selectedPatient.barcode;
-  const testsToUpdate = [];
-  let hasErrors = false;
-  let errorMessage = "";
+    const barcode = selectedPatient.barcode;
+    const testsToUpdate = [];
+    let hasErrors = false;
+    let errorMessage = "";
 
-  // Validate all tests before sending
-  selectedPatient.testdetails.forEach((detail, testIndex) => {
-    const updatedStatus = statusChanges[barcode]?.[testIndex];
-    
-    // Skip if no status change
-    if (!updatedStatus) {
+    // Validate all tests before sending
+    selectedPatient.testdetails.forEach((detail, testIndex) => {
+      const updatedStatus = statusChanges[barcode]?.[testIndex];
+
+      // Skip if no status change
+      if (!updatedStatus) {
+        return;
+      }
+
+      // Validate outsource lab selection
+      if (updatedStatus === "Outsource") {
+        const outsourceLabName =
+          selectedOutsourceLab[`${barcode}-${testIndex}`];
+        if (!outsourceLabName) {
+          hasErrors = true;
+          errorMessage = `Please select an outsource lab for test: ${detail.test_name}`;
+          return;
+        }
+      }
+
+      // Validate rejection reason
+      if (updatedStatus === "Rejected") {
+        const updatedRemarks = remarks[`${barcode}-${testIndex}`];
+        if (!updatedRemarks || updatedRemarks.trim() === "") {
+          hasErrors = true;
+          errorMessage = `Please provide a rejection reason for test: ${detail.test_name}`;
+          return;
+        }
+      }
+
+      // Add to update list
+      testsToUpdate.push({
+        test_id: detail.test_id,
+        samplestatus: updatedStatus,
+        remarks: remarks[`${barcode}-${testIndex}`] || null,
+        received_by: updatedStatus === "Received" ? storedName : null,
+        rejected_by: updatedStatus === "Rejected" ? storedName : null,
+        outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+        outsource_lab:
+          updatedStatus === "Outsource"
+            ? selectedOutsourceLab[`${barcode}-${testIndex}`]
+            : null,
+      });
+    });
+
+    // Show error if validation failed
+    if (hasErrors) {
+      setError(errorMessage);
+      setTimeout(() => setError(null), 3000);
       return;
     }
 
-    // Validate outsource lab selection
-    if (updatedStatus === "Outsource") {
-      const outsourceLabName = selectedOutsourceLab[`${barcode}-${testIndex}`];
-      if (!outsourceLabName) {
-        hasErrors = true;
-        errorMessage = `Please select an outsource lab for test: ${detail.test_name}`;
-        return;
-      }
-    }
-
-    // Validate rejection reason
-    if (updatedStatus === "Rejected") {
-      const updatedRemarks = remarks[`${barcode}-${testIndex}`];
-      if (!updatedRemarks || updatedRemarks.trim() === "") {
-        hasErrors = true;
-        errorMessage = `Please provide a rejection reason for test: ${detail.test_name}`;
-        return;
-      }
-    }
-
-    // Add to update list
-    testsToUpdate.push({
-      test_id: detail.test_id,
-      samplestatus: updatedStatus,
-      remarks: remarks[`${barcode}-${testIndex}`] || null,
-      received_by: updatedStatus === "Received" ? storedName : null,
-      rejected_by: updatedStatus === "Rejected" ? storedName : null,
-      outsourced_by: updatedStatus === "Outsource" ? storedName : null,
-      outsource_lab: updatedStatus === "Outsource" ? selectedOutsourceLab[`${barcode}-${testIndex}`] : null,
-    });
-  });
-
-  // Show error if validation failed
-  if (hasErrors) {
-    setError(errorMessage);
-    setTimeout(() => setError(null), 3000);
-    return;
-  }
-
-  // Check if there are any tests to update
-  if (testsToUpdate.length === 0) {
-    setError("Please select a status for at least one test before updating.");
-    setTimeout(() => setError(null), 3000);
-    return;
-  }
-
-  try {
-    const response = await apiRequest(`${Labbaseurl}hms_update_sample_collected/${barcode}/`, "PUT", {
-      barcode: selectedPatient.barcode,
-      updates: testsToUpdate,
-    });
-
-    if (response.success) {
-      setSuccessMessage(`Successfully updated ${testsToUpdate.length} test(s)!`);
-      setTimeout(() => {
-        setSuccessMessage(null);
-        closeModal();
-      }, 2000);
-
-      // Update local state
-      setSamples((prevSamples) =>
-        prevSamples.map((sample) =>
-          sample.barcode === barcode
-            ? {
-                ...sample,
-                testdetails: sample.testdetails.map((detail, idx) => {
-                  const update = testsToUpdate.find((t) => t.test_id === detail.test_id);
-                  if (update) {
-                    return {
-                      ...detail,
-                      samplestatus: update.samplestatus,
-                      remarks: update.remarks,
-                      outsource_lab: update.outsource_lab,
-                    };
-                  }
-                  return detail;
-                }),
-              }
-            : sample
-        )
-      );
-    } else {
-      setError(response.error || "Failed to update sample status");
+    // Check if there are any tests to update
+    if (testsToUpdate.length === 0) {
+      setError("Please select a status for at least one test before updating.");
       setTimeout(() => setError(null), 3000);
+      return;
     }
-  } catch (err) {
-    setError("An unexpected error occurred while updating sample status");
-    setTimeout(() => setError(null), 3000);
-    console.error("Unexpected error:", err);
-  }
-};
+
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}hms_update_sample_collected/${barcode}/`,
+        "PUT",
+        {
+          barcode: selectedPatient.barcode,
+          updates: testsToUpdate,
+        },
+      );
+
+      if (response.success) {
+        setSuccessMessage(
+          `Successfully updated ${testsToUpdate.length} test(s)!`,
+        );
+        setTimeout(() => {
+          setSuccessMessage(null);
+          closeModal();
+        }, 2000);
+
+        // Update local state
+        setSamples((prevSamples) =>
+          prevSamples.map((sample) =>
+            sample.barcode === barcode
+              ? {
+                  ...sample,
+                  testdetails: sample.testdetails.map((detail, idx) => {
+                    const update = testsToUpdate.find(
+                      (t) => t.test_id === detail.test_id,
+                    );
+                    if (update) {
+                      return {
+                        ...detail,
+                        samplestatus: update.samplestatus,
+                        remarks: update.remarks,
+                        outsource_lab: update.outsource_lab,
+                      };
+                    }
+                    return detail;
+                  }),
+                }
+              : sample,
+          ),
+        );
+      } else {
+        setError(response.error || "Failed to update sample status");
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred while updating sample status");
+      setTimeout(() => setError(null), 3000);
+      console.error("Unexpected error:", err);
+    }
+  };
 
   const openModal = (barcode) => {
-    const patient = samples.find((sample) => sample.barcode === barcode)
+    const patient = samples.find((sample) => sample.barcode === barcode);
     if (patient) {
-      setSelectedPatient(patient)
+      setSelectedPatient(patient);
     } else {
-      console.error(`Barcode ${barcode} not found in samples`)
+      console.error(`Barcode ${barcode} not found in samples`);
     }
-  }
+  };
 
   const closeModal = () => {
-    setSelectedPatient(null)
-    setError(null)
-    setSuccessMessage(null)
-    window.location.reload() // Reload the page to reset the state
-  }
+    setSelectedPatient(null);
+    setStatusChanges({});
+    setRemarks({});
+    setSelectedTests([]);
+    setSelectedOutsourceLab({});
+    setError(null);
+    setSuccessMessage(null);
+    fetchSampleCollected(); // ← refetch with current dates instead of reloading
+  };
 
   // Updated filteredPatients to include barcode search
   const filteredPatients = samples.filter((sample) => {
-  const matchesSearch =
-    sample.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sample.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sample.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      sample.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sample.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sample.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const matchesStatus =
-    statusFilter === "All" ||
-    (statusFilter === "Emergency" && sample.is_emergency) ||
-    (statusFilter === "Normal" && !sample.is_emergency);
+    const matchesStatus =
+      statusFilter === "All" ||
+      (statusFilter === "Emergency" && sample.is_emergency) ||
+      (statusFilter === "Normal" && !sample.is_emergency);
 
-  const opIpStatus =
-    opIpFilter === "All" ||
-    (opIpFilter === "OP" && sample.opiptype === "OP") ||
-    (opIpFilter === "IP" && sample.opiptype === "IP");
+    const opIpStatus =
+      opIpFilter === "All" ||
+      (opIpFilter === "OP" && sample.opiptype === "OP") ||
+      (opIpFilter === "IP" && sample.opiptype === "IP");
 
-  return matchesSearch && matchesStatus && opIpStatus;
-});
-
- 
+    return matchesSearch && matchesStatus && opIpStatus;
+  });
 
   return (
     <ThemeProvider theme={theme}>
@@ -956,8 +1018,12 @@ const selectAllTests = (barcode) => {
             >
               {/* From Date Picker */}
               <DatePickerWrapper>
-                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>From Date:</label>
-                <DateButton onClick={() => setShowFromDatePicker(!showFromDatePicker)}>
+                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                  From Date:
+                </label>
+                <DateButton
+                  onClick={() => setShowFromDatePicker(!showFromDatePicker)}
+                >
                   <Calendar size={16} />
                   <DateDisplay>{format(fromDate, "yyyy-MM-dd")}</DateDisplay>
                 </DateButton>
@@ -965,8 +1031,8 @@ const selectAllTests = (barcode) => {
                   <SimpleDatePicker
                     selectedDate={fromDate}
                     onChange={(date) => {
-                      setFromDate(date)
-                      setShowFromDatePicker(false)
+                      setFromDate(date);
+                      setShowFromDatePicker(false);
                     }}
                     onClose={() => setShowFromDatePicker(false)}
                   />
@@ -975,8 +1041,12 @@ const selectAllTests = (barcode) => {
 
               {/* To Date Picker */}
               <DatePickerWrapper>
-                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>To Date:</label>
-                <DateButton onClick={() => setShowToDatePicker(!showToDatePicker)}>
+                <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                  To Date:
+                </label>
+                <DateButton
+                  onClick={() => setShowToDatePicker(!showToDatePicker)}
+                >
                   <Calendar size={16} />
                   <DateDisplay>{format(toDate, "yyyy-MM-dd")}</DateDisplay>
                 </DateButton>
@@ -984,8 +1054,8 @@ const selectAllTests = (barcode) => {
                   <SimpleDatePicker
                     selectedDate={toDate}
                     onChange={(date) => {
-                      setToDate(date)
-                      setShowToDatePicker(false)
+                      setToDate(date);
+                      setShowToDatePicker(false);
                     }}
                     onClose={() => setShowToDatePicker(false)}
                   />
@@ -995,40 +1065,50 @@ const selectAllTests = (barcode) => {
           </Header>
 
           <FilterContainer>
-  <SearchContainer>
-    <SearchIcon>
-      <Search size={16} />
-    </SearchIcon>
-    <SearchInput
-      type="text"
-      placeholder="Search by Barcode, Patient name, ID"
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-    />
-  </SearchContainer>
+            <SearchContainer>
+              <SearchIcon>
+                <Search size={16} />
+              </SearchIcon>
+              <SearchInput
+                type="text"
+                placeholder="Search by Barcode, Patient name, ID"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </SearchContainer>
 
-  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-    <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-      Status Filter:
-    </label>
-    <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-      <option value="All">All</option>
-      <option value="Emergency">Emergency</option>
-      <option value="Normal">Normal</option>
-    </Select>
-  </div>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                Status Filter:
+              </label>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Normal">Normal</option>
+              </Select>
+            </div>
 
-  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-    <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
-      OP/IP:
-    </label>
-    <Select value={opIpFilter} onChange={(e) => setopIPFilter(e.target.value)}>
-      <option value="All">All</option>
-      <option value="OP">OP</option>
-      <option value="IP">IP</option>
-    </Select>
-  </div>
-</FilterContainer>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>
+                OP/IP:
+              </label>
+              <Select
+                value={opIpFilter}
+                onChange={(e) => setopIPFilter(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="OP">OP</option>
+                <option value="IP">IP</option>
+              </Select>
+            </div>
+          </FilterContainer>
 
           {loading ? (
             <LoadingContainer>
@@ -1060,7 +1140,9 @@ const selectAllTests = (barcode) => {
                     <tbody>
                       {filteredPatients.map((sample) => (
                         <Tr key={sample.barcode}>
-                          <Td>{new Date(sample.date).toLocaleDateString("en-GB")}</Td>
+                          <Td>
+                            {new Date(sample.date).toLocaleDateString("en-GB")}
+                          </Td>
                           <Td>{sample.patient_id || "N/A"}</Td>
                           <Td>{sample.opiptype || "N/A"}</Td>
                           <Td>{sample.patientname || "N/A"}</Td>
@@ -1068,20 +1150,23 @@ const selectAllTests = (barcode) => {
                           <Td>{sample.age || "N/A"}</Td>
                           <Td>{sample.gender || "N/A"}</Td>
                           <Td>
-  {sample.is_emergency ? (
-    <EmergencyBadge emergency>
-      <AlertCircle size={12} />
-      Emergency
-    </EmergencyBadge>
-  ) : (
-    <EmergencyBadge normal>
-      <CheckCircle size={12} />
-      Normal
-    </EmergencyBadge>
-  )}
-</Td>
+                            {sample.is_emergency ? (
+                              <EmergencyBadge emergency>
+                                <AlertCircle size={12} />
+                                Emergency
+                              </EmergencyBadge>
+                            ) : (
+                              <EmergencyBadge normal>
+                                <CheckCircle size={12} />
+                                Normal
+                              </EmergencyBadge>
+                            )}
+                          </Td>
                           <Td>
-                            <Button primary onClick={() => openModal(sample.barcode)}>
+                            <Button
+                              primary
+                              onClick={() => openModal(sample.barcode)}
+                            >
                               <FileText size={16} />
                               View Details
                             </Button>
@@ -1095,199 +1180,272 @@ const selectAllTests = (barcode) => {
                 <EmptyState>
                   <AlertCircle size={48} color={theme.colors.textLight} />
                   <EmptyStateText>
-                    No samples found for the selected date range with status "Sample Collected".
+                    No samples found for the selected date range with status
+                    "Sample Collected".
                   </EmptyStateText>
                 </EmptyState>
               )}
             </>
           )}
           <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: "var(--gray)",
-            fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
-          }}
-        >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+            style={{
+              padding: "1rem 1.5rem",
+              textAlign: "right",
+              color: "var(--gray)",
+              fontSize: "0.875rem",
+              borderTop: "1px solid var(--gray-light)",
+            }}
+          >
+            Showing {filteredPatients.length}{" "}
+            {filteredPatients.length === 1 ? "entry" : "entries"}
+          </div>
         </Card>
 
         {selectedPatient && Array.isArray(selectedPatient.testdetails) && (
-  <Modal>
-    <ModalContent>
-      <ModalHeader>
-        <ModalTitle>
-          <FileText size={20} />
-          Sample Details
-        </ModalTitle>
-        <CloseButton onClick={closeModal}>
-          <X size={20} />
-        </CloseButton>
-      </ModalHeader>
+          <Modal>
+            <ModalContent>
+              <ModalHeader>
+                <ModalTitle>
+                  <FileText size={20} />
+                  Sample Details
+                </ModalTitle>
+                <CloseButton onClick={closeModal}>
+                  <X size={20} />
+                </CloseButton>
+              </ModalHeader>
 
-      {successMessage && (
-        <Alert success>
-          <CheckCircle size={16} />
-          {successMessage}
-        </Alert>
-      )}
+              {successMessage && (
+                <Alert success>
+                  <CheckCircle size={16} />
+                  {successMessage}
+                </Alert>
+              )}
 
-      {error && (
-        <Alert error>
-          <AlertCircle size={16} />
-          {error}
-        </Alert>
-      )}
+              {error && (
+                <Alert error>
+                  <AlertCircle size={16} />
+                  {error}
+                </Alert>
+              )}
 
-      <PatientInfoCard>
-        <PatientInfoItem>
-          <User size={16} />
-          <PatientInfoLabel>Patient:</PatientInfoLabel>
-          <PatientInfoValue>{selectedPatient.patientname || "N/A"}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <Tag size={16} />
-          <PatientInfoLabel>ID:</PatientInfoLabel>
-          <PatientInfoValue>{selectedPatient.patient_id || "N/A"}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <Calendar size={16} />
-          <PatientInfoLabel>Date:</PatientInfoLabel>
-          <PatientInfoValue>{new Date(selectedPatient.date).toLocaleDateString("en-GB")}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <Tag size={16} />
-          <PatientInfoLabel>Barcode:</PatientInfoLabel>
-          <PatientInfoValue>{selectedPatient.barcode}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <User size={16} />
-          <PatientInfoLabel>Age:</PatientInfoLabel>
-          <PatientInfoValue>{selectedPatient.age || "N/A"}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <User size={16} />
-          <PatientInfoLabel>Gender:</PatientInfoLabel>
-          <PatientInfoValue>{selectedPatient.gender || "N/A"}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <Clock size={16} color={theme.colors.primary} />
-          <PatientInfoLabel>Current Time:</PatientInfoLabel>
-          <PatientInfoValue>{format(currentTime, "dd/MM/yyyy hh:mm:ss a")}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <Activity size={16} color={theme.colors.success} />
-          <PatientInfoLabel>Branch:</PatientInfoLabel>
-          <PatientInfoValue>{samples.length > 0 ? samples[0].branch : "Shanmuga Reference Lab"}</PatientInfoValue>
-        </PatientInfoItem>
-        <PatientInfoItem>
-          <User size={16} color={theme.colors.info} />
-          <PatientInfoLabel>Technician:</PatientInfoLabel>
-          <PatientInfoValue>{storedName || "N/A"}</PatientInfoValue>
-        </PatientInfoItem>
-      </PatientInfoCard>
+              <PatientInfoCard>
+                <PatientInfoItem>
+                  <User size={16} />
+                  <PatientInfoLabel>Patient:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {selectedPatient.patientname || "N/A"}
+                  </PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <Tag size={16} />
+                  <PatientInfoLabel>ID:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {selectedPatient.patient_id || "N/A"}
+                  </PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <Calendar size={16} />
+                  <PatientInfoLabel>Date:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {new Date(selectedPatient.date).toLocaleDateString("en-GB")}
+                  </PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <Tag size={16} />
+                  <PatientInfoLabel>Barcode:</PatientInfoLabel>
+                  <PatientInfoValue>{selectedPatient.barcode}</PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <User size={16} />
+                  <PatientInfoLabel>Age:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {selectedPatient.age || "N/A"}
+                  </PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <User size={16} />
+                  <PatientInfoLabel>Gender:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {selectedPatient.gender || "N/A"}
+                  </PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <Clock size={16} color={theme.colors.primary} />
+                  <PatientInfoLabel>Current Time:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {format(currentTime, "dd/MM/yyyy hh:mm:ss a")}
+                  </PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <Activity size={16} color={theme.colors.success} />
+                  <PatientInfoLabel>Branch:</PatientInfoLabel>
+                  <PatientInfoValue>
+                    {samples.length > 0
+                      ? samples[0].branch
+                      : "Shanmuga Reference Lab"}
+                  </PatientInfoValue>
+                </PatientInfoItem>
+                <PatientInfoItem>
+                  <User size={16} color={theme.colors.info} />
+                  <PatientInfoLabel>Technician:</PatientInfoLabel>
+                  <PatientInfoValue>{storedName || "N/A"}</PatientInfoValue>
+                </PatientInfoItem>
+              </PatientInfoCard>
 
-      <div style={{ padding: "0 1.5rem 1.5rem" }}>
-        <TableContainer>
-          <Table>
-            <thead>
-  <tr>
-    <Th>Test Name</Th>
-    <Th>Container Type</Th>
-    <Th>Department</Th>
-    <Th>Status</Th>
-    <Th>Outsource Lab</Th>
-    <Th>Reason for Rejection</Th>
-    <Th>
-      <Checkbox
-        checked={
-          selectedPatient.testdetails.length > 0 &&
-          selectedPatient.testdetails.every((_, idx) =>
-            selectedTests.includes(`${selectedPatient.barcode}-${idx}`)
-          )
-        }
-        onChange={() => selectAllTests(selectedPatient.barcode)}
-      />
-    </Th>
-  </tr>
-</thead>
-            <tbody>
-              {selectedPatient.testdetails.map((detail, testIndex) => (
-                <Tr key={testIndex}>
-                  <Td>{detail.test_name}</Td>
-                  <Td>{detail.container}</Td>
-                  <Td>{detail.department}</Td>
-                  <Td>
-                    <Select
-                      value={statusChanges[selectedPatient.barcode]?.[testIndex] ?? detail.samplestatus}
-                      onChange={(e) => handleStatusChange(selectedPatient.barcode, testIndex, e.target.value)}
-                    >
-                      <option value="">Select Status</option>
-                      <option value="Received">Received</option>
-                      <option value="Rejected">Rejected</option>
-                      <option value="Outsource">Outsource</option>
-                    </Select>
-                  </Td>
-                  <Td>
-                    {statusChanges[selectedPatient.barcode]?.[testIndex] === "Outsource" && (
-                      <div>
-                        <Select
-                          value={selectedOutsourceLab[`${selectedPatient.barcode}-${testIndex}`] || ""}
-                          onChange={(e) => handleOutsourceLabChange(selectedPatient.barcode, testIndex, e.target.value)}
-                        >
-                          <option value="">Select Outsource Lab</option>
-                          {Array.isArray(outsourceLabs) && outsourceLabs.length > 0 ? (
-                            outsourceLabs.map((lab, index) => (
-                              <option key={lab.labID || index} value={lab.labName}>
-                                {lab.labName}
-                              </option>
-                            ))
-                          ) : (
-                            <option value="" disabled>
-                              No labs available
-                            </option>
-                          )}
-                        </Select>
-                      </div>
-                    )}
-                  </Td>
-                  <Td>
-                    {statusChanges[selectedPatient.barcode]?.[testIndex] === "Rejected" && (
-                      <Textarea
-                        value={remarks[`${selectedPatient.barcode}-${testIndex}`] || ""}
-                        onChange={(e) => handleRemarksChange(selectedPatient.barcode, testIndex, e.target.value)}
-                        placeholder="Enter rejection reason"
-                      />
-                    )}
-                  </Td>
-                  <Td>
-  <Checkbox
-    checked={selectedTests.includes(`${selectedPatient.barcode}-${testIndex}`)}
-    onChange={() => toggleSelectTest(selectedPatient.barcode, testIndex)}
-  />
-</Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
-        </TableContainer>
+              <div style={{ padding: "0 1.5rem 1.5rem" }}>
+                <TableContainer>
+                  <Table>
+                    <thead>
+                      <tr>
+                        <Th>Test Name</Th>
+                        <Th>Container Type</Th>
+                        <Th>Department</Th>
+                        <Th>Status</Th>
+                        <Th>Outsource Lab</Th>
+                        <Th>Reason for Rejection</Th>
+                        <Th>
+                          <Checkbox
+                            checked={
+                              selectedPatient.testdetails.length > 0 &&
+                              selectedPatient.testdetails.every((_, idx) =>
+                                selectedTests.includes(
+                                  `${selectedPatient.barcode}-${idx}`,
+                                ),
+                              )
+                            }
+                            onChange={() =>
+                              selectAllTests(selectedPatient.barcode)
+                            }
+                          />
+                        </Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedPatient.testdetails.map((detail, testIndex) => (
+                        <Tr key={testIndex}>
+                          <Td>{detail.test_name}</Td>
+                          <Td>{detail.container}</Td>
+                          <Td>{detail.department}</Td>
+                          <Td>
+                            <Select
+                              value={
+                                statusChanges[selectedPatient.barcode]?.[
+                                  testIndex
+                                ] ?? detail.samplestatus
+                              }
+                              onChange={(e) =>
+                                handleStatusChange(
+                                  selectedPatient.barcode,
+                                  testIndex,
+                                  e.target.value,
+                                )
+                              }
+                            >
+                              <option value="">Select Status</option>
+                              <option value="Received">Received</option>
+                              <option value="Rejected">Rejected</option>
+                              <option value="Outsource">Outsource</option>
+                            </Select>
+                          </Td>
+                          <Td>
+                            {statusChanges[selectedPatient.barcode]?.[
+                              testIndex
+                            ] === "Outsource" && (
+                              <div>
+                                <Select
+                                  value={
+                                    selectedOutsourceLab[
+                                      `${selectedPatient.barcode}-${testIndex}`
+                                    ] || ""
+                                  }
+                                  onChange={(e) =>
+                                    handleOutsourceLabChange(
+                                      selectedPatient.barcode,
+                                      testIndex,
+                                      e.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">Select Outsource Lab</option>
+                                  {Array.isArray(outsourceLabs) &&
+                                  outsourceLabs.length > 0 ? (
+                                    outsourceLabs.map((lab, index) => (
+                                      <option
+                                        key={lab.labID || index}
+                                        value={lab.labName}
+                                      >
+                                        {lab.labName}
+                                      </option>
+                                    ))
+                                  ) : (
+                                    <option value="" disabled>
+                                      No labs available
+                                    </option>
+                                  )}
+                                </Select>
+                              </div>
+                            )}
+                          </Td>
+                          <Td>
+                            {statusChanges[selectedPatient.barcode]?.[
+                              testIndex
+                            ] === "Rejected" && (
+                              <Textarea
+                                value={
+                                  remarks[
+                                    `${selectedPatient.barcode}-${testIndex}`
+                                  ] || ""
+                                }
+                                onChange={(e) =>
+                                  handleRemarksChange(
+                                    selectedPatient.barcode,
+                                    testIndex,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="Enter rejection reason"
+                              />
+                            )}
+                          </Td>
+                          <Td>
+                            <Checkbox
+                              checked={selectedTests.includes(
+                                `${selectedPatient.barcode}-${testIndex}`,
+                              )}
+                              onChange={() =>
+                                toggleSelectTest(
+                                  selectedPatient.barcode,
+                                  testIndex,
+                                )
+                              }
+                            />
+                          </Td>
+                        </Tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </TableContainer>
 
-        {/* Single Update All Button */}
-        <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end" }}>
-          <Button success onClick={updateAllTests}>
-            <CheckCircle size={16} />
-            Update All Tests
-          </Button>
-        </div>
-      </div>
-    </ModalContent>
-  </Modal>
-)}
+                {/* Single Update All Button */}
+                <div
+                  style={{
+                    marginTop: "1.5rem",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <Button success onClick={updateAllTests}>
+                    <CheckCircle size={16} />
+                    Update All Tests
+                  </Button>
+                </div>
+              </div>
+            </ModalContent>
+          </Modal>
+        )}
       </Container>
     </ThemeProvider>
-  )
-}
+  );
+};
 
-export default HmsSampleStatusUpdate
+export default HmsSampleStatusUpdate;

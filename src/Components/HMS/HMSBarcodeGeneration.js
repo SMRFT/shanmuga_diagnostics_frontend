@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import apiRequest from "../Auth/apiRequest";
+import { useNavigate, useLocation } from "react-router-dom";
 // Styled Components
 import {
   Calendar,
@@ -21,7 +21,6 @@ const PageContainer = styled.div`
   margin: 0 auto;
   padding: 2rem 1.5rem;
 `;
-
 
 const PageHeader = styled.div`
   margin-bottom: 2.5rem;
@@ -161,7 +160,8 @@ const TableContainer = styled.div`
   background: white;
   border-radius: 16px;
   overflow-x: auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
   margin-top: 1.5rem;
 
@@ -181,7 +181,6 @@ const TableContainer = styled.div`
     background: #94a3b8;
   }
 `;
-
 
 const StyledTable = styled.table`
   width: 100%;
@@ -224,7 +223,6 @@ const TableRow = styled.tr`
     border-bottom: none;
   }
 `;
-
 
 const TableCell = styled.td`
   padding: 1rem 1.5rem;
@@ -335,6 +333,7 @@ const SummaryText = styled.p`
 `;
 
 const HMSBarcodeGeneration = () => {
+  const location = useLocation();
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [displayedPatients, setDisplayedPatients] = useState([]);
@@ -347,11 +346,17 @@ const HMSBarcodeGeneration = () => {
   const [ipopFilter, setIpopFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-
   const patientsPerPage = 15; // Increased for table layout
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
 
+  // Add this useEffect BEFORE the existing fetchPatients useEffect
+  useEffect(() => {
+    const incomingFrom = location?.state?.fromDate;
+    const incomingTo = location?.state?.toDate;
+    if (incomingFrom) setFromDate(new Date(incomingFrom));
+    if (incomingTo) setToDate(new Date(incomingTo));
+  }, []);
 
   const fetchPatients = async () => {
     const fromDateStr = fromDate.toISOString().split("T")[0];
@@ -360,7 +365,7 @@ const HMSBarcodeGeneration = () => {
     try {
       const response = await apiRequest(
         `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
-        "GET"
+        "GET",
       );
 
       if (response.success) {
@@ -394,8 +399,6 @@ const HMSBarcodeGeneration = () => {
     }
   };
 
-
-
   const handleGenerateBarcode = (patient, e) => {
     e.stopPropagation();
 
@@ -424,7 +427,6 @@ const HMSBarcodeGeneration = () => {
     });
   };
 
-
   const handleApplyDateRange = () => {
     if (fromDate > toDate) {
       toast.error("From date cannot be later than To date");
@@ -441,46 +443,78 @@ const HMSBarcodeGeneration = () => {
 
     if (searchTerm.trim() !== "") {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((patient) =>
-        patient.patientname?.toLowerCase().includes(searchLower) ||
-        patient.patient_id?.toLowerCase().includes(searchLower) ||
-        patient.bill_no?.toString().includes(searchLower) ||
-        patient.age?.toString().includes(searchLower) ||
-        patient.gender?.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        (patient) =>
+          patient.patientname?.toLowerCase().includes(searchLower) ||
+          patient.patient_id?.toLowerCase().includes(searchLower) ||
+          patient.bill_no?.toString().includes(searchLower) ||
+          patient.age?.toString().includes(searchLower) ||
+          patient.gender?.toLowerCase().includes(searchLower),
       );
     }
 
     if (ipopFilter !== "ALL") {
-      filtered = filtered.filter(
-        (patient) => patient.IPOPType === ipopFilter
-      );
+      filtered = filtered.filter((patient) => patient.IPOPType === ipopFilter);
     }
 
     if (statusFilter !== "ALL") {
       filtered = filtered.filter(
-        (patient) => patient.barcode_status === statusFilter
+        (patient) => patient.barcode_status === statusFilter,
       );
     }
 
     setFilteredPatients(filtered);
     setCurrentPage(1);
     setTotalPages(Math.max(1, Math.ceil(filtered.length / patientsPerPage)));
-
   }, [searchTerm, ipopFilter, statusFilter, allPatients]);
-
-
 
   // Update displayed patients based on current page
   useEffect(() => {
     const startIndex = (currentPage - 1) * patientsPerPage;
     setDisplayedPatients(
-      filteredPatients.slice(startIndex, startIndex + patientsPerPage)
+      filteredPatients.slice(startIndex, startIndex + patientsPerPage),
     );
   }, [currentPage, filteredPatients]);
 
   // Initialize with today's date
   useEffect(() => {
-    handleApplyDateRange();
+    const incomingFrom = location?.state?.fromDate;
+    const incomingTo = location?.state?.toDate;
+
+    const resolvedFrom = incomingFrom ? new Date(incomingFrom) : new Date();
+    const resolvedTo = incomingTo ? new Date(incomingTo) : new Date();
+
+    setFromDate(resolvedFrom);
+    setToDate(resolvedTo);
+
+    // Fetch immediately with resolved dates (bypass stale state)
+    const fromStr = resolvedFrom.toISOString().split("T")[0];
+    const toStr = resolvedTo.toISOString().split("T")[0];
+
+    setIsLoading(true);
+    apiRequest(
+      `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromStr}&to_date=${toStr}`,
+      "GET",
+    ).then((response) => {
+      if (response.success) {
+        const data = response.data.data;
+        if (Array.isArray(data)) {
+          setAllPatients(data);
+          setFilteredPatients(data);
+          setTotalPages(Math.ceil(data.length / patientsPerPage));
+        } else {
+          setAllPatients([]);
+          setFilteredPatients([]);
+          setTotalPages(1);
+        }
+      } else {
+        setAllPatients([]);
+        setFilteredPatients([]);
+        setTotalPages(1);
+        toast.error(response.error || "Failed to fetch patients");
+      }
+      setIsLoading(false);
+    });
   }, []);
 
   // Format date as DD/MM/YYYY (IST-safe)
@@ -495,7 +529,6 @@ const HMSBarcodeGeneration = () => {
 
     return `${day}/${month}/${year}`;
   };
-
 
   const getGenderBadgeStyle = (gender) => {
     if (gender.toLowerCase() === "male") {
@@ -600,8 +633,6 @@ const HMSBarcodeGeneration = () => {
           </select>
         </div>
 
-
-
         <DateRangeContainer>
           <DateInputGroup>
             <DateLabel>From Date</DateLabel>
@@ -653,8 +684,6 @@ const HMSBarcodeGeneration = () => {
                 <TableHeaderCell>Bill No</TableHeaderCell>
                 <TableHeaderCell>Status</TableHeaderCell>
                 <TableHeaderCell>Action</TableHeaderCell>
-
-
               </TableHeaderRow>
             </TableHeader>
             <TableBody>
@@ -663,8 +692,9 @@ const HMSBarcodeGeneration = () => {
 
                 return (
                   <TableRow key={index} ipop={patient.IPOPType}>
-
-                    <TableCell>{(currentPage - 1) * patientsPerPage + index + 1}</TableCell>
+                    <TableCell>
+                      {(currentPage - 1) * patientsPerPage + index + 1}
+                    </TableCell>
                     <TableCell>{formatDate(patient.date)}</TableCell>
                     <TableCell>{patient.patient_id}</TableCell>
                     <TableCell>
@@ -706,15 +736,19 @@ const HMSBarcodeGeneration = () => {
                       </Badge>
                     </TableCell>
 
-
                     <TableCell>{patient.bill_no || "-"}</TableCell>
-
 
                     <TableCell>
                       <Badge
                         style={{
-                          backgroundColor: patient.barcode_status === "Generated" ? "#dcfce7" : "#fef3c7",
-                          color: patient.barcode_status === "Generated" ? "#166534" : "#92400e",
+                          backgroundColor:
+                            patient.barcode_status === "Generated"
+                              ? "#dcfce7"
+                              : "#fef3c7",
+                          color:
+                            patient.barcode_status === "Generated"
+                              ? "#166534"
+                              : "#92400e",
                         }}
                       >
                         {patient.barcode_status || "Pending"}
@@ -724,16 +758,18 @@ const HMSBarcodeGeneration = () => {
                       <ActionButton
                         onClick={(e) => handleGenerateBarcode(patient, e)}
                         style={{
-                          background: patient.barcode_status === "Generated"
-                            ? "linear-gradient(135deg, #10b981, #059669)"
-                            : "linear-gradient(135deg, #667eea, #764ba2)"
+                          background:
+                            patient.barcode_status === "Generated"
+                              ? "linear-gradient(135deg, #10b981, #059669)"
+                              : "linear-gradient(135deg, #667eea, #764ba2)",
                         }}
                       >
-                        {patient.barcode_status === "Generated" ? "View Barcode" : "Generate Barcode"}
+                        {patient.barcode_status === "Generated"
+                          ? "View Barcode"
+                          : "Generate Barcode"}
                         <ChevronRight size={16} />
                       </ActionButton>
                     </TableCell>
-
                   </TableRow>
                 );
               })}

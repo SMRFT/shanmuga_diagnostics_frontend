@@ -577,6 +577,42 @@ const SampleStatus = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+  // Add this function inside the component, before the useEffects
+  const fetchPatientsByDate = async () => {
+    setLoading(true);
+    try {
+      const localFromDate = new Date(fromDate);
+      localFromDate.setMinutes(
+        localFromDate.getMinutes() - localFromDate.getTimezoneOffset(),
+      );
+      const formattedFromDate = localFromDate.toISOString().split("T")[0];
+
+      const localToDate = new Date(toDate);
+      localToDate.setMinutes(
+        localToDate.getMinutes() - localToDate.getTimezoneOffset(),
+      );
+      const formattedToDate = localToDate.toISOString().split("T")[0];
+
+      const result = await apiRequest(
+        `${Labbaseurl}sample_patient/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
+        "GET",
+      );
+
+      if (result.success) {
+        const patientsData =
+          typeof result.data === "string"
+            ? JSON.parse(result.data)
+            : result.data;
+        setPatients(patientsData.data || []);
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -588,42 +624,6 @@ const SampleStatus = () => {
   }, []);
 
   useEffect(() => {
-    const fetchPatientsByDate = async () => {
-      setLoading(true);
-      try {
-        const localFromDate = new Date(fromDate);
-        localFromDate.setMinutes(
-          localFromDate.getMinutes() - localFromDate.getTimezoneOffset(),
-        );
-        const formattedFromDate = localFromDate.toISOString().split("T")[0];
-
-        const localToDate = new Date(toDate);
-        localToDate.setMinutes(
-          localToDate.getMinutes() - localToDate.getTimezoneOffset(),
-        );
-        const formattedToDate = localToDate.toISOString().split("T")[0];
-
-        const result = await apiRequest(
-          `${Labbaseurl}sample_patient/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
-          "GET",
-        );
-
-        if (result.success) {
-          const patientsData =
-            typeof result.data === "string"
-              ? JSON.parse(result.data)
-              : result.data;
-          setPatients(patientsData.data || []);
-        } else {
-          setError(result.error);
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPatientsByDate();
   }, [fromDate, toDate, Labbaseurl]);
 
@@ -722,8 +722,9 @@ const SampleStatus = () => {
           setError(null);
           setIsSaved(true);
           setTimeout(() => {
-            window.location.reload();
             setSuccessMessage(null);
+            closeModal();
+            fetchPatientsByDate();
           }, 3000);
         } else {
           setError(result.error || "Failed to update sample status");
@@ -776,9 +777,10 @@ const SampleStatus = () => {
           setError(null);
           setIsSaved(true);
           setTimeout(() => {
-            window.location.reload();
             setSuccessMessage(null);
-          }, 5000);
+            closeModal();
+            fetchPatientsByDate();
+          }, 3000);
         } else {
           let errorMessage = result.error || "Failed to save tests";
 

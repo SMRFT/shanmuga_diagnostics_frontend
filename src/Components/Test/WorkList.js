@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import { format } from "date-fns";
-import { Search, Eye, X, ChevronRight } from "lucide-react";
+import { Search, Eye, X, ChevronRight, ArrowLeft } from "lucide-react";
 import { IoIosFemale, IoIosMale } from "react-icons/io";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import apiRequest from "../Auth/apiRequest";
 
@@ -52,6 +53,26 @@ const Card = styled.div`
   margin-bottom: 2rem;
 `;
 
+const BackButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--light);
+  color: var(--primary-dark);
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  &:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+`;
+
 const CardHeader = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
@@ -68,7 +89,7 @@ const Title = styled.h1`
 `;
 
 const SearchSection = styled.div`
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--gray-light);
   display: flex;
   gap: 0.75rem;
@@ -234,7 +255,19 @@ const Footer = styled.div`
   border-top: 1px solid var(--gray-light);
 `;
 
-// ─── Report Modal ─────────────────────────────────────────────────────────────
+const AutoSearchBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  background: rgba(67, 97, 238, 0.07);
+  border-bottom: 1px solid rgba(67, 97, 238, 0.15);
+  font-size: 0.8rem;
+  color: var(--primary-dark);
+  font-weight: 500;
+`;
+
+// ─── Report Modal Styled Components ──────────────────────────────────────────
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -440,12 +473,10 @@ const ReportModal = ({
   reportDate,
 }) => {
   if (!reportData) return null;
-
   const { patient_data, signatures } = reportData;
   const patient = Array.isArray(patient_data) ? patient_data[0] : patient_data;
   if (!patient) return null;
 
-  // Merge testdetails from ALL patient_data entries (API returns one entry per test)
   const tests = Array.isArray(patient_data)
     ? patient_data.flatMap((p) => p.testdetails || [])
     : patient.testdetails || [];
@@ -493,7 +524,6 @@ const ReportModal = ({
         </ModalHeader>
 
         <ModalBody>
-          {/* Patient Info */}
           <SectionHeading>Patient Information</SectionHeading>
           <InfoGrid>
             <InfoItem>
@@ -544,7 +574,6 @@ const ReportModal = ({
             </InfoItem>
           </InfoGrid>
 
-          {/* Test Results */}
           <SectionHeading>Test Results</SectionHeading>
           {sortedDepts.map((dept) => (
             <div key={dept}>
@@ -566,7 +595,6 @@ const ReportModal = ({
                       test.parameters && test.parameters.length > 0;
                     return (
                       <React.Fragment key={ti}>
-                        {/* Main test row */}
                         <tr>
                           <TestTd>
                             <strong>{test.testname}</strong>
@@ -600,7 +628,6 @@ const ReportModal = ({
                               : ""}
                           </TestTd>
                         </tr>
-                        {/* Parameter rows */}
                         {hasParams &&
                           test.parameters.map((param, pi) => {
                             const hl = getHighLow(
@@ -708,7 +735,6 @@ const ReportModal = ({
             </div>
           ))}
 
-          {/* Signatures */}
           {signatures && signatures.length > 0 && (
             <>
               <SectionHeading>Authorized Signatories</SectionHeading>
@@ -786,12 +812,14 @@ const ReportModal = ({
 // ─── Main WorkList Component ──────────────────────────────────────────────────
 
 const WorkList = () => {
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
+
   const [uhid, setUhid] = useState("");
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [patientInfo, setPatientInfo] = useState(null);
-
   const [reportData, setReportData] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [activeBarcode, setActiveBarcode] = useState(null);
@@ -800,8 +828,20 @@ const WorkList = () => {
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  const handleSearch = async () => {
-    if (!uhid.trim()) {
+  // ── Auto-search when navigated from PatientDetails with a uhid ────────────
+  useEffect(() => {
+    const incomingUhid = routerLocation.state?.uhid;
+    if (incomingUhid) {
+      setUhid(incomingUhid); // populate the input field
+      triggerSearch(incomingUhid); // search immediately, bypass stale state
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const triggerSearch = async (searchUhid) => {
+    const id = (searchUhid || uhid).trim();
+    if (!id) {
       toast.warning("Please enter a UHID / OP Number");
       return;
     }
@@ -810,7 +850,7 @@ const WorkList = () => {
     setRecords([]);
     setPatientInfo(null);
 
-    const url = `${Labbaseurl}worklist/?uhid=${uhid.trim()}`;
+    const url = `${Labbaseurl}worklist/?uhid=${id}`;
     const result = await apiRequest(url, "GET");
 
     if (result.success) {
@@ -822,6 +862,8 @@ const WorkList = () => {
     }
     setLoading(false);
   };
+
+  const handleSearch = () => triggerSearch();
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleSearch();
@@ -869,6 +911,18 @@ const WorkList = () => {
     }
   };
 
+  // ── Back navigation — sends uhid as searchQuery so PatientDetails restores it
+  const handleBack = () => {
+    navigate("/PatientDetails", {
+      state: {
+        fromDate: routerLocation.state?.fromDate || null,
+        toDate: routerLocation.state?.toDate || null,
+        searchQuery: uhid, // ← live uhid state, not stale route state
+        barcode: uhid, // ← fallback key PatientDetails also reads
+      },
+    });
+  };
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <Container>
@@ -876,7 +930,21 @@ const WorkList = () => {
       <Card>
         <CardHeader>
           <Title>Patient Work List</Title>
+          <BackButton onClick={handleBack}>
+            <ArrowLeft size={14} /> Back
+          </BackButton>
         </CardHeader>
+
+        {/* Auto-search banner */}
+        {routerLocation.state?.uhid && (
+          <AutoSearchBanner>
+            <ChevronRight size={14} />
+            Showing history for UHID:{" "}
+            <strong style={{ marginLeft: 4 }}>
+              {routerLocation.state.uhid}
+            </strong>
+          </AutoSearchBanner>
+        )}
 
         <SearchSection>
           <InputGroup>
@@ -887,7 +955,7 @@ const WorkList = () => {
               value={uhid}
               onChange={(e) => setUhid(e.target.value)}
               onKeyDown={handleKeyDown}
-              autoFocus
+              autoFocus={!routerLocation.state?.uhid}
             />
           </InputGroup>
           <Button onClick={handleSearch} disabled={loading}>
@@ -1042,8 +1110,8 @@ const WorkList = () => {
 
         {records.length > 0 && (
           <Footer>
-            {records.length} barcode{records.length !== 1 ? "s" : ""} found for
-            UHID <strong>{uhid}</strong>
+            Showing {records.length} barcode{records.length !== 1 ? "s" : ""}{" "}
+            for UHID <strong>{uhid}</strong>
           </Footer>
         )}
       </Card>
