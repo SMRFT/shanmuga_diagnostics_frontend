@@ -43,6 +43,7 @@ import MIS from "./Components/Mis/MIS";
 import FranchiseMIS from "./Components/Mis/FranchiseMIS";
 import CorporateOverview from "./Components/Corparate/CorporatePatientOverview";
 import CorporateTestSorting from "./Components/Corparate/CorporateTestSorting";
+import CorporateCreditBilling from "./Components/Corporate/CorporateCreditBilling";
 import Testcount from "./Components/Report/Testcount";
 import HmsBilling from "./Components/HMS/HmsBilling";
 import Hmssamplestatus from "./Components/HMS/Hmssamplestatus";
@@ -250,6 +251,7 @@ function App() {
       "/CHCReport": "CHC Report",
       "/CHCApproval": "CHC Approval",
       "/CorporateTestSorting": "Corporate Test Sorting",
+      "/CorporateCreditBilling": "Corporate Credit Billing",
       "/MIS": "MIS",
       "/PatientTAT": "Patient TAT",
       "/ShanmugaMIS": "Shanmuga MIS",
@@ -458,6 +460,10 @@ function App() {
             <Route
               path="/CorporateTestSorting"
               element={<CorporateTestSorting />}
+            />
+            <Route
+              path="/CorporateCreditBilling"
+              element={<CorporateCreditBilling />}
             />
 
             {/* MIS */}

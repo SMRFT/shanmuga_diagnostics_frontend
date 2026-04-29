@@ -4,7 +4,7 @@ import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
 import styled from "styled-components"
-import { Download, Calendar, DollarSign, FileText, X, CreditCard, Eye } from "lucide-react"
+import { Download, Calendar, DollarSign, FileText, X, CreditCard, Eye, RefreshCw } from "lucide-react"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import apiRequest from "../Auth/apiRequest"
@@ -186,6 +186,32 @@ const DownloadButton = styled.button`
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+  }
+`
+
+const RefreshButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 0.5rem;
+  
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.2);
   }
 `
 
@@ -420,22 +446,24 @@ const MyDocument = ({ reportData }) => {
     <Document>
       <Page style={styles.page}>
         <Text style={styles.title}>Cash Tally Report</Text>
-        <Text style={styles.subtitle}>Date: {reportData.date}</Text>
+        <Text style={styles.subtitle}>Date: {String(reportData.date)}</Text>
         <View style={styles.section}>
           <View style={styles.table}>
             <View style={[styles.tableRow, styles.header]}>
               <Text style={styles.tableCell}>Gross Amount</Text>
               <Text style={styles.tableCell}>Discount</Text>
               <Text style={styles.tableCell}>Due Amount</Text>
-              <Text style={styles.tableCell}>Pending Amount</Text>
+              <Text style={styles.tableCell}>Pending Paid</Text>
+              <Text style={styles.tableCell}>Corporate Paid</Text>
               <Text style={styles.tableCellLast}>Total Collection</Text>
             </View>
             <View style={styles.tableRow}>
-              <Text style={styles.tableCell}>{reportData.gross_amount}</Text>
-              <Text style={styles.tableCell}>{reportData.discount}</Text>
-              <Text style={styles.tableCell}>{reportData.due_amount}</Text>
-              <Text style={styles.tableCell}>{reportData.credit_payment_received}</Text>
-              <Text style={styles.tableCellLast}>{reportData.total_collection}</Text>
+              <Text style={styles.tableCell}>{String(reportData.gross_amount)}</Text>
+              <Text style={styles.tableCell}>{String(reportData.discount)}</Text>
+              <Text style={styles.tableCell}>{String(reportData.due_amount)}</Text>
+              <Text style={styles.tableCell}>{String(reportData.credit_payment_received)}</Text>
+              <Text style={styles.tableCell}>{String(reportData.corporate_collection)}</Text>
+              <Text style={styles.tableCellLast}>{String(reportData.total_collection)}</Text>
             </View>
           </View>
         </View>
@@ -449,8 +477,8 @@ const MyDocument = ({ reportData }) => {
               </View>
               {Object.entries(reportData.payment_totals).map(([method, total]) => (
                 <View style={styles.tableRow} key={method}>
-                  <Text style={styles.tableCell}>{method}</Text>
-                  <Text style={styles.tableCellLast}>{total}</Text>
+                  <Text style={styles.tableCell}>{String(method)}</Text>
+                  <Text style={styles.tableCellLast}>{String(total)}</Text>
                 </View>
               ))}
             </View>
@@ -603,6 +631,17 @@ const fetchReportData = async (start, end) => {
             <DatePicker selected={endDate} onChange={(date) => setEndDate(date)} dateFormat="yyyy-MM-dd" />
           </DatePickerWrapper>
         </div>
+
+        <div style={{ alignSelf: 'flex-end' }}>
+          <RefreshButton onClick={() => {
+            const formattedStart = startDate.toISOString().split("T")[0];
+            const formattedEnd = endDate.toISOString().split("T")[0];
+            fetchReportData(formattedStart, formattedEnd);
+          }}>
+            <RefreshCw size={16} />
+            Refresh
+          </RefreshButton>
+        </div>
       </DateFilterContainer>
 
       {isLoading ? (
@@ -637,6 +676,7 @@ const fetchReportData = async (start, end) => {
                   <th>Discount</th>
                   <th>Credit Amount</th>
                   <th>Pending Paid</th>
+                  <th>Corporate Paid</th>
                   <th>Refund</th>
                   {/* <th>Net Amount</th> */}
                   <th>Total Collection</th>
@@ -652,6 +692,7 @@ const fetchReportData = async (start, end) => {
                     <td>₹ {item.discount}</td>
                     <td>₹ {item.due_amount}</td>
                     <td>₹ {item.credit_payment_received}</td>
+                    <td>₹ {item.corporate_collection}</td>
                     <td>₹ {item.refund_amount}</td>
                     {/* <td>₹ {item.net_amount}</td> */}
                     <td>₹ {item.total_collection}</td>
