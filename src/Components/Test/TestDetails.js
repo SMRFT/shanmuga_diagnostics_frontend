@@ -429,6 +429,53 @@ const LodTable = styled.table`
     background-color: #e8ecff;
   }
 `;
+
+const HLBadge = styled.span`
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  margin-left: 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  vertical-align: middle;
+  animation: blink 1s step-start infinite;
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+
+  ${({ direction }) =>
+    direction === "H"
+      ? `background-color: #fff0f0; color: var(--danger); border: 1px solid var(--danger);`
+      : `background-color: #fff8ec; color: var(--warning); border: 1px solid var(--warning);`}
+`;
+
+// Returns "H", "L", or null
+const getHLFlag = (value, referenceRange) => {
+  if (!referenceRange || !value) return null;
+  const num = parseFloat(value);
+  if (isNaN(num)) return null;
+  const ref = referenceRange.trim();
+  // Skip complex ranges
+  if (ref.includes(":") || ref.includes(",")) return null;
+  const rangeMatch = ref.match(/^([0-9.]+)\s*-\s*([0-9.]+)$/);
+  if (rangeMatch) {
+    if (num < parseFloat(rangeMatch[1])) return "L";
+    if (num > parseFloat(rangeMatch[2])) return "H";
+    return null;
+  }
+  const ltMatch = ref.match(/^<=?\s*([0-9.]+)$/);
+  if (ltMatch) return num > parseFloat(ltMatch[1]) ? "H" : null;
+  const gtMatch = ref.match(/^>=?\s*([0-9.]+)$/);
+  if (gtMatch) return num < parseFloat(gtMatch[1]) ? "L" : null;
+  return null;
+};
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const ALL_CALCULATED_FIELDS = [
@@ -470,6 +517,20 @@ const normalizeDisplayValue = (value) => {
     return "Negative";
   }
   return value;
+};
+
+const formatApiValue = (value) => {
+  if (!value && value !== 0) return value;
+  const num = parseFloat(value);
+  if (isNaN(num)) return value; // keep string values as-is
+
+  // Only format if it has more than 3 decimal places
+  const str = String(value).trim();
+  const decimalIndex = str.indexOf(".");
+  if (decimalIndex !== -1 && str.length - decimalIndex - 1 > 3) {
+    return num.toFixed(3);
+  }
+  return str; // return as-is if 0, 1, or 2 decimal places
 };
 
 // ─── Critical range checker ───────────────────────────────────────────────────
@@ -1053,10 +1114,12 @@ function TestDetails() {
                 paramValue = DEFAULT_FIELD_VALUES[param.test_code];
               }
               // Normalize "neg" → "Negative" on load for ALL tests
-              tempValues[uniqueKey] = normalizeDisplayValue(paramValue);
+              tempValues[uniqueKey] = normalizeDisplayValue(
+                formatApiValue(paramValue),
+              );
               // Store normalized API value as initial (used for editability check)
               tempInitialValues[uniqueKey] = normalizeDisplayValue(
-                param.value || "",
+                formatApiValue(param.value || ""),
               );
               // store low/high for this param
               tempCriticalRanges[uniqueKey] = {
@@ -1066,9 +1129,9 @@ function TestDetails() {
             });
         } else {
           const testValue = test.test_value || "";
-          tempValues[test.testname] = testValue;
+          tempValues[test.testname] = formatApiValue(testValue);
           tempEditMode[test.testname] = false;
-          tempInitialValues[test.testname] = testValue;
+          tempInitialValues[test.testname] = formatApiValue(testValue);
           // store low/high for single-value test
           tempCriticalRanges[test.testname] = {
             low: test.low || "",
@@ -1931,6 +1994,15 @@ function TestDetails() {
                             initialValues[test.testname].trim() === "") && (
                             <span style={{ color: "red" }}>*</span>
                           )}
+                          {(() => {
+                            const flag = getHLFlag(
+                              values[test.testname],
+                              test.reference_range,
+                            );
+                            return flag ? (
+                              <HLBadge direction={flag}>{flag}</HLBadge>
+                            ) : null;
+                          })()}
                         </Label>
                         {test.value_option && test.value_option.length > 0 ? (
                           !initialValues[test.testname] ||
@@ -2140,6 +2212,17 @@ function TestDetails() {
                                             (editable)
                                           </span>
                                         )}
+                                        {(() => {
+                                          const flag = getHLFlag(
+                                            values[uniqueKey],
+                                            param.reference_range,
+                                          );
+                                          return flag ? (
+                                            <HLBadge direction={flag}>
+                                              {flag}
+                                            </HLBadge>
+                                          ) : null;
+                                        })()}
                                       </Label>
                                       {(() => {
                                         const MULTI_SELECT_CODES = [
