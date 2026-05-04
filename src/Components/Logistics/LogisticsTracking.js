@@ -43,10 +43,25 @@ const LiveBadge = styled.span`
   }
 `;
 
-// --- Helper: Polyline Component ---
-const TrackedPath = ({ points, isLive }) => {
+// --- Helpers ---
+const stringToColor = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  let color = '#';
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xFF;
+    color += ('00' + value.toString(16)).substr(-2);
+  }
+  return color;
+};
+
+const TrackedPath = ({ points, isLive, collectorName }) => {
   const map = useMap();
   const polylineRef = useRef(null);
+  
+  const pathColor = useMemo(() => isLive ? stringToColor(collectorName || 'default') : '#94A3B8', [isLive, collectorName]);
 
   const pathCoordinates = useMemo(() => 
     points.map(p => ({ lat: parseFloat(p.latitude || p.lat), lng: parseFloat(p.longitude || p.lng) })), 
@@ -59,16 +74,17 @@ const TrackedPath = ({ points, isLive }) => {
       polylineRef.current = new window.google.maps.Polyline({
         path: pathCoordinates,
         geodesic: true,
-        strokeColor: isLive ? '#4F46E5' : '#94A3B8',
+        strokeColor: pathColor,
         strokeOpacity: 0.8,
         strokeWeight: 4,
         map: map
       });
     } else {
       polylineRef.current.setPath(pathCoordinates);
+      polylineRef.current.setOptions({ strokeColor: pathColor });
     }
     return () => { if (polylineRef.current) polylineRef.current.setMap(null); };
-  }, [map, pathCoordinates, isLive]);
+  }, [map, pathCoordinates, pathColor]);
 
   return null;
 };
@@ -137,7 +153,7 @@ const LogisticsTracking = () => {
 
               return (
                 <React.Fragment key={collector.id || index}>
-                  <TrackedPath points={history} isLive={isLive} />
+                  <TrackedPath points={history} isLive={isLive} collectorName={collector.sampleCollector} />
                   <Marker
                     position={{ lat: parseFloat(lastPos.latitude || lastPos.lat), lng: parseFloat(lastPos.longitude || lastPos.lng) }}
                     onClick={() => setSelectedCollector(collector)}
