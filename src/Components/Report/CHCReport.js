@@ -377,6 +377,8 @@ const CHCReport = () => {
   const hasPendingInvestigations = (bc) => {
     const data = investigationStatuses[bc];
     if (!data) return false;
+    // If lab is pending, the whole thing is pending
+    if (data.lab_approval?.toLowerCase() === "pending") return true;
     const chcTests = data.chc_tests || [];
     if (chcTests.length === 0) return false;
     return chcTests.some(
@@ -387,16 +389,32 @@ const CHCReport = () => {
 
   const getPendingInvestigations = (statusData) => {
     if (!statusData) return <span className="all-approved">All Approved</span>;
+
+    const labPending = statusData.lab_approval?.toLowerCase() === "pending";
     const chcTests = statusData.chc_tests || [];
-    if (chcTests.length === 0)
+
+    if (chcTests.length === 0 && !labPending)
       return <span className="all-approved">No CHC Tests</span>;
-    const allDone = chcTests.every(
-      (t) =>
-        (t.has_file || t.has_report) && t.status?.toLowerCase() === "approved",
-    );
-    if (allDone) return <span className="all-approved">All Approved</span>;
+
+    const chcAllDone =
+      chcTests.length === 0 ||
+      chcTests.every(
+        (t) =>
+          (t.has_file || t.has_report) &&
+          t.status?.toLowerCase() === "approved",
+      );
+
+    if (!labPending && chcAllDone)
+      return <span className="all-approved">All Approved</span>;
+
     return (
       <>
+        {labPending && (
+          <div>
+            Lab Tests
+            <span className="pending-label">Pending</span>
+          </div>
+        )}
         {chcTests.map((test, index) => {
           const collected = test.has_file || test.has_report;
           const approved = test.status?.toLowerCase() === "approved";
@@ -436,6 +454,7 @@ const CHCReport = () => {
             chc_tests: patient.chc_tests || [],
             chc_investigation_status:
               patient.chc_investigation_status || "Pending",
+            lab_approval: patient.lab_approval || "Pending", // ← ADD THIS
           };
         }
       });
@@ -518,9 +537,7 @@ const CHCReport = () => {
   };
 
   // ─── PDF utilities ────────────────────────────────────────────────────────
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
   const convertPdfToImages = async (base64Data) => {
     try {
@@ -551,7 +568,6 @@ const CHCReport = () => {
       return [];
     }
   };
-
 
   const fetchInvestigationFile = async (fileId) => {
     if (!fileId) return null;
@@ -654,30 +670,33 @@ const CHCReport = () => {
     }
 
     // Extract ophthalmology from CHCT001 in chc_tests
-const ophthalTest = chcTests.find(
-  (t) =>
-    t.test_id === "CHCT001" ||
-    (t.testname || "").toLowerCase().includes("eye") ||
-    (t.testname || "").toLowerCase().includes("ophthal"),
-);
-if (ophthalTest?.report?.trim()) {
-  try {
-    const parsed = JSON.parse(ophthalTest.report);
-    if (parsed && (parsed.distance || parsed.nearVision || parsed.colourVision)) {
-      merged.chc_ophthalmology = {
-        distance: parsed.distance || {},
-        nearVision: parsed.nearVision || {},
-        colourVision: parsed.colourVision || {},
-        ocularmovement: parsed.ocularmovement || {},
-        complaints: ophthalTest.notes?.trim() || parsed.complaints || "",
-        remarks: parsed.remarks || "",
-      };
+    const ophthalTest = chcTests.find(
+      (t) =>
+        t.test_id === "CHCT001" ||
+        (t.testname || "").toLowerCase().includes("eye") ||
+        (t.testname || "").toLowerCase().includes("ophthal"),
+    );
+    if (ophthalTest?.report?.trim()) {
+      try {
+        const parsed = JSON.parse(ophthalTest.report);
+        if (
+          parsed &&
+          (parsed.distance || parsed.nearVision || parsed.colourVision)
+        ) {
+          merged.chc_ophthalmology = {
+            distance: parsed.distance || {},
+            nearVision: parsed.nearVision || {},
+            colourVision: parsed.colourVision || {},
+            ocularmovement: parsed.ocularmovement || {},
+            complaints: ophthalTest.notes?.trim() || parsed.complaints || "",
+            remarks: parsed.remarks || "",
+          };
+        }
+      } catch (e) {
+        // report is plain text, not JSON — leave chc_ophthalmology unset
+        // addOphthalmologyReport will fall back to patientDetails.ophthalmology
+      }
     }
-  } catch (e) {
-    // report is plain text, not JSON — leave chc_ophthalmology unset
-    // addOphthalmologyReport will fall back to patientDetails.ophthalmology
-  }
-}
 
     return merged;
   };
@@ -689,6 +708,10 @@ if (ophthalTest?.report?.trim()) {
   //   .investigation_files, .chc_ophthalmology (optional), .ophthalmology (optional),
   //   .testdetails, .final_assessment
   // activeConsultants: [[name, title, signatureDataUri|null], ...]
+  // ─── buildPdfDocument ─────────────────────────────────────────────────────
+  // ALL inner functions use closure variables (doc, patientDetails, leftMargin,
+  // contentWidth, rightMargin, headerHeight, footerHeight, checkForNewPage, etc.)
+  // so they all take only (yPos) as their argument.
   const buildPdfDocument = async (
     patientDetails,
     activeConsultants = [],
@@ -713,8 +736,21 @@ if (ophthalTest?.report?.trim()) {
         return fallback;
       }
     };
+    const drawArrowSymbol = (doc, x, y, direction) => {
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      if (direction === "up") {
+        doc.line(x, y, x + 1, y - 1);
+        doc.line(x + 1, y - 1, x + 2, y);
+        doc.line(x + 1, y - 1, x + 1, y + 2);
+      } else {
+        doc.line(x, y, x + 1, y + 1);
+        doc.line(x + 1, y + 1, x + 2, y);
+        doc.line(x + 1, y + 1, x + 1, y - 2);
+      }
+    };
 
-    // ── Header / Footer ────────────────────────────────────────────────────
+    // ── Header / Footer ──────────────────────────────────────────────────────
     const addHeaderFooter = () => {
       if (withLetterpad) {
         doc.addImage(
@@ -747,7 +783,7 @@ if (ophthalTest?.report?.trim()) {
       return yPos;
     };
 
-    // ── Patient info header (shown on every section's first page) ──────────
+    // ── Patient info header ──────────────────────────────────────────────────
     const addMedicalExaminationHeader = (yPos) => {
       yPos += 15;
       doc.setFontSize(10);
@@ -764,7 +800,6 @@ if (ophthalTest?.report?.trim()) {
           label: "Date",
           value: safeFormatDate(new Date().toISOString(), "dd/MM/yyyy"),
         },
-        // AFTER
         {
           label: "Approved Date",
           value: safeFormatDate(
@@ -809,7 +844,8 @@ if (ophthalTest?.report?.trim()) {
       return yPos + 10;
     };
 
-    // ── Medical history ────────────────────────────────────────────────────
+    // ── Medical history ──────────────────────────────────────────────────────
+    // FIX: single (yPos) argument — uses closure variables
     const addMedicalHistory = (yPos) => {
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
@@ -826,7 +862,20 @@ if (ophthalTest?.report?.trim()) {
         { label: "Department", value: patientDetails.department || "N/A" },
         {
           label: "DOJ",
-          value: safeFormatDate(patientDetails.doj, "dd/MM/yyyy"),
+          value: patientDetails.doj
+            ? (() => {
+                try {
+                  const d = new Date(patientDetails.doj);
+                  if (isNaN(d.getTime())) return "N/A";
+                  const day = String(d.getDate()).padStart(2, "0");
+                  const month = String(d.getMonth() + 1).padStart(2, "0");
+                  const year = d.getFullYear();
+                  return `${day}/${month}/${year}`;
+                } catch {
+                  return "N/A";
+                }
+              })()
+            : "N/A",
         },
         {
           label: "Employment Type",
@@ -853,10 +902,71 @@ if (ophthalTest?.report?.trim()) {
           yPos += 6;
         }
       });
+
+      // ── Dynamic Fields (e.g. Doctor Comment / CVS / CNS etc.) ──────────────
+      if (
+        patientDetails.dynamic_fields &&
+        patientDetails.dynamic_fields.length > 0
+      ) {
+        yPos += 5;
+        patientDetails.dynamic_fields.forEach((field) => {
+          yPos = checkForNewPage(yPos, 15);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text(field.field_name || "Clinical Findings", leftMargin, yPos);
+          yPos += 7;
+          doc.setFontSize(10);
+
+          if (field.field_values && field.field_values.length > 0) {
+            const colWidths = [55, contentWidth - 55];
+            const tableStartX = leftMargin;
+            const rowHeight = 8;
+            const tableWidth = colWidths[0] + colWidths[1];
+
+            // Header row
+            doc.rect(tableStartX, yPos, tableWidth, rowHeight);
+            doc.line(
+              tableStartX + colWidths[0],
+              yPos,
+              tableStartX + colWidths[0],
+              yPos + rowHeight,
+            );
+            doc.setFont("helvetica", "bold");
+            doc.text("Parameter", tableStartX + 2, yPos + 5);
+            doc.text("Finding", tableStartX + colWidths[0] + 2, yPos + 5);
+            yPos += rowHeight;
+
+            doc.setFont("helvetica", "normal");
+            field.field_values.forEach((fv) => {
+              yPos = checkForNewPage(yPos, rowHeight);
+              const valueLines = doc.splitTextToSize(
+                fv.value || "",
+                colWidths[1] - 4,
+              );
+              const rowH = Math.max(rowHeight, valueLines.length * 5 + 3);
+
+              doc.rect(tableStartX, yPos, tableWidth, rowH);
+              doc.line(
+                tableStartX + colWidths[0],
+                yPos,
+                tableStartX + colWidths[0],
+                yPos + rowH,
+              );
+              doc.setFont("helvetica", "bold");
+              doc.text(fv.key || "", tableStartX + 2, yPos + 5);
+              doc.setFont("helvetica", "normal");
+              doc.text(valueLines, tableStartX + colWidths[0] + 2, yPos + 5);
+              yPos += rowH;
+            });
+            yPos += 4;
+          }
+        });
+      }
+
       return yPos + 5;
     };
 
-    // ── Vitals ────────────────────────────────────────────────────────────
+    // ── Vitals ───────────────────────────────────────────────────────────────
     const addGeneralExamination = (yPos) => {
       yPos = checkForNewPage(yPos, 30);
       doc.setFont("helvetica", "bold");
@@ -888,7 +998,6 @@ if (ophthalTest?.report?.trim()) {
         tableStartX + colWidths[0] + colWidths[1] + colWidths[2],
         yPos + rowHeight,
       );
-
       doc.setFont("helvetica", "bold");
       doc.text("Parameter", tableStartX + 2, yPos + 5);
       doc.text("Value", tableStartX + colWidths[0] + 2, yPos + 5);
@@ -976,9 +1085,7 @@ if (ophthalTest?.report?.trim()) {
           tableStartX + colWidths[0] + colWidths[1] + 2,
           rowY + 5,
         );
-        // Render status in the same cell below the range, or use a 4th column
         if (item.status && item.status !== "N/A") {
-          // Color-code: red for abnormal
           const isAbnormal = ["High", "Low", "Obese", "Overweight"].includes(
             item.status,
           );
@@ -986,7 +1093,7 @@ if (ophthalTest?.report?.trim()) {
           doc.setFont("helvetica", "bold");
           doc.text(
             item.status,
-            tableStartX + colWidths[0] + colWidths[1] + colWidths[2] + 2, // 4th column
+            tableStartX + colWidths[0] + colWidths[1] + colWidths[2] + 2,
             rowY + 5,
           );
           doc.setTextColor(0, 0, 0);
@@ -997,7 +1104,7 @@ if (ophthalTest?.report?.trim()) {
       return yPos + 10;
     };
 
-    // ── Miscellaneous (CHC tests brief notes — skips ophthalmology) ────────
+    // ── Miscellaneous ────────────────────────────────────────────────────────
     const addMiscellaneousInvestigations = (yPos) => {
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
@@ -1007,13 +1114,10 @@ if (ophthalTest?.report?.trim()) {
       doc.setFontSize(10);
 
       const chcTestsForMisc = patientDetails.chc_tests_for_files || [];
-
       const availedTests = chcTestsForMisc.filter((t) => {
-        // Include if has any content — file, report text, or notes
         const hasContent =
           t.has_file || t.has_report || t.report?.trim() || t.notes?.trim();
         if (!hasContent) return false;
-
         const name = (t.testname || "").toLowerCase();
         return (
           !name.includes("optho") &&
@@ -1056,12 +1160,10 @@ if (ophthalTest?.report?.trim()) {
       return yPos + 5;
     };
 
-    // ── Ophthalmology report ───────────────────────────────────────────────
-    // Reads from patientDetails.chc_ophthalmology (CHCT001 from core_investigation)
-    // OR falls back to patientDetails.ophthalmology (from core_ophthalmology collection)
+    // ── Ophthalmology ────────────────────────────────────────────────────────
     const addOphthalmologyReport = (yPos) => {
-      const chcOphthal = patientDetails.chc_ophthalmology; // keys: distance, nearVision, colourVision, ocularmovement
-      const legacyOphthal = patientDetails.ophthalmology; // keys: visual_acuity.distance / near_vision / color_vision / ocularmovement
+      const chcOphthal = patientDetails.chc_ophthalmology;
+      const legacyOphthal = patientDetails.ophthalmology;
       const hasEither = chcOphthal || legacyOphthal;
       if (!hasEither) return yPos;
 
@@ -1071,17 +1173,14 @@ if (ophthalTest?.report?.trim()) {
       doc.text("OPHTHALMOLOGY REPORT", leftMargin, yPos);
       yPos += 10;
 
-      // Normalise to {right, left} regardless of source
       const getEyes = (chcKey, legacyKey) => {
-  if (chcOphthal) {
-    const obj = chcOphthal[chcKey] || {};
-    return { right: obj.right || "N/A", left: obj.left || "N/A" };
-  }
-  // legacyOphthal = patientDetails.ophthalmology from corporate_health_report
-  // keys are at the top level, not nested under visual_acuity
-  const obj = legacyOphthal?.[legacyKey] || {};
-  return { right: obj.right || "N/A", left: obj.left || "N/A" };
-};
+        if (chcOphthal) {
+          const obj = chcOphthal[chcKey] || {};
+          return { right: obj.right || "N/A", left: obj.left || "N/A" };
+        }
+        const obj = legacyOphthal?.[legacyKey] || {};
+        return { right: obj.right || "N/A", left: obj.left || "N/A" };
+      };
 
       const rows = [
         { label: "Distant Vision", eyes: getEyes("distance", "distance") },
@@ -1127,7 +1226,6 @@ if (ophthalTest?.report?.trim()) {
           yPos + rowHeight * i,
         );
 
-      // Header
       doc.setFont("helvetica", "bold");
       doc.text("Test", tableX + col1Width / 2 - 5, yPos + 6);
       doc.text("Right Eye", tableX + col1Width + col2Width / 2 - 10, yPos + 6);
@@ -1137,7 +1235,6 @@ if (ophthalTest?.report?.trim()) {
         yPos + 6,
       );
 
-      // Data rows
       doc.setFont("helvetica", "normal");
       rows.forEach((row, idx) => {
         const ry = yPos + rowHeight * (idx + 1);
@@ -1164,7 +1261,6 @@ if (ophthalTest?.report?.trim()) {
 
       yPos = yPos + rowHeight * (totalRows + 1) + 10;
 
-      // Patient Complaints — CHC source uses chcOphthal.complaints, legacy uses patient_complaints
       const complaints =
         chcOphthal?.complaints?.trim() ||
         legacyOphthal?.patient_complaints?.trim();
@@ -1179,7 +1275,6 @@ if (ophthalTest?.report?.trim()) {
       doc.text(cl, leftMargin, yPos);
       yPos += cl.length * 5 + 8;
 
-      // Remarks — CHC source uses chcOphthal.remarks, legacy uses remarks
       const remarks =
         chcOphthal?.remarks?.trim() || legacyOphthal?.remarks?.trim();
       doc.setFont("helvetica", "bold");
@@ -1203,9 +1298,178 @@ if (ophthalTest?.report?.trim()) {
       return yPos + 15;
     };
 
-    // ── Lab investigations note ────────────────────────────────────────────
+    // ── CHC012 Lab Summary (inline table) ────────────────────────────────────
+    // FIX: single (yPos) argument — uses closure variables
+    const addCHC012LabSummary = (yPos) => {
+      const INLINE_TESTS_BY_NAME = {
+        "GLUCOSE - RANDOM": { paramNames: "all" },
+        "COMPLETE BLOOD COUNT": {
+          paramNames: ["Haemoglobin", "Platelet Count"],
+        },
+        "VDRL/ RPR": { paramNames: "all" },
+      };
+
+      if (
+        !patientDetails.testdetails ||
+        patientDetails.testdetails.length === 0
+      ) {
+        yPos = checkForNewPage(yPos, 15);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("Lab Investigations", leftMargin, yPos);
+        doc.text(":", leftMargin + 50, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text("Enclosed", leftMargin + 55, yPos);
+        return yPos + 10;
+      }
+
+      const getHighLowStatus = (value, reference) => {
+        if (!value || !reference) return null;
+        const num = parseFloat(value);
+        if (isNaN(num)) return null;
+        if (reference.includes("-")) {
+          const parts = reference.split("-").map((v) => parseFloat(v));
+          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            if (num < parts[0]) return "L";
+            if (num > parts[1]) return "H";
+          }
+        } else if (reference.includes("<")) {
+          const max = parseFloat(reference.replace("<", ""));
+          if (!isNaN(max) && num > max) return "H";
+        } else if (reference.includes(">")) {
+          const min = parseFloat(reference.replace(">", ""));
+          if (!isNaN(min) && num < min) return "L";
+        }
+        return null;
+      };
+
+      const rows = [];
+      patientDetails.testdetails.forEach((test) => {
+        const config = INLINE_TESTS_BY_NAME[test.testname];
+        if (!config) return;
+
+        if (config.paramNames === "all") {
+          const status = getHighLowStatus(test.value, test.reference_range);
+          rows.push({
+            testname: test.testname || "Test",
+            value: test.value || "",
+            unit: test.unit || "",
+            status,
+            reference_range: test.reference_range || "",
+          });
+        } else {
+          const params = test.parameters || [];
+          params.forEach((p) => {
+            if (config.paramNames.includes(p.name)) {
+              const status = getHighLowStatus(p.value, p.reference_range);
+              rows.push({
+                testname: p.name,
+                value: p.value || "",
+                unit: p.unit || "",
+                status,
+                reference_range: p.reference_range || "",
+              });
+            }
+          });
+        }
+      });
+
+      yPos = checkForNewPage(yPos, 30);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Lab Investigations", leftMargin, yPos);
+      yPos += 8;
+
+      if (rows.length > 0) {
+        doc.setFontSize(10);
+        const colW = [
+          contentWidth * 0.42,
+          contentWidth * 0.2,
+          contentWidth * 0.18,
+          contentWidth * 0.2,
+        ];
+        const tableX = leftMargin;
+        const rowH = 8;
+        const tableW = colW.reduce((a, b) => a + b, 0);
+
+        doc.rect(tableX, yPos, tableW, rowH);
+        let cx = tableX;
+        colW.forEach((w) => {
+          cx += w;
+          if (cx < tableX + tableW) doc.line(cx, yPos, cx, yPos + rowH);
+        });
+        doc.setFont("helvetica", "bold");
+        const headers = ["Test Name", "Value", "Unit", "Reference"];
+        let hx = tableX;
+        headers.forEach((h, i) => {
+          doc.text(h, hx + 2, yPos + 5);
+          hx += colW[i];
+        });
+        yPos += rowH;
+
+        doc.setFont("helvetica", "normal");
+        rows.forEach((row) => {
+          yPos = checkForNewPage(yPos, rowH);
+          doc.rect(tableX, yPos, tableW, rowH);
+          let rx = tableX;
+          colW.forEach((w) => {
+            rx += w;
+            if (rx < tableX + tableW) doc.line(rx, yPos, rx, yPos + rowH);
+          });
+          doc.setFont("helvetica", "normal");
+          doc.text(String(row.testname).substring(0, 34), tableX + 2, yPos + 5);
+
+          const valueX = tableX + colW[0] + 2;
+          const valueStr = String(row.value);
+          doc.text(valueStr, valueX, yPos + 5);
+
+          if (row.status === "H" || row.status === "L") {
+            const valueWidth = doc.getTextWidth(valueStr);
+            const indicatorX = valueX + valueWidth + 2;
+            doc.setFont("helvetica", "bold");
+            if (row.status === "H") {
+              doc.setTextColor(220, 0, 0);
+              doc.text("H", indicatorX + 3, yPos + 5);
+              drawArrowSymbol(doc, indicatorX, yPos + 4, "up");
+            } else {
+              doc.setTextColor(0, 0, 220);
+              doc.text("L", indicatorX + 3, yPos + 5);
+              drawArrowSymbol(doc, indicatorX, yPos + 4, "down");
+            }
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "normal");
+          }
+          const unitX = tableX + colW[0] + colW[1] + 2;
+          doc.text(String(row.unit).substring(0, 10), unitX, yPos + 5);
+          const refX = tableX + colW[0] + colW[1] + colW[2] + 2;
+          doc.text(
+            String(row.reference_range).substring(0, 18),
+            refX,
+            yPos + 5,
+          );
+          yPos += rowH;
+        });
+        yPos += 4;
+      }
+
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(10);
+      doc.text("Other Lab Reports are Enclosed", leftMargin, yPos);
+      doc.setFont("helvetica", "normal");
+      return yPos + 70;
+    };
+
+    // ── Lab investigations ───────────────────────────────────────────────────
+    // FIX: single (yPos) argument — uses closure variables
     const addLabInvestigations = (yPos) => {
       if (!patientDetails.testdetails?.length) return yPos;
+
+      // CHC012 gets special inline summary
+      if (patientDetails.company_id === "CHC012") {
+        return addCHC012LabSummary(yPos);
+      }
+
+      // Default: "Lab Investigations : Enclosed"
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -1216,7 +1480,7 @@ if (ophthalTest?.report?.trim()) {
       return yPos + 10;
     };
 
-    // ── Final assessment + surgeon signature ───────────────────────────────
+    // ── Final assessment + surgeon signature ─────────────────────────────────
     const addFinalAssessment = (yPos) => {
       yPos = checkForNewPage(yPos, 30);
       doc.setFont("helvetica", "bold");
@@ -1227,44 +1491,57 @@ if (ophthalTest?.report?.trim()) {
       const remarks =
         patientDetails.final_assessment?.remarks ||
         "The above candidate was examined and found Medically Fit for the Job.";
+
       if (impression?.trim()) {
-        const impressionLines = impression.split("\n").filter((l) => l.trim());
+        // Deduplicate repeated lines
+        const impressionLines = [
+          ...new Set(
+            impression
+              .split("\n")
+              .map((l) => l.trim())
+              .filter((l) => l),
+          ),
+        ];
         doc.setFont("helvetica", "bold");
         doc.text("Impression", leftMargin, yPos);
         doc.text(":", leftMargin + 30, yPos);
         doc.setFont("helvetica", "normal");
-
-        // First line sits on the same row as the label
-        const firstWrapped = doc.splitTextToSize(
-          impressionLines[0] || "",
-          contentWidth - 40,
-        );
-        firstWrapped.forEach((wl, wi) => {
-          doc.text(wl, leftMargin + 35, yPos);
-          yPos += 6;
-        });
-
-        // Remaining \n-separated lines
-        for (let i = 1; i < impressionLines.length; i++) {
-          const wrapped = doc.splitTextToSize(
-            impressionLines[i].trim(),
-            contentWidth - 40,
-          );
+        let firstLine = true;
+        impressionLines.forEach((line) => {
+          const wrapped = doc.splitTextToSize(line, contentWidth - 40);
           wrapped.forEach((wl) => {
+            if (!firstLine) {
+              // continuation lines: indent to align under first value
+            }
             doc.text(wl, leftMargin + 35, yPos);
             yPos += 6;
+            firstLine = false;
           });
-        }
+        });
         doc.setFont("helvetica", "bold");
         yPos += 4;
       }
+
       if (remarks?.trim()) {
-        yPos += 10;
+        yPos += 4;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.text(remarks, leftMargin, yPos);
       }
-      yPos += 15;
+
+      // Ensure enough space for signature block (image 25 + 4 lines*5 + padding = ~55)
+      yPos += 4;
+      // Ensure enough space for signature block — use tighter check without extra buffer
+      yPos += 4;
+      const signatureBlockHeight = 40;
+      const pageHeight = doc.internal.pageSize.height;
+      if (yPos + signatureBlockHeight >= pageHeight - footerHeight) {
+        doc.addPage();
+        pageCount++;
+        addHeaderFooter();
+        yPos = headerHeight + 10;
+      }
+
       const signatureX = leftMargin + 120;
       if (DRPS) doc.addImage(DRPS, "PNG", signatureX, yPos, 35, 25);
       yPos += 25;
@@ -1279,10 +1556,7 @@ if (ophthalTest?.report?.trim()) {
       doc.text("Shanmuga Hospital Ltd, Salem-7.", signatureX, yPos);
       return yPos + 10;
     };
-
-    // ── Investigation files: report text page then image page(s) ──────────
-    // For tests with a textual report (X-Ray etc.) a formatted report page is
-    // rendered FIRST, followed by the actual image file(s) on subsequent page(s).
+    // ── Investigation files ───────────────────────────────────────────────────
     const addInvestigationFiles = async () => {
       const files = patientDetails.investigation_files;
       const chcTestsOrder = patientDetails.chc_tests_for_files || [];
@@ -1307,7 +1581,6 @@ if (ophthalTest?.report?.trim()) {
         const notesText = testEntry.notes || test.notes?.trim() || "";
         const hasFiles = testEntry.files?.length > 0;
 
-        // Skip if nothing to render
         if (!reportText && !notesText && !hasFiles) continue;
 
         const isXRay =
@@ -1319,7 +1592,7 @@ if (ophthalTest?.report?.trim()) {
           testNameLower.includes("echo") ||
           testNameLower.includes("echocardiogram");
 
-        // ── Collect images ──────────────────────────────────────────
+        // Collect images
         const allImages = [];
         if (hasFiles) {
           for (let fileIdx = 0; fileIdx < testEntry.files.length; fileIdx++) {
@@ -1330,7 +1603,6 @@ if (ophthalTest?.report?.trim()) {
               const filename = (file.filename || "").toLowerCase();
               const isPDF =
                 contentType.includes("pdf") || filename.endsWith(".pdf");
-
               if (isPDF) {
                 const pdfImages = await convertPdfToImages(file.data);
                 pdfImages.forEach((imgDataUri) => {
@@ -1354,7 +1626,7 @@ if (ophthalTest?.report?.trim()) {
           }
         }
 
-        // ── STEP A: Report text page ─────────────────────────────────
+        // STEP A: Report text page
         if (reportText) {
           doc.addPage();
           pageCount++;
@@ -1363,7 +1635,6 @@ if (ophthalTest?.report?.trim()) {
           yPos = addMedicalExaminationHeader(yPos);
           yPos += 5;
 
-          // ── Test name header ──────────────────────────────────────
           doc.setFont("helvetica", "bold");
           doc.setFontSize(13);
           doc.text(label.toUpperCase(), leftMargin + contentWidth / 2, yPos, {
@@ -1380,7 +1651,6 @@ if (ophthalTest?.report?.trim()) {
           );
           yPos += 12;
 
-          // ── Report body ───────────────────────────────────────────
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           const normalizedReport = reportText
@@ -1408,7 +1678,6 @@ if (ophthalTest?.report?.trim()) {
             yPos += wrappedLines.length * 5.5 + 4;
           });
 
-          // ── Impression — only shown when report text exists ───────
           if (notesText) {
             yPos += 8;
             doc.setFont("helvetica", "bold");
@@ -1471,14 +1740,13 @@ if (ophthalTest?.report?.trim()) {
           }
         }
 
-        // ── STEP B: Image pages ──────────────────────────────────────
+        // STEP B: Image pages
         for (let imgIdx = 0; imgIdx < allImages.length; imgIdx++) {
           const img = allImages[imgIdx];
           doc.addPage();
           pageCount++;
           addHeaderFooter();
 
-          // ── Image page header with test name ────────────────────────
           let imgYPos = headerHeight + 10;
           doc.setFont("helvetica", "bold");
           doc.setFontSize(13);
@@ -1486,7 +1754,9 @@ if (ophthalTest?.report?.trim()) {
             label.toUpperCase(),
             leftMargin + contentWidth / 2,
             imgYPos,
-            { align: "center" },
+            {
+              align: "center",
+            },
           );
           imgYPos += 3;
           const imgTitleWidth = doc.getTextWidth(label.toUpperCase());
@@ -1522,7 +1792,7 @@ if (ophthalTest?.report?.trim()) {
       }
     };
 
-    // ── Lab reports section ────────────────────────────────────────────────
+    // ── Lab reports section ───────────────────────────────────────────────────
     const addLaboratoryReports = () => {
       if (!patientDetails.testdetails?.length) return;
       const labTests = patientDetails.testdetails.filter(
@@ -1600,19 +1870,6 @@ if (ophthalTest?.report?.trim()) {
           if (!isNaN(min) && num < min) return "L";
         }
         return null;
-      };
-      const drawArrowSymbol = (doc, x, y, direction) => {
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.5);
-        if (direction === "up") {
-          doc.line(x, y, x + 1, y - 1);
-          doc.line(x + 1, y - 1, x + 2, y);
-          doc.line(x + 1, y - 1, x + 1, y + 2);
-        } else {
-          doc.line(x, y, x + 1, y + 1);
-          doc.line(x + 1, y + 1, x + 2, y);
-          doc.line(x + 1, y + 1, x + 1, y - 2);
-        }
       };
       const colWidths = [
         contentWidth * 0.28,
@@ -2073,16 +2330,16 @@ if (ophthalTest?.report?.trim()) {
       addSignatures();
     };
 
-    // ── Assemble the PDF ───────────────────────────────────────────────────
+    // ── Assemble the PDF ──────────────────────────────────────────────────────
     addHeaderFooter();
     currentYPosition = addMedicalExaminationHeader(currentYPosition);
     currentYPosition = addMedicalHistory(currentYPosition);
     currentYPosition = addGeneralExamination(currentYPosition);
     currentYPosition = addMiscellaneousInvestigations(currentYPosition);
-    currentYPosition = addOphthalmologyReport(currentYPosition); // ← CHC ophthalmology table
+    currentYPosition = addOphthalmologyReport(currentYPosition);
     currentYPosition = addLabInvestigations(currentYPosition);
     currentYPosition = addFinalAssessment(currentYPosition);
-    await addInvestigationFiles(); // ← report text page + image pages per test
+    await addInvestigationFiles();
     addLaboratoryReports();
 
     // Page numbers
@@ -2139,8 +2396,6 @@ if (ophthalTest?.report?.trim()) {
       );
       if (invResult.success && invResult.data) {
         patientDetails = mergeInvestigationData(patientDetails, invResult.data);
-
-      
       }
 
       // 3. Fetch investigation files from chc_tests
@@ -2318,7 +2573,6 @@ if (ophthalTest?.report?.trim()) {
               patientDetails,
               invResult.data,
             );
-            
           }
 
           // Fetch investigation files
@@ -2571,7 +2825,7 @@ if (ophthalTest?.report?.trim()) {
               />
             </FilterGroup>
             <FilterGroup>
-              <FilterLabel>Status</FilterLabel>
+              <FilterLabel>Approval Status</FilterLabel>
               <FilterSelect
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -2609,7 +2863,7 @@ if (ophthalTest?.report?.trim()) {
                 <th>Barcode</th>
                 <th>Employee Name</th>
                 <th>CHC Investigation Status</th>
-                <th>Status</th>
+                <th>Approval Status</th>
                 <th>Actions</th>
               </tr>
             </TableHead>

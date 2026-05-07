@@ -143,6 +143,32 @@ const IndicatorChip = styled.span`
   white-space: nowrap;
 `;
 
+const DynamicFieldTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const DynamicFieldTh = styled.th`
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #444;
+  background: #faf5f8;
+  border-bottom: 1px solid #eaeaea;
+  width: 40%;
+`;
+
+const DynamicFieldTd = styled.td`
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #222;
+  border-bottom: 1px solid #f2f2f2;
+`;
+
 const TickIcon = () => (
   <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
     <circle cx="6" cy="6" r="6" fill="#38a169" />
@@ -1546,6 +1572,33 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                       </ReportSection>
                     );
                   })()}
+                {/* Dynamic Fields */}
+                {patientDetails.dynamic_fields?.length > 0 &&
+                  patientDetails.dynamic_fields.map((field, idx) => (
+                    <ReportSection key={`dynamic-${idx}`}>
+                      <SectionTitle>{field.field_name}</SectionTitle>
+                      <DynamicFieldTable>
+                        <thead>
+                          <tr>
+                            <DynamicFieldTh>Parameter</DynamicFieldTh>
+                            <DynamicFieldTh>Finding</DynamicFieldTh>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {field.field_values.map((fv, fvIdx) => (
+                            <tr key={fvIdx}>
+                              <DynamicFieldTd
+                                style={{ fontWeight: 600, color: "#555" }}
+                              >
+                                {fv.key}
+                              </DynamicFieldTd>
+                              <DynamicFieldTd>{fv.value}</DynamicFieldTd>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </DynamicFieldTable>
+                    </ReportSection>
+                  ))}
 
                 {/* Medical History */}
                 {patientDetails.medical_history && (
