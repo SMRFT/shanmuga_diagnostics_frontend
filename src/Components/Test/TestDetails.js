@@ -657,16 +657,29 @@ const calculateDerivedValues = (
   }
 
   if (currentTest.test_id === 196) {
-    const totalProtein = valuesByTestCode["26"] || 0;
-    const albumin = valuesByTestCode["06"] || 0;
-    const bilirubinTotal = valuesByTestCode["07"] || 0;
-    const bilirubinDirect = valuesByTestCode["24"] || 0;
+    // Support both RANDOX and BS240 test codes
+    const totalProtein =
+      valuesByTestCode["26"] || valuesByTestCode["Total Protein"] || 0;
+
+    const albumin = valuesByTestCode["06"] || valuesByTestCode["Albumin"] || 0;
+
+    const bilirubinTotal =
+      valuesByTestCode["07"] ||
+      valuesByTestCode["Bilirubin Total (DSA Method)"] ||
+      0;
+
+    const bilirubinDirect =
+      valuesByTestCode["24"] ||
+      valuesByTestCode["Bilirubin Direct (DSA Method)"] ||
+      0;
+
     const globulinParam = allParams.find((p) => p.test_code === "LFT09");
     if (globulinParam && totalProtein && albumin) {
       const k = `${testname}_${globulinParam.name || globulinParam.test_name}`;
       if (!manuallyEdited[k])
         newValues[k] = (totalProtein - albumin).toFixed(2);
     }
+
     const agRatioParam = allParams.find((p) => p.test_code === "LFT10");
     if (agRatioParam && albumin && totalProtein) {
       const globulin = totalProtein - albumin;
@@ -675,6 +688,7 @@ const calculateDerivedValues = (
         if (!manuallyEdited[k]) newValues[k] = (albumin / globulin).toFixed(2);
       }
     }
+
     const bilirubinIndirectParam = allParams.find(
       (p) => p.test_code === "LFT03",
     );
