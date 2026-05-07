@@ -630,25 +630,66 @@ const calculateDerivedValues = (
   });
 
   if (currentTest.test_id === 498) {
-    const cholesterol = valuesByTestCode["13"] || 0;
-    const triglycerides = valuesByTestCode["14"] || 0;
-    const hdl = valuesByTestCode["15"] || 0;
-    const ldlDirect = valuesByTestCode["18"] || 0;
+    // Support both RANDOX and BS240 test codes
+    const cholesterol =
+      valuesByTestCode["13"] || valuesByTestCode["Total Cholesterol"] || 0;
+
+    const triglycerides =
+      valuesByTestCode["14"] || valuesByTestCode["Triglycerides"] || 0;
+
+    const hdl =
+      valuesByTestCode["15"] || valuesByTestCode["HDL-Cholesterol"] || 0;
+
+    // Check if LDL Direct has a value from the machine
+    const ldlDirectRaw =
+      valuesByTestCode["18"] || valuesByTestCode["LDL-Cholesterol"] || 0;
+
+    // If LDL Direct is missing/zero, calculate via Friedewald formula
+    const ldlDirectParam = allParams.find(
+      (p) => p.test_code === "18" || p.test_code === "LDL-Cholesterol",
+    );
+    const ldlDirectKey = ldlDirectParam
+      ? `${testname}_${ldlDirectParam.name || ldlDirectParam.test_name}`
+      : null;
+
+    let ldlDirect = ldlDirectRaw;
+
+    if (
+      ldlDirectKey &&
+      (!ldlDirectRaw || ldlDirectRaw === 0) &&
+      cholesterol &&
+      hdl &&
+      triglycerides &&
+      !manuallyEdited[ldlDirectKey]
+    ) {
+      // Friedewald: LDL = Total Cholesterol - HDL - (TGL / 5)
+      const friedewald = cholesterol - hdl - triglycerides / 5;
+      newValues[ldlDirectKey] = friedewald.toFixed(2);
+      ldlDirect = friedewald;
+    }
+
+    // NON-HDL = Total Cholesterol - HDL
     const nonHdlParam = allParams.find((p) => p.test_code === "TESTCODE001");
     if (nonHdlParam && cholesterol && hdl) {
       const k = `${testname}_${nonHdlParam.name || nonHdlParam.test_name}`;
       if (!manuallyEdited[k]) newValues[k] = (cholesterol - hdl).toFixed(2);
     }
+
+    // Cholesterol / HDL Ratio
     const ratioParam = allParams.find((p) => p.test_code === "TESTCODE002");
     if (ratioParam && cholesterol && hdl) {
       const k = `${testname}_${ratioParam.name || ratioParam.test_name}`;
       if (!manuallyEdited[k]) newValues[k] = (cholesterol / hdl).toFixed(2);
     }
+
+    // VLDL = TGL / 5
     const vldlParam = allParams.find((p) => p.test_code === "TESTCODE003");
     if (vldlParam && triglycerides) {
       const k = `${testname}_${vldlParam.name || vldlParam.test_name}`;
       if (!manuallyEdited[k]) newValues[k] = (triglycerides / 5).toFixed(2);
     }
+
+    // LDL / HDL Ratio — uses actual or Friedewald-calculated LDL
     const ldlRatioParam = allParams.find((p) => p.test_code === "TESTCODE004");
     if (ldlRatioParam && ldlDirect && hdl) {
       const k = `${testname}_${ldlRatioParam.name || ldlRatioParam.test_name}`;
