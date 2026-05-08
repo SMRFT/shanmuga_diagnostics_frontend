@@ -629,7 +629,7 @@ const calculateDerivedValues = (
     valuesByTestCode[param.test_code] = val;
   });
 
-  if (currentTest.test_id === 498) {
+  if (currentTest.test_id === 498 || currentTest.test_id === 551) {
     // Support both RANDOX and BS240 test codes
     const cholesterol =
       valuesByTestCode["13"] || valuesByTestCode["Total Cholesterol"] || 0;
@@ -1202,7 +1202,9 @@ function TestDetails() {
       // Auto-calculate derived values
       transformedTests.forEach((test) => {
         if (
-          [498, 196, 550, 449, 467, 315, 362, 205].includes(test.test_id) &&
+          [498, 551, 196, 550, 449, 467, 315, 362, 205].includes(
+            test.test_id,
+          ) &&
           test.parametersBySubtitle &&
           Object.keys(test.parametersBySubtitle).length > 0
         ) {
@@ -1369,7 +1371,9 @@ function TestDetails() {
       });
 
       if (
-        [498, 196, 550, 449, 467, 315, 362, 205].includes(currentTest?.test_id)
+        [498, 551, 196, 550, 449, 467, 315, 362, 205].includes(
+          currentTest?.test_id,
+        )
       ) {
         return calculateDerivedValues(
           testname,
