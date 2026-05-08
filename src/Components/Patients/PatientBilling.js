@@ -98,10 +98,10 @@ const Button = styled.button`
   white-space: nowrap;
   ${(p) => {
     switch (p.variant) {
-      case "primary":  return `background:#3b82f6;color:white;&:hover{background:#2563eb;}&:disabled{background:#9ca3af;cursor:not-allowed;}`
-      case "success":  return `background:#10b981;color:white;&:hover{background:#059669;}`
-      case "danger":   return `background:#ef4444;color:white;&:hover{background:#dc2626;}`
-      default:         return `background:#f3f4f6;color:#374151;&:hover{background:#e5e7eb;}`
+      case "primary": return `background:#3b82f6;color:white;&:hover{background:#2563eb;}&:disabled{background:#9ca3af;cursor:not-allowed;}`
+      case "success": return `background:#10b981;color:white;&:hover{background:#059669;}`
+      case "danger": return `background:#ef4444;color:white;&:hover{background:#dc2626;}`
+      default: return `background:#f3f4f6;color:#374151;&:hover{background:#e5e7eb;}`
     }
   }}
 `
@@ -272,18 +272,18 @@ const StatusBadge = styled.span`
   font-weight: 500;
   background: ${(p) => {
     switch (p.status?.toLowerCase()) {
-      case "billed":     return "#dcfce7"
+      case "billed": return "#dcfce7"
       case "registered": return "#fef3c7"
-      case "collected":  return "#dbeafe"
-      default:           return "#f3f4f6"
+      case "collected": return "#dbeafe"
+      default: return "#f3f4f6"
     }
   }};
   color: ${(p) => {
     switch (p.status?.toLowerCase()) {
-      case "billed":     return "#166534"
+      case "billed": return "#166534"
       case "registered": return "#92400e"
-      case "collected":  return "#1e40af"
-      default:           return "#374151"
+      case "collected": return "#1e40af"
+      default: return "#374151"
     }
   }};
 `
@@ -507,18 +507,18 @@ const PaymentValidationWarning = styled.div`
    COMPONENT
 ═══════════════════════════════════════════════════ */
 const PatientBilling = () => {
-  const [currentPage, setCurrentPage]         = useState("list")
+  const [currentPage, setCurrentPage] = useState("list")
   const [selectedPatient, setSelectedPatient] = useState(null)
-  const [searchValue, setSearchValue]         = useState("")
+  const [searchValue, setSearchValue] = useState("")
   const [emergencyFilter, setEmergencyFilter] = useState("all")
-  const [loading, setLoading]                 = useState(false)
-  const [testOptions, setTestOptions]         = useState([])
+  const [loading, setLoading] = useState(false)
+  const [testOptions, setTestOptions] = useState([])
   const [filteredTestOptions, setFilteredTestOptions] = useState([])
-  const [selectedTests, setSelectedTests]     = useState([])
-  const [patientsList, setPatientsList]       = useState([])
+  const [selectedTests, setSelectedTests] = useState([])
+  const [patientsList, setPatientsList] = useState([])
 
   /* ── CHANGE 2: pagination state ── */
-  const [listPage, setListPage]         = useState(1)
+  const [listPage, setListPage] = useState(1)
   const [recordsPerPage, setRecordsPerPage] = useState(10)
 
   const [paymentOptions, setPaymentOptions] = useState({
@@ -530,7 +530,7 @@ const PatientBilling = () => {
 
   const [dateFilters, setDateFilters] = useState({
     fromDate: getCurrentDate(),
-    toDate:   getCurrentDate(),
+    toDate: getCurrentDate(),
   })
 
   const [billingData, setBillingData] = useState({
@@ -542,7 +542,7 @@ const PatientBilling = () => {
     amount: "", paymentMethod: "Cash", paymentDetails: "",
   })
 
-  const [testSearchValue, setTestSearchValue]   = useState("")
+  const [testSearchValue, setTestSearchValue] = useState("")
   const [showTestDropdown, setShowTestDropdown] = useState(false)
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
@@ -580,7 +580,7 @@ const PatientBilling = () => {
         discountAmount = parseFloat(billingData.discount) || 0
       }
     }
-    const netAmount    = Math.max(0, testsTotal - discountAmount)
+    const netAmount = Math.max(0, testsTotal - discountAmount)
     const creditAmount = billingData.paymentMethod === "Credit" ? netAmount : 0
     setBillingData((prev) => ({ ...prev, totalAmount: testsTotal, netAmount, creditAmount }))
   }
@@ -590,16 +590,16 @@ const PatientBilling = () => {
       try {
         const response = await apiRequest(`${Labbaseurl}get_patientsbyb2b/?date=${patient.date.split("T")[0]}`, "GET")
         if (response && response.success !== false) {
-          const patientData  = Array.isArray(response) ? response : response.data || []
-          const currentP     = patientData.find((p) => p.patient_id === patient.patient_id)
+          const patientData = Array.isArray(response) ? response : response.data || []
+          const currentP = patientData.find((p) => p.patient_id === patient.patient_id)
           if (currentP?.payment_options) {
             setPaymentOptions(currentP.payment_options)
             if (!currentP.payment_options.credit) toast.info("Credit payment is disabled for this B2B patient")
           }
         }
-      } catch { setPaymentOptions({ credit:true,cash:true,upi:true,neft:true,cheque:true,multiplePayment:true }) }
+      } catch { setPaymentOptions({ credit: true, cash: true, upi: true, neft: true, cheque: true, multiplePayment: true }) }
     } else {
-      setPaymentOptions({ credit:true,cash:true,upi:true,neft:true,cheque:true,multiplePayment:true })
+      setPaymentOptions({ credit: true, cash: true, upi: true, neft: true, cheque: true, multiplePayment: true })
     }
   }
 
@@ -624,9 +624,9 @@ const PatientBilling = () => {
         `${Labbaseurl}patients_by_date/?start_date=${dateFilters.fromDate}&end_date=${dateFilters.toDate}`, "GET"
       )
       let patients = []
-      if (response?.success && Array.isArray(response.data))        patients = response.data
-      else if (response && Array.isArray(response.data))            patients = response.data
-      else if (Array.isArray(response))                             patients = response
+      if (response?.success && Array.isArray(response.data)) patients = response.data
+      else if (response && Array.isArray(response.data)) patients = response.data
+      else if (Array.isArray(response)) patients = response
       else if (response?.data && Array.isArray(response.data.data)) patients = response.data.data
       else { toast.error("Unexpected response structure"); setPatientsList([]); setLoading(false); return }
 
@@ -634,18 +634,18 @@ const PatientBilling = () => {
         .filter((p) => p && (p.patient_id || p._id) && (p.patientname || p.name))
         .map((p) => ({
           ...p,
-          patient_id:  p.patient_id || p._id,
+          patient_id: p.patient_id || p._id,
           patientname: p.patientname || p.name || "Unknown",
-          age:         p.age || "N/A",
-          gender:      p.gender || "N/A",
-          phone:       p.phone || p.mobile || "N/A",
-          segment:     p.segment || "N/A",
-          date:        p.date || p.created_date || new Date().toISOString(),
-          lab_id:      p.lab_id || "N/A",
-          B2B:         p.B2B || "N/A",
-          refby:       p.refby || "SELF",
-          status:      p.status || "Registered",
-          branch:      p.branch || "N/A",
+          age: p.age || "N/A",
+          gender: p.gender || "N/A",
+          phone: p.phone || p.mobile || "N/A",
+          segment: p.segment || "N/A",
+          date: p.date || p.created_date || new Date().toISOString(),
+          lab_id: p.lab_id || "N/A",
+          B2B: p.B2B || "N/A",
+          refby: p.refby || "SELF",
+          status: p.status || "Registered",
+          branch: p.branch || "N/A",
           is_emergency: !!p.is_emergency,
         }))
 
@@ -659,19 +659,19 @@ const PatientBilling = () => {
 
   /* ── filter + paginate ── */
   const filteredPatients = patientsList.filter((p) => {
-    const s  = searchValue.toLowerCase()
+    const s = searchValue.toLowerCase()
     const ok = p.patient_id?.toLowerCase().includes(s) ||
-               p.patientname?.toLowerCase().includes(s) ||
-               p.lab_id?.toLowerCase().includes(s)
+      p.patientname?.toLowerCase().includes(s) ||
+      p.lab_id?.toLowerCase().includes(s)
     const em = emergencyFilter === "all" ||
-               (emergencyFilter === "emergency" && p.is_emergency) ||
-               (emergencyFilter === "normal"    && !p.is_emergency)
+      (emergencyFilter === "emergency" && p.is_emergency) ||
+      (emergencyFilter === "normal" && !p.is_emergency)
     return ok && em
   })
 
-  const totalPages     = Math.ceil(filteredPatients.length / recordsPerPage)
-  const pagedPatients  = filteredPatients.slice((listPage - 1) * recordsPerPage, listPage * recordsPerPage)
-  const pageNumbers    = Array.from({ length: totalPages }, (_, i) => i + 1)
+  const totalPages = Math.ceil(filteredPatients.length / recordsPerPage)
+  const pagedPatients = filteredPatients.slice((listPage - 1) * recordsPerPage, listPage * recordsPerPage)
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1)
     .filter((n) => n === 1 || n === totalPages || (n >= listPage - 2 && n <= listPage + 2))
 
   const handlePatientSelect = async (patient) => {
@@ -690,52 +690,54 @@ const PatientBilling = () => {
           const parsed = JSON.parse(patient.testdetails)
           if (Array.isArray(parsed) && parsed.length > 0)
             existingTests = parsed.map((t, i) => ({ ...t, id: t.id || Date.now() + i }))
-        } catch {}
+        } catch { }
       }
-      let existingPaymentMethod  = ""
+      let existingPaymentMethod = ""
       let existingPaymentDetails = ""
       if (patient.payment_method && patient.payment_method !== '""') {
         try {
           const parsed = JSON.parse(patient.payment_method)
           if (parsed && typeof parsed === "object") {
-            existingPaymentMethod  = parsed.paymentmethod  || ""
+            existingPaymentMethod = parsed.paymentmethod || ""
             existingPaymentDetails = parsed.paymentDetails || ""
           }
-        } catch {}
+        } catch { }
       }
       let existingMultiplePayments = []
       if (patient.MultiplePayment && patient.MultiplePayment !== '""' && patient.MultiplePayment !== '"[]"') {
         try {
           const parsed = JSON.parse(patient.MultiplePayment)
           if (Array.isArray(parsed) && parsed.length > 0)
-            existingMultiplePayments = parsed.map((p, i) => ({ ...p, amount: Number(p.amount)||0, id: p.id||Date.now()+i }))
-        } catch {}
+            existingMultiplePayments = parsed.map((p, i) => ({ ...p, amount: Number(p.amount) || 0, id: p.id || Date.now() + i }))
+        } catch { }
       }
       setSelectedTests(existingTests)
-      const totalAmount  = Number(patient.totalAmount) || 0
-      const discount     = Number(patient.discount)    || 0
-      const netAmount    = totalAmount - discount
+      const totalAmount = Number(patient.totalAmount) || 0
+      const discount = Number(patient.discount) || 0
+      const netAmount = totalAmount - discount
       const creditAmount = existingPaymentMethod === "Credit" ? netAmount : 0
-      setBillingData({ totalAmount, discount, netAmount, creditAmount,
+      setBillingData({
+        totalAmount, discount, netAmount, creditAmount,
         paymentMethod: existingPaymentMethod, paymentDetails: existingPaymentDetails,
-        multiplePayments: existingMultiplePayments })
-      setCurrentMultiplePayment({ amount:"", paymentMethod:"Cash", paymentDetails:"" })
+        multiplePayments: existingMultiplePayments
+      })
+      setCurrentMultiplePayment({ amount: "", paymentMethod: "Cash", paymentDetails: "" })
       setTestSearchValue(""); setShowTestDropdown(false)
     } catch { resetBillingData() }
   }
 
   const resetBillingData = () => {
-    setBillingData({ totalAmount:0,discount:0,netAmount:0,creditAmount:0,paymentMethod:"",paymentDetails:"",multiplePayments:[] })
+    setBillingData({ totalAmount: 0, discount: 0, netAmount: 0, creditAmount: 0, paymentMethod: "", paymentDetails: "", multiplePayments: [] })
     setSelectedTests([])
-    setCurrentMultiplePayment({ amount:"",paymentMethod:"Cash",paymentDetails:"" })
+    setCurrentMultiplePayment({ amount: "", paymentMethod: "Cash", paymentDetails: "" })
     setTestSearchValue(""); setShowTestDropdown(false)
-    setPaymentOptions({ credit:true,cash:true,upi:true,neft:true,cheque:true,multiplePayment:true })
+    setPaymentOptions({ credit: true, cash: true, upi: true, neft: true, cheque: true, multiplePayment: true })
   }
 
   const handleTestSearch = (value) => {
     setTestSearchValue(value)
     if (!value.trim()) { setFilteredTestOptions([]); setShowTestDropdown(false); return }
-    const search   = value.toLowerCase()
+    const search = value.toLowerCase()
     const filtered = testOptions.filter(
       (t) => t.test_name?.toLowerCase().includes(search) || t.shortcut?.toLowerCase().includes(search)
     )
@@ -744,9 +746,10 @@ const PatientBilling = () => {
 
   const handleTestSelect = (test) => {
     if (!selectedPatient) { toast.error("No patient selected."); return }
-    const amount = selectedPatient.segment === "B2B" ? Number(test.L2L_Rate_Card||0) : Number(test.MRP||0)
-    const newTest = { test_id:test.test_id, testname:test.test_name, collection_container:test.collection_container,
-                      amount, refund:false, cancellation:false, id:Date.now()+Math.random() }
+    const amount = selectedPatient.segment === "B2B" ? Number(test.L2L_Rate_Card || 0) : Number(test.MRP || 0)
+    const newTest = {
+      test_id: test.test_id, testname: test.test_name, suffix: test.suffix, collection_container: test.collection_container, amount, refund: false, cancellation: false, id: Date.now() + Math.random()
+    }
     if (selectedTests.some((t) => t.testname === newTest.testname)) { toast.error("Test already selected."); return }
     setSelectedTests((prev) => [...prev, newTest])
     setTestSearchValue(""); setShowTestDropdown(false)
@@ -759,15 +762,15 @@ const PatientBilling = () => {
     if (!currentMultiplePayment.amount || !currentMultiplePayment.paymentMethod) {
       toast.error("Please fill amount and payment method"); return
     }
-    const amt  = parseFloat(currentMultiplePayment.amount)
-    const rem  = getRemainingAmount()
-    if (amt > rem)  { toast.error(`Amount cannot exceed ₹${rem.toFixed(2)}`); return }
-    if (amt <= 0)   { toast.error("Amount must be > 0"); return }
+    const amt = parseFloat(currentMultiplePayment.amount)
+    const rem = getRemainingAmount()
+    if (amt > rem) { toast.error(`Amount cannot exceed ₹${rem.toFixed(2)}`); return }
+    if (amt <= 0) { toast.error("Amount must be > 0"); return }
     setBillingData((prev) => ({
       ...prev,
-      multiplePayments: [...prev.multiplePayments, { ...currentMultiplePayment, amount:amt, id:Date.now() }],
+      multiplePayments: [...prev.multiplePayments, { ...currentMultiplePayment, amount: amt, id: Date.now() }],
     }))
-    setCurrentMultiplePayment({ amount:"", paymentMethod:"Cash", paymentDetails:"" })
+    setCurrentMultiplePayment({ amount: "", paymentMethod: "Cash", paymentDetails: "" })
     toast.success("Payment added")
   }
 
@@ -788,31 +791,31 @@ const PatientBilling = () => {
     const fmtDT = (iso) => {
       if (!iso) return "NIL"
       return new Date(iso).toLocaleString("en-IN", {
-        year:"numeric",month:"long",day:"2-digit",hour:"2-digit",minute:"2-digit",
-        second:"2-digit",timeZone:"Asia/Kolkata",hour12:true
+        year: "numeric", month: "long", day: "2-digit", hour: "2-digit", minute: "2-digit",
+        second: "2-digit", timeZone: "Asia/Kolkata", hour12: true
       }).replace(/am|pm/gi, m => m.toUpperCase())
     }
     const nw = (num) => {
-      const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
-               "Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"]
-      const b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"]
-      const tw=(n)=>{
-        if(n<20) return a[n]
-        if(n<100) return b[Math.floor(n/10)]+(n%10?" "+a[n%10]:"")
-        if(n<1000) return a[Math.floor(n/100)]+" Hundred"+(n%100?" and "+tw(n%100):"")
-        return tw(Math.floor(n/1000))+" Thousand"+(n%1000?" "+tw(n%1000):"")
+      const a = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+        "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+      const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+      const tw = (n) => {
+        if (n < 20) return a[n]
+        if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? " " + a[n % 10] : "")
+        if (n < 1000) return a[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " and " + tw(n % 100) : "")
+        return tw(Math.floor(n / 1000)) + " Thousand" + (n % 1000 ? " " + tw(n % 1000) : "")
       }
       return tw(parseInt(num))
     }
 
-    const tableRows = selectedTests?.map((t,i)=>`
-      <tr><td>${i+1}</td><td>${t.testname||""}</td>
-      <td style="text-align:right">₹${parseFloat(t.amount||0).toFixed(2)}</td></tr>`).join("") || ""
+    const tableRows = selectedTests?.map((t, i) => `
+      <tr><td>${i + 1}</td><td>${t.testname || ""}</td>
+      <td style="text-align:right">₹${parseFloat(t.amount || 0).toFixed(2)}</td></tr>`).join("") || ""
 
     let displayPaymentMode = "NIL"
     if (billingData.paymentMethod === "Multiple Payment") {
       displayPaymentMode = billingData.multiplePayments
-        .map(p=>`${p.paymentMethod}: ₹${p.amount}${p.paymentDetails?` (${p.paymentDetails})`:""}`)
+        .map(p => `${p.paymentMethod}: ₹${p.amount}${p.paymentDetails ? ` (${p.paymentDetails})` : ""}`)
         .join(", ")
     } else {
       displayPaymentMode = billingData.paymentMethod
@@ -820,8 +823,8 @@ const PatientBilling = () => {
         displayPaymentMode += ` (${billingData.paymentDetails})`
     }
 
-    const inWords     = billingData.netAmount ? nw(billingData.netAmount)+" rupees only" : "Zero only"
-    const storedName  = localStorage.getItem("name") || "Employee"
+    const inWords = billingData.netAmount ? nw(billingData.netAmount) + " rupees only" : "Zero only"
+    const storedName = localStorage.getItem("name") || "Employee"
 
     /* ── CHANGE 1: Emergency label in print ── */
     const emergencyLabel = selectedPatient?.is_emergency
@@ -852,22 +855,22 @@ const PatientBilling = () => {
       <div class="details"><table>
         <tr>
           <td><strong>Bill Date:</strong> ${fmtDT(new Date().toISOString())}</td>
-          <td><strong>Bill No / Lab ID:</strong> ${selectedPatient.lab_id||"NIL"}</td>
+          <td><strong>Bill No / Lab ID:</strong> ${selectedPatient.lab_id || "NIL"}</td>
         </tr>
         <tr>
-          <td><strong>Patient ID:</strong> ${selectedPatient.patient_id||"NIL"}</td>
-          <td><strong>Lab Name:</strong> ${selectedPatient.B2B||"NIL"}</td>
+          <td><strong>Patient ID:</strong> ${selectedPatient.patient_id || "NIL"}</td>
+          <td><strong>Lab Name:</strong> ${selectedPatient.B2B || "NIL"}</td>
         </tr>
         <tr>
-          <td><strong>Name:</strong> ${selectedPatient.patientname||"NIL"}</td>
-          <td><strong>Gender/Age:</strong> ${selectedPatient.gender||"NIL"}/${selectedPatient.age||"NIL"} Yrs</td>
+          <td><strong>Name:</strong> ${selectedPatient.patientname || "NIL"}</td>
+          <td><strong>Gender/Age:</strong> ${selectedPatient.gender || "NIL"}/${selectedPatient.age || "NIL"} Yrs</td>
         </tr>
         <tr>
-          <td><strong>Mobile:</strong> ${selectedPatient.phone||"NIL"}</td>
-          <td><strong>Ref By:</strong> ${selectedPatient.refby||"SELF"}</td>
+          <td><strong>Mobile:</strong> ${selectedPatient.phone || "NIL"}</td>
+          <td><strong>Ref By:</strong> ${selectedPatient.refby || "SELF"}</td>
         </tr>
         <tr>
-          <td><strong>Branch:</strong> ${selectedPatient.branch||"N/A"}</td>
+          <td><strong>Branch:</strong> ${selectedPatient.branch || "N/A"}</td>
           <td><strong>Visit Type:</strong> ${emergencyLabel}</td>
         </tr>
       </table></div>
@@ -878,12 +881,12 @@ const PatientBilling = () => {
       <div class="payment-info"><table>
         <thead><tr><th>Description</th><th style="text-align:right">Amount(₹)</th></tr></thead>
         <tbody>
-          <tr><td>Total Amount</td><td style="text-align:right">₹${parseFloat(billingData.totalAmount||0).toFixed(2)}</td></tr>
-          ${billingData.discount&&parseFloat(billingData.discount)>0
-            ?`<tr><td>Discount</td><td style="text-align:right">₹${parseFloat(billingData.discount).toFixed(2)}</td></tr>`:""}
+          <tr><td>Total Amount</td><td style="text-align:right">₹${parseFloat(billingData.totalAmount || 0).toFixed(2)}</td></tr>
+          ${billingData.discount && parseFloat(billingData.discount) > 0
+        ? `<tr><td>Discount</td><td style="text-align:right">₹${parseFloat(billingData.discount).toFixed(2)}</td></tr>` : ""}
           <tr class="total-row">
             <td><strong>Net Amount</strong></td>
-            <td style="text-align:right"><strong>₹${parseFloat(billingData.netAmount||0).toFixed(2)}</strong></td>
+            <td style="text-align:right"><strong>₹${parseFloat(billingData.netAmount || 0).toFixed(2)}</strong></td>
           </tr>
           <tr><td>Payment Mode</td><td style="text-align:right">${displayPaymentMode}</td></tr>
         </tbody>
@@ -894,9 +897,9 @@ const PatientBilling = () => {
       </div></div>
     </div></body></html>`
 
-    const win = window.open("","","width=1000,height=800")
+    const win = window.open("", "", "width=1000,height=800")
     win.document.write(html)
-    setTimeout(()=>{ win.document.close(); win.print(); win.close() }, 1000)
+    setTimeout(() => { win.document.close(); win.print(); win.close() }, 1000)
   }
 
   const handleUpdateBill = async () => {
@@ -912,35 +915,35 @@ const PatientBilling = () => {
       let multiplePaymentData = []
       if (billingData.paymentMethod === "Multiple Payment") {
         multiplePaymentData = billingData.multiplePayments.map((p) => ({
-          amount: p.amount.toString(), paymentMethod: p.paymentMethod, paymentDetails: p.paymentDetails||""
+          amount: p.amount.toString(), paymentMethod: p.paymentMethod, paymentDetails: p.paymentDetails || ""
         }))
-        paymentMethodData = { paymentmethod:"Multiple Payment" }
+        paymentMethodData = { paymentmethod: "Multiple Payment" }
       } else {
-        paymentMethodData = { paymentmethod:billingData.paymentMethod, paymentDetails:billingData.paymentDetails||"" }
+        paymentMethodData = { paymentmethod: billingData.paymentMethod, paymentDetails: billingData.paymentDetails || "" }
       }
       const updateData = {
-        bill_id:         selectedPatient._id?.$oid || selectedPatient._id || selectedPatient.id,
-        patient_id:      selectedPatient.patient_id,
-        date:            selectedPatient.date,
-        testdetails:     selectedTests,
-        totalAmount:     billingData.totalAmount.toString(),
-        netAmount:       billingData.netAmount.toString(),
-        discount:        billingData.discount.toString(),
-        payment_method:  paymentMethodData,
+        bill_id: selectedPatient._id?.$oid || selectedPatient._id || selectedPatient.id,
+        patient_id: selectedPatient.patient_id,
+        date: selectedPatient.date,
+        testdetails: selectedTests,
+        totalAmount: billingData.totalAmount.toString(),
+        netAmount: billingData.netAmount.toString(),
+        discount: billingData.discount.toString(),
+        payment_method: paymentMethodData,
         MultiplePayment: JSON.stringify(multiplePaymentData),
-        credit_amount:   billingData.creditAmount.toString(),
-        lastmodified_by: localStorage.getItem("name")||"system",
+        credit_amount: billingData.creditAmount.toString(),
+        lastmodified_by: localStorage.getItem("name") || "system",
       }
       const response = await apiRequest(`${Labbaseurl}update_bill/`, "PUT", updateData)
       if (response && response.success !== false) {
-        toast.success(`Bill updated! ${response.bill_no?"Bill No: "+response.bill_no:""}`)
+        toast.success(`Bill updated! ${response.bill_no ? "Bill No: " + response.bill_no : ""}`)
         setTimeout(() => handlePrint(), 1000)
         setTimeout(() => {
           setSelectedPatient(null); resetBillingData(); setSearchValue(""); setCurrentPage("list")
           if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate()
         }, 3000)
       } else {
-        toast.error(`Failed: ${response?.error||response?.message||"Unknown error"}`)
+        toast.error(`Failed: ${response?.error || response?.message || "Unknown error"}`)
       }
     } catch { toast.error("Failed to update bill. Please try again.") }
     finally { setLoading(false) }
@@ -965,12 +968,12 @@ const PatientBilling = () => {
                 <SearchContainer>
                   <FaSearch />
                   <input type="text" placeholder="Search by Patient ID, Name or Lab ID"
-                    value={searchValue} onChange={(e)=>setSearchValue(e.target.value)} />
+                    value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
                 </SearchContainer>
 
                 <FormGroup>
                   <label>Emergency Status</label>
-                  <select value={emergencyFilter} onChange={(e)=>setEmergencyFilter(e.target.value)}>
+                  <select value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
                     <option value="all">All Patients</option>
                     <option value="emergency">Emergency Only</option>
                     <option value="normal">Normal Only</option>
@@ -980,13 +983,13 @@ const PatientBilling = () => {
                 <FormGroup>
                   <label>From Date</label>
                   <input type="date" value={dateFilters.fromDate}
-                    onChange={(e)=>setDateFilters(p=>({...p,fromDate:e.target.value}))} />
+                    onChange={(e) => setDateFilters(p => ({ ...p, fromDate: e.target.value }))} />
                 </FormGroup>
 
                 <FormGroup>
                   <label>To Date</label>
                   <input type="date" value={dateFilters.toDate}
-                    onChange={(e)=>setDateFilters(p=>({...p,toDate:e.target.value}))} />
+                    onChange={(e) => setDateFilters(p => ({ ...p, toDate: e.target.value }))} />
                 </FormGroup>
               </SearchAndFiltersContainer>
 
@@ -997,9 +1000,9 @@ const PatientBilling = () => {
                     <>Showing <strong>{pagedPatients.length}</strong> of <strong>{filteredPatients.length}</strong> patients</>
                   )}
                 </span>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:13,color:"#475569",fontWeight:500}}>Show:</span>
-                  <select value={recordsPerPage} onChange={(e)=>{setRecordsPerPage(Number(e.target.value));setListPage(1)}}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>Show:</span>
+                  <select value={recordsPerPage} onChange={(e) => { setRecordsPerPage(Number(e.target.value)); setListPage(1) }}>
                     <option value={10}>10 records</option>
                     <option value={20}>20 records</option>
                     <option value={50}>50 records</option>
@@ -1008,7 +1011,7 @@ const PatientBilling = () => {
                 </div>
               </PaginationRow>
 
-              {loading && <div style={{textAlign:"center",padding:"40px",color:"#6b7280"}}>Loading patients…</div>}
+              {loading && <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>Loading patients…</div>}
 
               {/* ── CHANGE 3: Horizontal scroll table ── */}
               {!loading && pagedPatients.length > 0 && (
@@ -1039,16 +1042,16 @@ const PatientBilling = () => {
                           <td>
                             <EmergencyBadge emergency={patient.is_emergency}>
                               {patient.is_emergency
-                                ? <><AlertCircle size={12}/> Emergency</>
-                                : <><CheckCircle size={12}/> Normal</>}
+                                ? <><AlertCircle size={12} /> Emergency</>
+                                : <><CheckCircle size={12} /> Normal</>}
                             </EmergencyBadge>
                           </td>
                           <td>{patient.segment}</td>
                           <td>
                             <button className="select-btn"
-                              onClick={()=>handlePatientSelect(patient)}
-                              disabled={patient.status?.toLowerCase()==="billed"}>
-                              {patient.status?.toLowerCase()==="billed" ? "Billed" : "Update"}
+                              onClick={() => handlePatientSelect(patient)}
+                              disabled={patient.status?.toLowerCase() === "billed"}>
+                              {patient.status?.toLowerCase() === "billed" ? "Billed" : "Update"}
                             </button>
                           </td>
                         </tr>
@@ -1059,28 +1062,28 @@ const PatientBilling = () => {
               )}
 
               {!loading && filteredPatients.length === 0 && (
-                <div style={{textAlign:"center",padding:"40px",color:"#6b7280"}}>
+                <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
                   {patientsList.length > 0 ? "No patients match your search." : "No patients found for selected dates."}
                 </div>
               )}
 
               {/* ── CHANGE 2: Pagination buttons ── */}
               {!loading && totalPages > 1 && (
-                <PaginationRow style={{justifyContent:"center",marginTop:12}}>
+                <PaginationRow style={{ justifyContent: "center", marginTop: 12 }}>
                   <div className="controls">
-                    <button onClick={()=>setListPage(1)} disabled={listPage===1}>First</button>
-                    <button onClick={()=>setListPage(p=>Math.max(p-1,1))} disabled={listPage===1}>Prev</button>
-                    {pageNumbers.map((n,i)=>{
-                      const prev=pageNumbers[i-1]
+                    <button onClick={() => setListPage(1)} disabled={listPage === 1}>First</button>
+                    <button onClick={() => setListPage(p => Math.max(p - 1, 1))} disabled={listPage === 1}>Prev</button>
+                    {pageNumbers.map((n, i) => {
+                      const prev = pageNumbers[i - 1]
                       return (
-                        <span key={n} style={{display:"inline-flex",alignItems:"center",gap:4}}>
-                          {prev&&n-prev>1&&<span style={{color:"#9ca3af",padding:"0 2px"}}>…</span>}
-                          <button onClick={()=>setListPage(n)} className={listPage===n?"active":""}>{n}</button>
+                        <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {prev && n - prev > 1 && <span style={{ color: "#9ca3af", padding: "0 2px" }}>…</span>}
+                          <button onClick={() => setListPage(n)} className={listPage === n ? "active" : ""}>{n}</button>
                         </span>
                       )
                     })}
-                    <button onClick={()=>setListPage(p=>Math.min(p+1,totalPages))} disabled={listPage===totalPages}>Next</button>
-                    <button onClick={()=>setListPage(totalPages)} disabled={listPage===totalPages}>Last</button>
+                    <button onClick={() => setListPage(p => Math.min(p + 1, totalPages))} disabled={listPage === totalPages}>Next</button>
+                    <button onClick={() => setListPage(totalPages)} disabled={listPage === totalPages}>Last</button>
                   </div>
                 </PaginationRow>
               )}
@@ -1098,7 +1101,7 @@ const PatientBilling = () => {
     <PageShell>
       <ScrollArea>
         <Container>
-          <BackButton onClick={()=>{ setCurrentPage("list"); resetBillingData() }}>
+          <BackButton onClick={() => { setCurrentPage("list"); resetBillingData() }}>
             <FaArrowLeft /> Back to Patients
           </BackButton>
 
@@ -1112,18 +1115,18 @@ const PatientBilling = () => {
               <h2><FaUser /> Patient Information</h2>
               <div className="patient-details">
                 {[
-                  ["Patient ID",    selectedPatient.patient_id],
-                  ["Name",          selectedPatient.patientname],
-                  ["Age",           selectedPatient.age],
-                  ["Gender",        selectedPatient.gender],
-                  ["Segment",       selectedPatient.segment],
-                  ...(selectedPatient.segment==="B2B"?[["Clinical Center",selectedPatient.B2B||"N/A"]]:[]),
-                  ["Lab ID",        selectedPatient.lab_id],
-                  ["Reference By",  selectedPatient.refby],
-                  ["Branch",        selectedPatient.branch||"N/A"],
+                  ["Patient ID", selectedPatient.patient_id],
+                  ["Name", selectedPatient.patientname],
+                  ["Age", selectedPatient.age],
+                  ["Gender", selectedPatient.gender],
+                  ["Segment", selectedPatient.segment],
+                  ...(selectedPatient.segment === "B2B" ? [["Clinical Center", selectedPatient.B2B || "N/A"]] : []),
+                  ["Lab ID", selectedPatient.lab_id],
+                  ["Reference By", selectedPatient.refby],
+                  ["Branch", selectedPatient.branch || "N/A"],
                   /* ── CHANGE 1: Visit type in patient info ── */
-                  ["Visit Type",    selectedPatient.is_emergency ? "🚨 Emergency" : "✔ Normal"],
-                ].map(([lbl,val])=>(
+                  ["Visit Type", selectedPatient.is_emergency ? "🚨 Emergency" : "✔ Normal"],
+                ].map(([lbl, val]) => (
                   <div className="detail-item" key={lbl}>
                     <span className="label">{lbl}</span>
                     <span className="value">{val}</span>
@@ -1142,12 +1145,12 @@ const PatientBilling = () => {
                 <label>Test Name</label>
                 <TestSearchContainer>
                   <input type="text" value={testSearchValue}
-                    onChange={(e)=>handleTestSearch(e.target.value)}
+                    onChange={(e) => handleTestSearch(e.target.value)}
                     placeholder="Search for tests…" />
                   {showTestDropdown && filteredTestOptions.length > 0 && (
                     <div className="dropdown">
-                      {filteredTestOptions.map((test,i)=>(
-                        <div key={i} className="dropdown-item" onClick={()=>handleTestSelect(test)}>
+                      {filteredTestOptions.map((test, i) => (
+                        <div key={i} className="dropdown-item" onClick={() => handleTestSelect(test)}>
                           <div className="test-name">{test.test_name}</div>
                         </div>
                       ))}
@@ -1160,25 +1163,25 @@ const PatientBilling = () => {
             {/* Selected Tests */}
             {selectedTests.length > 0 && (
               <>
-                <h4 style={{margin:"0 0 10px",color:"#374151"}}>Selected Tests ({selectedTests.length})</h4>
+                <h4 style={{ margin: "0 0 10px", color: "#374151" }}>Selected Tests ({selectedTests.length})</h4>
                 <TestTable>
                   <thead>
                     <tr>
                       <th>Test Name</th>
                       <th>Container</th>
-                      <th style={{textAlign:"right"}}>Amount (₹)</th>
-                      <th style={{textAlign:"center"}}>Action</th>
+                      <th style={{ textAlign: "right" }}>Amount (₹)</th>
+                      <th style={{ textAlign: "center" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedTests.map((test)=>(
+                    {selectedTests.map((test) => (
                       <tr key={test.id}>
                         <td>{test.testname}</td>
-                        <td>{test.collection_container||"N/A"}</td>
-                        <td style={{textAlign:"right"}}>₹{test.amount.toFixed(2)}</td>
-                        <td style={{textAlign:"center"}}>
-                          <button className="remove-btn" onClick={()=>handleTestRemove(test.id)}>
-                            <FaTrash size={13}/>
+                        <td>{test.collection_container || "N/A"}</td>
+                        <td style={{ textAlign: "right" }}>₹{test.amount.toFixed(2)}</td>
+                        <td style={{ textAlign: "center" }}>
+                          <button className="remove-btn" onClick={() => handleTestRemove(test.id)}>
+                            <FaTrash size={13} />
                           </button>
                         </td>
                       </tr>
@@ -1191,14 +1194,14 @@ const PatientBilling = () => {
                   <FormGroup>
                     <label>Discount</label>
                     <input type="text" value={billingData.discount}
-                      onChange={(e)=>setBillingData(p=>({...p,discount:e.target.value}))}
+                      onChange={(e) => setBillingData(p => ({ ...p, discount: e.target.value }))}
                       placeholder="e.g. 10% or 50" />
                   </FormGroup>
 
                   <FormGroup>
                     <label>Payment Method *</label>
                     <select value={billingData.paymentMethod}
-                      onChange={(e)=>setBillingData(p=>({...p,paymentMethod:e.target.value}))}>
+                      onChange={(e) => setBillingData(p => ({ ...p, paymentMethod: e.target.value }))}>
                       <option value="">Select Method</option>
                       <option value="Cash">Cash</option>
                       {paymentOptions.credit && <option value="Credit">Credit</option>}
@@ -1213,29 +1216,29 @@ const PatientBilling = () => {
                     <label>Payment Details</label>
                     <input type="text"
                       value={billingData.paymentDetails}
-                      onChange={(e)=>setBillingData(p=>({...p,paymentDetails:e.target.value}))}
+                      onChange={(e) => setBillingData(p => ({ ...p, paymentDetails: e.target.value }))}
                       placeholder={
-                        !billingData.paymentMethod || billingData.paymentMethod==="Cash" || billingData.paymentMethod==="Multiple Payment"
-                        ? "N/A for this method" : "Enter reference / details"
+                        !billingData.paymentMethod || billingData.paymentMethod === "Cash" || billingData.paymentMethod === "Multiple Payment"
+                          ? "N/A for this method" : "Enter reference / details"
                       }
-                      disabled={!billingData.paymentMethod || billingData.paymentMethod==="Cash" || billingData.paymentMethod==="Multiple Payment"}
-                      style={{ opacity: (!billingData.paymentMethod||billingData.paymentMethod==="Cash"||billingData.paymentMethod==="Multiple Payment") ? 0.45 : 1 }}
+                      disabled={!billingData.paymentMethod || billingData.paymentMethod === "Cash" || billingData.paymentMethod === "Multiple Payment"}
+                      style={{ opacity: (!billingData.paymentMethod || billingData.paymentMethod === "Cash" || billingData.paymentMethod === "Multiple Payment") ? 0.45 : 1 }}
                     />
                   </FormGroup>
                 </PaymentRow>
 
                 {/* B2B warning */}
-                {selectedPatient?.segment==="B2B" && !paymentOptions.credit && (
+                {selectedPatient?.segment === "B2B" && !paymentOptions.credit && (
                   <PaymentValidationWarning>
                     ⚠️ Credit payment is disabled for this B2B patient (Cash type only)
                   </PaymentValidationWarning>
                 )}
 
                 {/* Multiple Payment */}
-                {billingData.paymentMethod==="Multiple Payment" && (
+                {billingData.paymentMethod === "Multiple Payment" && (
                   <PaymentMethodSection>
                     <h4><FaCreditCard /> Multiple Payment Details</h4>
-                    {getRemainingAmount()>0 && (
+                    {getRemainingAmount() > 0 && (
                       <PaymentValidationWarning>
                         ⚠️ Remaining: ₹{getRemainingAmount().toFixed(2)} — complete all payments before saving.
                       </PaymentValidationWarning>
@@ -1245,13 +1248,13 @@ const PatientBilling = () => {
                         <label>Amount *</label>
                         <input type="number" step="0.01" max={getRemainingAmount()}
                           value={currentMultiplePayment.amount}
-                          onChange={(e)=>setCurrentMultiplePayment(p=>({...p,amount:e.target.value}))}
+                          onChange={(e) => setCurrentMultiplePayment(p => ({ ...p, amount: e.target.value }))}
                           placeholder={`Max ₹${getRemainingAmount().toFixed(2)}`} />
                       </FormGroup>
                       <FormGroup>
                         <label>Method *</label>
                         <select value={currentMultiplePayment.paymentMethod}
-                          onChange={(e)=>setCurrentMultiplePayment(p=>({...p,paymentMethod:e.target.value}))}>
+                          onChange={(e) => setCurrentMultiplePayment(p => ({ ...p, paymentMethod: e.target.value }))}>
                           <option value="Cash">Cash</option>
                           <option value="UPI">UPI</option>
                           <option value="NEFT">NEFT</option>
@@ -1261,35 +1264,35 @@ const PatientBilling = () => {
                       <FormGroup>
                         <label>Details</label>
                         <input type="text" value={currentMultiplePayment.paymentDetails}
-                          onChange={(e)=>setCurrentMultiplePayment(p=>({...p,paymentDetails:e.target.value}))}
+                          onChange={(e) => setCurrentMultiplePayment(p => ({ ...p, paymentDetails: e.target.value }))}
                           placeholder="Optional" />
                       </FormGroup>
-                      <div style={{alignSelf:"end"}}>
-                        <Button onClick={addMultiplePayment} variant="success" disabled={getRemainingAmount()<=0}>
-                          <FaPlus/> Add
+                      <div style={{ alignSelf: "end" }}>
+                        <Button onClick={addMultiplePayment} variant="success" disabled={getRemainingAmount() <= 0}>
+                          <FaPlus /> Add
                         </Button>
                       </div>
                     </FormRow>
 
-                    {billingData.multiplePayments.length>0 && (
-                      <div style={{marginTop:16}}>
-                        <h5 style={{margin:"0 0 12px",color:"#374151"}}>Added ({billingData.multiplePayments.length}):</h5>
-                        {billingData.multiplePayments.map((p)=>(
+                    {billingData.multiplePayments.length > 0 && (
+                      <div style={{ marginTop: 16 }}>
+                        <h5 style={{ margin: "0 0 12px", color: "#374151" }}>Added ({billingData.multiplePayments.length}):</h5>
+                        {billingData.multiplePayments.map((p) => (
                           <MultiplePaymentItem key={p.id}>
                             <div className="payment-info">
                               <div>
                                 <span className="amount">₹{p.amount.toFixed(2)}</span>
                                 <span className="method">— {p.paymentMethod}</span>
                               </div>
-                              {p.paymentDetails&&<div className="details">{p.paymentDetails}</div>}
+                              {p.paymentDetails && <div className="details">{p.paymentDetails}</div>}
                             </div>
-                            <Button variant="danger" size="sm" onClick={()=>removeMultiplePayment(p.id)}>
-                              <FaTrash/>
+                            <Button variant="danger" size="sm" onClick={() => removeMultiplePayment(p.id)}>
+                              <FaTrash />
                             </Button>
                           </MultiplePaymentItem>
                         ))}
-                        <div style={{textAlign:"right",fontWeight:600,color:"#1e293b",marginTop:8}}>
-                          Total: ₹{billingData.multiplePayments.reduce((s,p)=>s+p.amount,0).toFixed(2)}
+                        <div style={{ textAlign: "right", fontWeight: 600, color: "#1e293b", marginTop: 8 }}>
+                          Total: ₹{billingData.multiplePayments.reduce((s, p) => s + p.amount, 0).toFixed(2)}
                         </div>
                       </div>
                     )}
@@ -1301,29 +1304,29 @@ const PatientBilling = () => {
                   <h4>Amount Summary</h4>
                   {[
                     ["Total Amount", `₹${billingData.totalAmount.toFixed(2)}`],
-                    ["Discount", `₹${(typeof billingData.discount==="string"&&billingData.discount.includes("%")
-                      ?(billingData.totalAmount*parseFloat(billingData.discount))/100
-                      :parseFloat(billingData.discount)||0).toFixed(2)}`],
+                    ["Discount", `₹${(typeof billingData.discount === "string" && billingData.discount.includes("%")
+                      ? (billingData.totalAmount * parseFloat(billingData.discount)) / 100
+                      : parseFloat(billingData.discount) || 0).toFixed(2)}`],
                     ["Net Amount", `₹${billingData.netAmount.toFixed(2)}`],
-                  ].map(([l,v])=>(
+                  ].map(([l, v]) => (
                     <div className="summary-row" key={l}>
                       <span className="label">{l}:</span>
                       <span className="value">{v}</span>
                     </div>
                   ))}
-                  {billingData.creditAmount>0&&(
-                    <div className="summary-row" style={{color:"#ef4444",fontWeight:600}}>
+                  {billingData.creditAmount > 0 && (
+                    <div className="summary-row" style={{ color: "#ef4444", fontWeight: 600 }}>
                       <span className="label">Credit Amount:</span>
                       <span className="value">₹{billingData.creditAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  {billingData.paymentMethod==="Multiple Payment"&&(
+                  {billingData.paymentMethod === "Multiple Payment" && (
                     <>
                       <div className="summary-row">
                         <span className="label">Total Paid:</span>
-                        <span className="value">₹{billingData.multiplePayments.reduce((s,p)=>s+p.amount,0).toFixed(2)}</span>
+                        <span className="value">₹{billingData.multiplePayments.reduce((s, p) => s + p.amount, 0).toFixed(2)}</span>
                       </div>
-                      <div className="summary-row" style={{color:getRemainingAmount()>0?"#ef4444":"#10b981",fontWeight:600}}>
+                      <div className="summary-row" style={{ color: getRemainingAmount() > 0 ? "#ef4444" : "#10b981", fontWeight: 600 }}>
                         <span className="label">Remaining:</span>
                         <span className="value">₹{getRemainingAmount().toFixed(2)}</span>
                       </div>
@@ -1331,18 +1334,18 @@ const PatientBilling = () => {
                   )}
                 </AmountSummary>
 
-                <div style={{textAlign:"center",marginTop:24}}>
+                <div style={{ textAlign: "center", marginTop: 24 }}>
                   <Button variant="primary" onClick={handleUpdateBill}
-                    disabled={!isFormValid()||loading}
-                    style={{fontSize:15,padding:"13px 28px"}}>
-                    <FaSave/> {loading ? "Saving…" : "Save"}
+                    disabled={!isFormValid() || loading}
+                    style={{ fontSize: 15, padding: "13px 28px" }}>
+                    <FaSave /> {loading ? "Saving…" : "Save"}
                   </Button>
                 </div>
               </>
             )}
           </BillingSection>
 
-          <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false}/>
+          <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
         </Container>
       </ScrollArea>
     </PageShell>
