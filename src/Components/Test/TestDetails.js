@@ -697,7 +697,7 @@ const calculateDerivedValues = (
     }
   }
 
-  if (currentTest.test_id === 196) {
+  if (currentTest.test_id === 196 || currentTest.test_id === 550) {
     // Support both RANDOX and BS240 test codes
     const totalProtein =
       valuesByTestCode["26"] || valuesByTestCode["Total Protein"] || 0;
@@ -1202,7 +1202,7 @@ function TestDetails() {
       // Auto-calculate derived values
       transformedTests.forEach((test) => {
         if (
-          [498, 196, 449, 467, 315, 362, 205].includes(test.test_id) &&
+          [498, 196, 550, 449, 467, 315, 362, 205].includes(test.test_id) &&
           test.parametersBySubtitle &&
           Object.keys(test.parametersBySubtitle).length > 0
         ) {
@@ -1368,7 +1368,9 @@ function TestDetails() {
         return updated;
       });
 
-      if ([498, 196, 449, 467, 315, 362, 205].includes(currentTest?.test_id)) {
+      if (
+        [498, 196, 550, 449, 467, 315, 362, 205].includes(currentTest?.test_id)
+      ) {
         return calculateDerivedValues(
           testname,
           newValues,
