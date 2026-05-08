@@ -425,7 +425,10 @@ const HMSBarcodeTestDetails = () => {
 
     // Split bill number by '/' to get year and number parts
     const parts = String(billNumber).split("/");
-    if (parts.length !== 2) return null;
+    if (parts.length !== 2) {
+      // Fallback: return sanitized bill number (remove special characters) if no slash is present
+      return String(billNumber).replace(/[^a-zA-Z0-9]/g, "");
+    }
 
     const year = parts[0]; // e.g., "2526"
     const number = parts[1]; // e.g., "014079"
@@ -505,31 +508,39 @@ const HMSBarcodeTestDetails = () => {
         return false;
       }
 
-      // Group tests by container
+      // Group tests by container and suffix
       const containerGroups = {};
       testDetails.forEach((test) => {
         const container = test.collection_container || "";
-        if (!containerGroups[container]) {
-          containerGroups[container] = [];
+        const suffix = test.suffix || "";
+        const groupKey = `${container}_${suffix}`;
+        if (!containerGroups[groupKey]) {
+          containerGroups[groupKey] = {
+            container: container,
+            suffix: suffix,
+            tests: []
+          };
         }
-        containerGroups[container].push(test);
+        containerGroups[groupKey].tests.push(test);
       });
 
-      // Update test details with barcode
-      const updatedTestDetails = testDetails.map((test) => ({
-        test_id: test.test_id,
-        testname: test.testname,
-        barcode: patientBarcode,
-      }));
+      // Update test details with suffixed barcode
+      const updatedTestDetails = testDetails.map((test) => {
+        const suffix = test.suffix ? `-${test.suffix}` : "";
+        return {
+          ...test,
+          barcode: `${patientBarcode}${suffix}`,
+        };
+      });
 
       setTestDetails(updatedTestDetails);
 
       // Create barcode data for UI
       const newBarcodeData = [
-        ...Object.entries(containerGroups).map(([container, testdetails]) => ({
-          barcode: patientBarcode,
-          containerName: container,
-          shortcut: testdetails[0]?.shortcut || "",
+        ...Object.values(containerGroups).map((group) => ({
+          barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
+          containerName: group.container,
+          shortcut: group.tests[0]?.shortcut || "",
           isExtra: false,
         })),
         {
@@ -605,27 +616,34 @@ const HMSBarcodeTestDetails = () => {
         return;
       }
 
-      // Group tests by container
+      // Group tests by container and suffix
       const containerGroups = {};
       testDetails.forEach((test) => {
         const container = test.collection_container || "";
-        if (!containerGroups[container]) {
-          containerGroups[container] = [];
+        const suffix = test.suffix || "";
+        const groupKey = `${container}_${suffix}`;
+        if (!containerGroups[groupKey]) {
+          containerGroups[groupKey] = {
+            container: container,
+            suffix: suffix,
+            tests: []
+          };
         }
-        containerGroups[container].push(test);
+        containerGroups[groupKey].tests.push(test);
       });
 
       const updatedTestDetails = testDetails.map((test) => {
-        return { ...test, barcode: patientBarcode };
+        const suffix = test.suffix ? `-${test.suffix}` : "";
+        return { ...test, barcode: `${patientBarcode}${suffix}` };
       });
 
       setTestDetails(updatedTestDetails);
 
       const newBarcodeData = [
-        ...Object.entries(containerGroups).map(([container, testdetails]) => ({
-          barcode: patientBarcode,
-          containerName: container,
-          shortcut: testdetails[0]?.shortcut || "",
+        ...Object.values(containerGroups).map((group) => ({
+          barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
+          containerName: group.container,
+          shortcut: group.tests[0]?.shortcut || "",
           isExtra: false,
         })),
         {
