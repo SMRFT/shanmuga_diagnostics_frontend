@@ -32,8 +32,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-import Dhana from "../Images/Dhana.png";
-import Brindha from "../Images/Brindha.png";
+import NABLImage from "../Images/NABL.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 
@@ -286,21 +285,31 @@ const GenderIcon = styled.div`
 // ── PrintDropdown: just a relative wrapper for the trigger button ─────────────
 const PrintDropdown = styled.div`
   position: relative;
+  &::after {
+    content: "";
+    position: fixed;
+    width: 210px;
+    height: 10px;
+    left: ${(p) => p.left || 0}px;
+    top: ${(p) => p.top || 0}px;
+    z-index: 9998;
+    pointer-events: auto;
+    background: transparent;
+  }
 `;
-
-// ── PortalDropdownMenu: renders at body level, escapes overflow:auto clipping ──
-// position:fixed + z-index:9999 ensures it always appears above the table.
 const PortalDropdownMenu = styled.div`
   position: fixed;
   background-color: white;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   min-width: 200px;
   z-index: 9999;
   overflow: hidden;
-  border: 1px solid var(--gray-light);
+  border: 1px solid #e9ecef;
+  // Bridge the gap with invisible top padding
+  padding-top: 6px;
+  margin-top: -6px;
 `;
-
 const DropdownItem = styled.button`
   display: block;
   width: 100%;
@@ -971,6 +980,17 @@ const PatientOverview = () => {
         return null;
       }
 
+      // ── NABL SPLIT: separate NABL=true and NABL=false tests ──────────────
+      const nablTrueTests = patientDetails.testdetails.filter(
+        (t) => t.NABL === true,
+      );
+      const nablFalseTests = patientDetails.testdetails.filter(
+        (t) => t.NABL !== true,
+      );
+      // We will render NABL=true tests first (pages with NABL logo),
+      // then NABL=false tests (pages WITHOUT NABL logo).
+      // ──────────────────────────────────────────────────────────────────────
+
       const unicodeMap = {
         μ: "µ",
         α: "α",
@@ -1118,10 +1138,7 @@ const PatientOverview = () => {
               },
             ]
           : []),
-        {
-          label: "Printed On",
-          value: format(new Date(), "dd MMM yy / HH:mm"),
-        },
+        { label: "Printed On", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
       const calculateMaxLabelWidth = (details) => {
@@ -1130,9 +1147,17 @@ const PatientOverview = () => {
           ...details.map((item) => tempDoc.getTextWidth(item.label)),
         );
       };
+
       const doc = new jsPDF();
       let pageCount = 1;
       let isTableStarted = false;
+
+      // ── Track which "section" we are currently rendering ─────────────────
+      // showNablLogo = true  → pages for NABL=true tests
+      // showNablLogo = false → pages for NABL=false tests
+      let showNablLogo = nablTrueTests.length > 0; // start with NABL pages if any exist
+      // ──────────────────────────────────────────────────────────────────────
+
       const wrapTextAndGetLines = (doc, text, maxWidth) => {
         if (!text) return [];
         return doc.splitTextToSize(text, maxWidth);
@@ -1211,7 +1236,9 @@ const PatientOverview = () => {
         }
         return patientInfoY;
       };
-      const addHeaderFooter = () => {
+
+      // ── addHeaderFooter now accepts a boolean: whether to show NABL logo ──
+      const addHeaderFooter = (withNabl = false) => {
         if (withLetterpad) {
           doc.addImage(
             headerImage,
@@ -1221,6 +1248,22 @@ const PatientOverview = () => {
             doc.internal.pageSize.width,
             headerHeight,
           );
+          // ── Place NABL logo beside NABH logo (≈2 inches = 50.8 mm from right) ──
+          if (withNabl && NABLImage) {
+            // nablLogoImage is the imported/loaded NABL png (see note below)
+            const nablLogoWidth = 20; // adjust as needed (mm)
+            const nablLogoHeight = 20;
+            const nablLogoX = doc.internal.pageSize.width - 45 - nablLogoWidth;
+            const nablLogoY = 14; // vertically centred in header band
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
           doc.addImage(
             FooterImage,
             "PNG",
@@ -1230,13 +1273,30 @@ const PatientOverview = () => {
             footerHeight,
           );
         } else {
+          // Without letterpad – still overlay NABL logo at the same position
           doc.setFontSize(8);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(255, 255, 255);
           doc.text("Header Space", leftMargin, 10);
           doc.setTextColor(0, 0, 0);
+          if (withNabl && NABLImage) {
+            const nablLogoWidth = 25;
+            const nablLogoHeight = 25;
+            const nablLogoX = doc.internal.pageSize.width - 40 - nablLogoWidth;
+            const nablLogoY = 6;
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
         }
       };
+      // ──────────────────────────────────────────────────────────────────────
+
       const renderUnicodeText = (text, x, y, options = {}) => {
         const processedText = processUnicodeText(text);
         if (processedText.includes("µ")) {
@@ -1313,7 +1373,7 @@ const PatientOverview = () => {
           addSignatures();
           doc.addPage();
           pageCount++;
-          addHeaderFooter();
+          addHeaderFooter(showNablLogo); // ← pass current NABL flag
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
           newYPos += 10;
@@ -1357,21 +1417,18 @@ const PatientOverview = () => {
         }
       };
 
-      addHeaderFooter();
-      let currentYPosition = addPatientInfo(contentYStart);
-      currentYPosition += 10;
-      if (patientDetails.testdetails.length) {
+      // ── helper: render one ordered list of tests onto the PDF ────────────
+      const renderTestGroup = (testsToRender, yPos) => {
+        if (!testsToRender.length) return yPos;
+
         isTableStarted = true;
-        currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
-        let yPos = currentYPosition;
+        yPos = checkForNewPage(yPos, tableHeaderHeight);
         yPos = drawTableHeader(yPos);
-        const testsByDepartment = patientDetails.testdetails.reduce(
-          (acc, test) => {
-            (acc[test.department] = acc[test.department] || []).push(test);
-            return acc;
-          },
-          {},
-        );
+
+        const testsByDepartment = testsToRender.reduce((acc, test) => {
+          (acc[test.department] = acc[test.department] || []).push(test);
+          return acc;
+        }, {});
         const sortedDepartments = Object.keys(testsByDepartment).sort(
           (a, b) => {
             const iA = departmentOrder.indexOf(a);
@@ -1382,6 +1439,7 @@ const PatientOverview = () => {
             return a.localeCompare(b);
           },
         );
+
         sortedDepartments.forEach((department) => {
           const verifiedBySet = new Set();
           testsByDepartment[department].forEach((test) => {
@@ -1389,6 +1447,7 @@ const PatientOverview = () => {
               verifiedBySet.add(test.verified_by);
           });
           const hasMultipleVerifiers = verifiedBySet.size > 1;
+
           testsByDepartment[department].forEach((test, testIndex) => {
             if (testIndex === 0) {
               yPos = checkForNewPage(yPos, 15);
@@ -1407,6 +1466,7 @@ const PatientOverview = () => {
               );
               yPos += 10;
             }
+
             const parametersBySubtitle = {};
             if (test.parameters && test.parameters.length > 0) {
               test.parameters.forEach((param) => {
@@ -1416,6 +1476,7 @@ const PatientOverview = () => {
                 parametersBySubtitle[subtitle].push(param);
               });
             }
+
             yPos = checkForNewPage(yPos, 20);
             doc.setFontSize(10);
             const testNameText = test.testname;
@@ -1451,6 +1512,7 @@ const PatientOverview = () => {
             );
             const lineHeight = 4;
             const actualRowHeight = maxLines * lineHeight + 2;
+
             yPos = checkForNewPage(yPos, actualRowHeight);
             let xPos = leftMargin;
             doc.setFont("helvetica", "bold");
@@ -1531,6 +1593,7 @@ const PatientOverview = () => {
             yPos += actualRowHeight + 4;
             doc.setFont("helvetica", "normal");
             doc.setTextColor(0, 0, 0);
+
             if (test.outsourced === true) {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
@@ -1555,6 +1618,7 @@ const PatientOverview = () => {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
+
             Object.keys(parametersBySubtitle).forEach((subtitle) => {
               if (subtitle && subtitle.trim() !== "") {
                 yPos = checkForNewPage(yPos, 25);
@@ -1580,7 +1644,7 @@ const PatientOverview = () => {
                   paramValueText,
                   colWidths[3] - 2,
                 );
-                const paramReferenceLines = wrapTextAndGetLines(
+                const paramRefLines = wrapTextAndGetLines(
                   doc,
                   currentTest.reference_range || "",
                   colWidths[5] - 2,
@@ -1593,13 +1657,12 @@ const PatientOverview = () => {
                 const paramMaxLines = Math.max(
                   paramNameLines.length,
                   paramValueLines.length,
-                  paramReferenceLines.length,
+                  paramRefLines.length,
                   paramMethodLines.length,
                 );
                 const paramLineHeight = 4;
-                const paramActualRowHeight =
-                  paramMaxLines * paramLineHeight + 2;
-                yPos = checkForNewPage(yPos, paramActualRowHeight);
+                const paramRowHeight = paramMaxLines * paramLineHeight + 2;
+                yPos = checkForNewPage(yPos, paramRowHeight);
                 let xPos = leftMargin;
                 doc.setFont("helvetica", "normal");
                 renderWrappedText(
@@ -1614,7 +1677,7 @@ const PatientOverview = () => {
                 doc.text(currentTest.specimen_type || "", xPos, yPos);
                 xPos += colWidths[1];
                 xPos += colWidths[2];
-                const paramStatusIndicator = currentTest.isHigh
+                const paramStatus = currentTest.isHigh
                   ? "H"
                   : currentTest.isLow
                     ? "L"
@@ -1622,12 +1685,12 @@ const PatientOverview = () => {
                         paramValueText,
                         currentTest.reference_range,
                       );
-                if (paramStatusIndicator) {
+                if (paramStatus) {
                   doc.setFont("helvetica", "bold");
                   doc.setTextColor(
-                    paramStatusIndicator === "H" ? 255 : 0,
+                    paramStatus === "H" ? 255 : 0,
                     0,
-                    paramStatusIndicator === "L" ? 255 : 0,
+                    paramStatus === "L" ? 255 : 0,
                   );
                   renderWrappedText(
                     doc,
@@ -1643,7 +1706,7 @@ const PatientOverview = () => {
                       doc,
                       xPos + paramValueWidth + 2,
                       yPos - 1,
-                      paramStatusIndicator === "H" ? "up" : "down",
+                      paramStatus === "H" ? "up" : "down",
                     );
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
@@ -1678,7 +1741,8 @@ const PatientOverview = () => {
                   yPos,
                   paramLineHeight,
                 );
-                yPos += paramActualRowHeight;
+                yPos += paramRowHeight;
+
                 if (currentTest.comment && currentTest.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
@@ -1701,6 +1765,7 @@ const PatientOverview = () => {
                 doc.setTextColor(0, 0, 0);
               });
             });
+
             if (
               hasMultipleVerifiers &&
               test.verified_by &&
@@ -1712,6 +1777,7 @@ const PatientOverview = () => {
               yPos += 5;
             }
           });
+
           if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
@@ -1722,13 +1788,46 @@ const PatientOverview = () => {
             );
             yPos += 5;
           }
-          const isLastDepartment =
+          const isLastDept =
             department === sortedDepartments[sortedDepartments.length - 1];
-          yPos += isLastDepartment ? 2 : 4;
+          yPos += isLastDept ? 2 : 4;
         });
-        currentYPosition = yPos;
+
+        return yPos;
+      };
+      // ──────────────────────────────────────────────────────────────────────
+
+      // ── FIRST PAGE: always starts with NABL logo state = nablTrueTests exist ─
+      addHeaderFooter(showNablLogo);
+      let currentYPosition = addPatientInfo(contentYStart);
+      currentYPosition += 10;
+
+      // ── Render NABL=true tests (with logo) ───────────────────────────────
+      if (nablTrueTests.length > 0) {
+        currentYPosition = renderTestGroup(nablTrueTests, currentYPosition);
       }
+
+      // ── Switch to non-NABL section ────────────────────────────────────────
+      if (nablFalseTests.length > 0) {
+        // If we already have NABL=true tests rendered, start a new page for false tests
+        if (nablTrueTests.length > 0) {
+          addSignatures();
+          showNablLogo = false; // ← flip the flag BEFORE adding the new page
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter(false); // no NABL logo
+          currentYPosition = contentYStart;
+          currentYPosition = addPatientInfo(currentYPosition);
+          currentYPosition += 10;
+        } else {
+          // No NABL=true tests at all – first (and only) section, no logo
+          showNablLogo = false;
+        }
+        currentYPosition = renderTestGroup(nablFalseTests, currentYPosition);
+      }
+
       isTableStarted = false;
+
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
@@ -1736,12 +1835,13 @@ const PatientOverview = () => {
           addSignatures();
           doc.addPage();
           pageCount++;
-          addHeaderFooter();
+          addHeaderFooter(showNablLogo);
           return addPatientInfo(contentYStart);
         }
         return currentYPosition;
       };
       currentYPosition = ensureSpaceForFooter(currentYPosition);
+
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       const centerX = leftMargin + contentWidth / 2;
@@ -1749,6 +1849,8 @@ const PatientOverview = () => {
         align: "center",
       });
       addSignatures();
+
+      // ── Page numbering ────────────────────────────────────────────────────
       const finalPageCount = pageCount;
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
@@ -1762,6 +1864,7 @@ const PatientOverview = () => {
           { align: "center" },
         );
       }
+
       const pdfBlob = doc.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
       window.open(pdfUrl, "_blank");

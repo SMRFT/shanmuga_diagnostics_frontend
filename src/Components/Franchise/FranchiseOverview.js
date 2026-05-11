@@ -32,9 +32,7 @@ import "react-toastify/dist/ReactToastify.css";
 // Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-// import Savitha from "../Images/Savitha.png";
-import Dhana from "../Images/Dhana.png";
-import Brindha from "../Images/Brindha.png";
+import NABLImage from "../Images/NABL.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 
@@ -346,17 +344,30 @@ const GenderIcon = styled.div`
 
 const PrintDropdown = styled.div`
   position: relative;
+  &::after {
+    content: "";
+    position: fixed;
+    width: 210px;
+    height: 10px;
+    left: ${(p) => p.left || 0}px;
+    top: ${(p) => p.top || 0}px;
+    z-index: 9998;
+    pointer-events: auto;
+    background: transparent;
+  }
 `;
-
 const PortalDropdownMenu = styled.div`
-  position: fixed; /* fixed so it escapes any overflow:auto ancestor */
+  position: fixed;
   background-color: white;
-  border-radius: var(--border-radius);
+  border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  min-width: 190px;
-  z-index: 9999; /* above everything */
+  min-width: 200px;
+  z-index: 9999;
   overflow: hidden;
-  border: 1px solid var(--gray-light);
+  border: 1px solid #e9ecef;
+  // Bridge the gap with invisible top padding
+  padding-top: 6px;
+  margin-top: -6px;
 `;
 const DropdownItem = styled.button`
   display: block;
@@ -1017,34 +1028,24 @@ const FranchiseOverview = () => {
 
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
-      console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}franchise_patient_test_details/?barcode=${patient.barcode}`,
         "GET",
       );
-
       if (!response.success) {
-        console.error("Failed to fetch patient details:", response.error);
         toast.error(response.error || "Failed to fetch patient details");
         setLoading(false);
         return null;
       }
 
-      console.log("API Response:", response.data);
-
-      // Extract patient data and signatures from the new response structure
       let patientDetails;
       let signaturesData = [];
-
       if (response.data.patient_data && response.data.signatures) {
-        // New structure with signatures
         patientDetails = response.data.patient_data;
         signaturesData = response.data.signatures;
       } else {
-        // Fallback for old structure
         patientDetails = response.data;
       }
-
       if (Array.isArray(patientDetails)) {
         patientDetails = {
           ...patientDetails[0],
@@ -1053,15 +1054,10 @@ const FranchiseOverview = () => {
           ),
         };
       }
-
-      console.log("Processed Patient Details:", patientDetails);
-      console.log("Signatures Data:", signaturesData);
-
       if (
         !patientDetails.testdetails ||
         patientDetails.testdetails.length === 0
       ) {
-        console.error("No test details found for the patient.");
         toast.error("No test details found for the patient.");
         setLoading(false);
         return null;
@@ -1079,7 +1075,17 @@ const FranchiseOverview = () => {
         return null;
       }
 
-      // Unicode character mapping
+      // ── NABL SPLIT: separate NABL=true and NABL=false tests ──────────────
+      const nablTrueTests = patientDetails.testdetails.filter(
+        (t) => t.NABL === true,
+      );
+      const nablFalseTests = patientDetails.testdetails.filter(
+        (t) => t.NABL !== true,
+      );
+      // We will render NABL=true tests first (pages with NABL logo),
+      // then NABL=false tests (pages WITHOUT NABL logo).
+      // ──────────────────────────────────────────────────────────────────────
+
       const unicodeMap = {
         μ: "µ",
         α: "α",
@@ -1101,67 +1107,40 @@ const FranchiseOverview = () => {
         "\\u00b2": "²",
         "\\u00b3": "³",
       };
-
       const processUnicodeText = (text) => {
         if (!text) return "";
-        let processedText = text;
-        processedText = processedText.replace(
-          /\\u([0-9a-fA-F]{4})/g,
-          (match, hex) => {
-            const char = String.fromCharCode(parseInt(hex, 16));
-            return unicodeMap[char] || char;
-          },
-        );
-        Object.keys(unicodeMap).forEach((unicode) => {
-          const regex = new RegExp(unicode, "g");
-          processedText = processedText.replace(regex, unicodeMap[unicode]);
+        let t = text;
+        t = t.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+          const char = String.fromCharCode(parseInt(hex, 16));
+          return unicodeMap[char] || char;
         });
-        return processedText;
+        Object.keys(unicodeMap).forEach((u) => {
+          t = t.replace(new RegExp(u, "g"), unicodeMap[u]);
+        });
+        return t;
       };
-
       const extractPatientRefNoNumber = (refNo) => {
         if (!refNo) return "N/A";
-        const numberPart = refNo.split("+")[0];
-        return numberPart;
+        return refNo.split("+")[0];
       };
-
-      // CORRECTED: Map designation codes to consultant positions
-      // Note: Data shows DESIG101, DESIG100, DESIG099 (without leading 0)
       const designationMapping = {
         DESIG101: { position: 0, title: "Consultant Microbiologist" },
         DESIG100: { position: 1, title: "Consultant Pathologist" },
         DESIG099: { position: 2, title: "Consultant Biochemist" },
       };
-
-      // Build consultants array dynamically from signatures data
-      const consultants = [];
-
-      // Initialize with empty slots
-      consultants[0] = null; // Microbiologist
-      consultants[1] = null; // Pathologist
-      consultants[2] = null; // Biochemist
-
-      // Fill in the consultants based on signatures data
+      const consultants = [null, null, null];
       signaturesData.forEach((sig) => {
         const mapping = designationMapping[sig.designation];
-        if (mapping) {
-          const signatureImage = sig.signatureBase64
-            ? `data:image/png;base64,${sig.signatureBase64}`
-            : null;
-
+        if (mapping)
           consultants[mapping.position] = [
             sig.employeeName,
             mapping.title,
-            signatureImage,
+            sig.signatureBase64
+              ? `data:image/png;base64,${sig.signatureBase64}`
+              : null,
           ];
-        }
       });
-
-      // Filter out null entries (positions without signatures)
       const activeConsultants = consultants.filter((c) => c !== null);
-
-      console.log("Active Consultants:", activeConsultants);
-
       const departmentOrder = [
         "Haematology",
         "Coagulation",
@@ -1178,12 +1157,9 @@ const FranchiseOverview = () => {
         "Microbiology",
         "Molecular Biology",
       ];
-
       const patientRefNo =
         patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
       const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
-
-      // Generate Barcode
       let barcodeImage = null;
       if (patientRefNoNumber !== "N/A") {
         const barcodeCanvas = document.createElement("canvas");
@@ -1197,8 +1173,6 @@ const FranchiseOverview = () => {
         });
         barcodeImage = barcodeCanvas.toDataURL("image/png");
       }
-
-      // Document dimensions
       const leftMargin = 10;
       const rightMargin = leftMargin + 190;
       const contentWidth = rightMargin - leftMargin;
@@ -1207,19 +1181,15 @@ const FranchiseOverview = () => {
       const contentYStart = headerHeight + 20;
       const signatureHeight = 35;
       const tableHeaderHeight = 10;
-
-      // Column widths
       const colWidths = [
-        contentWidth * 0.28, // Test Description
-        contentWidth * 0.12, // Specimen Type
-        contentWidth * 0.05, // Extra Gap
-        contentWidth * 0.13, // Value(s)
-        contentWidth * 0.1, // Unit
-        contentWidth * 0.17, // Reference Range
-        contentWidth * 0.15, // Method
+        contentWidth * 0.28,
+        contentWidth * 0.12,
+        contentWidth * 0.05,
+        contentWidth * 0.13,
+        contentWidth * 0.1,
+        contentWidth * 0.17,
+        contentWidth * 0.15,
       ];
-
-      // Patient information
       const leftDetails = [
         { label: "Patient ID", value: patientDetails.patient_id || "N/A" },
         {
@@ -1233,7 +1203,6 @@ const FranchiseOverview = () => {
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "SELF" },
       ];
-
       const rightDetails = [
         {
           label: "Collected On",
@@ -1251,13 +1220,21 @@ const FranchiseOverview = () => {
               "dd MMM yy / HH:mm",
             ) || "N/A",
         },
-        {
-          label: "Printed On",
-          value: format(new Date(), "dd MMM yy / HH:mm"),
-        },
+        ...(patientDetails.testdetails[0].dispatch_time &&
+        patientDetails.testdetails[0].dispatch_time !== "null"
+          ? [
+              {
+                label: "Released On",
+                value: format(
+                  new Date(patientDetails.testdetails[0].dispatch_time),
+                  "dd MMM yy / HH:mm",
+                ),
+              },
+            ]
+          : []),
+        { label: "Printed On", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
       ];
-
       const calculateMaxLabelWidth = (details) => {
         const tempDoc = new jsPDF();
         return Math.max(
@@ -1269,6 +1246,31 @@ const FranchiseOverview = () => {
       let pageCount = 1;
       let isTableStarted = false;
 
+      // ── Track which "section" we are currently rendering ─────────────────
+      // showNablLogo = true  → pages for NABL=true tests
+      // showNablLogo = false → pages for NABL=false tests
+      let showNablLogo = nablTrueTests.length > 0; // start with NABL pages if any exist
+      // ──────────────────────────────────────────────────────────────────────
+
+      const wrapTextAndGetLines = (doc, text, maxWidth) => {
+        if (!text) return [];
+        return doc.splitTextToSize(text, maxWidth);
+      };
+      const renderWrappedText = (
+        doc,
+        text,
+        maxWidth,
+        startX,
+        yPos,
+        lineHeight = 4,
+      ) => {
+        if (!text) return 0;
+        const lines = wrapTextAndGetLines(doc, text, maxWidth);
+        lines.forEach((line, index) =>
+          doc.text(line, startX, yPos + index * lineHeight),
+        );
+        return lines.length * lineHeight;
+      };
       const addPatientInfo = (yPos) => {
         const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
         const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
@@ -1279,42 +1281,36 @@ const FranchiseOverview = () => {
         const rightLabelX = centerPoint + 28;
         const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
         const rightValueX = rightColonX + 1;
-
         doc.setFontSize(10);
         let patientInfoY = yPos;
-
-        for (let i = 0; i < leftDetails.length; i++) {
+        const maxLength = Math.max(leftDetails.length, rightDetails.length);
+        for (let i = 0; i < maxLength; i++) {
           const left = leftDetails[i];
           const right = rightDetails[i];
-
-          // Handle left side
-          doc.setFont("helvetica", "bold");
-          doc.text(left.label, leftLabelX, patientInfoY);
-          doc.text(":", leftColonX, patientInfoY);
-          doc.setFont("helvetica", "normal");
-
-          // Wrap left value to prevent overlap with right side
-          const maxLeftValueWidth = centerPoint + 25 - leftValueX;
-          const leftValueLines = wrapTextAndGetLines(
-            doc,
-            left.value,
-            maxLeftValueWidth,
-          );
-
-          leftValueLines.forEach((line, lineIndex) => {
-            doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
-          });
-
-          const leftRowHeight = leftValueLines.length * 4;
-
-          // Handle right side
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, leftLabelX, patientInfoY);
+            doc.text(":", leftColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
+            const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+            const leftValueLines = wrapTextAndGetLines(
+              doc,
+              left.value,
+              maxLeftValueWidth,
+            );
+            leftValueLines.forEach((line, lineIndex) =>
+              doc.text(line, leftValueX, patientInfoY + lineIndex * 4),
+            );
+            var leftRowHeight = leftValueLines.length * 4;
+          } else {
+            var leftRowHeight = 5;
+          }
           if (right) {
             doc.setFont("helvetica", "bold");
             doc.text(right.label, rightLabelX, patientInfoY);
             doc.text(":", rightColonX, patientInfoY);
             doc.setFont("helvetica", "normal");
             doc.text(right.value, rightValueX, patientInfoY);
-
             if (
               right.label === "Patient Ref.No" &&
               patientRefNoNumber !== "N/A" &&
@@ -1323,22 +1319,20 @@ const FranchiseOverview = () => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 15,
+                rightValueX + doc.getTextWidth(right.value) - 10,
                 patientInfoY + 4,
                 25,
                 10,
               );
             }
           }
-
-          // Move to next row
           patientInfoY += Math.max(leftRowHeight, 5);
         }
-
         return patientInfoY;
       };
 
-      const addHeaderFooter = () => {
+      // ── addHeaderFooter now accepts a boolean: whether to show NABL logo ──
+      const addHeaderFooter = (withNabl = false) => {
         if (withLetterpad) {
           doc.addImage(
             headerImage,
@@ -1348,23 +1342,54 @@ const FranchiseOverview = () => {
             doc.internal.pageSize.width,
             headerHeight,
           );
-          const footerY = doc.internal.pageSize.height - footerHeight;
+          // ── Place NABL logo beside NABH logo (≈2 inches = 50.8 mm from right) ──
+          if (withNabl && NABLImage) {
+            // nablLogoImage is the imported/loaded NABL png (see note below)
+            const nablLogoWidth = 20; // adjust as needed (mm)
+            const nablLogoHeight = 20;
+            const nablLogoX = doc.internal.pageSize.width - 45 - nablLogoWidth;
+            const nablLogoY = 14; // vertically centred in header band
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
           doc.addImage(
             FooterImage,
             "PNG",
             0,
-            footerY,
+            doc.internal.pageSize.height - footerHeight,
             doc.internal.pageSize.width,
             footerHeight,
           );
         } else {
+          // Without letterpad – still overlay NABL logo at the same position
           doc.setFontSize(8);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(255, 255, 255);
           doc.text("Header Space", leftMargin, 10);
           doc.setTextColor(0, 0, 0);
+          if (withNabl && NABLImage) {
+            const nablLogoWidth = 25;
+            const nablLogoHeight = 25;
+            const nablLogoX = doc.internal.pageSize.width - 40 - nablLogoWidth;
+            const nablLogoY = 6;
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
         }
       };
+      // ──────────────────────────────────────────────────────────────────────
 
       const renderUnicodeText = (text, x, y, options = {}) => {
         const processedText = processUnicodeText(text);
@@ -1386,11 +1411,9 @@ const FranchiseOverview = () => {
           doc.text(processedText, x, y);
         }
       };
-
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
-
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
         const headers = [
@@ -1404,65 +1427,23 @@ const FranchiseOverview = () => {
         ];
         let xPos = leftMargin;
         headers.forEach((header, index) => {
-          if (header) {
-            doc.text(header, xPos, yPos);
-          }
+          if (header) doc.text(header, xPos, yPos);
           xPos += colWidths[index];
         });
-
         yPos += 3;
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
         return yPos;
       };
-
-      const wrapTextAndGetLines = (doc, text, maxWidth) => {
-        if (!text) return [];
-        return doc.splitTextToSize(text, maxWidth);
-      };
-
-      const renderWrappedText = (
-        doc,
-        text,
-        maxWidth,
-        startX,
-        yPos,
-        lineHeight = 4,
-      ) => {
-        if (!text) return 0;
-        const lines = wrapTextAndGetLines(doc, text, maxWidth);
-        lines.forEach((line, index) => {
-          doc.text(line, startX, yPos + index * lineHeight);
-        });
-        return lines.length * lineHeight;
-      };
-
-      // UPDATED: addSignatures function
-
       const addSignatures = () => {
         const pageHeight = doc.internal.pageSize.height;
         const signaturesY = pageHeight - footerHeight - signatureHeight - 2;
         const signatureWidth = 35;
-
-        // Only show signatures if we have active consultants
         if (activeConsultants.length === 0) return;
-
-        // Calculate spacing based on number of active consultants
-        const totalConsultants = activeConsultants.length;
-
-        // Calculate starting position from RIGHT side
-        const rightEdge = rightMargin;
-        const signatureSpacing = 60; // Fixed spacing between signatures
-
-        // Start from right edge and work backwards
-        const startX = rightEdge - totalConsultants * signatureSpacing;
-
+        const startX = rightMargin - activeConsultants.length * 60;
         activeConsultants.forEach((consultant, index) => {
-          // Position from the calculated start point, moving right
-          const xPosition = startX + index * signatureSpacing;
-
-          // Display signature image if available
-          if (consultant[2]) {
+          const xPosition = startX + index * 60;
+          if (consultant[2])
             doc.addImage(
               consultant[2],
               "PNG",
@@ -1471,47 +1452,34 @@ const FranchiseOverview = () => {
               signatureWidth,
               15,
             );
-          }
-
-          // Display full name with credentials
-          const fullName = consultant[0];
-
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
-          doc.text(fullName, xPosition, signaturesY + 20);
-
-          // Display title (Consultant position)
+          doc.text(consultant[0], xPosition, signaturesY + 20);
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
           doc.text(consultant[1], xPosition, signaturesY + 25);
         });
       };
-
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
         const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
-
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
-          addHeaderFooter();
+          addHeaderFooter(showNablLogo); // ← pass current NABL flag
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
           newYPos += 10;
-          if (isTableStarted) {
-            newYPos = drawTableHeader(newYPos);
-          }
+          if (isTableStarted) newYPos = drawTableHeader(newYPos);
           return newYPos;
         }
         return yPos;
       };
-
       const getHighLowStatus = (value, reference) => {
         if (!value || !reference) return null;
         const numValue = Number.parseFloat(value);
         if (isNaN(numValue)) return null;
-
         if (reference.includes("-")) {
           const [min, max] = reference
             .split("-")
@@ -1529,7 +1497,6 @@ const FranchiseOverview = () => {
         }
         return null;
       };
-
       const drawArrowSymbol = (doc, x, y, direction) => {
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.5);
@@ -1544,57 +1511,40 @@ const FranchiseOverview = () => {
         }
       };
 
-      // Start PDF generation
-      addHeaderFooter();
-      let currentYPosition = addPatientInfo(contentYStart);
-      currentYPosition += 10;
+      // ── helper: render one ordered list of tests onto the PDF ────────────
+      const renderTestGroup = (testsToRender, yPos) => {
+        if (!testsToRender.length) return yPos;
 
-      if (patientDetails.testdetails.length) {
         isTableStarted = true;
-        currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
-        let yPos = currentYPosition;
+        yPos = checkForNewPage(yPos, tableHeaderHeight);
         yPos = drawTableHeader(yPos);
 
-        const testsByDepartment = patientDetails.testdetails.reduce(
-          (acc, test) => {
-            (acc[test.department] = acc[test.department] || []).push(test);
-            return acc;
-          },
-          {},
-        );
-
-        // Sort departments according to the specified order
+        const testsByDepartment = testsToRender.reduce((acc, test) => {
+          (acc[test.department] = acc[test.department] || []).push(test);
+          return acc;
+        }, {});
         const sortedDepartments = Object.keys(testsByDepartment).sort(
           (a, b) => {
-            const indexA = departmentOrder.indexOf(a);
-            const indexB = departmentOrder.indexOf(b);
-
-            if (indexA !== -1 && indexB !== -1) {
-              return indexA - indexB;
-            }
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
+            const iA = departmentOrder.indexOf(a);
+            const iB = departmentOrder.indexOf(b);
+            if (iA !== -1 && iB !== -1) return iA - iB;
+            if (iA !== -1) return -1;
+            if (iB !== -1) return 1;
             return a.localeCompare(b);
           },
         );
 
         sortedDepartments.forEach((department) => {
-          // Collect all verified_by values in this department
           const verifiedBySet = new Set();
           testsByDepartment[department].forEach((test) => {
-            if (test.verified_by && test.verified_by.trim() !== "") {
+            if (test.verified_by && test.verified_by.trim() !== "")
               verifiedBySet.add(test.verified_by);
-            }
           });
-
           const hasMultipleVerifiers = verifiedBySet.size > 1;
 
           testsByDepartment[department].forEach((test, testIndex) => {
-            // Render department header only for first test in department
             if (testIndex === 0) {
-              const departmentHeight = 15;
-              yPos = checkForNewPage(yPos, departmentHeight);
-
+              yPos = checkForNewPage(yPos, 15);
               doc.setFont("helvetica", "bold");
               doc.setFontSize(10);
               const textWidth = doc.getTextWidth(department.toUpperCase());
@@ -1611,55 +1561,43 @@ const FranchiseOverview = () => {
               yPos += 10;
             }
 
-            // Group parameters by sub_title
             const parametersBySubtitle = {};
-
             if (test.parameters && test.parameters.length > 0) {
               test.parameters.forEach((param) => {
                 const subtitle = param.sub_title || "";
-                if (!parametersBySubtitle[subtitle]) {
+                if (!parametersBySubtitle[subtitle])
                   parametersBySubtitle[subtitle] = [];
-                }
                 parametersBySubtitle[subtitle].push(param);
               });
             }
 
-            const testHeaderHeight = 20;
-            yPos = checkForNewPage(yPos, testHeaderHeight);
-
-            // Render main test
+            yPos = checkForNewPage(yPos, 20);
             doc.setFontSize(10);
-
-            // Calculate all text wrapping FIRST
             const testNameText = test.testname;
+            const valueText = test.value || "";
+            const methodText = (test.method || "")
+              .replace(/\bMethod\b/i, "")
+              .trim();
             const testNameLines = wrapTextAndGetLines(
               doc,
               testNameText,
               colWidths[0] - 2,
             );
-
-            const valueText = test.value || "";
             const valueLines = wrapTextAndGetLines(
               doc,
               valueText,
               colWidths[3] - 2,
             );
-
             const referenceLines = wrapTextAndGetLines(
               doc,
               test.reference_range || "",
               colWidths[5] - 2,
             );
-
-            const methodText = (test.method || "")
-              .replace(/\bMethod\b/i, "")
-              .trim();
             const methodLines = wrapTextAndGetLines(
               doc,
               methodText,
               colWidths[6] - 2,
             );
-
             const maxLines = Math.max(
               testNameLines.length,
               valueLines.length,
@@ -1670,10 +1608,7 @@ const FranchiseOverview = () => {
             const actualRowHeight = maxLines * lineHeight + 2;
 
             yPos = checkForNewPage(yPos, actualRowHeight);
-
             let xPos = leftMargin;
-
-            // Test Name
             doc.setFont("helvetica", "bold");
             renderWrappedText(
               doc,
@@ -1684,29 +1619,22 @@ const FranchiseOverview = () => {
               lineHeight,
             );
             xPos += colWidths[0];
-
             doc.setFont("helvetica", "normal");
-
-            // Specimen Type
             doc.text(test.specimen_type || "", xPos, yPos);
             xPos += colWidths[1];
-
             xPos += colWidths[2];
-
-            // Value(s)
             const statusIndicator = test.isHigh
               ? "H"
               : test.isLow
                 ? "L"
                 : getHighLowStatus(valueText, test.reference_range);
-
             if (statusIndicator) {
               doc.setFont("helvetica", "bold");
-              if (statusIndicator === "H") {
-                doc.setTextColor(255, 0, 0);
-              } else if (statusIndicator === "L") {
-                doc.setTextColor(0, 0, 255);
-              }
+              doc.setTextColor(
+                statusIndicator === "H" ? 255 : 0,
+                0,
+                statusIndicator === "L" ? 255 : 0,
+              );
               renderWrappedText(
                 doc,
                 valueText,
@@ -1716,13 +1644,13 @@ const FranchiseOverview = () => {
                 lineHeight,
               );
               const valueWidth = doc.getTextWidth(valueText);
-              if (valueWidth < colWidths[3] - 5) {
-                if (statusIndicator === "H") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-                } else if (statusIndicator === "L") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
-                }
-              }
+              if (valueWidth < colWidths[3] - 5)
+                drawArrowSymbol(
+                  doc,
+                  xPos + valueWidth + 2,
+                  yPos - 1,
+                  statusIndicator === "H" ? "up" : "down",
+                );
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
@@ -1736,12 +1664,8 @@ const FranchiseOverview = () => {
               );
             }
             xPos += colWidths[3];
-
-            // Unit
             renderUnicodeText(test.unit || "", xPos, yPos);
             xPos += colWidths[4];
-
-            // Reference Range
             renderWrappedText(
               doc,
               test.reference_range || "",
@@ -1751,8 +1675,6 @@ const FranchiseOverview = () => {
               lineHeight,
             );
             xPos += colWidths[5];
-
-            // Method
             doc.setTextColor(0, 0, 0);
             renderWrappedText(
               doc,
@@ -1762,29 +1684,23 @@ const FranchiseOverview = () => {
               yPos,
               lineHeight,
             );
-
             yPos += actualRowHeight + 4;
-
             doc.setFont("helvetica", "normal");
             doc.setTextColor(0, 0, 0);
 
-            // Add outsourced label
             if (test.outsourced === true) {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
               doc.text("(Outsourced)", leftMargin, yPos);
               yPos += 4;
             }
-
-            // Add comment for main test (when no parameters)
             if (!test.parameters || test.parameters.length === 0) {
               if (test.comment && test.comment.trim() !== "") {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
-                const commentText = `Note: ${test.comment}`;
                 const commentHeight = renderWrappedText(
                   doc,
-                  commentText,
+                  `Note: ${test.comment}`,
                   colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
                   leftMargin,
                   yPos,
@@ -1793,69 +1709,55 @@ const FranchiseOverview = () => {
                 yPos += commentHeight + 2;
               }
             }
-
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
 
-            // Render parameters grouped by sub_title
             Object.keys(parametersBySubtitle).forEach((subtitle) => {
               if (subtitle && subtitle.trim() !== "") {
-                const subtitleWithParamHeight = 25;
-                yPos = checkForNewPage(yPos, subtitleWithParamHeight);
-
+                yPos = checkForNewPage(yPos, 25);
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(9);
                 doc.text(subtitle, leftMargin, yPos);
                 yPos += 6;
               }
-
               parametersBySubtitle[subtitle].forEach((currentTest) => {
                 doc.setFontSize(10);
-
                 const paramNameText = currentTest.name;
+                const paramValueText = currentTest.value || "";
+                const paramMethodText = (currentTest.method || "")
+                  .replace(/\bMethod\b/i, "")
+                  .trim();
                 const paramNameLines = wrapTextAndGetLines(
                   doc,
                   paramNameText,
                   colWidths[0] - 2,
                 );
-
-                const paramValueText = currentTest.value || "";
                 const paramValueLines = wrapTextAndGetLines(
                   doc,
                   paramValueText,
                   colWidths[3] - 2,
                 );
-
-                const paramReferenceLines = wrapTextAndGetLines(
+                const paramRefLines = wrapTextAndGetLines(
                   doc,
                   currentTest.reference_range || "",
                   colWidths[5] - 2,
                 );
-
-                const paramMethodText = (currentTest.method || "")
-                  .replace(/\bMethod\b/i, "")
-                  .trim();
                 const paramMethodLines = wrapTextAndGetLines(
                   doc,
                   paramMethodText,
                   colWidths[6] - 2,
                 );
-
                 const paramMaxLines = Math.max(
                   paramNameLines.length,
                   paramValueLines.length,
-                  paramReferenceLines.length,
+                  paramRefLines.length,
                   paramMethodLines.length,
                 );
                 const paramLineHeight = 4;
-                const paramActualRowHeight =
-                  paramMaxLines * paramLineHeight + 2;
-
-                yPos = checkForNewPage(yPos, paramActualRowHeight);
-
+                const paramRowHeight = paramMaxLines * paramLineHeight + 2;
+                yPos = checkForNewPage(yPos, paramRowHeight);
                 let xPos = leftMargin;
-
                 doc.setFont("helvetica", "normal");
                 renderWrappedText(
                   doc,
@@ -1866,13 +1768,10 @@ const FranchiseOverview = () => {
                   paramLineHeight,
                 );
                 xPos += colWidths[0];
-
                 doc.text(currentTest.specimen_type || "", xPos, yPos);
                 xPos += colWidths[1];
-
                 xPos += colWidths[2];
-
-                const paramStatusIndicator = currentTest.isHigh
+                const paramStatus = currentTest.isHigh
                   ? "H"
                   : currentTest.isLow
                     ? "L"
@@ -1880,14 +1779,13 @@ const FranchiseOverview = () => {
                         paramValueText,
                         currentTest.reference_range,
                       );
-
-                if (paramStatusIndicator) {
+                if (paramStatus) {
                   doc.setFont("helvetica", "bold");
-                  if (paramStatusIndicator === "H") {
-                    doc.setTextColor(255, 0, 0);
-                  } else if (paramStatusIndicator === "L") {
-                    doc.setTextColor(0, 0, 255);
-                  }
+                  doc.setTextColor(
+                    paramStatus === "H" ? 255 : 0,
+                    0,
+                    paramStatus === "L" ? 255 : 0,
+                  );
                   renderWrappedText(
                     doc,
                     paramValueText,
@@ -1897,23 +1795,13 @@ const FranchiseOverview = () => {
                     paramLineHeight,
                   );
                   const paramValueWidth = doc.getTextWidth(paramValueText);
-                  if (paramValueWidth < colWidths[3] - 5) {
-                    if (paramStatusIndicator === "H") {
-                      drawArrowSymbol(
-                        doc,
-                        xPos + paramValueWidth + 2,
-                        yPos - 1,
-                        "up",
-                      );
-                    } else if (paramStatusIndicator === "L") {
-                      drawArrowSymbol(
-                        doc,
-                        xPos + paramValueWidth + 2,
-                        yPos - 1,
-                        "down",
-                      );
-                    }
-                  }
+                  if (paramValueWidth < colWidths[3] - 5)
+                    drawArrowSymbol(
+                      doc,
+                      xPos + paramValueWidth + 2,
+                      yPos - 1,
+                      paramStatus === "H" ? "up" : "down",
+                    );
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
@@ -1927,10 +1815,8 @@ const FranchiseOverview = () => {
                   );
                 }
                 xPos += colWidths[3];
-
                 renderUnicodeText(currentTest.unit || "", xPos, yPos);
                 xPos += colWidths[4];
-
                 renderWrappedText(
                   doc,
                   currentTest.reference_range || "",
@@ -1940,7 +1826,6 @@ const FranchiseOverview = () => {
                   paramLineHeight,
                 );
                 xPos += colWidths[5];
-
                 doc.setTextColor(0, 0, 0);
                 renderWrappedText(
                   doc,
@@ -1950,16 +1835,14 @@ const FranchiseOverview = () => {
                   yPos,
                   paramLineHeight,
                 );
-
-                yPos += paramActualRowHeight;
+                yPos += paramRowHeight;
 
                 if (currentTest.comment && currentTest.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
-                  const paramCommentText = `Note: ${currentTest.comment}`;
                   const paramCommentHeight = renderWrappedText(
                     doc,
-                    paramCommentText,
+                    `Note: ${currentTest.comment}`,
                     colWidths[0] +
                       colWidths[1] +
                       colWidths[2] +
@@ -1971,14 +1854,12 @@ const FranchiseOverview = () => {
                   );
                   yPos += paramCommentHeight + 2;
                 }
-
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
               });
             });
 
-            // Display "Verified by" under each test if multiple verifiers in department
             if (
               hasMultipleVerifiers &&
               test.verified_by &&
@@ -1991,21 +1872,52 @@ const FranchiseOverview = () => {
             }
           });
 
-          // Display "Verified by" once at end of department only if single verifier
           if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
-            const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
-            doc.text(verifiedByText, leftMargin, yPos);
+            doc.text(
+              `Verified by: ${Array.from(verifiedBySet).join(", ")}`,
+              leftMargin,
+              yPos,
+            );
             yPos += 5;
           }
-
-          const isLastDepartment =
+          const isLastDept =
             department === sortedDepartments[sortedDepartments.length - 1];
-          yPos += isLastDepartment ? 2 : 4;
+          yPos += isLastDept ? 2 : 4;
         });
 
-        currentYPosition = yPos;
+        return yPos;
+      };
+      // ──────────────────────────────────────────────────────────────────────
+
+      // ── FIRST PAGE: always starts with NABL logo state = nablTrueTests exist ─
+      addHeaderFooter(showNablLogo);
+      let currentYPosition = addPatientInfo(contentYStart);
+      currentYPosition += 10;
+
+      // ── Render NABL=true tests (with logo) ───────────────────────────────
+      if (nablTrueTests.length > 0) {
+        currentYPosition = renderTestGroup(nablTrueTests, currentYPosition);
+      }
+
+      // ── Switch to non-NABL section ────────────────────────────────────────
+      if (nablFalseTests.length > 0) {
+        // If we already have NABL=true tests rendered, start a new page for false tests
+        if (nablTrueTests.length > 0) {
+          addSignatures();
+          showNablLogo = false; // ← flip the flag BEFORE adding the new page
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter(false); // no NABL logo
+          currentYPosition = contentYStart;
+          currentYPosition = addPatientInfo(currentYPosition);
+          currentYPosition += 10;
+        } else {
+          // No NABL=true tests at all – first (and only) section, no logo
+          showNablLogo = false;
+        }
+        currentYPosition = renderTestGroup(nablFalseTests, currentYPosition);
       }
 
       isTableStarted = false;
@@ -2017,12 +1929,11 @@ const FranchiseOverview = () => {
           addSignatures();
           doc.addPage();
           pageCount++;
-          addHeaderFooter();
+          addHeaderFooter(showNablLogo);
           return addPatientInfo(contentYStart);
         }
         return currentYPosition;
       };
-
       currentYPosition = ensureSpaceForFooter(currentYPosition);
 
       doc.setFontSize(10);
@@ -2031,26 +1942,26 @@ const FranchiseOverview = () => {
       doc.text("**End of the Report**", centerX, currentYPosition, {
         align: "center",
       });
-
       addSignatures();
 
+      // ── Page numbering ────────────────────────────────────────────────────
       const finalPageCount = pageCount;
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 2;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
-        const centerX = leftMargin + contentWidth / 2;
-        doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, {
-          align: "center",
-        });
+        doc.text(
+          `Page ${i} of ${finalPageCount}`,
+          centerX,
+          pageHeight - footerHeight - 2,
+          { align: "center" },
+        );
       }
 
       const pdfBlob = doc.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
       window.open(pdfUrl, "_blank");
-
       setLoading(false);
       return pdfBlob;
     } catch (error) {
