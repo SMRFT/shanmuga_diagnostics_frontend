@@ -1221,7 +1221,7 @@ const CorporatePatientOverview = () => {
             const nablLogoWidth = 25;
             const nablLogoHeight = 25;
             const nablLogoX = doc.internal.pageSize.width - 40 - nablLogoWidth;
-            const nablLogoY = 6;
+            const nablLogoY = 9;
             doc.addImage(
               NABLImage,
               "PNG",
@@ -1798,7 +1798,7 @@ const CorporatePatientOverview = () => {
         doc.text(
           `Page ${i} of ${finalPageCount}`,
           centerX,
-          pageHeight - footerHeight - 2,
+          pageHeight - footerHeight - 4,
           { align: "center" },
         );
       }
