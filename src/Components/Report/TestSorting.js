@@ -975,7 +975,7 @@ const TestSorting = ({ patient, onClose }) => {
             const nablLogoWidth = 25;
             const nablLogoHeight = 25;
             const nablLogoX = doc.internal.pageSize.width - 40 - nablLogoWidth;
-            const nablLogoY = 6;
+            const nablLogoY = 9;
             doc.addImage(
               NABLImage,
               "PNG",
@@ -2196,7 +2196,7 @@ const TestSorting = ({ patient, onClose }) => {
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 2;
+        const pageNumberY = pageHeight - footerHeight - 4;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const centerX = leftMargin + contentWidth / 2;
