@@ -6,8 +6,7 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
-import Dhana from "../Images/Dhana.png";
-import Brindha from "../Images/Brindha.png";
+import NABLImage from "../Images/NABL.png";
 import apiRequest from "../Auth/apiRequest";
 import { toast } from "react-toastify";
 import {
@@ -851,6 +850,8 @@ const HMSTestSorting = ({ patient, onClose }) => {
       let isTableStarted = false;
       let isMolBioSection = false;
 
+      let showNablLogo = false; // will be set per department
+
       const addPatientInfo = (yPos) => {
         const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
         const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
@@ -926,7 +927,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
         return patientInfoY;
       };
 
-      const addHeaderFooter = () => {
+      const addHeaderFooter = (withNabl = false) => {
         if (withLetterpad) {
           doc.addImage(
             headerImage,
@@ -936,6 +937,20 @@ const HMSTestSorting = ({ patient, onClose }) => {
             doc.internal.pageSize.width,
             headerHeight,
           );
+          if (withNabl && NABLImage) {
+            const nablLogoWidth = 20;
+            const nablLogoHeight = 20;
+            const nablLogoX = doc.internal.pageSize.width - 45 - nablLogoWidth;
+            const nablLogoY = 14;
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
           const footerY = doc.internal.pageSize.height - footerHeight;
           doc.addImage(
             FooterImage,
@@ -951,6 +966,20 @@ const HMSTestSorting = ({ patient, onClose }) => {
           doc.setTextColor(255, 255, 255);
           doc.text("Header Space", leftMargin, 10);
           doc.setTextColor(0, 0, 0);
+          if (withNabl && NABLImage) {
+            const nablLogoWidth = 25;
+            const nablLogoHeight = 25;
+            const nablLogoX = doc.internal.pageSize.width - 40 - nablLogoWidth;
+            const nablLogoY = 6;
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
         }
       };
 
@@ -1129,7 +1158,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
           addSignatures();
           doc.addPage();
           pageCount++;
-          addHeaderFooter();
+          addHeaderFooter(showNablLogo);
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
           newYPos += 10;
@@ -1178,30 +1207,27 @@ const HMSTestSorting = ({ patient, onClose }) => {
         }
       };
 
-      addHeaderFooter();
+      // // Sort orderedTests by the selection order FIRST
+      // orderedTests.sort((a, b) => {
+      //   const indexA = selectedTests.findIndex((t) => t.test_id === a.test_id);
+      //   const indexB = selectedTests.findIndex((t) => t.test_id === b.test_id);
+      //   return indexA - indexB;
+      // });
+
+      addHeaderFooter(showNablLogo); // showNablLogo is false here, will be corrected below
       let currentYPosition = addPatientInfo(contentYStart);
       currentYPosition += 10;
-
-      // Sort orderedTests by the selection order
-      orderedTests.sort((a, b) => {
-        const indexA = selectedTests.findIndex((t) => t.test_id === a.test_id);
-        const indexB = selectedTests.findIndex((t) => t.test_id === b.test_id);
-        return indexA - indexB;
-      });
 
       if (orderedTests.length) {
         isTableStarted = true;
         currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
         let yPos = currentYPosition;
-        yPos = drawTableHeader(yPos);
 
-        // CRITICAL FIX: Use orderedTests instead of patientDetails.testdetails
         const testsByDepartment = orderedTests.reduce((acc, test) => {
           (acc[test.department] = acc[test.department] || []).push(test);
           return acc;
         }, {});
 
-        // Sort departments according to the specified order
         const sortedDepartments = Object.keys(testsByDepartment).sort(
           (a, b) => {
             const indexA = departmentOrder.indexOf(a);
@@ -1216,411 +1242,212 @@ const HMSTestSorting = ({ patient, onClose }) => {
           },
         );
 
-        sortedDepartments.forEach((department) => {
-          // Collect all verified_by values in this department
-          const verifiedBySet = new Set();
-          testsByDepartment[department].forEach((test) => {
-            if (test.verified_by && test.verified_by.trim() !== "") {
-              verifiedBySet.add(test.verified_by);
-            }
+        // ── NABL SPLIT: separate NABL=true and NABL=false tests ──────────────
+        const nablTrueTests = orderedTests.filter((t) => t.NABL === true);
+        const nablFalseTests = orderedTests.filter((t) => t.NABL !== true);
+
+        // Set initial NABL state and redraw page 1 header
+        showNablLogo = nablTrueTests.length > 0;
+        doc.setPage(1);
+        addHeaderFooter(showNablLogo);
+
+        // ── Helper: render a group of tests with fixed NABL logo state ────────
+        const renderDepartmentGroup = (testsToRender) => {
+          if (!testsToRender.length) return;
+
+          let yPos = currentYPosition;
+          isTableStarted = true;
+          yPos = checkForNewPage(yPos, tableHeaderHeight);
+          yPos = drawTableHeader(yPos);
+
+          const testsByDept = testsToRender.reduce((acc, test) => {
+            (acc[test.department] = acc[test.department] || []).push(test);
+            return acc;
+          }, {});
+
+          const sortedDepts = Object.keys(testsByDept).sort((a, b) => {
+            const iA = departmentOrder.indexOf(a);
+            const iB = departmentOrder.indexOf(b);
+            if (iA !== -1 && iB !== -1) return iA - iB;
+            if (iA !== -1) return -1;
+            if (iB !== -1) return 1;
+            return a.localeCompare(b);
           });
 
-          // Check if multiple people verified tests in this department
-          const hasMultipleVerifiers = verifiedBySet.size > 1;
+          sortedDepts.forEach((department) => {
+            const verifiedBySet = new Set();
+            testsByDept[department].forEach((test) => {
+              if (test.verified_by && test.verified_by.trim() !== "")
+                verifiedBySet.add(test.verified_by);
+            });
+            const hasMultipleVerifiers = verifiedBySet.size > 1;
 
-          testsByDepartment[department].forEach((test, testIndex) => {
-            // Render department header only for first test in department
-            if (testIndex === 0) {
-              const departmentHeight = 15;
-              yPos = checkForNewPage(yPos, departmentHeight);
+            testsByDept[department].forEach((test, testIndex) => {
+              if (testIndex === 0) {
+                yPos = checkForNewPage(yPos, 15);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                const textWidth = doc.getTextWidth(department.toUpperCase());
+                const centerX = leftMargin + contentWidth / 2;
+                doc.text(department.toUpperCase(), centerX, yPos, {
+                  align: "center",
+                });
+                doc.line(
+                  centerX - textWidth / 2,
+                  yPos + 2,
+                  centerX + textWidth / 2,
+                  yPos + 2,
+                );
+                yPos += 10;
+              }
 
-              doc.setFont("helvetica", "bold");
+              const parametersBySubtitle = {};
+              if (test.parameters && test.parameters.length > 0) {
+                test.parameters.forEach((param) => {
+                  const subtitle = param.sub_title || "";
+                  if (!parametersBySubtitle[subtitle])
+                    parametersBySubtitle[subtitle] = [];
+                  parametersBySubtitle[subtitle].push(param);
+                });
+              }
+
+              yPos = checkForNewPage(yPos, 20);
               doc.setFontSize(10);
-              const textWidth = doc.getTextWidth(department.toUpperCase());
-              const centerX = leftMargin + contentWidth / 2;
-              doc.text(department.toUpperCase(), centerX, yPos, {
-                align: "center",
-              });
-              doc.line(
-                centerX - textWidth / 2,
-                yPos + 2,
-                centerX + textWidth / 2,
-                yPos + 2,
-              );
-              yPos += 10;
-            }
 
-            // Group parameters by sub_title
-            const parametersBySubtitle = {};
-
-            if (test.parameters && test.parameters.length > 0) {
-              test.parameters.forEach((param) => {
-                const subtitle = param.sub_title || "";
-                if (!parametersBySubtitle[subtitle]) {
-                  parametersBySubtitle[subtitle] = [];
-                }
-                parametersBySubtitle[subtitle].push(param);
-              });
-            }
-
-            // Check if we need a new page for the test name
-            const testHeaderHeight = 20;
-            yPos = checkForNewPage(yPos, testHeaderHeight);
-
-            // Render main test
-            doc.setFontSize(10);
-
-            // Calculate all text wrapping FIRST to get accurate height
-            const testNameText = test.testname;
-            const testNameLines = wrapTextAndGetLines(
-              doc,
-              testNameText,
-              colWidths[0] - 2,
-            );
-
-            const valueText = test.value || "";
-            const valueLines = wrapTextAndGetLines(
-              doc,
-              valueText,
-              colWidths[3] - 2,
-            );
-
-            const referenceLines = wrapTextAndGetLines(
-              doc,
-              test.reference_range || "",
-              colWidths[5] - 2,
-            );
-
-            const methodText = (test.method || "")
-              .replace(/\bMethod\b/i, "")
-              .trim();
-            const methodLines = wrapTextAndGetLines(
-              doc,
-              methodText,
-              colWidths[6] - 2,
-            );
-
-            // Calculate actual row height
-            const maxLines = Math.max(
-              testNameLines.length,
-              valueLines.length,
-              referenceLines.length,
-              methodLines.length,
-            );
-            const lineHeight = 4;
-            const actualRowHeight = maxLines * lineHeight + 2;
-
-            // Check for new page with accurate height
-            yPos = checkForNewPage(yPos, actualRowHeight);
-
-            // Now render the row
-            let xPos = leftMargin;
-
-            // Test Name
-            doc.setFont("helvetica", "bold");
-            renderWrappedText(
-              doc,
-              testNameText,
-              colWidths[0] - 2,
-              xPos,
-              yPos,
-              lineHeight,
-            );
-            xPos += colWidths[0];
-
-            doc.setFont("helvetica", "normal");
-
-            // Specimen Type
-            doc.text(test.specimen_type || "", xPos, yPos);
-            xPos += colWidths[1];
-
-            // Extra Gap
-            xPos += colWidths[2];
-
-            // Value(s) - Now with text wrapping
-            const statusIndicator = test.isHigh
-              ? "H"
-              : test.isLow
-                ? "L"
-                : getHighLowStatus(valueText, test.reference_range);
-
-            if (statusIndicator) {
-              doc.setFont("helvetica", "bold");
-              if (statusIndicator === "H") {
-                doc.setTextColor(255, 0, 0);
-              } else if (statusIndicator === "L") {
-                doc.setTextColor(0, 0, 255);
-              }
-              renderWrappedText(
+              const testNameText = test.testname;
+              const valueText = test.value || "";
+              const methodText = (test.method || "")
+                .replace(/\bMethod\b/i, "")
+                .trim();
+              const testNameLines = wrapTextAndGetLines(
                 doc,
-                valueText,
-                colWidths[3] - 5,
-                xPos,
-                yPos,
-                lineHeight,
+                testNameText,
+                colWidths[0] - 2,
               );
-              const valueWidth = doc.getTextWidth(valueText);
-              if (valueWidth < colWidths[3] - 5) {
-                if (statusIndicator === "H") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "up");
-                } else if (statusIndicator === "L") {
-                  drawArrowSymbol(doc, xPos + valueWidth + 2, yPos - 1, "down");
-                }
-              }
-              doc.setTextColor(0, 0, 0);
-              doc.setFont("helvetica", "normal");
-            } else {
-              renderWrappedText(
+              const valueLines = wrapTextAndGetLines(
                 doc,
                 valueText,
                 colWidths[3] - 2,
+              );
+              const referenceLines = wrapTextAndGetLines(
+                doc,
+                test.reference_range || "",
+                colWidths[5] - 2,
+              );
+              const methodLines = wrapTextAndGetLines(
+                doc,
+                methodText,
+                colWidths[6] - 2,
+              );
+              const maxLines = Math.max(
+                testNameLines.length,
+                valueLines.length,
+                referenceLines.length,
+                methodLines.length,
+              );
+              const lineHeight = 4;
+              const actualRowHeight = maxLines * lineHeight + 2;
+
+              yPos = checkForNewPage(yPos, actualRowHeight);
+              let xPos = leftMargin;
+
+              doc.setFont("helvetica", "bold");
+              renderWrappedText(
+                doc,
+                testNameText,
+                colWidths[0] - 2,
                 xPos,
                 yPos,
                 lineHeight,
               );
-            }
-            xPos += colWidths[3];
+              xPos += colWidths[0];
 
-            // Unit
-            renderUnicodeText(test.unit || "", xPos, yPos);
-            xPos += colWidths[4];
+              doc.setFont("helvetica", "normal");
+              doc.text(test.specimen_type || "", xPos, yPos);
+              xPos += colWidths[1];
+              xPos += colWidths[2];
 
-            // Reference Range
-            renderWrappedText(
-              doc,
-              test.reference_range || "",
-              colWidths[5] - 2,
-              xPos,
-              yPos,
-              lineHeight,
-            );
-            xPos += colWidths[5];
+              const statusIndicator = test.isHigh
+                ? "H"
+                : test.isLow
+                  ? "L"
+                  : getHighLowStatus(valueText, test.reference_range);
 
-            // Method
-            doc.setTextColor(0, 0, 0);
-            renderWrappedText(
-              doc,
-              methodText,
-              colWidths[6] - 2,
-              xPos,
-              yPos,
-              lineHeight,
-            );
+              if (statusIndicator) {
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(
+                  statusIndicator === "H" ? 255 : 0,
+                  0,
+                  statusIndicator === "L" ? 255 : 0,
+                );
+                renderWrappedText(
+                  doc,
+                  valueText,
+                  colWidths[3] - 5,
+                  xPos,
+                  yPos,
+                  lineHeight,
+                );
+                const valueWidth = doc.getTextWidth(valueText);
+                if (valueWidth < colWidths[3] - 5)
+                  drawArrowSymbol(
+                    doc,
+                    xPos + valueWidth + 2,
+                    yPos - 1,
+                    statusIndicator === "H" ? "up" : "down",
+                  );
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "normal");
+              } else {
+                renderWrappedText(
+                  doc,
+                  valueText,
+                  colWidths[3] - 2,
+                  xPos,
+                  yPos,
+                  lineHeight,
+                );
+              }
+              xPos += colWidths[3];
+              renderUnicodeText(test.unit || "", xPos, yPos);
+              xPos += colWidths[4];
+              renderWrappedText(
+                doc,
+                test.reference_range || "",
+                colWidths[5] - 2,
+                xPos,
+                yPos,
+                lineHeight,
+              );
+              xPos += colWidths[5];
+              doc.setTextColor(0, 0, 0);
+              renderWrappedText(
+                doc,
+                methodText,
+                colWidths[6] - 2,
+                xPos,
+                yPos,
+                lineHeight,
+              );
 
-            // Move Y position by actual row height
-            yPos += actualRowHeight + 4;
+              yPos += actualRowHeight + 4;
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(0, 0, 0);
 
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(0, 0, 0);
-
-            // Add outsourced label
-            if (test.outsourced === true) {
-              doc.setFont("helvetica", "italic");
-              doc.setFontSize(8);
-              doc.text("(Outsourced)", leftMargin, yPos);
-              yPos += 4;
-            }
-
-            // Add comment for main test (when no parameters)
-            if (!test.parameters || test.parameters.length === 0) {
-              if (test.comment && test.comment.trim() !== "") {
+              if (test.outsourced === true) {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
-                const commentText = `Note: ${test.comment}`;
-                const commentHeight = renderWrappedText(
-                  doc,
-                  commentText,
-                  colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
-                  leftMargin,
-                  yPos,
-                  3.5,
-                );
-                yPos += commentHeight + 2;
-              }
-            }
-
-            // Reset styling
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-
-            // Render parameters grouped by sub_title
-            Object.keys(parametersBySubtitle).forEach((subtitle) => {
-              // Render subtitle if it exists
-              if (subtitle && subtitle.trim() !== "") {
-                const subtitleWithParamHeight = 25;
-                yPos = checkForNewPage(yPos, subtitleWithParamHeight);
-
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.text(subtitle, leftMargin, yPos);
-                yPos += 6;
+                doc.text("(Outsourced)", leftMargin, yPos);
+                yPos += 4;
               }
 
-              // Render all parameters under this subtitle
-              parametersBySubtitle[subtitle].forEach((currentTest) => {
-                // Calculate all text wrapping FIRST
-                doc.setFontSize(10);
-
-                const paramNameText = currentTest.name;
-                const paramNameLines = wrapTextAndGetLines(
-                  doc,
-                  paramNameText,
-                  colWidths[0] - 2,
-                );
-
-                const paramValueText = currentTest.value || "";
-                const paramValueLines = wrapTextAndGetLines(
-                  doc,
-                  paramValueText,
-                  colWidths[3] - 2,
-                );
-
-                const paramReferenceLines = wrapTextAndGetLines(
-                  doc,
-                  currentTest.reference_range || "",
-                  colWidths[5] - 2,
-                );
-
-                const paramMethodText = (currentTest.method || "")
-                  .replace(/\bMethod\b/i, "")
-                  .trim();
-                const paramMethodLines = wrapTextAndGetLines(
-                  doc,
-                  paramMethodText,
-                  colWidths[6] - 2,
-                );
-
-                // Calculate actual row height
-                const paramMaxLines = Math.max(
-                  paramNameLines.length,
-                  paramValueLines.length,
-                  paramReferenceLines.length,
-                  paramMethodLines.length,
-                );
-                const paramLineHeight = 4;
-                const paramActualRowHeight =
-                  paramMaxLines * paramLineHeight + 2;
-
-                // Check for new page
-                yPos = checkForNewPage(yPos, paramActualRowHeight);
-
-                // Render parameter row
-                let xPos = leftMargin;
-
-                // Parameter name
-                doc.setFont("helvetica", "normal");
-                renderWrappedText(
-                  doc,
-                  paramNameText,
-                  colWidths[0] - 2,
-                  xPos,
-                  yPos,
-                  paramLineHeight,
-                );
-                xPos += colWidths[0];
-
-                // Specimen Type
-                doc.text(currentTest.specimen_type || "", xPos, yPos);
-                xPos += colWidths[1];
-
-                // Extra Gap
-                xPos += colWidths[2];
-
-                // Value(s) with wrapping
-                const paramStatusIndicator = currentTest.isHigh
-                  ? "H"
-                  : currentTest.isLow
-                    ? "L"
-                    : getHighLowStatus(
-                        paramValueText,
-                        currentTest.reference_range,
-                      );
-
-                if (paramStatusIndicator) {
-                  doc.setFont("helvetica", "bold");
-                  if (paramStatusIndicator === "H") {
-                    doc.setTextColor(255, 0, 0);
-                  } else if (paramStatusIndicator === "L") {
-                    doc.setTextColor(0, 0, 255);
-                  }
-                  renderWrappedText(
-                    doc,
-                    paramValueText,
-                    colWidths[3] - 5,
-                    xPos,
-                    yPos,
-                    paramLineHeight,
-                  );
-                  const paramValueWidth = doc.getTextWidth(paramValueText);
-                  if (paramValueWidth < colWidths[3] - 5) {
-                    if (paramStatusIndicator === "H") {
-                      drawArrowSymbol(
-                        doc,
-                        xPos + paramValueWidth + 2,
-                        yPos - 1,
-                        "up",
-                      );
-                    } else if (paramStatusIndicator === "L") {
-                      drawArrowSymbol(
-                        doc,
-                        xPos + paramValueWidth + 2,
-                        yPos - 1,
-                        "down",
-                      );
-                    }
-                  }
-                  doc.setTextColor(0, 0, 0);
-                  doc.setFont("helvetica", "normal");
-                } else {
-                  renderWrappedText(
-                    doc,
-                    paramValueText,
-                    colWidths[3] - 2,
-                    xPos,
-                    yPos,
-                    paramLineHeight,
-                  );
-                }
-                xPos += colWidths[3];
-
-                // Unit
-                renderUnicodeText(currentTest.unit || "", xPos, yPos);
-                xPos += colWidths[4];
-
-                // Reference Range
-                renderWrappedText(
-                  doc,
-                  currentTest.reference_range || "",
-                  colWidths[5] - 2,
-                  xPos,
-                  yPos,
-                  paramLineHeight,
-                );
-                xPos += colWidths[5];
-
-                // Method
-                doc.setTextColor(0, 0, 0);
-                renderWrappedText(
-                  doc,
-                  paramMethodText,
-                  colWidths[6] - 2,
-                  xPos,
-                  yPos,
-                  paramLineHeight,
-                );
-
-                // Move Y position
-                yPos += paramActualRowHeight;
-
-                // Add comment for parameter
-                if (currentTest.comment && currentTest.comment.trim() !== "") {
+              if (!test.parameters || test.parameters.length === 0) {
+                if (test.comment && test.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
-                  const paramCommentText = `Note: ${currentTest.comment}`;
-                  const paramCommentHeight = renderWrappedText(
+                  const commentHeight = renderWrappedText(
                     doc,
-                    paramCommentText,
+                    `Note: ${test.comment}`,
                     colWidths[0] +
                       colWidths[1] +
                       colWidths[2] +
@@ -1630,49 +1457,229 @@ const HMSTestSorting = ({ patient, onClose }) => {
                     yPos,
                     3.5,
                   );
-                  yPos += paramCommentHeight + 2;
+                  yPos += commentHeight + 2;
+                }
+              }
+
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
+              doc.setTextColor(0, 0, 0);
+
+              Object.keys(parametersBySubtitle).forEach((subtitle) => {
+                if (subtitle && subtitle.trim() !== "") {
+                  yPos = checkForNewPage(yPos, 25);
+                  doc.setFont("helvetica", "bold");
+                  doc.setFontSize(9);
+                  doc.text(subtitle, leftMargin, yPos);
+                  yPos += 6;
                 }
 
-                // Reset styling
+                parametersBySubtitle[subtitle].forEach((currentTest) => {
+                  doc.setFontSize(10);
+                  const paramNameText = currentTest.name;
+                  const paramValueText = currentTest.value || "";
+                  const paramMethodText = (currentTest.method || "")
+                    .replace(/\bMethod\b/i, "")
+                    .trim();
+                  const paramNameLines = wrapTextAndGetLines(
+                    doc,
+                    paramNameText,
+                    colWidths[0] - 2,
+                  );
+                  const paramValueLines = wrapTextAndGetLines(
+                    doc,
+                    paramValueText,
+                    colWidths[3] - 2,
+                  );
+                  const paramRefLines = wrapTextAndGetLines(
+                    doc,
+                    currentTest.reference_range || "",
+                    colWidths[5] - 2,
+                  );
+                  const paramMethodLines = wrapTextAndGetLines(
+                    doc,
+                    paramMethodText,
+                    colWidths[6] - 2,
+                  );
+                  const paramMaxLines = Math.max(
+                    paramNameLines.length,
+                    paramValueLines.length,
+                    paramRefLines.length,
+                    paramMethodLines.length,
+                  );
+                  const paramLineHeight = 4;
+                  const paramRowHeight = paramMaxLines * paramLineHeight + 2;
+
+                  yPos = checkForNewPage(yPos, paramRowHeight);
+                  let xPos = leftMargin;
+
+                  doc.setFont("helvetica", "normal");
+                  renderWrappedText(
+                    doc,
+                    paramNameText,
+                    colWidths[0] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
+                  xPos += colWidths[0];
+                  doc.text(currentTest.specimen_type || "", xPos, yPos);
+                  xPos += colWidths[1];
+                  xPos += colWidths[2];
+
+                  const paramStatus = currentTest.isHigh
+                    ? "H"
+                    : currentTest.isLow
+                      ? "L"
+                      : getHighLowStatus(
+                          paramValueText,
+                          currentTest.reference_range,
+                        );
+
+                  if (paramStatus) {
+                    doc.setFont("helvetica", "bold");
+                    doc.setTextColor(
+                      paramStatus === "H" ? 255 : 0,
+                      0,
+                      paramStatus === "L" ? 255 : 0,
+                    );
+                    renderWrappedText(
+                      doc,
+                      paramValueText,
+                      colWidths[3] - 5,
+                      xPos,
+                      yPos,
+                      paramLineHeight,
+                    );
+                    const paramValueWidth = doc.getTextWidth(paramValueText);
+                    if (paramValueWidth < colWidths[3] - 5)
+                      drawArrowSymbol(
+                        doc,
+                        xPos + paramValueWidth + 2,
+                        yPos - 1,
+                        paramStatus === "H" ? "up" : "down",
+                      );
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont("helvetica", "normal");
+                  } else {
+                    renderWrappedText(
+                      doc,
+                      paramValueText,
+                      colWidths[3] - 2,
+                      xPos,
+                      yPos,
+                      paramLineHeight,
+                    );
+                  }
+                  xPos += colWidths[3];
+                  renderUnicodeText(currentTest.unit || "", xPos, yPos);
+                  xPos += colWidths[4];
+                  renderWrappedText(
+                    doc,
+                    currentTest.reference_range || "",
+                    colWidths[5] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
+                  xPos += colWidths[5];
+                  doc.setTextColor(0, 0, 0);
+                  renderWrappedText(
+                    doc,
+                    paramMethodText,
+                    colWidths[6] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
+                  yPos += paramRowHeight;
+
+                  if (
+                    currentTest.comment &&
+                    currentTest.comment.trim() !== ""
+                  ) {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const paramCommentHeight = renderWrappedText(
+                      doc,
+                      `Note: ${currentTest.comment}`,
+                      colWidths[0] +
+                        colWidths[1] +
+                        colWidths[2] +
+                        colWidths[3] -
+                        2,
+                      leftMargin,
+                      yPos,
+                      3.5,
+                    );
+                    yPos += paramCommentHeight + 2;
+                  }
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
+                  doc.setTextColor(0, 0, 0);
+                });
+              });
+
+              if (
+                hasMultipleVerifiers &&
+                test.verified_by &&
+                test.verified_by.trim() !== "" &&
+                department !== "Molecular Biology"
+              ) {
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
-                doc.setTextColor(0, 0, 0);
-              });
+                doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
+                yPos += 5;
+              }
             });
 
-            // Display "Verified by" under each test if multiple verifiers — skip Molecular Biology
             if (
-              hasMultipleVerifiers &&
-              test.verified_by &&
-              test.verified_by.trim() !== "" &&
+              !hasMultipleVerifiers &&
+              verifiedBySet.size > 0 &&
               department !== "Molecular Biology"
             ) {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
-              doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
+              doc.text(
+                `Verified by: ${Array.from(verifiedBySet).join(", ")}`,
+                leftMargin,
+                yPos,
+              );
               yPos += 5;
             }
+
+            const isLastDept =
+              department === sortedDepts[sortedDepts.length - 1];
+            yPos += isLastDept ? 2 : 4;
           });
 
-          // Display "Verified by" once at end of department — skip Molecular Biology
-          if (
-            !hasMultipleVerifiers &&
-            verifiedBySet.size > 0 &&
-            department !== "Molecular Biology"
-          ) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            const verifiedByText = `Verified by: ${Array.from(verifiedBySet).join(", ")}`;
-            doc.text(verifiedByText, leftMargin, yPos);
-            yPos += 5;
+          currentYPosition = yPos;
+        };
+        // ─────────────────────────────────────────────────────────────────────
+
+        // ── Render NABL=true tests (with NABL logo) ───────────────────────────
+        if (nablTrueTests.length > 0) {
+          renderDepartmentGroup(nablTrueTests);
+        }
+
+        // ── Switch to non-NABL section ────────────────────────────────────────
+        if (nablFalseTests.length > 0) {
+          if (nablTrueTests.length > 0) {
+            // Both groups exist: add new page without NABL logo
+            addSignatures();
+            showNablLogo = false;
+            doc.addPage();
+            pageCount++;
+            addHeaderFooter(false);
+            currentYPosition = contentYStart;
+            currentYPosition = addPatientInfo(currentYPosition);
+            currentYPosition += 10;
+          } else {
+            // Only false tests: no logo anywhere
+            showNablLogo = false;
           }
-
-          const isLastDepartment =
-            department === sortedDepartments[sortedDepartments.length - 1];
-          yPos += isLastDepartment ? 2 : 4;
-        });
-
-        currentYPosition = yPos;
+          renderDepartmentGroup(nablFalseTests);
+        }
       }
       isMolBioSection = true;
       // ── Render interpretation, critical_range, lod, labels ──────────────────
@@ -2138,7 +2145,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
           addSignatures();
           doc.addPage();
           pageCount++;
-          addHeaderFooter();
+          addHeaderFooter(showNablLogo);
           return addPatientInfo(contentYStart);
         }
         return currentYPosition;

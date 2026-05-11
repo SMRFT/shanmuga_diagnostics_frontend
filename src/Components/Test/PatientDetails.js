@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import styled, {
   createGlobalStyle,
@@ -493,7 +493,43 @@ const PriorityCell = styled.div`
   gap: 0.25rem;
 `;
 // ─────────────────────────────────────────────────────────────────────────────
+const BarcodeSearchWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 500px;
+  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
+    max-width: 100%;
+  }
+`;
 
+const StepButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  background: ${(props) => props.theme.colors.backgroundAlt};
+  color: ${(props) => props.theme.colors.primary};
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: ${(props) => props.theme.transitions.default};
+  line-height: 1;
+  &:hover {
+    background: ${(props) => props.theme.colors.primary};
+    color: white;
+    border-color: ${(props) => props.theme.colors.primary};
+    box-shadow: 0 2px 8px ${(props) => props.theme.colors.primary}40;
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+`;
 const PatientDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -518,6 +554,8 @@ const PatientDetails = () => {
   const [fromFilter, setFromFilter] = useState("all");
   const [opipFilter, setOpipFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const fromDateRef = useRef(null);
+  const toDateRef = useRef(null);
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   // ── Clear all filters on page reload ──────────────────────────────────────
@@ -717,6 +755,22 @@ const PatientDetails = () => {
     return Array.from(locations).sort();
   };
 
+  const handleBarcodeStep = (delta) => {
+    setSearchQuery((prev) => {
+      // Extract trailing numeric part
+      const match = prev.match(/^(.*?)(\d+)$/);
+      if (match) {
+        const prefix = match[1];
+        const num = parseInt(match[2], 10);
+        const padLength = match[2].length;
+        const next = Math.max(0, num + delta);
+        return prefix + String(next).padStart(padLength, "0");
+      }
+      // No numeric part — if delta is +1 append "1", otherwise do nothing
+      return delta > 0 ? prev + "1" : prev;
+    });
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
@@ -731,6 +785,7 @@ const PatientDetails = () => {
               <Calendar size={16} color={theme.colors.textLight} />
               <label>From:</label>
               <DatePicker
+                ref={fromDateRef}
                 selected={fromDate}
                 onChange={(date) => setFromDate(date)}
                 dateFormat="yyyy-MM-dd"
@@ -746,6 +801,7 @@ const PatientDetails = () => {
               <CalendarDays size={16} color={theme.colors.textLight} />
               <label>To:</label>
               <DatePicker
+                ref={toDateRef}
                 selected={toDate}
                 onChange={(date) => setToDate(date)}
                 dateFormat="yyyy-MM-dd"
@@ -758,17 +814,46 @@ const PatientDetails = () => {
             </DatePickerWrapper>
           </DateRangeWrapper>
 
-          <SearchWrapper>
-            <SearchIcon>
-              <Search size={16} />
-            </SearchIcon>
-            <SearchInput
-              type="text"
-              placeholder="Enter Barcode, Name or ID"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </SearchWrapper>
+          <BarcodeSearchWrapper>
+            <SearchWrapper style={{ flex: 1, minWidth: 0 }}>
+              <SearchIcon>
+                <Search size={16} />
+              </SearchIcon>
+              <SearchInput
+                type="text"
+                placeholder="Enter Barcode, Name or ID"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </SearchWrapper>
+            <StepButton
+              type="button"
+              title="Decrement barcode number"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fromDateRef.current?.setOpen(false);
+                toDateRef.current?.setOpen(false);
+                handleBarcodeStep(-1);
+              }}
+            >
+              −
+            </StepButton>
+
+            <StepButton
+              type="button"
+              title="Increment barcode number"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fromDateRef.current?.setOpen(false);
+                toDateRef.current?.setOpen(false);
+                handleBarcodeStep(1);
+              }}
+            >
+              +
+            </StepButton>
+          </BarcodeSearchWrapper>
 
           <FilterSelect
             value={fromFilter}

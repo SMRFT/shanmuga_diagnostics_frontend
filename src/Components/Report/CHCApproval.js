@@ -493,6 +493,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   const [patientDetails, setPatientDetails] = useState(null);
   const [investigationFiles, setInvestigationFiles] = useState({});
   const [chcInvestigationFiles, setChcInvestigationFiles] = useState({});
+  const [chcInvestigationStatus, setChcInvestigationStatus] = useState(null);
   const [pdfImages, setPdfImages] = useState({});
   const [conversionLoading, setConversionLoading] = useState({});
   const [impression, setImpression] = useState("Reports within Normal Limits.");
@@ -544,6 +545,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       if (result.success) {
         setChcTests(result.data.chc_tests || []);
         setlabApprovalStatus(result.data.lab_approval || null);
+        setChcInvestigationStatus(result.data.chc_investigation_status || null); // ← add
       } else {
         console.error("Error fetching investigation status:", result.error);
         alert("Failed to fetch investigation status: " + result.error);
@@ -557,11 +559,9 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
   // ── All approved check ────────────────────────────────────────────────────
   const allApproved = () => {
-    if (chcTests.length === 0) return false;
-    const allChcApproved = chcTests.every(
-      (t) => t.status?.toLowerCase() === "approved",
+    return (
+      chcInvestigationStatus === "approved" && labApprovalStatus === "approved"
     );
-    return allChcApproved && labApprovalStatus === "approved";
   };
 
   // ── File helpers ─────────────────────────────────────────────────────────
@@ -1936,10 +1936,9 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         ) : (
           <>
             <StatusList>
-              {/* CHC Tests from API response */}
+              {/* CHC Tests — indicators only, no per-test status badge */}
               {chcTests.length > 0 ? (
                 chcTests.map((test) => {
-                  const isApproved = test.status?.toLowerCase() === "approved";
                   const hasReport = !!test.has_report;
                   const hasFile = !!test.has_file;
                   const hasNotes = !!(test.notes && test.notes.trim());
@@ -1957,11 +1956,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                           <IndicatorChip $ok={hasNotes}>
                             {hasNotes ? <TickIcon /> : <CrossIcon />} Notes
                           </IndicatorChip>
-                          {isApproved ? (
-                            <ApprovedBadge>✓ Approved</ApprovedBadge>
-                          ) : (
-                            <PendingBadge>⏳ Pending</PendingBadge>
-                          )}
+                          {/* ← no Approved/Pending badge per test */}
                         </IndicatorsRow>
                       </StatusInfo>
                     </StatusItem>
@@ -1977,10 +1972,54 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                 </StatusItem>
               )}
 
-              {/* Lab Investigations */}
-              <StatusItem>
+              {/* CHC Approval — from investigation.status */}
+              <StatusItem
+                style={{
+                  background:
+                    chcInvestigationStatus === "approved"
+                      ? "#f0fff4"
+                      : "#fff5f5",
+                  border: `1px solid ${chcInvestigationStatus === "approved" ? "#9ae6b4" : "#feb2b2"}`,
+                }}
+              >
                 <StatusInfo>
-                  <StatusLabel>Lab Investigations</StatusLabel>
+                  <StatusLabel
+                    style={{
+                      color:
+                        chcInvestigationStatus === "approved"
+                          ? "#276749"
+                          : "#c53030",
+                    }}
+                  >
+                    CHC Approval
+                  </StatusLabel>
+                  {chcInvestigationStatus === "approved" ? (
+                    <ApprovedBadge>✓ Approved</ApprovedBadge>
+                  ) : (
+                    <PendingBadge>⏳ Pending</PendingBadge>
+                  )}
+                </StatusInfo>
+              </StatusItem>
+
+              {/* Lab Investigations */}
+              <StatusItem
+                style={{
+                  background:
+                    labApprovalStatus === "approved" ? "#f0fff4" : "#fff5f5",
+                  border: `1px solid ${labApprovalStatus === "approved" ? "#9ae6b4" : "#feb2b2"}`,
+                }}
+              >
+                <StatusInfo>
+                  <StatusLabel
+                    style={{
+                      color:
+                        labApprovalStatus === "approved"
+                          ? "#276749"
+                          : "#c53030",
+                    }}
+                  >
+                    Lab Investigations
+                  </StatusLabel>
                   {labApprovalStatus === "approved" ? (
                     <ApprovedBadge>✓ Approved</ApprovedBadge>
                   ) : (
