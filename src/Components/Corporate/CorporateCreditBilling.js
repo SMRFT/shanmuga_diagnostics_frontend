@@ -517,8 +517,14 @@ const CorporateCreditBilling = () => {
         to_date: filters.to_date,
         total_amount: totalAmount,
         bill_items: selectedRecords.map(r => ({
-          bill_id: r._id, employee_id: r.employee_id,
-          barcode: r.barcode, amount: r.netAmount, date: r.date,
+          bill_id: r._id, 
+          employee_id: r.employee_id,
+          patient_name: r.employee_name || r.patientname || 'N/A',
+          barcode: r.barcode, 
+          amount: r.netAmount, 
+          date: r.date,
+          package_id: r.chctestdetails?.[0]?.test_id || r.package_id || 'N/A',
+          package_name: r.chctestdetails?.[0]?.test_name || r.package_name || 'N/A'
         })),
         payment_method: paymentMethod,
       };
@@ -663,7 +669,9 @@ const CorporateCreditBilling = () => {
                       </Checkbox>
                     </Th>
                     <Th>Date</Th>
+                    <Th>Patient Name</Th>
                     <Th>Employee ID</Th>
+                    <Th>Package ID</Th>
                     <Th>Barcode</Th>
                     <Th>Company</Th>
                     <Th>Tests</Th>
@@ -671,12 +679,12 @@ const CorporateCreditBilling = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
-                    [...Array(6)].map((_, i) => (
-                      <tr key={i}><Td colSpan={7}><SkeletonBox /></Td></tr>
-                    ))
-                  ) : data.length === 0 ? (
-                    <tr><Td colSpan={7} style={{ textAlign: 'center', padding: '60px' }}>No records found</Td></tr>
+                    {loading ? (
+                      [...Array(6)].map((_, i) => (
+                        <tr key={i}><Td colSpan={9}><SkeletonBox /></Td></tr>
+                      ))
+                    ) : data.length === 0 ? (
+                      <tr><Td colSpan={9} style={{ textAlign: 'center', padding: '60px' }}>No records found</Td></tr>
                   ) : data.map(row => (
                     <Tr key={row._id} selected={selectedIds.includes(row._id)}>
                       <Td>
@@ -685,7 +693,9 @@ const CorporateCreditBilling = () => {
                         </Checkbox>
                       </Td>
                       <Td style={{ color: T.textMuted }}>{formatDate(row.date)}</Td>
+                      <Td style={{ fontWeight: 600 }}>{row.employee_name || row.patientname || '—'}</Td>
                       <Td style={{ fontWeight: 700 }}>{row.employee_id}</Td>
+                      <Td style={{ fontSize: '0.75rem' }}>{row.chctestdetails?.[0]?.test_id || row.package_id || '—'}</Td>
                       <Td><code>{row.barcode}</code></Td>
                       <Td style={{ fontWeight: 600 }}>{row.company_name}</Td>
                       <Td>
