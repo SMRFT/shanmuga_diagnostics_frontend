@@ -853,7 +853,7 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
             const nablLogoWidth = 25;
             const nablLogoHeight = 25;
             const nablLogoX = doc.internal.pageSize.width - 40 - nablLogoWidth;
-            const nablLogoY = 9;
+            const nablLogoY = 8;
             doc.addImage(
               NABLImage,
               "PNG",
