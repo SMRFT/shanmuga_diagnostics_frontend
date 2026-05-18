@@ -1988,6 +1988,16 @@ const Sidebar = () => {
               </SidebarNavLink>
 
               <SidebarNavLink
+                to="/CHCReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <GrOverview />
+                </IconWrapper>
+                Corporate Report Approval
+              </SidebarNavLink>
+
+              <SidebarNavLink
                 to="/TestEdit"
                 onClick={() => setIsSidebarOpen(false)}
               >
