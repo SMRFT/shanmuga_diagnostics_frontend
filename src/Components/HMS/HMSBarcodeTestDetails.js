@@ -540,7 +540,7 @@ const HMSBarcodeTestDetails = () => {
         ...Object.values(containerGroups).map((group) => ({
           barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
           containerName: group.container,
-          shortcut: group.tests[0]?.shortcut || "",
+          shortcut: [...new Set(group.tests.map((t) => t.shortcut).filter(Boolean))].join(", "),
           isExtra: false,
         })),
         {
@@ -643,7 +643,7 @@ const HMSBarcodeTestDetails = () => {
         ...Object.values(containerGroups).map((group) => ({
           barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
           containerName: group.container,
-          shortcut: group.tests[0]?.shortcut || "",
+          shortcut: [...new Set(group.tests.map((t) => t.shortcut).filter(Boolean))].join(", "),
           isExtra: false,
         })),
         {
@@ -866,7 +866,7 @@ const HMSBarcodeTestDetails = () => {
             ([container, testdetails]) => ({
               barcode: generatedBarcode,
               containerName: container,
-              shortcut: testdetails[0]?.shortcut || "",
+              shortcut: [...new Set(testdetails.map((t) => t.shortcut).filter(Boolean))].join(", "),
               isExtra: false,
             }),
           ),
