@@ -1345,13 +1345,20 @@ const CHCReport = () => {
         if (!config) return;
 
         if (config.paramNames === "all") {
-          const status = getHighLowStatus(test.value, test.reference_range);
+          // Some tests store the value directly on the test; others store it in parameters[0]
+          const src = test.value?.trim()
+            ? test
+            : test.parameters?.length > 0
+              ? test.parameters[0]
+              : test;
+
+          const status = getHighLowStatus(src.value, src.reference_range);
           rows.push({
             testname: test.testname || "Test",
-            value: test.value || "",
-            unit: test.unit || "",
+            value: src.value || "",
+            unit: src.unit || "",
             status,
-            reference_range: test.reference_range || "",
+            reference_range: src.reference_range || "",
           });
         } else {
           const params = test.parameters || [];
