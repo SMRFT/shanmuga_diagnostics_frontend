@@ -1244,7 +1244,7 @@ const MBTestSorting = ({ patient, onClose }) => {
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
         const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 5;
+        const pageNumberY = pageHeight - footerHeight - 6;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const centerX = leftMargin + contentWidth / 2;
