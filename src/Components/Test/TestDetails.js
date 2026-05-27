@@ -1112,14 +1112,19 @@ function TestDetails() {
           if (!groupedTests[tName].parametersBySubtitle[subtitle]) {
             groupedTests[tName].parametersBySubtitle[subtitle] = [];
           }
+          // ✅ CORRECT — only ONE push with the real data
+          if (test.specimen_options && test.specimen_options.length > 0) {
+            groupedTests[tName].specimen_options = test.specimen_options;
+          }
+
           groupedTests[tName].parametersBySubtitle[subtitle].push({
             name: test.parameter_name,
             test_name: test.parameter_name,
             test_code: test.test_code,
             unit: test.unit,
-            reference_range: test.reference_range, // gender-resolved by backend
-            low: test.low || "", // NEW from backend
-            high: test.high || "", // NEW from backend
+            reference_range: test.reference_range,
+            low: test.low || "",
+            high: test.high || "",
             method: test.method,
             value: test.test_value,
             value_option: test.value_option || [],
@@ -1638,6 +1643,9 @@ function TestDetails() {
           return {
             device_id: test.device_id,
             test_id: test.test_id,
+            ...(specimenSelections[test.testname]
+              ? { specimen_type: specimenSelections[test.testname] }
+              : {}), // ✅ ADD THIS
             rerun: parameterEditMode ? false : test.rerun,
             ...approveFields,
             dispatch: false,
@@ -2192,12 +2200,42 @@ function TestDetails() {
 
                     <FormRow style={{ marginBottom: "1.5rem" }}>
                       <FormGroup>
-                        <Label>Specimen Type</Label>
-                        <Input
-                          type="text"
-                          value={test.specimen_type || ""}
-                          disabled
-                        />
+                        <Label>
+                          Specimen Type
+                          {test.specimen_options &&
+                            test.specimen_options.length > 0 && (
+                              <span style={{ color: "red" }}> *</span>
+                            )}
+                        </Label>
+                        {test.specimen_options &&
+                        test.specimen_options.length > 0 ? (
+                          <SelectWrapper>
+                            <Select
+                              value={specimenSelections[test.testname] || ""}
+                              onChange={(e) =>
+                                setSpecimenSelections((prev) => ({
+                                  ...prev,
+                                  [test.testname]: e.target.value,
+                                }))
+                              }
+                              required
+                            >
+                              <option value="">Select specimen type</option>
+                              {test.specimen_options.map((opt, i) => (
+                                <option key={i} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </Select>
+                            <SelectIcon size={18} />
+                          </SelectWrapper>
+                        ) : (
+                          <Input
+                            type="text"
+                            value={test.specimen_type || ""}
+                            disabled
+                          />
+                        )}
                       </FormGroup>
                       <FormGroup>
                         <Label>Department</Label>

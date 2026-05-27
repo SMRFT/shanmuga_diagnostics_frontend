@@ -1362,6 +1362,44 @@ const PatientOverview = () => {
           doc.text(processedText, x, y);
         }
       };
+      const renderValueWithSuperscript = (doc, text, x, y) => {
+        if (!text) return;
+
+        // Match pattern like "12X10^5", "10^-3", "12x10^-3"
+        const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/; // <-- added -? here
+        const match = text.match(superscriptRegex);
+
+        if (!match) {
+          doc.text(text, x, y);
+          return;
+        }
+
+        const before = text.slice(0, match.index);
+        const base = match[1].replace(/[xX]/, "×");
+        const exponent = match[2]; // now captures "-3" correctly
+        const after = text.slice(match.index + match[0].length);
+
+        let currentX = x;
+        const normalSize = doc.getFontSize();
+
+        if (before) {
+          doc.text(before, currentX, y);
+          currentX += doc.getTextWidth(before);
+        }
+
+        doc.text(base, currentX, y);
+        currentX += doc.getTextWidth(base);
+
+        // Render exponent (e.g. "-3") as superscript
+        doc.setFontSize(7);
+        doc.text(exponent, currentX, y - 2);
+        currentX += doc.getTextWidth(exponent);
+        doc.setFontSize(normalSize);
+
+        if (after) {
+          doc.text(after, currentX, y);
+        }
+      };
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
@@ -1586,14 +1624,7 @@ const PatientOverview = () => {
                 0,
                 statusIndicator === "L" ? 255 : 0,
               );
-              renderWrappedText(
-                doc,
-                valueText,
-                colWidths[3] - 5,
-                xPos,
-                yPos,
-                lineHeight,
-              );
+              renderValueWithSuperscript(doc, valueText, xPos, yPos);
               const valueWidth = doc.getTextWidth(valueText);
               if (valueWidth < colWidths[3] - 5)
                 drawArrowSymbol(
@@ -1605,14 +1636,7 @@ const PatientOverview = () => {
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
-              renderWrappedText(
-                doc,
-                valueText,
-                colWidths[3] - 2,
-                xPos,
-                yPos,
-                lineHeight,
-              );
+              renderValueWithSuperscript(doc, valueText, xPos, yPos);
             }
             xPos += colWidths[3];
             renderUnicodeText(test.unit || "", xPos, yPos);
@@ -1737,14 +1761,7 @@ const PatientOverview = () => {
                     0,
                     paramStatus === "L" ? 255 : 0,
                   );
-                  renderWrappedText(
-                    doc,
-                    paramValueText,
-                    colWidths[3] - 5,
-                    xPos,
-                    yPos,
-                    paramLineHeight,
-                  );
+                  renderValueWithSuperscript(doc, paramValueText, xPos, yPos);
                   const paramValueWidth = doc.getTextWidth(paramValueText);
                   if (paramValueWidth < colWidths[3] - 5)
                     drawArrowSymbol(
@@ -1756,14 +1773,7 @@ const PatientOverview = () => {
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
-                  renderWrappedText(
-                    doc,
-                    paramValueText,
-                    colWidths[3] - 2,
-                    xPos,
-                    yPos,
-                    paramLineHeight,
-                  );
+                  renderValueWithSuperscript(doc, paramValueText, xPos, yPos);
                 }
                 xPos += colWidths[3];
                 renderUnicodeText(currentTest.unit || "", xPos, yPos);
