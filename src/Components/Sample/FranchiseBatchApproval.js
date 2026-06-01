@@ -31,6 +31,12 @@ const GlobalStyle = createGlobalStyle`
     padding: 0;
     box-sizing: border-box;
   }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
 `;
 
 const fadeIn = keyframes`
@@ -47,6 +53,7 @@ const fadeIn = keyframes`
 const Container = styled.div`
   min-height: 100vh;
   padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -62,7 +69,7 @@ const MainContent = styled.div`
 const Header = styled.div`
   text-align: center;
   margin-bottom: 3rem;
-  color: black;
+  color: white;
 
   h1 {
     font-size: 3rem;
@@ -373,11 +380,11 @@ const StatusBadge = styled.span`
     color: #059669;
   `
       : props.status === "rejected"
-      ? `
+        ? `
     background: rgba(239, 68, 68, 0.1);
     color: #dc2626;
   `
-      : `
+        : `
     background: rgba(245, 158, 11, 0.1);
     color: #d97706;
   `}
@@ -417,7 +424,7 @@ const ActionButton = styled.button`
     }
   `
       : props.variant === "approve"
-      ? `
+        ? `
     background: rgba(34, 197, 94, 0.1);
     color: #059669;
     
@@ -425,8 +432,8 @@ const ActionButton = styled.button`
       background: rgba(34, 197, 94, 0.2);
     }
   `
-      : props.variant === "reject"
-      ? `
+        : props.variant === "reject"
+          ? `
     background: rgba(239, 68, 68, 0.1);
     color: #dc2626;
     
@@ -434,8 +441,8 @@ const ActionButton = styled.button`
       background: rgba(239, 68, 68, 0.2);
     }
   `
-      : props.variant === "success"
-      ? `
+          : props.variant === "success"
+            ? `
     background: rgba(34, 197, 94, 0.1);
     color: #059669;
     
@@ -443,8 +450,8 @@ const ActionButton = styled.button`
       background: rgba(34, 197, 94, 0.2);
     }
   `
-      : props.variant === "secondary"
-      ? `
+            : props.variant === "secondary"
+              ? `
     background: rgba(156, 163, 175, 0.1);
     color: #6b7280;
     
@@ -452,7 +459,7 @@ const ActionButton = styled.button`
       background: rgba(156, 163, 175, 0.2);
     }
   `
-      : `
+              : `
     background: rgba(156, 163, 175, 0.1);
     color: #6b7280;
     
@@ -588,8 +595,13 @@ const ModalHeader = styled.div`
     border-radius: 8px;
     transition: all 0.2s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background: rgba(107, 114, 128, 0.1);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
   }
 `;
@@ -793,6 +805,21 @@ const RemarkModalContent = styled(ModalContent)`
   max-width: 500px;
 `;
 
+// ─── Locked close hint banner ───────────────────────────────────────────────
+const LockedBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #d97706;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-right: auto; /* push close button to the right */
+`;
+
 const FranchiseBatchApproval = () => {
   const [batches, setBatches] = useState([]);
   const [filteredBatches, setFilteredBatches] = useState([]);
@@ -814,16 +841,18 @@ const FranchiseBatchApproval = () => {
   const [processingBatch, setProcessingBatch] = useState(null);
   const [rejectionRemark, setRejectionRemark] = useState("");
   const [currentAction, setCurrentAction] = useState(null);
-  const navigate = useNavigate();
   const [selectAllReceived, setSelectAllReceived] = useState(false);
-const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
-  const storedName = localStorage.getItem("name");
+  const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
   const [outsourceLabs, setOutsourceLabs] = useState([]);
-const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
+  const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
+
+  const navigate = useNavigate();
+  const storedName = localStorage.getItem("name");
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  // Get current date in YYYY-MM-DD format
+  // ─── helpers ──────────────────────────────────────────────────────────────
+
   const getCurrentDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -832,51 +861,75 @@ const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
     return `${year}-${month}-${day}`;
   };
 
-  // Initialize dates on component mount
+  // Whether the sample details modal is "locked" (cannot be closed by the user)
+  const isModalLocked = selectAllReceived || bulkUpdateInProgress;
+
+  // Normal close – blocked while locked
+  const closeModal = () => {
+    if (isModalLocked) return;
+    setShowDetails(false);
+    setShowSampleDetails(false);
+    setSelectedBatch(null);
+    setSampleData(null);
+    setStatusChanges({});
+    setRemarks({});
+    setSavedTests({});
+    setError("");
+    setSuccess("");
+  };
+
+  // Force close – used after a successful bulk update (bypasses the lock)
+  const forceCloseModal = () => {
+    setSelectAllReceived(false);
+    setBulkUpdateInProgress(false);
+    setShowDetails(false);
+    setShowSampleDetails(false);
+    setSelectedBatch(null);
+    setSampleData(null);
+    setStatusChanges({});
+    setRemarks({});
+    setSavedTests({});
+    setError("");
+    setSuccess("");
+  };
+
+  // ─── init ─────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const currentDate = getCurrentDate();
     setFromDate(currentDate);
     setToDate(currentDate);
   }, []);
 
-  // Fetch outsource labs on component mount
-useEffect(() => {
-  const fetchOutsourceLabs = async () => {
-    try {
-      console.log("Fetching outsource labs from:", `${Labbaseurl}get_outsource_labs/`);
-      const response = await apiRequest(
-        `${Labbaseurl}get_outsource_labs/`,
-        "GET"
-      );
+  useEffect(() => {
+    const fetchOutsourceLabs = async () => {
+      try {
+        const response = await apiRequest(
+          `${Labbaseurl}get_outsource_labs/`,
+          "GET",
+        );
 
-      console.log("Full API response:", response);
-      console.log("response.data:", response.data);
-
-      // Handle different response structures
-      let labs = [];
-      
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          labs = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          labs = response.data.data;
+        let labs = [];
+        if (response && response.data) {
+          if (Array.isArray(response.data)) {
+            labs = response.data;
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            labs = response.data.data;
+          }
         }
+        setOutsourceLabs(labs);
+      } catch (err) {
+        console.error("Error fetching outsource labs:", err);
+        setOutsourceLabs([]);
       }
+    };
 
-      console.log("Extracted labs array:", labs);
-      console.log("Labs array length:", labs.length);
-      setOutsourceLabs(labs);
-      
-    } catch (err) {
-      console.error("Error fetching outsource labs:", err);
-      setOutsourceLabs([]);
+    if (Labbaseurl) {
+      fetchOutsourceLabs();
     }
-  };
+  }, [Labbaseurl]);
 
-  if (Labbaseurl) {
-    fetchOutsourceLabs();
-  }
-}, [Labbaseurl]);
+  // ─── fetch batches ────────────────────────────────────────────────────────
 
   const fetchBatches = async () => {
     setLoading(true);
@@ -894,12 +947,10 @@ useEffect(() => {
         setBatches(result.data.data || []);
         setFilteredBatches(result.data.data || []);
       } else {
-        console.error("API Error:", result.error);
         setError(result.error || "Failed to fetch batches. Please try again.");
         toast.error(result.error || "Failed to fetch batches");
       }
     } catch (error) {
-      console.error("Unexpected error:", error);
       setError("An unexpected error occurred. Please try again.");
       toast.error("An unexpected error occurred");
     } finally {
@@ -907,99 +958,50 @@ useEffect(() => {
     }
   };
 
-  // Fetch sample details for a specific batch
-  const fetchSampleDetails = async (batchNumber) => {
-  setSampleLoading(true);
-  setError(""); // Clear previous errors
-  
-  try {
-    console.log('Fetching sample details for batch:', batchNumber);
-    
-    const result = await apiRequest(
-      `${Labbaseurl}get_franchise_Transferred/${batchNumber}/`,
-      "GET"
-    );
-
-    console.log('Sample details API result:', result);
-
-    if (result.success) {
-      // Handle both array and object responses
-      let samples = [];
-      if (result.data) {
-        if (Array.isArray(result.data)) {
-          samples = result.data;
-        } else if (result.data.data && Array.isArray(result.data.data)) {
-          samples = result.data.data;
-        } else if (typeof result.data === 'object') {
-          samples = [result.data];
-        }
-      }
-      
-      console.log('Processed samples:', samples);
-      setSampleData(samples);
-      
-      if (samples.length === 0) {
-        setError("No samples found for this batch");
-      }
-    } else {
-      setError(result.error || "Failed to fetch sample details");
-      setSampleData([]);
+  useEffect(() => {
+    if (fromDate && toDate) {
+      fetchBatches();
     }
-  } catch (error) {
-    console.error("Error fetching sample details:", error);
-    setError("Failed to fetch sample details. Please try again.");
-    setSampleData([]);
-  } finally {
-    setSampleLoading(false);
-  }
-};
+  }, [fromDate, toDate]);
 
+  // ─── fetch sample details ─────────────────────────────────────────────────
 
-const handleOutsourceLabChange = (sampleIndex, testIndex, labName) => {
-  const key = `${sampleIndex}-${testIndex}`;
-  setSelectedOutsourceLab((prev) => ({
-    ...prev,
-    [key]: labName,
-  }));
-};
+  const fetchSampleDetails = async (batchNumber) => {
+    setSampleLoading(true);
+    setError("");
 
-  const handleStatusChange = (sampleIndex, testIndex, newStatus) => {
-  const key = `${sampleIndex}-${testIndex}`;
-  setStatusChanges((prev) => ({
-    ...prev,
-    [key]: newStatus,
-  }));
+    try {
+      const result = await apiRequest(
+        `${Labbaseurl}get_franchise_Transferred/${batchNumber}/`,
+        "GET",
+      );
 
-  if (newStatus !== "Rejected") {
-    setRemarks((prev) => {
-      const updatedRemarks = { ...prev };
-      if (updatedRemarks[key]) {
-        delete updatedRemarks[key];
+      if (result.success) {
+        let samples = [];
+        if (result.data) {
+          if (Array.isArray(result.data)) {
+            samples = result.data;
+          } else if (result.data.data && Array.isArray(result.data.data)) {
+            samples = result.data.data;
+          } else if (typeof result.data === "object") {
+            samples = [result.data];
+          }
+        }
+        setSampleData(samples);
+        if (samples.length === 0) setError("No samples found for this batch");
+      } else {
+        setError(result.error || "Failed to fetch sample details");
+        setSampleData([]);
       }
-      return updatedRemarks;
-    });
-  }
-
-  // Clear outsource lab selection when status is not Outsource
-  if (newStatus !== "Outsource") {
-    setSelectedOutsourceLab((prev) => {
-      const updated = { ...prev };
-      if (updated[key]) {
-        delete updated[key];
-      }
-      return updated;
-    });
-  }
-};
-
-  const handleRemarksChange = (sampleIndex, testIndex, value) => {
-    const key = `${sampleIndex}-${testIndex}`;
-    setRemarks((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    } catch (error) {
+      setError("Failed to fetch sample details. Please try again.");
+      setSampleData([]);
+    } finally {
+      setSampleLoading(false);
+    }
   };
 
+  // ─── search filter ────────────────────────────────────────────────────────
 
   useEffect(() => {
     const filtered = batches.filter((batch) => {
@@ -1011,215 +1013,272 @@ const handleOutsourceLabChange = (sampleIndex, testIndex, labName) => {
         batch.created_by,
         ...(batch.batch_details || []).map((detail) => detail.barcode),
       ];
-
       return searchFields.some((field) =>
-        field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        field?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
       );
     });
     setFilteredBatches(filtered);
   }, [searchTerm, batches]);
 
-  const handleReceive = async (batchNumber) => {
-  setCurrentAction({ type: "receive", batch: batchNumber });
-  setProcessingBatch(batchNumber);
-  setError("");
-  setSuccess("");
+  // ─── status / remark / outsource handlers ────────────────────────────────
 
-  try {
-    const result = await apiRequest(
-      `${Labbaseurl}franchise-receive/${batchNumber}/`,
-      "PATCH",
-      {
-        received: true,
-      }
-    );
+  const handleOutsourceLabChange = (sampleIndex, testIndex, labName) => {
+    const key = `${sampleIndex}-${testIndex}`;
+    setSelectedOutsourceLab((prev) => ({ ...prev, [key]: labName }));
+  };
 
-    if (!result.success) {
-      throw new Error(result.error || `HTTP error! status: ${result.status}`);
-    }
+  const handleStatusChange = (sampleIndex, testIndex, newStatus) => {
+    const key = `${sampleIndex}-${testIndex}`;
+    setStatusChanges((prev) => ({ ...prev, [key]: newStatus }));
 
-    setBatches((prev) =>
-      prev.map((batch) =>
-        batch.batch_number === batchNumber
-          ? {
-              ...batch,
-              received: true,
-              lastmodified_date: new Date().toISOString(),
-              lastmodified_by: "current_user",
-            }
-          : batch
-      )
-    );
-
-    setSuccess("Batch received successfully!");
-    toast.success("Batch received successfully!");
-
-    // Close the batch details modal
-    setShowDetails(false);
-    
-    // Auto-open sample details modal
-    const batch = batches.find(b => b.batch_number === batchNumber);
-    if (batch) {
-      setSelectedBatch(batch);
-      setShowSampleDetails(true);
-      await fetchSampleDetails(batchNumber);
-    }
-
-  } catch (error) {
-    console.error("Error receiving batch:", error);
-    let errorMessage = "An unexpected error occurred";
-    if (error.message.includes("not found")) {
-      errorMessage = "Batch not found";
-    } else if (error.message.includes("already marked")) {
-      errorMessage = "Batch was already received";
-    } else {
-      errorMessage = error.message;
-    }
-    setError(`Failed to receive batch: ${errorMessage}`);
-    toast.error(`Failed to receive batch: ${errorMessage}`);
-    setTimeout(() => setError(""), 5000);
-  } finally {
-    setProcessingBatch(null);
-    setCurrentAction(null);
-  }
-};
-const handleSelectAllReceived = () => {
-  const newSelectAll = !selectAllReceived;
-  setSelectAllReceived(newSelectAll);
-  
-  if (sampleData && sampleData.length > 0) {
-    if (newSelectAll) {
-      // Set all tests to "Received"
-      const newStatusChanges = {};
-      sampleData.forEach((sample, sampleIndex) => {
-        sample.testdetails.forEach((detail, testIndex) => {
-          const key = `${sampleIndex}-${testIndex}`;
-          newStatusChanges[key] = "Received";
-        });
+    if (newStatus !== "Rejected") {
+      setRemarks((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
       });
-      setStatusChanges(prev => ({ ...prev, ...newStatusChanges }));
-    } else {
-      // Remove all "Received" statuses that were set by the checkbox
-      setStatusChanges(prev => {
-        const filtered = { ...prev };
+    }
+
+    if (newStatus !== "Outsource") {
+      setSelectedOutsourceLab((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+    }
+  };
+
+  const handleRemarksChange = (sampleIndex, testIndex, value) => {
+    const key = `${sampleIndex}-${testIndex}`;
+    setRemarks((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // ─── select-all received ──────────────────────────────────────────────────
+
+  const handleSelectAllReceived = () => {
+    const newSelectAll = !selectAllReceived;
+    setSelectAllReceived(newSelectAll);
+
+    if (sampleData && sampleData.length > 0) {
+      setStatusChanges((prev) => {
+        const updated = { ...prev };
+
         sampleData.forEach((sample, sampleIndex) => {
           sample.testdetails.forEach((detail, testIndex) => {
             const key = `${sampleIndex}-${testIndex}`;
-            if (filtered[key] === "Received") {
-              delete filtered[key];
+
+            if (newSelectAll) {
+              // Mark everything as Received
+              updated[key] = "Received";
+            } else {
+              // Revert to original samplestatus from data
+              const originalStatus = detail.samplestatus;
+              if (originalStatus && originalStatus !== "Received") {
+                // Restore the original status in the dropdown
+                updated[key] = originalStatus;
+              } else {
+                // Was already Received (or empty) → clear the dropdown selection
+                delete updated[key];
+              }
             }
           });
         });
-        return filtered;
+
+        return updated;
       });
     }
-  }
-};
+  };
 
-const bulkUpdateAllTests = async () => {
-  setBulkUpdateInProgress(true);
-  setError("");
-  setSuccess("");
-  
-  try {
-    const bulkUpdates = [];
-    
-    sampleData.forEach((sample, sampleIndex) => {
-      const sampleUpdates = [];
-      
-      sample.testdetails.forEach((detail, testIndex) => {
-        const key = `${sampleIndex}-${testIndex}`;
-        const updatedStatus = statusChanges[key];
-        const outsourceLabName = selectedOutsourceLab[key];
-        
-        if (updatedStatus) {
-          // Validate outsource lab selection
-          if (updatedStatus === "Outsource" && !outsourceLabName) {
-            setError(`Please select an outsource lab for ${detail.testname}`);
-            throw new Error("Outsource lab not selected");
+  // ─── bulk update ──────────────────────────────────────────────────────────
+
+  const bulkUpdateAllTests = async () => {
+    setBulkUpdateInProgress(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const bulkUpdates = [];
+
+      sampleData.forEach((sample, sampleIndex) => {
+        const sampleUpdates = [];
+
+        sample.testdetails.forEach((detail, testIndex) => {
+          const key = `${sampleIndex}-${testIndex}`;
+          const updatedStatus = statusChanges[key];
+          const outsourceLabName = selectedOutsourceLab[key];
+
+          if (updatedStatus) {
+            if (updatedStatus === "Outsource" && !outsourceLabName) {
+              setError(`Please select an outsource lab for ${detail.testname}`);
+              throw new Error("Outsource lab not selected");
+            }
+
+            sampleUpdates.push({
+              test_id: detail.test_id,
+              testname: detail.testname,
+              samplestatus: updatedStatus,
+              remarks: remarks[key] || null,
+              received_by: updatedStatus === "Received" ? storedName : null,
+              rejected_by: updatedStatus === "Rejected" ? storedName : null,
+              outsourced_by: updatedStatus === "Outsource" ? storedName : null,
+              outsource_lab:
+                updatedStatus === "Outsource" ? outsourceLabName : null,
+              batch_number: sample.batch_number,
+            });
           }
-          
-          sampleUpdates.push({
-            test_id: detail.test_id,
-            testname: detail.testname,
-            samplestatus: updatedStatus,
-            remarks: remarks[key] || null,
-            received_by: updatedStatus === "Received" ? storedName : null,
-            rejected_by: updatedStatus === "Rejected" ? storedName : null,
-            outsourced_by: updatedStatus === "Outsource" ? storedName : null,
-            outsource_lab: updatedStatus === "Outsource" ? outsourceLabName : null,
-            batch_number: sample.batch_number,
-          });
+        });
+
+        if (sampleUpdates.length > 0) {
+          bulkUpdates.push({ barcode: sample.barcode, updates: sampleUpdates });
         }
       });
-      
-      if (sampleUpdates.length > 0) {
-        bulkUpdates.push({
-          barcode: sample.barcode,
-          updates: sampleUpdates
-        });
-      }
-    });
-    
-    if (bulkUpdates.length === 0) {
-      setError("No changes to update. Please select tests to update.");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
 
-    const result = await apiRequest(
-      `${Labbaseurl}update_franchise_sample/${selectedBatch.batch_number}/`,
-      "PUT",
-      {
-        bulk_updates: bulkUpdates
+      if (bulkUpdates.length === 0) {
+        setError("No changes to update. Please select tests to update.");
+        setTimeout(() => setError(""), 2000);
+        return;
       }
-    );
-    
-    if (result.success) {
-      setSuccess(`Successfully updated ${result.success_count || bulkUpdates.length} test statuses!`);
-      
-      const newSavedTests = {};
-      Object.keys(statusChanges).forEach(key => {
-        newSavedTests[key] = true;
-      });
-      setSavedTests(prev => ({ ...prev, ...newSavedTests }));
-      
-      setSampleData(prevData => 
-        prevData.map((sampleItem, sIdx) => ({
-          ...sampleItem,
-          testdetails: sampleItem.testdetails.map((detail, tIdx) => {
-            const key = `${sIdx}-${tIdx}`;
-            const updatedStatus = statusChanges[key];
-            
-            if (updatedStatus) {
-              return {
-                ...detail,
-                samplestatus: updatedStatus,
-                remarks: remarks[key] || null,
-                outsource_lab: selectedOutsourceLab[key] || null,
-              };
-            }
-            return detail;
-          }),
-        }))
+
+      const result = await apiRequest(
+        `${Labbaseurl}update_franchise_sample/${selectedBatch.batch_number}/`,
+        "PUT",
+        { bulk_updates: bulkUpdates },
       );
-      
-      setTimeout(() => setSuccess(""), 3000);
-    } else {
-      setError(result.error || "Failed to update test statuses. Please try again.");
-      setTimeout(() => setError(""), 3000);
+
+      if (result.success) {
+        // Also mark the batch as received if it's still pending
+        if (getStatusInfo(selectedBatch).status === "pending") {
+          await apiRequest(
+            `${Labbaseurl}franchise-receive/${selectedBatch.batch_number}/`,
+            "PATCH",
+            { received: true },
+          );
+          setBatches((prev) =>
+            prev.map((batch) =>
+              batch.batch_number === selectedBatch.batch_number
+                ? {
+                    ...batch,
+                    received: true,
+                    lastmodified_date: new Date().toISOString(),
+                  }
+                : batch,
+            ),
+          );
+        }
+
+        setSuccess(
+          `Successfully updated ${
+            result.success_count || bulkUpdates.length
+          } test statuses!`,
+        );
+
+        // Mark all updated tests as saved
+        const newSavedTests = {};
+        Object.keys(statusChanges).forEach((key) => {
+          newSavedTests[key] = true;
+        });
+        setSavedTests((prev) => ({ ...prev, ...newSavedTests }));
+
+        // Reflect changes locally in sampleData
+        setSampleData((prevData) =>
+          prevData.map((sampleItem, sIdx) => ({
+            ...sampleItem,
+            testdetails: sampleItem.testdetails.map((detail, tIdx) => {
+              const key = `${sIdx}-${tIdx}`;
+              const updatedStatus = statusChanges[key];
+              if (updatedStatus) {
+                return {
+                  ...detail,
+                  samplestatus: updatedStatus,
+                  remarks: remarks[key] || null,
+                  outsource_lab: selectedOutsourceLab[key] || null,
+                };
+              }
+              return detail;
+            }),
+          })),
+        );
+
+        // Auto-close modal after 3 seconds (force-close bypasses the lock)
+        setTimeout(() => {
+          forceCloseModal();
+        }, 3000);
+      } else {
+        setError(
+          result.error || "Failed to update test statuses. Please try again.",
+        );
+        setTimeout(() => setError(""), 3000);
+      }
+    } catch (error) {
+      if (error.message !== "Outsource lab not selected") {
+        setError("Failed to update test statuses. Please try again.");
+        setTimeout(() => setError(""), 3000);
+      }
+    } finally {
+      setBulkUpdateInProgress(false);
     }
-    
-  } catch (error) {
-    console.error("Bulk update error:", error);
-    if (error.message !== "Outsource lab not selected") {
-      setError("Failed to update test statuses. Please try again.");
-      setTimeout(() => setError(""), 3000);
+  };
+
+  // ─── receive / reject ─────────────────────────────────────────────────────
+
+  const handleReceive = async (batchNumber) => {
+    setCurrentAction({ type: "receive", batch: batchNumber });
+    setProcessingBatch(batchNumber);
+    setError("");
+    setSuccess("");
+
+    try {
+      const result = await apiRequest(
+        `${Labbaseurl}franchise-receive/${batchNumber}/`,
+        "PATCH",
+        { received: true },
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || `HTTP error! status: ${result.status}`);
+      }
+
+      setBatches((prev) =>
+        prev.map((batch) =>
+          batch.batch_number === batchNumber
+            ? {
+                ...batch,
+                received: true,
+                lastmodified_date: new Date().toISOString(),
+                lastmodified_by: "current_user",
+              }
+            : batch,
+        ),
+      );
+
+      setSuccess("Batch received successfully!");
+      toast.success("Batch received successfully!");
+
+      setShowDetails(false);
+
+      const batch = batches.find((b) => b.batch_number === batchNumber);
+      if (batch) {
+        setSelectedBatch(batch);
+        setShowSampleDetails(true);
+        await fetchSampleDetails(batchNumber);
+      }
+    } catch (error) {
+      let errorMessage = "An unexpected error occurred";
+      if (error.message.includes("not found")) {
+        errorMessage = "Batch not found";
+      } else if (error.message.includes("already marked")) {
+        errorMessage = "Batch was already received";
+      } else {
+        errorMessage = error.message;
+      }
+      setError(`Failed to receive batch: ${errorMessage}`);
+      toast.error(`Failed to receive batch: ${errorMessage}`);
+      setTimeout(() => setError(""), 5000);
+    } finally {
+      setProcessingBatch(null);
+      setCurrentAction(null);
     }
-  } finally {
-    setBulkUpdateInProgress(false);
-  }
-};
+  };
 
   const handleReject = (batchNumber) => {
     setCurrentAction({ type: "reject", batch: batchNumber });
@@ -1243,10 +1302,7 @@ const bulkUpdateAllTests = async () => {
       const result = await apiRequest(
         `${Labbaseurl}franchise-receive/${batchNumber}/`,
         "PATCH",
-        {
-          received: false,
-          remarks: rejectionRemark.trim(),
-        }
+        { received: false, remarks: rejectionRemark.trim() },
       );
 
       if (!result.success) {
@@ -1262,18 +1318,15 @@ const bulkUpdateAllTests = async () => {
                 remarks: rejectionRemark.trim(),
                 is_active: false,
               }
-            : batch
-        )
+            : batch,
+        ),
       );
 
       setSuccess("Batch rejected successfully!");
       toast.success("Batch rejected successfully!");
-
-      // Close the detail modal after successful action
       setShowDetails(false);
       setSelectedBatch(null);
     } catch (error) {
-      console.error("Error rejecting batch:", error);
       setError(`Failed to reject batch: ${error.message}`);
       toast.error(`Failed to reject batch: ${error.message}`);
       setTimeout(() => setError(""), 5000);
@@ -1284,6 +1337,8 @@ const bulkUpdateAllTests = async () => {
     }
   };
 
+  // ─── view helpers ─────────────────────────────────────────────────────────
+
   const showBatchDetails = (batch) => {
     setSelectedBatch(batch);
     setShowDetails(true);
@@ -1292,35 +1347,29 @@ const bulkUpdateAllTests = async () => {
   const showBatchSampleDetails = async (batch) => {
     setSelectedBatch(batch);
     setShowSampleDetails(true);
-    
-    // Fetch sample details for this batch
     if (batch.batch_number) {
       await fetchSampleDetails(batch.batch_number);
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
 
-  const getBatchInitials = (batchNumber) => {
-    return batchNumber?.substring(0, 2).toUpperCase() || "N/A";
-  };
+  const getBatchInitials = (batchNumber) =>
+    batchNumber?.substring(0, 2).toUpperCase() || "N/A";
 
   const getStatusInfo = (batch) => {
-    if (batch.received === true) {
+    if (batch.received === true)
       return { status: "received", text: "Received" };
-    } else if (batch.received === false && batch.remarks) {
+    if (batch.received === false && batch.remarks)
       return { status: "rejected", text: "Rejected" };
-    } else {
-      return { status: "pending", text: "Pending" };
-    }
+    return { status: "pending", text: "Pending" };
   };
 
   const getSampleStatusBadge = (status) => {
@@ -1358,24 +1407,7 @@ const bulkUpdateAllTests = async () => {
     }
   };
 
-  const closeModal = () => {
-    setShowDetails(false);
-    setShowSampleDetails(false);
-    setSelectedBatch(null);
-    setSampleData(null);
-    setStatusChanges({});
-    setRemarks({});
-    setSavedTests({});
-    setError("");
-    setSuccess("");
-  };
-
-  // Fetch batches when component mounts or when dates are initialized
-  useEffect(() => {
-    if (fromDate && toDate) {
-      fetchBatches();
-    }
-  }, [fromDate, toDate]);
+  // ─── render ───────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -1383,13 +1415,16 @@ const bulkUpdateAllTests = async () => {
       <Container>
         <MainContent>
           <Header>
-            <h1>Franchise Batch Approval</h1>
-            <p>Manage and approve franchise batch shipments with ease</p>
+            <h1>Franchise Healthcare Batch Approval</h1>
+            <p>
+              Manage and approve Franchise Healthcare batch shipments with ease
+            </p>
           </Header>
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
           {success && <SuccessMessage>{success}</SuccessMessage>}
 
+          {/* ── Filter card ── */}
           <FilterCard>
             <FilterGrid>
               <InputGroup>
@@ -1399,7 +1434,7 @@ const bulkUpdateAllTests = async () => {
                 </InputIcon>
                 <StyledInput
                   type="text"
-                  placeholder="Search by batch, franchise, barcode..."
+                  placeholder="Search by batch, Company, barcode..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   hasIcon
@@ -1438,12 +1473,13 @@ const bulkUpdateAllTests = async () => {
             Showing {filteredBatches.length} of {batches.length} batches
           </ResultsInfo>
 
+          {/* ── Main table ── */}
           <TableContainer>
             <Table>
               <TableHeader>
                 <tr>
                   <th>Batch Information</th>
-                  <th>Franchise</th>
+                  <th>Company</th>
                   <th>Shipment Details</th>
                   <th>Specimen Count</th>
                   <th>Created</th>
@@ -1489,7 +1525,7 @@ const bulkUpdateAllTests = async () => {
                                 Batch #{batch.batch_number}
                               </div>
                               <div className="franchise-id">
-                                Franchise: {batch.franchise_id}
+                                Company: {batch.company_id}
                               </div>
                               <div className="barcode-count">
                                 <FileText size={12} />
@@ -1520,32 +1556,30 @@ const bulkUpdateAllTests = async () => {
                           </ShipmentInfo>
                         </td>
                         <td>
-                          <div>
-                            {batch.specimen_count?.map((specimen, index) => (
-                              <div
-                                key={index}
-                                style={{ marginBottom: "0.25rem" }}
+                          {batch.specimen_count?.map((specimen, index) => (
+                            <div
+                              key={index}
+                              style={{ marginBottom: "0.25rem" }}
+                            >
+                              <span
+                                style={{
+                                  fontWeight: "600",
+                                  fontSize: "0.9rem",
+                                }}
                               >
-                                <span
-                                  style={{
-                                    fontWeight: "600",
-                                    fontSize: "0.9rem",
-                                  }}
-                                >
-                                  {specimen.specimen_type}
-                                </span>
-                                <span
-                                  style={{
-                                    color: "#6b7280",
-                                    fontSize: "0.8rem",
-                                    marginLeft: "0.5rem",
-                                  }}
-                                >
-                                  ({specimen.count})
-                                </span>
-                              </div>
-                            ))}
-                          </div>
+                                {specimen.specimen_type}
+                              </span>
+                              <span
+                                style={{
+                                  color: "#6b7280",
+                                  fontSize: "0.8rem",
+                                  marginLeft: "0.5rem",
+                                }}
+                              >
+                                ({specimen.count})
+                              </span>
+                            </div>
+                          ))}
                         </td>
                         <td>
                           <div
@@ -1594,7 +1628,7 @@ const bulkUpdateAllTests = async () => {
                             >
                               <Eye size={16} />
                               View Details
-                            </ActionButton>                           
+                            </ActionButton>
                           </ActionButtonGroup>
                         </td>
                       </tr>
@@ -1605,7 +1639,7 @@ const bulkUpdateAllTests = async () => {
             </Table>
           </TableContainer>
 
-          {/* Batch Details Modal */}
+          {/* ── Batch Details Modal ── */}
           {showDetails && selectedBatch && (
             <Modal>
               <ModalContent>
@@ -1622,7 +1656,6 @@ const bulkUpdateAllTests = async () => {
                       {error}
                     </ErrorMessage>
                   )}
-
                   {success && (
                     <SuccessMessage>
                       <CheckCircle size={16} />
@@ -1643,10 +1676,8 @@ const bulkUpdateAllTests = async () => {
                         </div>
                       </DetailItem>
                       <DetailItem>
-                        <div className="label">Franchise ID</div>
-                        <div className="value">
-                          {selectedBatch.franchise_id}
-                        </div>
+                        <div className="label">Company ID</div>
+                        <div className="value">{selectedBatch.company_id}</div>
                       </DetailItem>
                       <DetailItem>
                         <div className="label">Created By</div>
@@ -1687,25 +1718,6 @@ const bulkUpdateAllTests = async () => {
 
                   <DetailSection>
                     <h3>
-                      <MapPin size={20} />
-                      Shipment Details
-                    </h3>
-                    <DetailGrid>
-                      <DetailItem>
-                        <div className="label">From</div>
-                        <div className="value">
-                          {selectedBatch.shipment_from}
-                        </div>
-                      </DetailItem>
-                      <DetailItem>
-                        <div className="label">To</div>
-                        <div className="value">{selectedBatch.shipment_to}</div>
-                      </DetailItem>
-                    </DetailGrid>
-                  </DetailSection>
-
-                  <DetailSection>
-                    <h3>
                       <TestTube size={20} />
                       Specimen Count
                     </h3>
@@ -1719,7 +1731,7 @@ const bulkUpdateAllTests = async () => {
                             Count: {specimen.count}
                           </div>
                         </SpecimenCard>
-                      )
+                      ),
                     )}
                   </DetailSection>
 
@@ -1735,13 +1747,12 @@ const bulkUpdateAllTests = async () => {
                             <div className="label">Barcode #{index + 1}</div>
                             <div className="value">{detail.barcode}</div>
                           </DetailItem>
-                        )
+                        ),
                       )}
                     </DetailGrid>
                   </DetailSection>
                 </ModalBody>
-                
-                {/* Modal Actions - Only show if status is pending */}
+
                 {getStatusInfo(selectedBatch).status === "pending" && (
                   <ModalActions>
                     <ActionButton
@@ -1757,14 +1768,14 @@ const bulkUpdateAllTests = async () => {
                     </ActionButton>
                     <ActionButton
                       variant="approve"
-                      onClick={() => handleReceive(selectedBatch.batch_number)}
+                      onClick={() => {
+                        setShowDetails(false);
+                        showBatchSampleDetails(selectedBatch);
+                      }}
                       disabled={processingBatch === selectedBatch.batch_number}
                     >
                       <CheckCircle size={16} />
-                      {processingBatch === selectedBatch.batch_number &&
-                      currentAction?.type === "receive"
-                        ? "Receiving..."
-                        : "Receive Batch"}
+                      Next →
                     </ActionButton>
                   </ModalActions>
                 )}
@@ -1772,294 +1783,409 @@ const bulkUpdateAllTests = async () => {
             </Modal>
           )}
 
-          {/* Sample Details Modal */}
-{showSampleDetails && selectedBatch && (
-  <Modal>
-    <ModalContent>
-      <ModalHeader>
-        <h2>Sample Details - Batch #{selectedBatch.batch_number}</h2>
-        <button onClick={closeModal}>
-          <X size={24} />
-        </button>
-      </ModalHeader>
-      <ModalBody>
-        {error && (
-          <ErrorMessage>
-            <AlertCircle size={16} />
-            {error}
-          </ErrorMessage>
-        )}
+          {/* ── Sample Details Modal ── */}
+          {showSampleDetails && selectedBatch && (
+            <Modal>
+              <ModalContent>
+                <ModalHeader>
+                  <h2>Sample Details - Batch #{selectedBatch.batch_number}</h2>
 
-        {success && (
-          <SuccessMessage>
-            <CheckCircle size={16} />
-            {success}
-          </SuccessMessage>
-        )}
-
-        {sampleLoading ? (
-          <LoadingContainer>
-            <div className="spinner"></div>
-            <div className="text">Loading sample details...</div>
-          </LoadingContainer>
-        ) : sampleData && sampleData.length > 0 ? (
-          <>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '1rem',
-              padding: '1rem',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '8px'
-            }}>
-              <div style={{ color: "#6b7280", fontSize: "1rem" }}>
-                Found {sampleData.length} samples in this batch
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <label style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={selectAllReceived}
-                    onChange={handleSelectAllReceived}
-                    disabled={bulkUpdateInProgress}
-                    style={{
-                      width: '16px',
-                      height: '16px',
-                      cursor: 'pointer'
-                    }}
-                  />
-                  Mark All as Received
-                </label>
-                
-                <ActionButton
-                  variant="success"
-                  onClick={bulkUpdateAllTests}
-                  disabled={bulkUpdateInProgress || Object.keys(statusChanges).length === 0}
-                >
-                  <Activity size={16} />
-                  {bulkUpdateInProgress ? "Updating..." : "Update All Selected"}
-                </ActionButton>
-              </div>
-            </div>
-            
-            {sampleData.map((sample, sampleIndex) => {
-              console.log('Rendering sample:', sample);
-              return (
-                <div key={`sample-${sampleIndex}-${sample.barcode || sampleIndex}`} style={{ marginBottom: "3rem" }}>
-                  <PatientInfoCard>
-                    <PatientInfoItem>
-                      <User size={16} />
-                      <PatientInfoLabel>Patient:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.patientname || 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Tag size={16} />
-                      <PatientInfoLabel>ID:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.patient_id || 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Calendar size={16} />
-                      <PatientInfoLabel>Date:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.date ? new Date(sample.date).toLocaleDateString("en-GB") : 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Tag size={16} />
-                      <PatientInfoLabel>Barcode:</PatientInfoLabel>
-                      <PatientInfoValue>{sample.barcode || 'N/A'}</PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <User size={16} />
-                      <PatientInfoLabel>Age:</PatientInfoLabel>
-                      <PatientInfoValue>{sample.age || 'N/A'}</PatientInfoValue>
-                    </PatientInfoItem>
-                    <PatientInfoItem>
-                      <Tag size={16} />
-                      <PatientInfoLabel>From:</PatientInfoLabel>
-                      <PatientInfoValue>
-                        {sample.locationId || 'N/A'}
-                      </PatientInfoValue>
-                    </PatientInfoItem>
-                  </PatientInfoCard>
-
-                  {sample.testdetails && sample.testdetails.length > 0 ? (
-                    <TableContainer>
-                      <Table>
-                        <TableHeader>
-  <tr>
-    <th>Test Name</th>
-    <th>Container Type</th>
-    <th>Department</th>
-    <th>Current Status</th>
-    <th>Update Status</th>
-    <th>Sample Collector</th>
-    <th>Outsource Lab</th>
-    <th>Reason for Rejection</th>
-  </tr>
-</TableHeader>
-                        <TableBody>
-                          {sample.testdetails.map((detail, testIndex) => {
-                            const key = `${sampleIndex}-${testIndex}`;
-                            const isStatusRejected = statusChanges[key] === "Rejected";
-                            const isTestSaved = savedTests[key];
-                            
-                            return (
-                              <tr key={`test-${sampleIndex}-${testIndex}-${detail.test_id || testIndex}`}>
-                                <td style={{ fontWeight: '600' }}>
-                                  {detail.testname || 'N/A'}
-                                </td>
-                                <td>{detail.container || 'N/A'}</td>
-                                <td>{detail.department || 'N/A'}</td>
-                                <td>
-                                  {getSampleStatusBadge(detail.samplestatus || 'Unknown')}
-                                </td>
-                                <td>
-                                  <Select
-                                    value={statusChanges[key] || ""}
-                                    onChange={(e) =>
-                                      handleStatusChange(
-                                        sampleIndex,
-                                        testIndex,
-                                        e.target.value
-                                      )
-                                    }
-                                    disabled={isTestSaved || bulkUpdateInProgress}
-                                    style={{
-                                      backgroundColor: isTestSaved ? '#f3f4f6' : 'white',
-                                      cursor: isTestSaved ? 'not-allowed' : 'pointer'
-                                    }}
-                                  >
-                                    <option value="">Select New Status</option>
-                                    <option value="Received">Received</option>
-                                    <option value="Rejected">Rejected</option>
-                                    <option value="Outsource">Outsource</option>
-                                  </Select>
-                                </td>
-                                <td>{detail.samplecollector || 'N/A'}</td>
-                                <td>
-  {statusChanges[key] === "Outsource" && !isTestSaved && (
-    <div>
-      <Select
-        value={selectedOutsourceLab[key] || ""}
-        onChange={(e) =>
-          handleOutsourceLabChange(
-            sampleIndex,
-            testIndex,
-            e.target.value
-          )
-        }
-        disabled={bulkUpdateInProgress}
-      >
-        <option value="">Select Outsource Lab</option>
-        {Array.isArray(outsourceLabs) && outsourceLabs.length > 0 ? (
-          outsourceLabs.map((lab, index) => (
-            <option key={lab.labID || index} value={lab.labName}>
-              {lab.labName}
-            </option>
-          ))
-        ) : (
-          <option value="" disabled>No labs available</option>
-        )}
-      </Select>
-      {outsourceLabs.length === 0 && (
-        <div style={{ fontSize: "0.75rem", color: "#f59e0b", marginTop: "0.25rem" }}>
-          Loading labs...
-        </div>
-      )}
-      {outsourceLabs.length > 0 && (
-        <div style={{ fontSize: "0.75rem", color: "#059669", marginTop: "0.25rem" }}>
-          {outsourceLabs.length} labs available
-        </div>
-      )}
-    </div>
-  )}
-</td>
-                                <td>
-                                  {isStatusRejected && !isTestSaved && (
-                                    <TextArea
-                                      value={remarks[key] || ""}
-                                      onChange={(e) =>
-                                        handleRemarksChange(
-                                          sampleIndex,
-                                          testIndex,
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="Enter rejection reason..."
-                                      style={{ minHeight: '60px' }}
-                                    />
-                                  )}
-                                  {detail.remarks && (
-                                    <div
-                                      style={{
-                                        fontSize: "0.8rem",
-                                        color: "#dc2626",
-                                        marginTop: "0.25rem",
-                                        fontStyle: "italic",
-                                        padding: "0.5rem",
-                                        backgroundColor: "#fef2f2",
-                                        borderRadius: "4px",
-                                        border: "1px solid #fecaca"
-                                      }}
-                                    >
-                                      <strong>Previous remarks:</strong> {detail.remarks}
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  ) : (
-                    <div style={{ 
-                      padding: '2rem', 
-                      textAlign: 'center', 
-                      color: '#6b7280',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '12px',
-                      border: '1px solid #e5e7eb'
-                    }}>
-                      <TestTube size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                      <div>No test details found for this sample</div>
-                    </div>
+                  {/* Lock hint shown when modal cannot be closed */}
+                  {isModalLocked && (
+                    <LockedBanner>
+                      <AlertCircle size={14} />
+                      {bulkUpdateInProgress
+                        ? "Update in progress — please wait…"
+                        : 'Please click "Update All Selected" or uncheck "Mark All as Received" before closing.'}
+                    </LockedBanner>
                   )}
-                </div>
-              );
-            })}
-          </>
-        ) : (
-          <EmptyState>
-            <AlertCircle size={48} color="#6b7280" />
-            <div className="title">No sample data found</div>
-            <div className="description">
-              {sampleData === null 
-                ? "Click 'View Samples' to load sample details for this batch."
-                : "No samples are available for this batch."}
-            </div>
-          </EmptyState>
-        )}
-      </ModalBody>
-    </ModalContent>
-  </Modal>
-)}
 
-          {/* Rejection Remarks Modal */}
+                  <button
+                    onClick={closeModal}
+                    disabled={isModalLocked}
+                    title={
+                      isModalLocked
+                        ? "Complete or cancel the update before closing"
+                        : "Close"
+                    }
+                  >
+                    <X size={24} />
+                  </button>
+                </ModalHeader>
+
+                <ModalBody>
+                  {error && (
+                    <ErrorMessage>
+                      <AlertCircle size={16} />
+                      {error}
+                    </ErrorMessage>
+                  )}
+                  {success && (
+                    <SuccessMessage>
+                      <CheckCircle size={16} />
+                      {success}
+                    </SuccessMessage>
+                  )}
+
+                  {sampleLoading ? (
+                    <LoadingContainer>
+                      <div className="spinner"></div>
+                      <div className="text">Loading sample details...</div>
+                    </LoadingContainer>
+                  ) : sampleData && sampleData.length > 0 ? (
+                    <>
+                      {/* ── Toolbar ── */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "1rem",
+                          padding: "1rem",
+                          backgroundColor: "#f3f4f6",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        <div style={{ color: "#6b7280", fontSize: "1rem" }}>
+                          Found {sampleData.length} samples in this batch
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "1rem",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              fontSize: "0.9rem",
+                              fontWeight: "600",
+                              color: "#374151",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectAllReceived}
+                              onChange={handleSelectAllReceived}
+                              disabled={bulkUpdateInProgress}
+                              style={{
+                                width: "16px",
+                                height: "16px",
+                                cursor: "pointer",
+                              }}
+                            />
+                            Mark All as Received
+                          </label>
+
+                          <ActionButton
+                            variant="success"
+                            onClick={bulkUpdateAllTests}
+                            disabled={
+                              bulkUpdateInProgress ||
+                              Object.keys(statusChanges).length === 0
+                            }
+                          >
+                            <Activity size={16} />
+                            {bulkUpdateInProgress
+                              ? "Updating..."
+                              : "Update All Selected"}
+                          </ActionButton>
+                        </div>
+                      </div>
+
+                      {/* ── Sample rows ── */}
+                      {sampleData.map((sample, sampleIndex) => (
+                        <div
+                          key={`sample-${sampleIndex}-${sample.barcode || sampleIndex}`}
+                          style={{ marginBottom: "3rem" }}
+                        >
+                          <PatientInfoCard>
+                            <PatientInfoItem>
+                              <User size={16} />
+                              <PatientInfoLabel>Employee:</PatientInfoLabel>
+                              <PatientInfoValue>
+                                {sample.employee_name || "N/A"}
+                              </PatientInfoValue>
+                            </PatientInfoItem>
+                            <PatientInfoItem>
+                              <Tag size={16} />
+                              <PatientInfoLabel>ID:</PatientInfoLabel>
+                              <PatientInfoValue>
+                                {sample.employee_id || "N/A"}
+                              </PatientInfoValue>
+                            </PatientInfoItem>
+                            <PatientInfoItem>
+                              <Calendar size={16} />
+                              <PatientInfoLabel>Date:</PatientInfoLabel>
+                              <PatientInfoValue>
+                                {sample.date
+                                  ? new Date(sample.date).toLocaleDateString(
+                                      "en-GB",
+                                    )
+                                  : "N/A"}
+                              </PatientInfoValue>
+                            </PatientInfoItem>
+                            <PatientInfoItem>
+                              <Tag size={16} />
+                              <PatientInfoLabel>Barcode:</PatientInfoLabel>
+                              <PatientInfoValue>
+                                {sample.barcode || "N/A"}
+                              </PatientInfoValue>
+                            </PatientInfoItem>
+                            <PatientInfoItem>
+                              <User size={16} />
+                              <PatientInfoLabel>Age:</PatientInfoLabel>
+                              <PatientInfoValue>
+                                {sample.age || "N/A"}
+                              </PatientInfoValue>
+                            </PatientInfoItem>
+                            <PatientInfoItem>
+                              <Tag size={16} />
+                              <PatientInfoLabel>From:</PatientInfoLabel>
+                              <PatientInfoValue>
+                                {sample.company_id || "N/A"}
+                              </PatientInfoValue>
+                            </PatientInfoItem>
+                          </PatientInfoCard>
+
+                          {sample.testdetails &&
+                          sample.testdetails.length > 0 ? (
+                            <TableContainer>
+                              <Table>
+                                <TableHeader>
+                                  <tr>
+                                    <th>Test Name</th>
+                                    <th>Container Type</th>
+                                    <th>Department</th>
+                                    <th>Current Status</th>
+                                    <th>Update Status</th>
+                                    <th>Sample Collector</th>
+                                    <th>Outsource Lab</th>
+                                    <th>Reason for Rejection</th>
+                                  </tr>
+                                </TableHeader>
+                                <TableBody>
+                                  {sample.testdetails.map(
+                                    (detail, testIndex) => {
+                                      const key = `${sampleIndex}-${testIndex}`;
+                                      const isStatusRejected =
+                                        statusChanges[key] === "Rejected";
+                                      const isTestSaved = savedTests[key];
+
+                                      return (
+                                        <tr
+                                          key={`test-${sampleIndex}-${testIndex}-${detail.test_id || testIndex}`}
+                                        >
+                                          <td style={{ fontWeight: "600" }}>
+                                            {detail.testname || "N/A"}
+                                          </td>
+                                          <td>{detail.container || "N/A"}</td>
+                                          <td>{detail.department || "N/A"}</td>
+                                          <td>
+                                            {getSampleStatusBadge(
+                                              detail.samplestatus || "Unknown",
+                                            )}
+                                          </td>
+                                          <td>
+                                            <Select
+                                              value={statusChanges[key] || ""}
+                                              onChange={(e) =>
+                                                handleStatusChange(
+                                                  sampleIndex,
+                                                  testIndex,
+                                                  e.target.value,
+                                                )
+                                              }
+                                              disabled={
+                                                isTestSaved ||
+                                                bulkUpdateInProgress
+                                              }
+                                              style={{
+                                                backgroundColor: isTestSaved
+                                                  ? "#f3f4f6"
+                                                  : "white",
+                                                cursor: isTestSaved
+                                                  ? "not-allowed"
+                                                  : "pointer",
+                                              }}
+                                            >
+                                              <option value="">
+                                                Select New Status
+                                              </option>
+                                              <option value="Received">
+                                                Received
+                                              </option>
+                                              <option value="Rejected">
+                                                Rejected
+                                              </option>
+                                              <option value="Outsource">
+                                                Outsource
+                                              </option>
+                                            </Select>
+                                          </td>
+                                          <td>
+                                            {detail.samplecollector || "N/A"}
+                                          </td>
+                                          <td>
+                                            {statusChanges[key] ===
+                                              "Outsource" &&
+                                              !isTestSaved && (
+                                                <div>
+                                                  <Select
+                                                    value={
+                                                      selectedOutsourceLab[
+                                                        key
+                                                      ] || ""
+                                                    }
+                                                    onChange={(e) =>
+                                                      handleOutsourceLabChange(
+                                                        sampleIndex,
+                                                        testIndex,
+                                                        e.target.value,
+                                                      )
+                                                    }
+                                                    disabled={
+                                                      bulkUpdateInProgress
+                                                    }
+                                                  >
+                                                    <option value="">
+                                                      Select Outsource Lab
+                                                    </option>
+                                                    {Array.isArray(
+                                                      outsourceLabs,
+                                                    ) &&
+                                                    outsourceLabs.length > 0 ? (
+                                                      outsourceLabs.map(
+                                                        (lab, index) => (
+                                                          <option
+                                                            key={
+                                                              lab.labID || index
+                                                            }
+                                                            value={lab.labName}
+                                                          >
+                                                            {lab.labName}
+                                                          </option>
+                                                        ),
+                                                      )
+                                                    ) : (
+                                                      <option value="" disabled>
+                                                        No labs available
+                                                      </option>
+                                                    )}
+                                                  </Select>
+                                                  {outsourceLabs.length ===
+                                                    0 && (
+                                                    <div
+                                                      style={{
+                                                        fontSize: "0.75rem",
+                                                        color: "#f59e0b",
+                                                        marginTop: "0.25rem",
+                                                      }}
+                                                    >
+                                                      Loading labs...
+                                                    </div>
+                                                  )}
+                                                  {outsourceLabs.length > 0 && (
+                                                    <div
+                                                      style={{
+                                                        fontSize: "0.75rem",
+                                                        color: "#059669",
+                                                        marginTop: "0.25rem",
+                                                      }}
+                                                    >
+                                                      {outsourceLabs.length}{" "}
+                                                      labs available
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                          </td>
+                                          <td>
+                                            {isStatusRejected &&
+                                              !isTestSaved && (
+                                                <TextArea
+                                                  value={remarks[key] || ""}
+                                                  onChange={(e) =>
+                                                    handleRemarksChange(
+                                                      sampleIndex,
+                                                      testIndex,
+                                                      e.target.value,
+                                                    )
+                                                  }
+                                                  placeholder="Enter rejection reason..."
+                                                  style={{ minHeight: "60px" }}
+                                                />
+                                              )}
+                                            {detail.remarks && (
+                                              <div
+                                                style={{
+                                                  fontSize: "0.8rem",
+                                                  color: "#dc2626",
+                                                  marginTop: "0.25rem",
+                                                  fontStyle: "italic",
+                                                  padding: "0.5rem",
+                                                  backgroundColor: "#fef2f2",
+                                                  borderRadius: "4px",
+                                                  border: "1px solid #fecaca",
+                                                }}
+                                              >
+                                                <strong>
+                                                  Previous remarks:
+                                                </strong>{" "}
+                                                {detail.remarks}
+                                              </div>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    },
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          ) : (
+                            <div
+                              style={{
+                                padding: "2rem",
+                                textAlign: "center",
+                                color: "#6b7280",
+                                backgroundColor: "#f9fafb",
+                                borderRadius: "12px",
+                                border: "1px solid #e5e7eb",
+                              }}
+                            >
+                              <TestTube
+                                size={32}
+                                style={{ opacity: 0.5, marginBottom: "0.5rem" }}
+                              />
+                              <div>No test details found for this sample</div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <EmptyState>
+                      <AlertCircle size={48} color="#6b7280" />
+                      <div className="title">No sample data found</div>
+                      <div className="description">
+                        {sampleData === null
+                          ? "Click 'View Samples' to load sample details for this batch."
+                          : "No samples are available for this batch."}
+                      </div>
+                    </EmptyState>
+                  )}
+                </ModalBody>
+              </ModalContent>
+            </Modal>
+          )}
+
+          {/* ── Rejection Remarks Modal ── */}
           {showRemarkModal && currentAction?.type === "reject" && (
             <RemarkModal>
               <RemarkModalContent>

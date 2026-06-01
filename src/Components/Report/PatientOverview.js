@@ -121,6 +121,39 @@ const FilterInput = styled.input`
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
   }
 `;
+const BarcodeSearchWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+`;
+
+const StepButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  background: white;
+  color: var(--primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  line-height: 1;
+  &:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.4);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+`;
 const FilterSelect = styled.select`
   padding: 0.5rem;
   border: 1px solid var(--gray-light);
@@ -841,7 +874,19 @@ const PatientOverview = () => {
     setDepartmentFilter("");
     setFilteredPatients(patients);
   };
-
+  const handleBarcodeStep = (delta) => {
+    setBarcode((prev) => {
+      const match = prev.match(/^(.*?)(\d+)$/);
+      if (match) {
+        const prefix = match[1];
+        const num = parseInt(match[2], 10);
+        const padLength = match[2].length;
+        const next = Math.max(0, num + delta);
+        return prefix + String(next).padStart(padLength, "0");
+      }
+      return delta > 0 ? prev + "1" : prev;
+    });
+  };
   const handleWhatsAppShare = async (patient, withLetterpad = true) => {
     if (!patient || !patient.phone) {
       toast.error("Patient phone number is missing");
@@ -1282,8 +1327,8 @@ const PatientOverview = () => {
           if (withNabl && NABLImage) {
             const nablLogoWidth = 25;
             const nablLogoHeight = 25;
-            const nablLogoX = doc.internal.pageSize.width - 40 - nablLogoWidth;
-            const nablLogoY = 8;
+            const nablLogoX = doc.internal.pageSize.width - 30 - nablLogoWidth;
+            const nablLogoY = 5;
             doc.addImage(
               NABLImage,
               "PNG",
@@ -1315,6 +1360,44 @@ const PatientOverview = () => {
           });
         } else {
           doc.text(processedText, x, y);
+        }
+      };
+      const renderValueWithSuperscript = (doc, text, x, y) => {
+        if (!text) return;
+
+        // Match pattern like "12X10^5", "10^-3", "12x10^-3"
+        const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/; // <-- added -? here
+        const match = text.match(superscriptRegex);
+
+        if (!match) {
+          doc.text(text, x, y);
+          return;
+        }
+
+        const before = text.slice(0, match.index);
+        const base = match[1].replace(/[xX]/, "×");
+        const exponent = match[2]; // now captures "-3" correctly
+        const after = text.slice(match.index + match[0].length);
+
+        let currentX = x;
+        const normalSize = doc.getFontSize();
+
+        if (before) {
+          doc.text(before, currentX, y);
+          currentX += doc.getTextWidth(before);
+        }
+
+        doc.text(base, currentX, y);
+        currentX += doc.getTextWidth(base);
+
+        // Render exponent (e.g. "-3") as superscript
+        doc.setFontSize(7);
+        doc.text(exponent, currentX, y - 2);
+        currentX += doc.getTextWidth(exponent);
+        doc.setFontSize(normalSize);
+
+        if (after) {
+          doc.text(after, currentX, y);
         }
       };
       const drawTableHeader = (yPos) => {
@@ -1541,14 +1624,7 @@ const PatientOverview = () => {
                 0,
                 statusIndicator === "L" ? 255 : 0,
               );
-              renderWrappedText(
-                doc,
-                valueText,
-                colWidths[3] - 5,
-                xPos,
-                yPos,
-                lineHeight,
-              );
+              renderValueWithSuperscript(doc, valueText, xPos, yPos);
               const valueWidth = doc.getTextWidth(valueText);
               if (valueWidth < colWidths[3] - 5)
                 drawArrowSymbol(
@@ -1560,14 +1636,7 @@ const PatientOverview = () => {
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
-              renderWrappedText(
-                doc,
-                valueText,
-                colWidths[3] - 2,
-                xPos,
-                yPos,
-                lineHeight,
-              );
+              renderValueWithSuperscript(doc, valueText, xPos, yPos);
             }
             xPos += colWidths[3];
             renderUnicodeText(test.unit || "", xPos, yPos);
@@ -1692,14 +1761,7 @@ const PatientOverview = () => {
                     0,
                     paramStatus === "L" ? 255 : 0,
                   );
-                  renderWrappedText(
-                    doc,
-                    paramValueText,
-                    colWidths[3] - 5,
-                    xPos,
-                    yPos,
-                    paramLineHeight,
-                  );
+                  renderValueWithSuperscript(doc, paramValueText, xPos, yPos);
                   const paramValueWidth = doc.getTextWidth(paramValueText);
                   if (paramValueWidth < colWidths[3] - 5)
                     drawArrowSymbol(
@@ -1711,14 +1773,7 @@ const PatientOverview = () => {
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
-                  renderWrappedText(
-                    doc,
-                    paramValueText,
-                    colWidths[3] - 2,
-                    xPos,
-                    yPos,
-                    paramLineHeight,
-                  );
+                  renderValueWithSuperscript(doc, paramValueText, xPos, yPos);
                 }
                 xPos += colWidths[3];
                 renderUnicodeText(currentTest.unit || "", xPos, yPos);
@@ -1860,7 +1915,7 @@ const PatientOverview = () => {
         doc.text(
           `Page ${i} of ${finalPageCount}`,
           centerX,
-          pageHeight - footerHeight - 4,
+          pageHeight - footerHeight - 6,
           { align: "center" },
         );
       }
@@ -2082,12 +2137,29 @@ const PatientOverview = () => {
             </FilterGroup>
             <FilterGroup>
               <FilterLabel>Barcode</FilterLabel>
-              <FilterInput
-                type="text"
-                placeholder="Enter Barcode"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-              />
+              <BarcodeSearchWrapper>
+                <FilterInput
+                  type="text"
+                  placeholder="Enter Barcode"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  style={{ flex: 1, minWidth: 0 }}
+                />
+                <StepButton
+                  type="button"
+                  title="Decrement barcode number"
+                  onClick={() => handleBarcodeStep(-1)}
+                >
+                  −
+                </StepButton>
+                <StepButton
+                  type="button"
+                  title="Increment barcode number"
+                  onClick={() => handleBarcodeStep(1)}
+                >
+                  +
+                </StepButton>
+              </BarcodeSearchWrapper>
             </FilterGroup>
             <FilterGroup>
               <FilterLabel>Patient Name</FilterLabel>

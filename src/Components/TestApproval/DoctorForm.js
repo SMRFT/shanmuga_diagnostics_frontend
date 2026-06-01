@@ -83,6 +83,18 @@ const Header = styled.header`
     gap: 1rem;
   }
 `;
+const Footer = styled.footer`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+`;
 
 const Title = styled.h1`
   font-size: 1.75rem;
@@ -1434,6 +1446,12 @@ function DoctorForm() {
           </TableBody>
         </Table>
       </TableContainer>
+      <Footer style={{ justifyContent: "flex-end", marginTop: "1.5rem" }}>
+        <BackButton onClick={handleBack}>
+          <ChevronLeft size={18} />
+          Back
+        </BackButton>
+      </Footer>
     </Container>
   );
 }
