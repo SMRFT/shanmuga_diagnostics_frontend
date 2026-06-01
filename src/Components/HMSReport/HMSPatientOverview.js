@@ -1532,21 +1532,34 @@ const HMSPatientOverview = () => {
           doc.text(processedText, x, y);
         }
       };
-      const renderValueWithSuperscript = (doc, text, x, y) => {
-        if (!text) return;
+      const renderValueWithSuperscript = (
+        doc,
+        text,
+        x,
+        y,
+        maxWidth = null,
+        lineHeight = 4,
+      ) => {
+        if (!text) return 0;
 
         // Match pattern like "12X10^5", "10^-3", "12x10^-3"
-        const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/; // <-- added -? here
+        const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/;
         const match = text.match(superscriptRegex);
 
         if (!match) {
-          doc.text(text, x, y);
-          return;
+          // No superscript — use wrapped text as before
+          if (maxWidth) {
+            return renderWrappedText(doc, text, maxWidth, x, y, lineHeight);
+          } else {
+            doc.text(text, x, y);
+            return lineHeight;
+          }
         }
 
+        // Has superscript — render inline (no wrap needed for scientific notation)
         const before = text.slice(0, match.index);
         const base = match[1].replace(/[xX]/, "×");
-        const exponent = match[2]; // now captures "-3" correctly
+        const exponent = match[2];
         const after = text.slice(match.index + match[0].length);
 
         let currentX = x;
@@ -1560,7 +1573,7 @@ const HMSPatientOverview = () => {
         doc.text(base, currentX, y);
         currentX += doc.getTextWidth(base);
 
-        // Render exponent (e.g. "-3") as superscript
+        // Superscript
         doc.setFontSize(7);
         doc.text(exponent, currentX, y - 2);
         currentX += doc.getTextWidth(exponent);
@@ -1569,6 +1582,8 @@ const HMSPatientOverview = () => {
         if (after) {
           doc.text(after, currentX, y);
         }
+
+        return lineHeight;
       };
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
@@ -1794,7 +1809,14 @@ const HMSPatientOverview = () => {
                 0,
                 statusIndicator === "L" ? 255 : 0,
               );
-              renderValueWithSuperscript(doc, valueText, xPos, yPos);
+              renderValueWithSuperscript(
+                doc,
+                valueText,
+                xPos,
+                yPos,
+                colWidths[3] - 5,
+                lineHeight,
+              );
               const valueWidth = doc.getTextWidth(valueText);
               if (valueWidth < colWidths[3] - 5)
                 drawArrowSymbol(
@@ -1806,7 +1828,14 @@ const HMSPatientOverview = () => {
               doc.setTextColor(0, 0, 0);
               doc.setFont("helvetica", "normal");
             } else {
-              renderValueWithSuperscript(doc, valueText, xPos, yPos);
+              renderValueWithSuperscript(
+                doc,
+                valueText,
+                xPos,
+                yPos,
+                colWidths[3] - 2,
+                lineHeight,
+              );
             }
             xPos += colWidths[3];
             renderUnicodeText(test.unit || "", xPos, yPos);
@@ -1931,7 +1960,14 @@ const HMSPatientOverview = () => {
                     0,
                     paramStatus === "L" ? 255 : 0,
                   );
-                  renderValueWithSuperscript(doc, paramValueText, xPos, yPos);
+                  renderValueWithSuperscript(
+                    doc,
+                    paramValueText,
+                    xPos,
+                    yPos,
+                    colWidths[3] - 5,
+                    paramLineHeight,
+                  );
                   const paramValueWidth = doc.getTextWidth(paramValueText);
                   if (paramValueWidth < colWidths[3] - 5)
                     drawArrowSymbol(
@@ -1943,7 +1979,14 @@ const HMSPatientOverview = () => {
                   doc.setTextColor(0, 0, 0);
                   doc.setFont("helvetica", "normal");
                 } else {
-                  renderValueWithSuperscript(doc, paramValueText, xPos, yPos);
+                  renderValueWithSuperscript(
+                    doc,
+                    paramValueText,
+                    xPos,
+                    yPos,
+                    colWidths[3] - 2,
+                    paramLineHeight,
+                  );
                 }
                 xPos += colWidths[3];
                 renderUnicodeText(currentTest.unit || "", xPos, yPos);
