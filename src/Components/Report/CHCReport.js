@@ -232,7 +232,7 @@ const Badge = styled.span`
   border-radius: 1rem;
   font-size: 0.75rem;
   font-weight: 600;
-  background-color: ${(props) => props.color || "var(--gray)"};
+  background-color: ${(p) => p.color || "var(--gray)"};
   color: white;
 `;
 const ActionContainer = styled.div`
@@ -248,18 +248,15 @@ const ActionButton = styled.button`
   height: 2rem;
   border: none;
   border-radius: 50%;
-  background-color: ${(props) =>
-    props.disabled ? "var(--gray-light)" : "white"};
-  color: ${(props) => (props.disabled ? "var(--gray)" : "var(--dark)")};
-  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  background-color: ${(p) => (p.disabled ? "var(--gray-light)" : "white")};
+  color: ${(p) => (p.disabled ? "var(--gray)" : "var(--dark)")};
+  cursor: ${(p) => (p.disabled ? "not-allowed" : "pointer")};
   transition: var(--transition);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   &:hover {
-    transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
-    box-shadow: ${(props) =>
-      props.disabled
-        ? "0 2px 4px rgba(0,0,0,0.1)"
-        : "0 4px 8px rgba(0,0,0,0.1)"};
+    transform: ${(p) => (p.disabled ? "none" : "translateY(-2px)")};
+    box-shadow: ${(p) =>
+      p.disabled ? "0 2px 4px rgba(0,0,0,0.1)" : "0 4px 8px rgba(0,0,0,0.1)"};
   }
 `;
 const GenderIcon = styled.div`
@@ -270,11 +267,10 @@ const GenderIcon = styled.div`
   height: 1.5rem;
   border-radius: 50%;
   margin-right: 0.5rem;
-  background-color: ${(props) =>
-    props.gender === "Female" ? "rgba(232,62,140,0.1)" : "rgba(0,123,255,0.1)"};
-  color: ${(props) => (props.gender === "Female" ? "#E83E8C" : "#007BFF")};
+  background-color: ${(p) =>
+    p.gender === "Female" ? "rgba(232,62,140,0.1)" : "rgba(0,123,255,0.1)"};
+  color: ${(p) => (p.gender === "Female" ? "#E83E8C" : "#007BFF")};
 `;
-
 const ExportButton = styled(Button)`
   background-color: #10b981;
   &:hover:not(:disabled) {
@@ -319,6 +315,110 @@ const InvestigationStatusDisplay = styled.div`
   }
 `;
 
+const StyledCheckbox = styled.input.attrs({ type: "checkbox" })`
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
+  border-radius: 3px;
+`;
+const SelectionBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.5rem;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  font-size: 0.875rem;
+  color: var(--primary-dark);
+  font-weight: 500;
+`;
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--gray-light);
+`;
+const StatCard = styled.div`
+  background-color: var(--light);
+  border-radius: var(--border-radius);
+  padding: 1rem 1.25rem;
+`;
+const StatLabel = styled.p`
+  font-size: 0.8rem;
+  color: var(--gray);
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+const StatDot = styled.span`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${(p) => p.color};
+  flex-shrink: 0;
+`;
+const StatValue = styled.p`
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0;
+  color: ${(p) => p.color || "var(--dark)"};
+  line-height: 1;
+`;
+const StatSub = styled.p`
+  font-size: 0.75rem;
+  color: var(--gray);
+  margin: 5px 0 0;
+`;
+
+const ManualNameList = styled.div`
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+const ManualNameRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--gray);
+`;
+const ManualNameCount = styled.span`
+  font-weight: 600;
+  color: var(--primary-dark);
+  background: var(--gray-light);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.7rem;
+`;
+
+// ─── Tiny concurrency limiter (no npm package needed) ─────────────────────────
+const pLimit = (concurrency) => {
+  let active = 0;
+  const queue = [];
+  const next = () => {
+    if (active >= concurrency || !queue.length) return;
+    active++;
+    const { fn, resolve, reject } = queue.shift();
+    fn()
+      .then(resolve)
+      .catch(reject)
+      .finally(() => {
+        active--;
+        next();
+      });
+  };
+  return (fn) =>
+    new Promise((res, rej) => {
+      queue.push({ fn, resolve: res, reject: rej });
+      next();
+    });
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const CHCReport = () => {
   const [patients, setPatients] = useState([]);
@@ -342,6 +442,7 @@ const CHCReport = () => {
   const [investigationStatusFilter, setInvestigationStatusFilter] =
     useState("");
   const [branchFilter, setBranchFilter] = useState("");
+  const [selectedBarcodes, setSelectedBarcodes] = useState(new Set());
   const navigate = useNavigate();
   const location = useLocation();
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -350,7 +451,6 @@ const CHCReport = () => {
   const hasPendingInvestigations = (bc) => {
     const data = investigationStatuses[bc];
     if (!data) return false;
-    // If lab is pending, the whole thing is pending
     if (data.lab_approval?.toLowerCase() === "pending") return true;
     const chcTests = data.chc_tests || [];
     if (chcTests.length === 0) return false;
@@ -362,13 +462,10 @@ const CHCReport = () => {
 
   const getPendingInvestigations = (statusData) => {
     if (!statusData) return <span className="all-approved">All Approved</span>;
-
     const labPending = statusData.lab_approval?.toLowerCase() === "pending";
     const chcTests = statusData.chc_tests || [];
-
     if (chcTests.length === 0 && !labPending)
       return <span className="all-approved">No CHC Tests</span>;
-
     const chcAllDone =
       chcTests.length === 0 ||
       chcTests.every(
@@ -376,16 +473,13 @@ const CHCReport = () => {
           (t.has_file || t.has_report) &&
           t.status?.toLowerCase() === "approved",
       );
-
     if (!labPending && chcAllDone)
       return <span className="all-approved">All Approved</span>;
-
     return (
       <>
         {labPending && (
           <div>
-            Lab Tests
-            <span className="pending-label">Pending</span>
+            Lab Tests<span className="pending-label">Pending</span>
           </div>
         )}
         {chcTests.map((test, index) => {
@@ -427,7 +521,7 @@ const CHCReport = () => {
             chc_tests: patient.chc_tests || [],
             chc_investigation_status:
               patient.chc_investigation_status || "Pending",
-            lab_approval: patient.lab_approval || "Pending", // ← ADD THIS
+            lab_approval: patient.lab_approval || "Pending",
           };
         }
       });
@@ -439,11 +533,27 @@ const CHCReport = () => {
     setLoading(false);
   }, [startDate, endDate, Labbaseurl]);
 
-  // Derive unique branch names from fetched patients
   const branchNames = useMemo(() => {
     const names = patients.map((p) => p.branch_name).filter(Boolean);
     return [...new Set(names)].sort();
   }, [patients]);
+
+  const approvalCounts = useMemo(() => {
+    let auto = 0;
+    const manualByName = {}; // { "Dr. X": 3, "Dr. Y": 1 }
+
+    filteredPatients.forEach((p) => {
+      if (p.approval_type === "auto") {
+        auto++;
+      } else if (p.approval_type === "manual") {
+        const name = p.approved_by_name || "Unknown";
+        manualByName[name] = (manualByName[name] || 0) + 1;
+      }
+    });
+
+    const manualTotal = Object.values(manualByName).reduce((s, n) => s + n, 0);
+    return { auto, manualByName, manualTotal, total: auto + manualTotal };
+  }, [filteredPatients]);
 
   const handleApprovalSaved = useCallback(async () => {
     await fetchCombinedPatientData();
@@ -488,6 +598,7 @@ const CHCReport = () => {
       );
     });
     setFilteredPatients(filtered);
+    setSelectedBarcodes(new Set()); // reset selection when filters change
   }, [
     startDate,
     endDate,
@@ -521,6 +632,7 @@ const CHCReport = () => {
   // ─── PDF utilities ────────────────────────────────────────────────────────
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
+  // OPTIMIZED: scale 1.5 + JPEG + parallel page rendering
   const convertPdfToImages = async (base64Data) => {
     try {
       const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "").trim();
@@ -529,22 +641,29 @@ const CHCReport = () => {
       for (let i = 0; i < binaryString.length; i++)
         bytes[i] = binaryString.charCodeAt(i);
 
-      // No cMapUrl / verbosity — avoids CDN version mismatch errors
       const loadingTask = pdfjsLib.getDocument({ data: bytes });
       const pdf = await loadingTask.promise;
 
-      const images = [];
+      // Render all pages in parallel
+      const pagePromises = [];
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 2.0 });
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        await page.render({ canvasContext: context, viewport }).promise;
-        images.push(canvas.toDataURL("image/png"));
+        pagePromises.push(
+          (async (num) => {
+            const page = await pdf.getPage(num);
+            const viewport = page.getViewport({ scale: 1.5 }); // was 2.0 — 44% fewer pixels
+            const canvas = document.createElement("canvas");
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({
+              canvasContext: canvas.getContext("2d"),
+              viewport,
+            }).promise;
+            return canvas.toDataURL("image/jpeg", 0.85); // JPEG: 60-80% smaller than PNG
+          })(pageNum),
+        );
       }
-      return images;
+      const results = await Promise.all(pagePromises);
+      return results.map((dataUri) => ({ dataUri, format: "JPEG" }));
     } catch (error) {
       console.error("Error converting PDF to images:", error);
       return [];
@@ -570,12 +689,65 @@ const CHCReport = () => {
     }
   };
 
+  // NEW: Pre-convert all PDF files → images BEFORE PDF generation starts
+  // This separates I/O (slow) from PDF building (CPU) so both can be parallelized
+  const preProcessInvestigationFiles = async (
+    investigationFiles,
+    chcTestsForFiles,
+  ) => {
+    const processed = {};
+    await Promise.all(
+      chcTestsForFiles.map(async (test) => {
+        const testEntry = investigationFiles[test.test_id];
+        if (!testEntry) return;
+
+        const testNameLower = (test.testname || "").toLowerCase();
+        const isOphthal =
+          testNameLower.includes("optho") ||
+          testNameLower.includes("ophth") ||
+          test.test_id === "CHCT001";
+        if (isOphthal) return;
+
+        const processedImages = [];
+        if (testEntry.files?.length > 0) {
+          await Promise.all(
+            testEntry.files.map(async (file) => {
+              if (!file?.data) return;
+              const contentType = file.contentType || "";
+              const filename = (file.filename || "").toLowerCase();
+              const isPDF =
+                contentType.includes("pdf") || filename.endsWith(".pdf");
+              if (isPDF) {
+                const imgs = await convertPdfToImages(file.data);
+                imgs.forEach((img) => processedImages.push(img));
+              } else {
+                let fmt = "PNG";
+                if (
+                  contentType.includes("jpeg") ||
+                  contentType.includes("jpg") ||
+                  filename.endsWith(".jpg") ||
+                  filename.endsWith(".jpeg")
+                )
+                  fmt = "JPEG";
+                processedImages.push({
+                  dataUri: `data:${contentType || "image/png"};base64,${file.data}`,
+                  format: fmt,
+                });
+              }
+            }),
+          );
+        }
+        processed[test.test_id] = { ...testEntry, processedImages };
+      }),
+    );
+    return processed;
+  };
+
   // ─── mergeInvestigationData ───────────────────────────────────────────────
   const mergeInvestigationData = (patientDetails, invStatus) => {
     if (!invStatus) return patientDetails;
     const merged = { ...patientDetails };
 
-    // Vitals
     const rawVitals = invStatus.vitals || {};
     if (Object.keys(rawVitals).length > 0) {
       const pick = (...keys) => {
@@ -600,7 +772,6 @@ const CHCReport = () => {
         merged.vitals = { ...(merged.vitals || {}), ...normalisedVitals };
     }
 
-    // Patient history
     const history = invStatus.patient_history;
     if (history && history.trim())
       merged.medical_history = {
@@ -608,7 +779,6 @@ const CHCReport = () => {
         patient_history: history,
       };
 
-    // Investigation notes from chc_tests
     const chcTests = invStatus.chc_tests || [];
     if (chcTests.length > 0) {
       const notesMap = {
@@ -651,7 +821,6 @@ const CHCReport = () => {
         merged.investigation_notes = existingNotes;
     }
 
-    // Extract ophthalmology from CHCT001 in chc_tests
     const ophthalTest = chcTests.find(
       (t) =>
         t.test_id === "CHCT001" ||
@@ -675,8 +844,7 @@ const CHCReport = () => {
           };
         }
       } catch (e) {
-        // report is plain text, not JSON — leave chc_ophthalmology unset
-        // addOphthalmologyReport will fall back to patientDetails.ophthalmology
+        /* plain text — leave chc_ophthalmology unset */
       }
     }
 
@@ -684,20 +852,13 @@ const CHCReport = () => {
   };
 
   // ─── buildPdfDocument ─────────────────────────────────────────────────────
-  // Shared PDF-building logic used by both handlePrint and generateSimplePDFFromData.
-  // patientDetails must already have:
-  //   .vitals, .medical_history, .investigation_notes, .chc_tests_for_files,
-  //   .investigation_files, .chc_ophthalmology (optional), .ophthalmology (optional),
-  //   .testdetails, .final_assessment
-  // activeConsultants: [[name, title, signatureDataUri|null], ...]
-  // ─── buildPdfDocument ─────────────────────────────────────────────────────
-  // ALL inner functions use closure variables (doc, patientDetails, leftMargin,
-  // contentWidth, rightMargin, headerHeight, footerHeight, checkForNewPage, etc.)
-  // so they all take only (yPos) as their argument.
+  // 4th param preProcessedFiles: if provided, addInvestigationFiles uses pre-rendered
+  // images instead of converting on-the-fly (used in batch mode)
   const buildPdfDocument = async (
     patientDetails,
     activeConsultants = [],
     withLetterpad = true,
+    preProcessedFiles = null, // NEW param
   ) => {
     const doc = new jsPDF();
     let pageCount = 1;
@@ -733,9 +894,6 @@ const CHCReport = () => {
       }
     };
 
-    // ── Header / Footer ──────────────────────────────────────────────────────
-    // withNabl = true  → show NABL logo (lab investigation pages only)
-    // withNabl = false → no NABL logo (all other pages)
     const addHeaderFooter = (withNabl = false) => {
       if (withLetterpad) {
         doc.addImage(
@@ -747,15 +905,14 @@ const CHCReport = () => {
           headerHeight,
         );
         if (withNabl && NABLImage) {
-          const nablLogoWidth = 20;
-          const nablLogoHeight = 20;
+          const nablLogoWidth = 20,
+            nablLogoHeight = 20;
           const nablLogoX = doc.internal.pageSize.width - 45 - nablLogoWidth;
-          const nablLogoY = 7;
           doc.addImage(
             NABLImage,
             "PNG",
             nablLogoX,
-            nablLogoY,
+            7,
             nablLogoWidth,
             nablLogoHeight,
           );
@@ -771,7 +928,6 @@ const CHCReport = () => {
       }
     };
 
-    // Non-lab pages never get NABL logo
     const checkForNewPage = (yPos, estimatedHeight) => {
       const pageHeight = doc.internal.pageSize.height;
       if (yPos + estimatedHeight >= pageHeight - footerHeight - 30) {
@@ -783,7 +939,6 @@ const CHCReport = () => {
       return yPos;
     };
 
-    // ── Patient info header ──────────────────────────────────────────────────
     const addMedicalExaminationHeader = (yPos) => {
       yPos += 15;
       doc.setFontSize(10);
@@ -844,7 +999,6 @@ const CHCReport = () => {
       return yPos + 10;
     };
 
-    // ── Medical history ──────────────────────────────────────────────────────
     const addMedicalHistory = (yPos) => {
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
@@ -866,10 +1020,7 @@ const CHCReport = () => {
                 try {
                   const d = new Date(patientDetails.doj);
                   if (isNaN(d.getTime())) return "N/A";
-                  const day = String(d.getDate()).padStart(2, "0");
-                  const month = String(d.getMonth() + 1).padStart(2, "0");
-                  const year = d.getFullYear();
-                  return `${day}/${month}/${year}`;
+                  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
                 } catch {
                   return "N/A";
                 }
@@ -902,10 +1053,7 @@ const CHCReport = () => {
         }
       });
 
-      if (
-        patientDetails.dynamic_fields &&
-        patientDetails.dynamic_fields.length > 0
-      ) {
+      if (patientDetails.dynamic_fields?.length > 0) {
         yPos += 5;
         patientDetails.dynamic_fields.forEach((field) => {
           yPos = checkForNewPage(yPos, 15);
@@ -914,13 +1062,11 @@ const CHCReport = () => {
           doc.text(field.field_name || "Clinical Findings", leftMargin, yPos);
           yPos += 7;
           doc.setFontSize(10);
-
-          if (field.field_values && field.field_values.length > 0) {
+          if (field.field_values?.length > 0) {
             const colWidths = [55, contentWidth - 55];
             const tableStartX = leftMargin;
             const rowHeight = 8;
             const tableWidth = colWidths[0] + colWidths[1];
-
             doc.rect(tableStartX, yPos, tableWidth, rowHeight);
             doc.line(
               tableStartX + colWidths[0],
@@ -932,7 +1078,6 @@ const CHCReport = () => {
             doc.text("Parameter", tableStartX + 2, yPos + 5);
             doc.text("Finding", tableStartX + colWidths[0] + 2, yPos + 5);
             yPos += rowHeight;
-
             doc.setFont("helvetica", "normal");
             field.field_values.forEach((fv) => {
               yPos = checkForNewPage(yPos, rowHeight);
@@ -941,7 +1086,6 @@ const CHCReport = () => {
                 colWidths[1] - 4,
               );
               const rowH = Math.max(rowHeight, valueLines.length * 5 + 3);
-
               doc.rect(tableStartX, yPos, tableWidth, rowH);
               doc.line(
                 tableStartX + colWidths[0],
@@ -959,11 +1103,9 @@ const CHCReport = () => {
           }
         });
       }
-
       return yPos + 5;
     };
 
-    // ── Vitals ───────────────────────────────────────────────────────────────
     const addGeneralExamination = (yPos) => {
       yPos = checkForNewPage(yPos, 30);
       doc.setFont("helvetica", "bold");
@@ -1101,7 +1243,6 @@ const CHCReport = () => {
       return yPos + 10;
     };
 
-    // ── Miscellaneous ────────────────────────────────────────────────────────
     const addMiscellaneousInvestigations = (yPos) => {
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
@@ -1109,7 +1250,6 @@ const CHCReport = () => {
       doc.text("MISCELLANEOUS", leftMargin, yPos);
       yPos += 10;
       doc.setFontSize(10);
-
       const chcTestsForMisc = patientDetails.chc_tests_for_files || [];
       const availedTests = chcTestsForMisc.filter((t) => {
         const hasContent =
@@ -1122,13 +1262,11 @@ const CHCReport = () => {
           t.test_id !== "CHCT001"
         );
       });
-
       if (availedTests.length === 0) {
         doc.setFont("helvetica", "normal");
         doc.text("No miscellaneous investigations recorded.", leftMargin, yPos);
         return yPos + 10;
       }
-
       const maxWidth = 210 - leftMargin - 20 - 45;
       availedTests.forEach((test) => {
         const label = test.testname || "Unknown";
@@ -1138,7 +1276,6 @@ const CHCReport = () => {
           if (value && !value.endsWith(".")) value += ".";
         }
         if (!value) value = "Normal";
-
         yPos = checkForNewPage(yPos, 15);
         doc.setFont("helvetica", "bold");
         doc.text(label, leftMargin, yPos);
@@ -1157,19 +1294,15 @@ const CHCReport = () => {
       return yPos + 5;
     };
 
-    // ── Ophthalmology ────────────────────────────────────────────────────────
     const addOphthalmologyReport = (yPos) => {
       const chcOphthal = patientDetails.chc_ophthalmology;
       const legacyOphthal = patientDetails.ophthalmology;
-      const hasEither = chcOphthal || legacyOphthal;
-      if (!hasEither) return yPos;
-
+      if (!chcOphthal && !legacyOphthal) return yPos;
       yPos = checkForNewPage(yPos, 70);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("OPHTHALMOLOGY REPORT", leftMargin, yPos);
       yPos += 10;
-
       const getEyes = (chcKey, legacyKey) => {
         if (chcOphthal) {
           const obj = chcOphthal[chcKey] || {};
@@ -1178,7 +1311,6 @@ const CHCReport = () => {
         const obj = legacyOphthal?.[legacyKey] || {};
         return { right: obj.right || "N/A", left: obj.left || "N/A" };
       };
-
       const rows = [
         { label: "Distant Vision", eyes: getEyes("distance", "distance") },
         { label: "Near Vision", eyes: getEyes("nearVision", "near_vision") },
@@ -1191,38 +1323,34 @@ const CHCReport = () => {
           eyes: getEyes("ocularmovement", "ocularmovement"),
         },
       ];
-
-      const tableX = leftMargin;
-      const tableWidth = 155;
+      const tableX = leftMargin,
+        tableWidth = 155;
       const col1Width = 52,
         col2Width = 51.5,
         col3Width = 51.5;
       const rowHeight = 10;
-      const totalRows = rows.length;
-
       doc.setLineWidth(0.3);
       doc.setFontSize(10);
-      doc.rect(tableX, yPos, tableWidth, rowHeight * (totalRows + 1));
+      doc.rect(tableX, yPos, tableWidth, rowHeight * (rows.length + 1));
       doc.line(
         tableX + col1Width,
         yPos,
         tableX + col1Width,
-        yPos + rowHeight * (totalRows + 1),
+        yPos + rowHeight * (rows.length + 1),
       );
       doc.line(
         tableX + col1Width + col2Width,
         yPos,
         tableX + col1Width + col2Width,
-        yPos + rowHeight * (totalRows + 1),
+        yPos + rowHeight * (rows.length + 1),
       );
-      for (let i = 1; i <= totalRows; i++)
+      for (let i = 1; i <= rows.length; i++)
         doc.line(
           tableX,
           yPos + rowHeight * i,
           tableX + tableWidth,
           yPos + rowHeight * i,
         );
-
       doc.setFont("helvetica", "bold");
       doc.text("Test", tableX + col1Width / 2 - 5, yPos + 6);
       doc.text("Right Eye", tableX + col1Width + col2Width / 2 - 10, yPos + 6);
@@ -1231,15 +1359,14 @@ const CHCReport = () => {
         tableX + col1Width + col2Width + col3Width / 2 - 8,
         yPos + 6,
       );
-
       doc.setFont("helvetica", "normal");
       rows.forEach((row, idx) => {
         const ry = yPos + rowHeight * (idx + 1);
         doc.setFont("helvetica", "bold");
         doc.text(row.label, tableX + 5, ry + 6);
         doc.setFont("helvetica", "normal");
-        const r = String(row.eyes.right);
-        const l = String(row.eyes.left);
+        const r = String(row.eyes.right),
+          l = String(row.eyes.left);
         doc.text(
           r,
           tableX + col1Width + col2Width / 2 - doc.getTextWidth(r) / 2,
@@ -1255,9 +1382,7 @@ const CHCReport = () => {
           ry + 6,
         );
       });
-
-      yPos = yPos + rowHeight * (totalRows + 1) + 10;
-
+      yPos = yPos + rowHeight * (rows.length + 1) + 10;
       const complaints =
         chcOphthal?.complaints?.trim() ||
         legacyOphthal?.patient_complaints?.trim();
@@ -1267,11 +1392,9 @@ const CHCReport = () => {
       yPos += 5;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      const complaintsTxt = complaints || "Nil";
-      const cl = doc.splitTextToSize(complaintsTxt, contentWidth - 10);
+      const cl = doc.splitTextToSize(complaints || "Nil", contentWidth - 10);
       doc.text(cl, leftMargin, yPos);
       yPos += cl.length * 5 + 8;
-
       const remarks =
         chcOphthal?.remarks?.trim() || legacyOphthal?.remarks?.trim();
       doc.setFont("helvetica", "bold");
@@ -1285,7 +1408,6 @@ const CHCReport = () => {
       const rl = doc.splitTextToSize(remarksTxt, contentWidth - 10);
       doc.text(rl, leftMargin, yPos);
       yPos += rl.length * 5 + 10;
-
       doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
       const vn =
@@ -1295,7 +1417,6 @@ const CHCReport = () => {
       return yPos + 15;
     };
 
-    // ── CHC012 Lab Summary (inline table) ────────────────────────────────────
     const addCHC012LabSummary = (yPos) => {
       const INLINE_TESTS_BY_NAME = {
         "GLUCOSE - RANDOM": { paramNames: "all" },
@@ -1304,7 +1425,6 @@ const CHCReport = () => {
         },
         "VDRL/ RPR": { paramNames: "all" },
       };
-
       if (
         !patientDetails.testdetails ||
         patientDetails.testdetails.length === 0
@@ -1318,7 +1438,6 @@ const CHCReport = () => {
         doc.text("Enclosed", leftMargin + 55, yPos);
         return yPos + 10;
       }
-
       const getHighLowStatus = (value, reference) => {
         if (!value || !reference) return null;
         const num = parseFloat(value);
@@ -1338,51 +1457,41 @@ const CHCReport = () => {
         }
         return null;
       };
-
       const rows = [];
       patientDetails.testdetails.forEach((test) => {
         const config = INLINE_TESTS_BY_NAME[test.testname];
         if (!config) return;
-
         if (config.paramNames === "all") {
-          // Some tests store the value directly on the test; others store it in parameters[0]
           const src = test.value?.trim()
             ? test
             : test.parameters?.length > 0
               ? test.parameters[0]
               : test;
-
-          const status = getHighLowStatus(src.value, src.reference_range);
           rows.push({
             testname: test.testname || "Test",
             value: src.value || "",
             unit: src.unit || "",
-            status,
+            status: getHighLowStatus(src.value, src.reference_range),
             reference_range: src.reference_range || "",
           });
         } else {
-          const params = test.parameters || [];
-          params.forEach((p) => {
-            if (config.paramNames.includes(p.name)) {
-              const status = getHighLowStatus(p.value, p.reference_range);
+          (test.parameters || []).forEach((p) => {
+            if (config.paramNames.includes(p.name))
               rows.push({
                 testname: p.name,
                 value: p.value || "",
                 unit: p.unit || "",
-                status,
+                status: getHighLowStatus(p.value, p.reference_range),
                 reference_range: p.reference_range || "",
               });
-            }
           });
         }
       });
-
       yPos = checkForNewPage(yPos, 30);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("Lab Investigations", leftMargin, yPos);
       yPos += 8;
-
       if (rows.length > 0) {
         doc.setFontSize(10);
         const colW = [
@@ -1394,7 +1503,6 @@ const CHCReport = () => {
         const tableX = leftMargin;
         const rowH = 8;
         const tableW = colW.reduce((a, b) => a + b, 0);
-
         doc.rect(tableX, yPos, tableW, rowH);
         let cx = tableX;
         colW.forEach((w) => {
@@ -1409,7 +1517,6 @@ const CHCReport = () => {
           hx += colW[i];
         });
         yPos += rowH;
-
         doc.setFont("helvetica", "normal");
         rows.forEach((row) => {
           yPos = checkForNewPage(yPos, rowH);
@@ -1421,14 +1528,11 @@ const CHCReport = () => {
           });
           doc.setFont("helvetica", "normal");
           doc.text(String(row.testname).substring(0, 34), tableX + 2, yPos + 5);
-
           const valueX = tableX + colW[0] + 2;
           const valueStr = String(row.value);
           doc.text(valueStr, valueX, yPos + 5);
-
           if (row.status === "H" || row.status === "L") {
-            const valueWidth = doc.getTextWidth(valueStr);
-            const indicatorX = valueX + valueWidth + 2;
+            const indicatorX = valueX + doc.getTextWidth(valueStr) + 2;
             doc.setFont("helvetica", "bold");
             if (row.status === "H") {
               doc.setTextColor(220, 0, 0);
@@ -1442,19 +1546,20 @@ const CHCReport = () => {
             doc.setTextColor(0, 0, 0);
             doc.setFont("helvetica", "normal");
           }
-          const unitX = tableX + colW[0] + colW[1] + 2;
-          doc.text(String(row.unit).substring(0, 10), unitX, yPos + 5);
-          const refX = tableX + colW[0] + colW[1] + colW[2] + 2;
+          doc.text(
+            String(row.unit).substring(0, 10),
+            tableX + colW[0] + colW[1] + 2,
+            yPos + 5,
+          );
           doc.text(
             String(row.reference_range).substring(0, 18),
-            refX,
+            tableX + colW[0] + colW[1] + colW[2] + 2,
             yPos + 5,
           );
           yPos += rowH;
         });
         yPos += 4;
       }
-
       doc.setFont("helvetica", "italic");
       doc.setFontSize(10);
       doc.text("Other Lab Reports are Enclosed", leftMargin, yPos);
@@ -1462,14 +1567,10 @@ const CHCReport = () => {
       return yPos + 70;
     };
 
-    // ── Lab investigations (summary line on medical report page) ─────────────
     const addLabInvestigations = (yPos) => {
       if (!patientDetails.testdetails?.length) return yPos;
-
-      if (patientDetails.company_id === "CHC012") {
+      if (patientDetails.company_id === "CHC012")
         return addCHC012LabSummary(yPos);
-      }
-
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -1480,7 +1581,6 @@ const CHCReport = () => {
       return yPos + 10;
     };
 
-    // ── Final assessment + surgeon signature ─────────────────────────────────
     const addFinalAssessment = (yPos) => {
       yPos = checkForNewPage(yPos, 30);
       doc.setFont("helvetica", "bold");
@@ -1491,7 +1591,6 @@ const CHCReport = () => {
       const remarks =
         patientDetails.final_assessment?.remarks ||
         "The above candidate was examined and found Medically Fit for the Job.";
-
       if (impression?.trim()) {
         const impressionLines = [
           ...new Set(
@@ -1505,37 +1604,30 @@ const CHCReport = () => {
         doc.text("Impression", leftMargin, yPos);
         doc.text(":", leftMargin + 30, yPos);
         doc.setFont("helvetica", "normal");
-        let firstLine = true;
         impressionLines.forEach((line) => {
           const wrapped = doc.splitTextToSize(line, contentWidth - 40);
           wrapped.forEach((wl) => {
             doc.text(wl, leftMargin + 35, yPos);
             yPos += 6;
-            firstLine = false;
           });
         });
         doc.setFont("helvetica", "bold");
         yPos += 4;
       }
-
       if (remarks?.trim()) {
         yPos += 4;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.text(remarks, leftMargin, yPos);
       }
-
-      yPos += 4;
-      yPos += 4;
-      const signatureBlockHeight = 40;
+      yPos += 8;
       const pageHeight = doc.internal.pageSize.height;
-      if (yPos + signatureBlockHeight >= pageHeight - footerHeight) {
+      if (yPos + 40 >= pageHeight - footerHeight) {
         doc.addPage();
         pageCount++;
         addHeaderFooter(false);
         yPos = headerHeight + 10;
       }
-
       const signatureX = leftMargin + 120;
       if (DRPS) doc.addImage(DRPS, "PNG", signatureX, yPos, 35, 25);
       yPos += 25;
@@ -1551,12 +1643,11 @@ const CHCReport = () => {
       return yPos + 10;
     };
 
-    // ── Investigation files ───────────────────────────────────────────────────
+    // ORIGINAL addInvestigationFiles — used by single handlePrint (converts on the fly)
     const addInvestigationFiles = async () => {
       const files = patientDetails.investigation_files;
       const chcTestsOrder = patientDetails.chc_tests_for_files || [];
       if (!files) return;
-
       const pageHeight = doc.internal.pageSize.height;
 
       for (const test of chcTestsOrder) {
@@ -1567,31 +1658,25 @@ const CHCReport = () => {
           test.test_id === "CHCT001"
         )
           continue;
-
         const testEntry = files[test.test_id];
         if (!testEntry) continue;
-
         const label = testEntry.label || test.testname;
         const reportText = testEntry.report || test.report?.trim() || "";
         const notesText = testEntry.notes || test.notes?.trim() || "";
         const hasFiles = testEntry.files?.length > 0;
-
         if (!reportText && !notesText && !hasFiles) continue;
-
         const isXRay =
           testNameLower.includes("x-ray") ||
           testNameLower.includes("xray") ||
           testNameLower.includes("chest");
-
         const isEcho =
           testNameLower.includes("echo") ||
           testNameLower.includes("echocardiogram");
 
         const allImages = [];
         if (hasFiles) {
-          for (let fileIdx = 0; fileIdx < testEntry.files.length; fileIdx++) {
-            const file = testEntry.files[fileIdx];
-            if (!file || !file.data) continue;
+          for (const file of testEntry.files) {
+            if (!file?.data) continue;
             try {
               const contentType = file.contentType || "";
               const filename = (file.filename || "").toLowerCase();
@@ -1599,192 +1684,216 @@ const CHCReport = () => {
                 contentType.includes("pdf") || filename.endsWith(".pdf");
               if (isPDF) {
                 const pdfImages = await convertPdfToImages(file.data);
-                pdfImages.forEach((imgDataUri) => {
-                  allImages.push({ dataUri: imgDataUri, format: "PNG" });
-                });
+                pdfImages.forEach((img) => allImages.push(img));
               } else {
-                let imageFormat = "PNG";
+                let fmt = "PNG";
                 if (
                   contentType.includes("jpeg") ||
                   contentType.includes("jpg") ||
                   filename.endsWith(".jpg") ||
                   filename.endsWith(".jpeg")
                 )
-                  imageFormat = "JPEG";
-                const imgData = `data:${contentType || "image/png"};base64,${file.data}`;
-                allImages.push({ dataUri: imgData, format: imageFormat });
+                  fmt = "JPEG";
+                allImages.push({
+                  dataUri: `data:${contentType || "image/png"};base64,${file.data}`,
+                  format: fmt,
+                });
               }
             } catch (err) {
               console.error(`Error processing file in ${label}:`, err);
             }
           }
         }
+        await _renderTestPages(
+          label,
+          reportText,
+          notesText,
+          allImages,
+          isXRay,
+          isEcho,
+        );
+      }
+    };
 
-        // STEP A: Report text page — no NABL logo
-        if (reportText) {
-          doc.addPage();
-          pageCount++;
-          addHeaderFooter(false);
-          let yPos = headerHeight + 10;
-          yPos = addMedicalExaminationHeader(yPos);
-          yPos += 5;
+    // FAST addInvestigationFiles — uses pre-converted images (used by batch handleOverallPrint)
+    const addInvestigationFiles_Fast = async (preProc) => {
+      if (!preProc) return;
+      const chcTestsOrder = patientDetails.chc_tests_for_files || [];
+      for (const test of chcTestsOrder) {
+        const testNameLower = (test.testname || "").toLowerCase();
+        if (
+          testNameLower.includes("optho") ||
+          testNameLower.includes("ophth") ||
+          test.test_id === "CHCT001"
+        )
+          continue;
+        const testEntry = preProc[test.test_id];
+        if (!testEntry) continue;
+        const label = testEntry.label || test.testname;
+        const reportText = testEntry.report || "";
+        const notesText = testEntry.notes || "";
+        const allImages = testEntry.processedImages || [];
+        if (!reportText && !notesText && !allImages.length) continue;
+        const isXRay =
+          testNameLower.includes("x-ray") ||
+          testNameLower.includes("xray") ||
+          testNameLower.includes("chest");
+        const isEcho =
+          testNameLower.includes("echo") ||
+          testNameLower.includes("echocardiogram");
+        await _renderTestPages(
+          label,
+          reportText,
+          notesText,
+          allImages,
+          isXRay,
+          isEcho,
+        );
+      }
+    };
 
+    // Shared page-rendering logic for both addInvestigationFiles variants
+    const _renderTestPages = async (
+      label,
+      reportText,
+      notesText,
+      allImages,
+      isXRay,
+      isEcho,
+    ) => {
+      const pageHeight = doc.internal.pageSize.height;
+      if (reportText) {
+        doc.addPage();
+        pageCount++;
+        addHeaderFooter(false);
+        let yPos = headerHeight + 10;
+        yPos = addMedicalExaminationHeader(yPos);
+        yPos += 5;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text(label.toUpperCase(), leftMargin + contentWidth / 2, yPos, {
+          align: "center",
+        });
+        yPos += 3;
+        const titleWidth = doc.getTextWidth(label.toUpperCase());
+        doc.setLineWidth(0.5);
+        doc.line(
+          leftMargin + contentWidth / 2 - titleWidth / 2,
+          yPos,
+          leftMargin + contentWidth / 2 + titleWidth / 2,
+          yPos,
+        );
+        yPos += 12;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        const normalizedReport = reportText
+          .replace(/\\r\\n/g, "\n")
+          .replace(/\r\n/g, "\n");
+        const paragraphs = normalizedReport
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0);
+        const allSentences = [];
+        paragraphs.forEach((p) => {
+          p.split(/\.(?=\s|$)/)
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
+            .map((s) => (s.endsWith(".") ? s : s + "."))
+            .forEach((s) => allSentences.push(s));
+        });
+        allSentences.forEach((sentence) => {
+          const lines = doc.splitTextToSize(sentence, contentWidth - 10);
+          doc.text(lines, leftMargin, yPos);
+          yPos += lines.length * 5.5 + 4;
+        });
+        if (notesText) {
+          yPos += 8;
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(13);
-          doc.text(label.toUpperCase(), leftMargin + contentWidth / 2, yPos, {
-            align: "center",
-          });
-          yPos += 3;
-          const titleWidth = doc.getTextWidth(label.toUpperCase());
-          doc.setLineWidth(0.5);
-          doc.line(
-            leftMargin + contentWidth / 2 - titleWidth / 2,
-            yPos,
-            leftMargin + contentWidth / 2 + titleWidth / 2,
-            yPos,
-          );
-          yPos += 12;
-
+          doc.setFontSize(10);
+          doc.text("IMPRESSION:", leftMargin, yPos);
+          yPos += 7;
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
-          const normalizedReport = reportText
-            .replace(/\\r\\n/g, "\n")
-            .replace(/\r\n/g, "\n");
-          const paragraphs = normalizedReport
-            .split("\n")
-            .map((l) => l.trim())
-            .filter((l) => l.length > 0);
-          const allSentences = [];
-          paragraphs.forEach((paragraph) => {
-            paragraph
-              .split(/\.(?=\s|$)/)
-              .map((s) => s.trim())
-              .filter((s) => s.length > 0)
-              .map((s) => (s.endsWith(".") ? s : s + "."))
-              .forEach((s) => allSentences.push(s));
-          });
-          allSentences.forEach((sentence) => {
-            const wrappedLines = doc.splitTextToSize(
-              sentence,
-              contentWidth - 10,
-            );
-            doc.text(wrappedLines, leftMargin, yPos);
-            yPos += wrappedLines.length * 5.5 + 4;
-          });
-
-          if (notesText) {
-            yPos += 8;
+          const impressionLines = doc.splitTextToSize(
+            notesText,
+            contentWidth - 10,
+          );
+          doc.text(impressionLines, leftMargin, yPos);
+          yPos += impressionLines.length * 5.5 + 20;
+          if (isXRay) {
+            const sx = leftMargin + 120;
+            if (Muhsina) doc.addImage(Muhsina, "PNG", sx, yPos, 35, 15);
+            yPos += 20;
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
-            doc.text("IMPRESSION:", leftMargin, yPos);
-            yPos += 7;
+            doc.setFontSize(9);
+            doc.text("DR. MUHSINA ABOOBAKER, MBBS, MDRD", sx, yPos);
+            yPos += 5;
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            const impressionLines = doc.splitTextToSize(
-              notesText,
-              contentWidth - 10,
-            );
-            doc.text(impressionLines, leftMargin, yPos);
-            yPos += impressionLines.length * 5.5 + 20;
-
-            if (isXRay) {
-              const signatureX = leftMargin + 120;
-              if (Muhsina)
-                doc.addImage(Muhsina, "PNG", signatureX, yPos, 35, 15);
-              yPos += 20;
-              doc.setFont("helvetica", "bold");
-              doc.setFontSize(9);
-              doc.text("DR. MUHSINA ABOOBAKER, MBBS, MDRD", signatureX, yPos);
-              yPos += 5;
-              doc.setFont("helvetica", "normal");
-              doc.setFontSize(9);
-              doc.text("CONSULTANT RADIOLOGIST", signatureX, yPos);
-              yPos += 5;
-              doc.text("REG NO: 143512 (TNMC)", signatureX, yPos);
-            }
-
-            if (isEcho) {
-              const signatureX = leftMargin + 110;
-              if (drarun) doc.addImage(drarun, "PNG", signatureX, yPos, 40, 20);
-              yPos += 20;
-              doc.setFont("helvetica", "bold");
-              doc.setFontSize(9);
-              doc.text(
-                "Dr. ARUN KUMAR.B, MD(MED), DNB(CARDIO)",
-                signatureX,
-                yPos,
-              );
-              yPos += 5;
-              doc.setFont("helvetica", "normal");
-              doc.setFontSize(9);
-              doc.text(
-                "CONSULTANT INTERVENTIONAL CARDIOLOGIST",
-                signatureX,
-                yPos,
-              );
-              yPos += 5;
-              doc.text("REG NO: 91581", signatureX, yPos);
-              yPos += 5;
-              doc.text(
-                "Shanmuga Hospital & Salem Cancer Institute",
-                signatureX,
-                yPos,
-              );
-            }
+            doc.setFontSize(9);
+            doc.text("CONSULTANT RADIOLOGIST", sx, yPos);
+            yPos += 5;
+            doc.text("REG NO: 143512 (TNMC)", sx, yPos);
+          }
+          if (isEcho) {
+            const sx = leftMargin + 110;
+            if (drarun) doc.addImage(drarun, "PNG", sx, yPos, 40, 20);
+            yPos += 20;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("Dr. ARUN KUMAR.B, MD(MED), DNB(CARDIO)", sx, yPos);
+            yPos += 5;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.text("CONSULTANT INTERVENTIONAL CARDIOLOGIST", sx, yPos);
+            yPos += 5;
+            doc.text("REG NO: 91581", sx, yPos);
+            yPos += 5;
+            doc.text("Shanmuga Hospital & Salem Cancer Institute", sx, yPos);
           }
         }
-
-        // STEP B: Image pages — no NABL logo
-        for (let imgIdx = 0; imgIdx < allImages.length; imgIdx++) {
-          const img = allImages[imgIdx];
-          doc.addPage();
-          pageCount++;
-          addHeaderFooter(false);
-
-          let imgYPos = headerHeight + 10;
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(13);
+      }
+      for (const img of allImages) {
+        doc.addPage();
+        pageCount++;
+        addHeaderFooter(false);
+        let imgYPos = headerHeight + 10;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text(label.toUpperCase(), leftMargin + contentWidth / 2, imgYPos, {
+          align: "center",
+        });
+        imgYPos += 3;
+        const imgTitleWidth = doc.getTextWidth(label.toUpperCase());
+        doc.setLineWidth(0.5);
+        doc.line(
+          leftMargin + contentWidth / 2 - imgTitleWidth / 2,
+          imgYPos,
+          leftMargin + contentWidth / 2 + imgTitleWidth / 2,
+          imgYPos,
+        );
+        imgYPos += 5;
+        const availableHeight = pageHeight - footerHeight - imgYPos - 5;
+        try {
+          doc.addImage(
+            img.dataUri,
+            img.format,
+            leftMargin,
+            imgYPos,
+            contentWidth,
+            availableHeight,
+          );
+        } catch (e) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
           doc.text(
-            label.toUpperCase(),
-            leftMargin + contentWidth / 2,
-            imgYPos,
-            { align: "center" },
+            `[Image error: ${e.message}]`,
+            leftMargin,
+            imgYPos + availableHeight / 2,
           );
-          imgYPos += 3;
-          const imgTitleWidth = doc.getTextWidth(label.toUpperCase());
-          doc.setLineWidth(0.5);
-          doc.line(
-            leftMargin + contentWidth / 2 - imgTitleWidth / 2,
-            imgYPos,
-            leftMargin + contentWidth / 2 + imgTitleWidth / 2,
-            imgYPos,
-          );
-          imgYPos += 5;
-
-          const availableHeight = pageHeight - footerHeight - imgYPos - 5;
-          try {
-            doc.addImage(
-              img.dataUri,
-              img.format,
-              leftMargin,
-              imgYPos,
-              contentWidth,
-              availableHeight,
-            );
-          } catch (imgError) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-            doc.text(
-              `[Image load error: ${imgError.message}]`,
-              leftMargin,
-              imgYPos + availableHeight / 2,
-            );
-          }
         }
       }
     };
 
-    // ── Lab reports section ───────────────────────────────────────────────────
     const addLaboratoryReports = () => {
       if (!patientDetails.testdetails?.length) return;
       const labTests = patientDetails.testdetails.filter(
@@ -1798,12 +1907,9 @@ const CHCReport = () => {
           ].includes(t.testname),
       );
       if (labTests.length === 0) return;
-
-      // ── Split into NABL=true and NABL=false groups ───────────────────────
       const nablTrueTests = labTests.filter((t) => t.NABL === true);
       const nablFalseTests = labTests.filter((t) => t.NABL !== true);
 
-      // ── Shared helpers ───────────────────────────────────────────────────
       const departmentOrder = [
         "Haematology",
         "Coagulation",
@@ -1820,7 +1926,6 @@ const CHCReport = () => {
         "Microbiology",
         "Molecular Biology",
       ];
-
       const unicodeMap = {
         μ: "µ",
         "×": "x",
@@ -1842,7 +1947,6 @@ const CHCReport = () => {
         });
         return t;
       };
-
       const wrapText = (doc, text, maxWidth, startX, yPos, lineHeight = 4) => {
         if (!text) return 0;
         const split = doc.splitTextToSize(text, maxWidth);
@@ -1851,7 +1955,6 @@ const CHCReport = () => {
         );
         return split.length * lineHeight;
       };
-
       const getHighLowStatus = (value, reference) => {
         if (!value || !reference) return null;
         const num = parseFloat(value);
@@ -1871,7 +1974,6 @@ const CHCReport = () => {
         }
         return null;
       };
-
       const colWidths = [
         contentWidth * 0.28,
         contentWidth * 0.12,
@@ -1881,7 +1983,6 @@ const CHCReport = () => {
         contentWidth * 0.17,
         contentWidth * 0.15,
       ];
-
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
@@ -1906,7 +2007,6 @@ const CHCReport = () => {
         yPos += 5;
         return yPos;
       };
-
       const addLabReportHeader = (yPos) => {
         doc.setFontSize(10);
         const firstTest = labTests[0];
@@ -1965,13 +2065,11 @@ const CHCReport = () => {
         yPos += wrappedRefBy.length * 5;
         return yPos + 5;
       };
-
       const addSignatures = () => {
         if (!activeConsultants.length) return;
-        const pageHeight = doc.internal.pageSize.height;
-        const signaturesY = pageHeight - footerHeight - 35;
-        const signatureWidth = 35;
-        const signatureSpacing = 60;
+        const signaturesY = doc.internal.pageSize.height - footerHeight - 35;
+        const signatureWidth = 35,
+          signatureSpacing = 60;
         const startX =
           rightMargin - activeConsultants.length * signatureSpacing;
         activeConsultants.forEach((consultant, index) => {
@@ -1994,24 +2092,20 @@ const CHCReport = () => {
         });
       };
 
-      // ── State shared across both render groups ───────────────────────────
-      let sharedYPos = 0;
-      let sharedCheckFn = null;
+      let sharedYPos = 0,
+        sharedCheckFn = null;
 
-      // ── renderTestGroup ──────────────────────────────────────────────────
-      // Renders one group of tests. withNabl controls NABL logo on all pages
-      // within this group. Does NOT render "End of Report" — that happens once
-      // after both groups finish.
       const renderTestGroup = (testsToRender, withNabl) => {
         if (!testsToRender.length) return;
-
         const checkForNewPageLab = (yPos, estimatedHeight) => {
-          const pageHeight = doc.internal.pageSize.height;
-          if (yPos + estimatedHeight >= pageHeight - footerHeight - 35) {
+          if (
+            yPos + estimatedHeight >=
+            doc.internal.pageSize.height - footerHeight - 35
+          ) {
             addSignatures();
             doc.addPage();
             pageCount++;
-            addHeaderFooter(withNabl); // ← correct logo per group
+            addHeaderFooter(withNabl);
             let newYPos = headerHeight + 10;
             newYPos = addLabReportHeader(newYPos);
             newYPos = drawTableHeader(newYPos);
@@ -2019,13 +2113,11 @@ const CHCReport = () => {
           }
           return yPos;
         };
-
         const testsByDepartment = testsToRender.reduce((acc, test) => {
           const dept = test.department || "LABORATORY";
           (acc[dept] = acc[dept] || []).push(test);
           return acc;
         }, {});
-
         const sortedDepartments = Object.keys(testsByDepartment).sort(
           (a, b) => {
             const ia = departmentOrder.indexOf(a),
@@ -2036,11 +2128,9 @@ const CHCReport = () => {
             return a.localeCompare(b);
           },
         );
-
-        // Start a fresh page for this group with the correct logo
         doc.addPage();
         pageCount++;
-        addHeaderFooter(withNabl); // ← correct logo per group
+        addHeaderFooter(withNabl);
         let yPos = headerHeight + 10;
         yPos = addLabReportHeader(yPos);
         yPos = drawTableHeader(yPos);
@@ -2070,13 +2160,11 @@ const CHCReport = () => {
               );
               yPos += 10;
             }
-
             const paramsBySubtitle = {};
             (test.parameters || []).forEach((p) => {
               const sub = p.sub_title || "";
               (paramsBySubtitle[sub] = paramsBySubtitle[sub] || []).push(p);
             });
-
             yPos = checkForNewPageLab(yPos, 20);
             const testNameLines = doc.splitTextToSize(
               test.testname,
@@ -2101,7 +2189,6 @@ const CHCReport = () => {
               doc.splitTextToSize(methodText, colWidths[6] - 2).length * 4,
               6,
             );
-
             doc.setFontSize(10);
             let xPos = leftMargin;
             doc.setFont("helvetica", "bold");
@@ -2118,7 +2205,6 @@ const CHCReport = () => {
             );
             xPos += colWidths[1];
             xPos += colWidths[2];
-
             const si = test.isHigh
               ? "H"
               : test.isLow
@@ -2131,10 +2217,9 @@ const CHCReport = () => {
             wrapText(doc, valueText, colWidths[3] - 5, xPos, yPos, 4);
             if (si && valueText) {
               const ly = yPos + (valueLines.length - 1) * 4;
-              const lw = doc.getTextWidth(valueLines[valueLines.length - 1]);
               drawArrowSymbol(
                 doc,
-                xPos + lw + 2,
+                xPos + doc.getTextWidth(valueLines[valueLines.length - 1]) + 2,
                 ly - 1,
                 si === "H" ? "up" : "down",
               );
@@ -2160,7 +2245,6 @@ const CHCReport = () => {
             xPos += colWidths[5];
             wrapText(doc, methodText, colWidths[6] - 2, xPos, yPos, 4);
             yPos += maxContentHeight + 2;
-
             if (test.outsourced) {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
@@ -2183,7 +2267,6 @@ const CHCReport = () => {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
-
             Object.keys(paramsBySubtitle).forEach((subtitle) => {
               if (subtitle?.trim()) {
                 yPos = checkForNewPageLab(yPos, 25);
@@ -2273,10 +2356,9 @@ const CHCReport = () => {
                 );
                 if (psi && currentTest.value) {
                   const ply = yPos + (pvl.length - 1) * 4;
-                  const plw = doc.getTextWidth(pvl[pvl.length - 1]);
                   drawArrowSymbol(
                     doc,
-                    xPos + plw + 2,
+                    xPos + doc.getTextWidth(pvl[pvl.length - 1]) + 2,
                     ply - 1,
                     psi === "H" ? "up" : "down",
                   );
@@ -2331,7 +2413,6 @@ const CHCReport = () => {
                 doc.setTextColor(0, 0, 0);
               });
             });
-
             if (hasMultipleVerifiers && test.verified_by?.trim()) {
               doc.setFont("helvetica", "normal");
               doc.setFontSize(10);
@@ -2339,7 +2420,6 @@ const CHCReport = () => {
               yPos += 8;
             }
           });
-
           if (!hasMultipleVerifiers && verifiedBySet.size > 0) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
@@ -2352,21 +2432,12 @@ const CHCReport = () => {
           }
           yPos += 4;
         });
-
-        // ── Save state so "End of Report" can be placed after all groups ──
         sharedYPos = yPos;
         sharedCheckFn = checkForNewPageLab;
       };
 
-      // ── Render NABL=true first (with logo), then NABL=false (without) ────
-      if (nablTrueTests.length > 0) {
-        renderTestGroup(nablTrueTests, true);
-      }
-      if (nablFalseTests.length > 0) {
-        renderTestGroup(nablFalseTests, false);
-      }
-
-      // ── Single "End of the Report" + signatures ONCE after all groups ────
+      if (nablTrueTests.length > 0) renderTestGroup(nablTrueTests, true);
+      if (nablFalseTests.length > 0) renderTestGroup(nablFalseTests, false);
       if (sharedCheckFn) {
         sharedYPos += 4;
         sharedYPos = sharedCheckFn(sharedYPos, 10);
@@ -2383,7 +2454,7 @@ const CHCReport = () => {
     };
 
     // ── Assemble the PDF ──────────────────────────────────────────────────────
-    addHeaderFooter(false); // first page — no NABL logo
+    addHeaderFooter(false);
     currentYPosition = addMedicalExaminationHeader(currentYPosition);
     currentYPosition = addMedicalHistory(currentYPosition);
     currentYPosition = addGeneralExamination(currentYPosition);
@@ -2391,10 +2462,17 @@ const CHCReport = () => {
     currentYPosition = addOphthalmologyReport(currentYPosition);
     currentYPosition = addLabInvestigations(currentYPosition);
     currentYPosition = addFinalAssessment(currentYPosition);
-    await addInvestigationFiles();
+
+    // Use pre-processed images in batch mode, original conversion in single print
+    if (preProcessedFiles) {
+      await addInvestigationFiles_Fast(preProcessedFiles);
+    } else {
+      await addInvestigationFiles();
+    }
+
     addLaboratoryReports();
 
-    // ── Page numbers ──────────────────────────────────────────────────────────
+    // Page numbers
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFont("helvetica", "normal");
@@ -2409,12 +2487,11 @@ const CHCReport = () => {
 
     return doc;
   };
-  // ─── handlePrint ──────────────────────────────────────────────────────────
+
+  // ─── handlePrint (single patient — unchanged logic) ───────────────────────
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
       setLoading(true);
-
-      // 1. Fetch main report data
       const response = await apiRequest(
         `${Labbaseurl}corporate_health_report/?barcode=${patient.barcode}`,
         "GET",
@@ -2424,9 +2501,8 @@ const CHCReport = () => {
         setLoading(false);
         return null;
       }
-
-      let patientDetails;
-      let signaturesData = [];
+      let patientDetails,
+        signaturesData = [];
       if (response.data.patient_data && response.data.signatures) {
         patientDetails = response.data.patient_data;
         signaturesData = response.data.signatures;
@@ -2439,34 +2515,27 @@ const CHCReport = () => {
           testdetails: patientDetails.flatMap((r) => r.testdetails || []),
         };
       }
-
-      // 2. Fetch investigation status — vitals, history, notes, CHC tests + ophthalmology
       const invResult = await apiRequest(
         `${Labbaseurl}get_investigation_status/?barcode=${patient.barcode}`,
         "GET",
       );
-      if (invResult.success && invResult.data) {
+      if (invResult.success && invResult.data)
         patientDetails = mergeInvestigationData(patientDetails, invResult.data);
-      }
 
-      // 3. Fetch investigation files from chc_tests
       const chcTestsForFiles =
         invResult.success && invResult.data?.chc_tests?.length > 0
           ? invResult.data.chc_tests
           : investigationStatuses[patient.barcode]?.chc_tests || [];
 
-      // In handlePrint, replace the investigationFiles fetch block:
       const investigationFiles = {};
       await Promise.all(
         chcTestsForFiles.map(async (test) => {
-          // Always register the test entry (even if no files)
           investigationFiles[test.test_id] = {
             label: test.testname,
             report: test.report?.trim() || "",
             notes: test.notes?.trim() || "",
             files: [],
           };
-
           if (test.files?.length > 0) {
             const testFiles = await Promise.all(
               test.files.map((fileId) => fetchInvestigationFile(fileId)),
@@ -2475,11 +2544,9 @@ const CHCReport = () => {
           }
         }),
       );
-
       patientDetails.investigation_files = investigationFiles;
       patientDetails.chc_tests_for_files = chcTestsForFiles;
 
-      // 4. Signatures
       const designationMapping = {
         DESIG101: { position: 0, title: "Consultant Microbiologist" },
         DESIG100: { position: 1, title: "Consultant Pathologist" },
@@ -2499,7 +2566,7 @@ const CHCReport = () => {
       });
       const activeConsultants = consultants.filter((c) => c !== null);
 
-      // 5. Build and download PDF
+      // Single print: no preProcessedFiles — converts on the fly
       const doc = await buildPdfDocument(
         patientDetails,
         activeConsultants,
@@ -2516,7 +2583,6 @@ const CHCReport = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(pdfUrl);
-
       setLoading(false);
       toast.success("Medical report generated successfully!");
       return pdfBlob;
@@ -2528,197 +2594,236 @@ const CHCReport = () => {
     }
   };
 
-  // ─── handleOverallPrint ───────────────────────────────────────────────────
+  // ─── handleOverallPrint (OPTIMIZED) ───────────────────────────────────────
   const handleOverallPrint = async () => {
-    if (filteredPatients.length === 0) {
+    // Use selected patients if any checkboxes are ticked, otherwise fall back to all filtered
+    const patientsToPrint =
+      selectedPrintCount > 0 ? printTargetPatients : filteredPatients;
+
+    if (!patientsToPrint.length) {
       toast.error("No patients to print");
       return;
     }
-    if (filteredPatients.length > 20)
+    if (patientsToPrint.length > 100) {
+      toast.warning("Please select ≤100 patients at a time.");
+      return;
+    }
+    if (patientsToPrint.length > 20)
       toast.warning("Large number of records. This may take a while...");
 
     setLoading(true);
-    toast.info(`Fetching data for ${filteredPatients.length} reports...`);
 
     try {
-      const allBarcodes = filteredPatients
-        .map((p) => p.barcode)
-        .filter(Boolean);
-      if (allBarcodes.length === 0) {
+      const allBarcodes = patientsToPrint.map((p) => p.barcode).filter(Boolean);
+      if (!allBarcodes.length) {
         toast.error("No valid barcodes found");
         setLoading(false);
         return;
       }
 
-      // Batch-fetch main report data (100 per call)
-      const BATCH_SIZE = 100;
+      // ── PHASE 1: Batch fetch report data (1 API call) ─────────────────────
+      toast.info(`Fetching report data for ${allBarcodes.length} patients...`);
       let allPatientData = {};
-      for (let i = 0; i < allBarcodes.length; i += BATCH_SIZE) {
-        const batch = allBarcodes.slice(i, i + BATCH_SIZE);
-        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-        const totalBatches = Math.ceil(allBarcodes.length / BATCH_SIZE);
-        toast.info(
-          `Fetching batch ${batchNumber}/${totalBatches} (${batch.length} reports)...`,
+      try {
+        const result = await apiRequest(
+          `${Labbaseurl}get_batch_corporate_health_reports/`,
+          "POST",
+          { barcodes: allBarcodes },
+          { "Content-Type": "application/json" },
         );
-        try {
-          const result = await apiRequest(
-            `${Labbaseurl}get_batch_corporate_health_reports/`,
-            "POST",
-            { barcodes: batch },
-            { "Content-Type": "application/json" },
-          );
-          if (!result.success)
-            throw new Error(
-              result.error || `Failed to fetch batch ${batchNumber}`,
-            );
-          allPatientData = {
-            ...allPatientData,
-            ...(result.data.results || {}),
-          };
-        } catch (batchError) {
-          console.error(`Error in batch ${batchNumber}:`, batchError);
-          toast.error(
-            `Failed to fetch batch ${batchNumber}: ${batchError.message}`,
-          );
-        }
+        if (result.success) allPatientData = result.data.results || {};
+        else toast.error("Batch fetch failed: " + result.error);
+      } catch (err) {
+        toast.error("Batch fetch error: " + err.message);
       }
 
-      const successfulFetches = Object.keys(allPatientData).length;
-      if (successfulFetches === 0) {
-        toast.error("Failed to fetch any patient data");
+      const validBarcodes = allBarcodes.filter(
+        (bc) => allPatientData[bc] && !allPatientData[bc].error,
+      );
+      if (!validBarcodes.length) {
+        toast.error("No valid patient data found");
         setLoading(false);
         return;
       }
-      toast.info(`Generating ${successfulFetches} PDFs...`);
 
-      const zip = new JSZip();
-      let successCount = 0,
-        failCount = 0;
-
-      for (let i = 0; i < filteredPatients.length; i++) {
-        const patient = filteredPatients[i];
-        const bc = patient.barcode;
-        try {
-          const barcodeData = allPatientData[bc];
-          if (!barcodeData || barcodeData.error) {
-            failCount++;
-            continue;
-          }
-
-          let patientDetails;
-          let signaturesData = [];
-          if (barcodeData.patient_data && barcodeData.signatures) {
-            patientDetails = barcodeData.patient_data;
-            signaturesData = barcodeData.signatures;
-          } else {
-            patientDetails = barcodeData;
-          }
-
-          // Fetch investigation status (vitals, history, notes, CHC tests, ophthalmology)
-          const invResult = await apiRequest(
-            `${Labbaseurl}get_investigation_status/?barcode=${bc}`,
-            "GET",
-          );
-          if (invResult.success && invResult.data) {
-            patientDetails = mergeInvestigationData(
-              patientDetails,
-              invResult.data,
-            );
-          }
-
-          // Fetch investigation files
-          const chcTestsForFiles =
-            invResult.success && invResult.data?.chc_tests?.length > 0
-              ? invResult.data.chc_tests
-              : investigationStatuses[bc]?.chc_tests || [];
-
-          // In handlePrint, replace the investigationFiles fetch block:
-          const investigationFiles = {};
-          await Promise.all(
-            chcTestsForFiles.map(async (test) => {
-              // Always register the test entry (even if no files)
-              investigationFiles[test.test_id] = {
-                label: test.testname,
-                report: test.report?.trim() || "",
-                notes: test.notes?.trim() || "",
-                files: [],
-              };
-
-              if (test.files?.length > 0) {
-                const testFiles = await Promise.all(
-                  test.files.map((fileId) => fetchInvestigationFile(fileId)),
-                );
-                investigationFiles[test.test_id].files =
-                  testFiles.filter(Boolean);
-              }
-            }),
-          );
-          patientDetails.investigation_files = investigationFiles;
-          patientDetails.chc_tests_for_files = chcTestsForFiles;
-
-          // Signatures
-          const designationMapping = {
-            DESIG101: { position: 0, title: "Consultant Microbiologist" },
-            DESIG100: { position: 1, title: "Consultant Pathologist" },
-            DESIG099: { position: 2, title: "Consultant Biochemist" },
-          };
-          const consultants = [null, null, null];
-          signaturesData.forEach((sig) => {
-            const m = designationMapping[sig.designation];
-            if (m)
-              consultants[m.position] = [
-                sig.employeeName,
-                m.title,
-                sig.signatureBase64
-                  ? `data:image/png;base64,${sig.signatureBase64}`
-                  : null,
-              ];
-          });
-          const activeConsultants = consultants.filter((c) => c !== null);
-
-          const doc = await buildPdfDocument(
-            patientDetails,
-            activeConsultants,
-            true,
-          );
-          const pdfBlob = doc.output("blob");
-          const fileName = `${patientDetails.patient_id}_${(patientDetails.patientname || "Unknown").replace(/\s+/g, "_")}.pdf`;
-          zip.file(fileName, pdfBlob);
-          successCount++;
-
-          if ((i + 1) % 5 === 0 || i === filteredPatients.length - 1)
-            toast.info(
-              `Progress: ${i + 1}/${filteredPatients.length} PDFs generated`,
-            );
-        } catch (error) {
-          failCount++;
-          console.error(`Error processing ${patient.patient_name}:`, error);
-        }
+      // ── PHASE 2: Batch fetch ALL investigation statuses (1 API call) ──────
+      toast.info(`Fetching investigation data...`);
+      let batchInvResults = {};
+      try {
+        const invRes = await apiRequest(
+          `${Labbaseurl}get_batch_investigation_status/`,
+          "POST",
+          { barcodes: validBarcodes },
+          { "Content-Type": "application/json" },
+        );
+        if (invRes.success) batchInvResults = invRes.data.results || {};
+      } catch (e) {
+        console.warn("Batch inv status failed:", e);
       }
 
+      // ── PHASE 3: Fetch files + pre-convert PDFs to images IN PARALLEL ─────
+      toast.info(`Fetching & converting files...`);
+      const limit6 = pLimit(6);
+      const fileDataMap = {};
+      let filesDone = 0;
+
+      await Promise.all(
+        validBarcodes.map((bc) =>
+          limit6(async () => {
+            const invResult = batchInvResults[bc] || {};
+            const chcTestsForFiles =
+              invResult.chc_tests?.length > 0
+                ? invResult.chc_tests
+                : investigationStatuses[bc]?.chc_tests || [];
+
+            // Fetch raw files for this barcode
+            const investigationFiles = {};
+            await Promise.all(
+              chcTestsForFiles.map(async (test) => {
+                investigationFiles[test.test_id] = {
+                  label: test.testname,
+                  report: test.report?.trim() || "",
+                  notes: test.notes?.trim() || "",
+                  files: [],
+                };
+                if (test.files?.length > 0) {
+                  const fetched = await Promise.all(
+                    test.files.map((fid) => fetchInvestigationFile(fid)),
+                  );
+                  investigationFiles[test.test_id].files =
+                    fetched.filter(Boolean);
+                }
+              }),
+            );
+
+            // Pre-convert PDF pages → images (parallel within each barcode)
+            const preProc = await preProcessInvestigationFiles(
+              investigationFiles,
+              chcTestsForFiles,
+            );
+            preProc._raw = investigationFiles;
+            preProc._chcTests = chcTestsForFiles;
+            fileDataMap[bc] = preProc;
+
+            filesDone++;
+            if (filesDone % 5 === 0 || filesDone === validBarcodes.length)
+              toast.info(`Files ready: ${filesDone} / ${validBarcodes.length}`);
+          }),
+        ),
+      );
+
+      // ── PHASE 4: Build patientDetails objects ─────────────────────────────
+      const designationMapping = {
+        DESIG101: { position: 0, title: "Consultant Microbiologist" },
+        DESIG100: { position: 1, title: "Consultant Pathologist" },
+        DESIG099: { position: 2, title: "Consultant Biochemist" },
+      };
+
+      const patientDataList = validBarcodes.map((bc) => {
+        const barcodeData = allPatientData[bc];
+        const invResult = batchInvResults[bc] || {};
+        let patientDetails = barcodeData.patient_data ?? barcodeData;
+        const signaturesData = barcodeData.signatures ?? [];
+
+        if (Object.keys(invResult).length) {
+          patientDetails = mergeInvestigationData(patientDetails, {
+            chc_tests: invResult.chc_tests || [],
+            vitals: invResult.vitals || {},
+            patient_history: invResult.patient_history || "",
+          });
+        }
+
+        const fdEntry = fileDataMap[bc] || {};
+        patientDetails.investigation_files = fdEntry._raw || {};
+        patientDetails.chc_tests_for_files = fdEntry._chcTests || [];
+
+        const consultants = [null, null, null];
+        signaturesData.forEach((sig) => {
+          const m = designationMapping[sig.designation];
+          if (m)
+            consultants[m.position] = [
+              sig.employeeName,
+              m.title,
+              sig.signatureBase64
+                ? `data:image/png;base64,${sig.signatureBase64}`
+                : null,
+            ];
+        });
+
+        return {
+          patientDetails,
+          activeConsultants: consultants.filter(Boolean),
+          preProcessedFiles: fdEntry,
+        };
+      });
+
+      // ── PHASE 5: Generate PDFs — 3 at a time ─────────────────────────────
+      toast.info(`Generating ${patientDataList.length} PDFs...`);
+      const zip = new JSZip();
+      let successCount = 0,
+        failCount = 0,
+        completed = 0;
+      const limit3 = pLimit(3);
+
+      await Promise.all(
+        patientDataList.map(
+          ({ patientDetails, activeConsultants, preProcessedFiles }) =>
+            limit3(async () => {
+              try {
+                const doc = await buildPdfDocument(
+                  patientDetails,
+                  activeConsultants,
+                  true,
+                  preProcessedFiles,
+                );
+                const pdfBlob = doc.output("blob");
+                const safeName = (
+                  patientDetails.patientname || "Unknown"
+                ).replace(/\s+/g, "_");
+                zip.file(
+                  `${patientDetails.patient_id}_${safeName}.pdf`,
+                  pdfBlob,
+                );
+                successCount++;
+              } catch (err) {
+                failCount++;
+                console.error(
+                  `PDF failed for ${patientDetails.patient_id}:`,
+                  err,
+                );
+              } finally {
+                completed++;
+                if (completed % 3 === 0 || completed === patientDataList.length)
+                  toast.info(`PDFs: ${completed} / ${patientDataList.length}`);
+              }
+            }),
+        ),
+      );
+
+      // ── PHASE 6: Create ZIP and download ──────────────────────────────────
       if (successCount > 0) {
-        toast.info("Creating ZIP file...");
+        toast.info("Creating ZIP...");
         const zipBlob = await zip.generateAsync({
           type: "blob",
           compression: "DEFLATE",
-          compressionOptions: { level: 6 },
+          compressionOptions: { level: 3 },
         });
         saveAs(
           zipBlob,
           `CHC_Reports_${format(startDate, "yyyy-MM-dd")}_to_${format(endDate, "yyyy-MM-dd")}.zip`,
         );
         toast.success(
-          `Successfully generated ${successCount} reports!${failCount > 0 ? ` (${failCount} failed)` : ""}`,
+          `✅ ${successCount} reports downloaded!${failCount ? ` (${failCount} failed)` : ""}`,
         );
+        clearSelection(); // reset checkboxes after successful download
       } else {
-        toast.error("Failed to generate any PDF reports");
+        toast.error("No PDFs could be generated.");
       }
-    } catch (error) {
-      console.error("Batch processing error:", error);
-      toast.error(
-        "Failed to process batch: " + (error.message || "Unknown error"),
-      );
+    } catch (err) {
+      console.error("Overall print error:", err);
+      toast.error("Failed: " + (err.message || "Unknown error"));
     }
+
     setLoading(false);
   };
 
@@ -2727,7 +2832,7 @@ const CHCReport = () => {
     try {
       setLoading(true);
       const barcodes = filteredPatients.map((p) => p.barcode).filter(Boolean);
-      if (barcodes.length === 0) {
+      if (!barcodes.length) {
         toast.error("No patients with barcodes found");
         setLoading(false);
         return;
@@ -2735,16 +2840,19 @@ const CHCReport = () => {
       const excelData = filteredPatients.map((patient) => {
         const bc = patient.barcode;
         const invData = investigationStatuses[bc] || {};
-        const chcTests = invData.chc_tests || [];
+        const chcTests = invData.chc_tests || {};
         const chcTestColumns = {};
-        chcTests.forEach((test) => {
-          const collected = test.has_file || test.has_report;
-          chcTestColumns[`${test.testname} - Collection`] = collected
-            ? "Collected"
-            : "Pending";
-          chcTestColumns[`${test.testname} - Approval`] =
-            test.status?.toLowerCase() === "approved" ? "Approved" : "Pending";
-        });
+        chcTests.forEach &&
+          chcTests.forEach((test) => {
+            const collected = test.has_file || test.has_report;
+            chcTestColumns[`${test.testname} - Collection`] = collected
+              ? "Collected"
+              : "Pending";
+            chcTestColumns[`${test.testname} - Approval`] =
+              test.status?.toLowerCase() === "approved"
+                ? "Approved"
+                : "Pending";
+          });
         return {
           Date: patient.date
             ? format(new Date(patient.date), "yyyy-MM-dd")
@@ -2774,11 +2882,54 @@ const CHCReport = () => {
       toast.success(`Excel report exported! (${excelData.length} records)`);
     } catch (error) {
       toast.error(
-        "Failed to export Excel report: " + (error.message || "Unknown error"),
+        "Failed to export Excel: " + (error.message || "Unknown error"),
       );
       setLoading(false);
     }
   };
+
+  // ─── Checkbox selection helpers ───────────────────────────────────────────
+  const approvedFilteredPatients = filteredPatients.filter((p) =>
+    isPrintAndMailEnabled(statuses[p.patient_id]?.status || ""),
+  );
+
+  const isAllSelected =
+    approvedFilteredPatients.length > 0 &&
+    approvedFilteredPatients.every((p) => selectedBarcodes.has(p.barcode));
+
+  const isIndeterminate =
+    !isAllSelected &&
+    approvedFilteredPatients.some((p) => selectedBarcodes.has(p.barcode));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      // Deselect all approved rows
+      setSelectedBarcodes((prev) => {
+        const next = new Set(prev);
+        approvedFilteredPatients.forEach((p) => next.delete(p.barcode));
+        return next;
+      });
+    } else {
+      // Select all approved rows
+      setSelectedBarcodes((prev) => {
+        const next = new Set(prev);
+        approvedFilteredPatients.forEach((p) => {
+          if (p.barcode) next.add(p.barcode);
+        });
+        return next;
+      });
+    }
+  };
+
+  const toggleSelectOne = (barcode) => {
+    setSelectedBarcodes((prev) => {
+      const next = new Set(prev);
+      next.has(barcode) ? next.delete(barcode) : next.add(barcode);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedBarcodes(new Set());
 
   // ─── UI helpers ───────────────────────────────────────────────────────────
   const openModal = (patient) => {
@@ -2793,8 +2944,6 @@ const CHCReport = () => {
     setSelectedPatient(patient);
     setIsTestModalOpen(true);
   };
-  const showDropdown = (pid) => setActiveDropdownPatientId(pid);
-  const hideDropdown = () => setActiveDropdownPatientId(null);
   const getBadgeColor = (status) => {
     switch (status) {
       case "Approved":
@@ -2811,6 +2960,21 @@ const CHCReport = () => {
       (p) => (statuses[p.patient_id]?.status || "") === "Approved",
     );
 
+  // Patients to print: selected ones if any are checked, else all filtered approved
+  const selectedPrintCount = selectedBarcodes.size;
+  const printTargetPatients =
+    selectedPrintCount > 0
+      ? filteredPatients.filter((p) => selectedBarcodes.has(p.barcode))
+      : filteredPatients;
+
+  const canOverallPrint =
+    !loading &&
+    (selectedPrintCount > 0
+      ? printTargetPatients.every((p) =>
+          isPrintAndMailEnabled(statuses[p.patient_id]?.status || ""),
+        )
+      : allPatientsApproved);
+
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <Container>
@@ -2821,10 +2985,17 @@ const CHCReport = () => {
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <OverallPrintButton
               onClick={handleOverallPrint}
-              disabled={loading || !allPatientsApproved}
-              title="Download all filtered reports as ZIP"
+              disabled={!canOverallPrint}
+              title={
+                selectedPrintCount > 0
+                  ? `Print ${selectedPrintCount} selected report(s)`
+                  : "Download all filtered approved reports as ZIP"
+              }
             >
-              <Download size={16} /> Overall Print ({filteredPatients.length})
+              <Download size={16} />
+              {selectedPrintCount > 0
+                ? `Print Selected (${selectedPrintCount})`
+                : `Overall Print (${filteredPatients.length})`}
             </OverallPrintButton>
             <ExportButton
               onClick={handleExportToExcel}
@@ -2923,11 +3094,95 @@ const CHCReport = () => {
             </ClearButton>
           </ButtonContainer>
         </FiltersContainer>
+        <StatsGrid>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#4cc9f0" />
+              Auto approvals
+            </StatLabel>
+            <StatValue color="#0891b2">{approvalCounts.auto}</StatValue>
+            <StatSub>All criteria met automatically</StatSub>
+          </StatCard>
+
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#4361ee" />
+              Manual approvals
+            </StatLabel>
+            <StatValue color="#3730a3">{approvalCounts.manualTotal}</StatValue>
+            <StatSub>Approved via overall approval</StatSub>
+            {Object.keys(approvalCounts.manualByName).length > 0 && (
+              <ManualNameList>
+                {Object.entries(approvalCounts.manualByName)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([name, count]) => (
+                    <ManualNameRow key={name}>
+                      <span>{name}</span>
+                      <ManualNameCount>{count}</ManualNameCount>
+                    </ManualNameRow>
+                  ))}
+              </ManualNameList>
+            )}
+          </StatCard>
+
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#6c757d" />
+              Total approved
+            </StatLabel>
+            <StatValue>{approvalCounts.total}</StatValue>
+            <StatSub>Out of {filteredPatients.length} filtered records</StatSub>
+          </StatCard>
+
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#f72585" />
+              Pending
+            </StatLabel>
+            <StatValue color="#be123c">
+              {filteredPatients.length - approvalCounts.total}
+            </StatValue>
+            <StatSub>Awaiting approval</StatSub>
+          </StatCard>
+        </StatsGrid>
 
         <TableContainer>
+          {selectedBarcodes.size > 0 && (
+            <SelectionBar>
+              <span>
+                ✓ {selectedBarcodes.size} row
+                {selectedBarcodes.size !== 1 ? "s" : ""} selected
+              </span>
+              <button
+                onClick={clearSelection}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--primary)",
+                  cursor: "pointer",
+                  fontSize: "0.8rem",
+                  textDecoration: "underline",
+                }}
+              >
+                Clear selection
+              </button>
+            </SelectionBar>
+          )}
           <Table>
             <TableHead>
               <tr>
+                <th style={{ width: "40px", textAlign: "center" }}>
+                  <StyledCheckbox
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isIndeterminate;
+                    }}
+                    onChange={toggleSelectAll}
+                    title={
+                      isAllSelected ? "Deselect all" : "Select all approved"
+                    }
+                  />
+                </th>
                 <th>Date</th>
                 <th>Employee ID</th>
                 <th>Barcode</th>
@@ -2942,7 +3197,7 @@ const CHCReport = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Loading patient data...
@@ -2951,7 +3206,7 @@ const CHCReport = () => {
               ) : error ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     style={{
                       textAlign: "center",
                       padding: "2rem",
@@ -2968,8 +3223,31 @@ const CHCReport = () => {
                   const bc = patientStatus.barcode || "N/A";
                   const isPrintMailEnabled = isPrintAndMailEnabled(status);
                   const badgeColor = getBadgeColor(status);
+                  const isChecked = selectedBarcodes.has(patient.barcode);
                   return (
-                    <tr key={patient.patient_id}>
+                    <tr
+                      key={patient.patient_id}
+                      style={
+                        isChecked
+                          ? { backgroundColor: "rgba(67,97,238,0.07)" }
+                          : {}
+                      }
+                    >
+                      <td style={{ textAlign: "center" }}>
+                        <StyledCheckbox
+                          checked={isChecked}
+                          disabled={!isPrintMailEnabled}
+                          onChange={() =>
+                            isPrintMailEnabled &&
+                            toggleSelectOne(patient.barcode)
+                          }
+                          title={
+                            !isPrintMailEnabled
+                              ? "Only approved patients can be selected"
+                              : ""
+                          }
+                        />
+                      </td>
                       <td>
                         {patient.date
                           ? format(new Date(patient.date), "yyyy-MM-dd")
@@ -3025,7 +3303,7 @@ const CHCReport = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={9}>
                     <NoData>No patients found</NoData>
                   </td>
                 </tr>

@@ -490,6 +490,7 @@ const ALL_CALCULATED_FIELDS = [
   "INR",
   "ACR",
   "PCR-RATIO",
+  "TestCode 133",
 ];
 
 const ALWAYS_EDITABLE_FIELDS = ["PT-CNTL", "PT-ISI", "APTT-C"];
@@ -792,13 +793,24 @@ const calculateDerivedValues = (
       if (!manuallyEdited[k]) newValues[k] = (urPro / urCrea).toFixed(2);
     }
   }
+  if (currentTest.test_id === 517) {
+    const iron = valuesByTestCode["Iron"] || 0;
+    const uibc = valuesByTestCode["Unsaturated Iron Binding Capacity"] || 0;
+    const tibcParam = allParams.find((p) => p.test_code === "TestCode 133");
+    if (tibcParam && iron && uibc) {
+      const k = `${testname}_${tibcParam.name || tibcParam.test_name}`;
+      if (!manuallyEdited[k]) newValues[k] = (iron + uibc).toFixed(2);
+    }
+  }
 
   return newValues;
 };
 
 const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
   const [open, setOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const ref = React.useRef(null);
+  const optionRefs = React.useRef([]);
 
   const selected = value
     ? value
@@ -821,16 +833,67 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
 
   React.useEffect(() => {
     const handleClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setFocusedIndex(-1);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Scroll focused option into view
+  React.useEffect(() => {
+    if (focusedIndex >= 0 && optionRefs.current[focusedIndex]) {
+      optionRefs.current[focusedIndex].scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedIndex]);
+
+  const handleTriggerKeyDown = (e) => {
+    if (disabled) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen((prev) => !prev);
+      setFocusedIndex(-1);
+    }
+  };
+
+  const handleDropdownKeyDown = (e) => {
+    if (!open) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setFocusedIndex((prev) => Math.min(prev + 1, options.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedIndex((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (focusedIndex >= 0) {
+        toggleOption(options[focusedIndex]);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      setFocusedIndex(-1);
+    } else if (e.key === "Tab") {
+      setOpen(false);
+      setFocusedIndex(-1);
+    }
+  };
+
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div
+      ref={ref}
+      style={{ position: "relative" }}
+      onKeyDown={handleDropdownKeyDown}
+    >
+      {/* Trigger */}
       <div
+        tabIndex={disabled ? -1 : 0}
+        data-focusable="true"
         onClick={() => !disabled && setOpen((prev) => !prev)}
+        onKeyDown={handleTriggerKeyDown}
         style={{
           minHeight: "42px",
           padding: "0.4rem 2rem 0.4rem 0.75rem",
@@ -844,6 +907,18 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
           gap: "0.35rem",
           alignItems: "center",
           position: "relative",
+          outline: "none",
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(67,97,238,0.1)";
+          e.currentTarget.style.borderColor = "var(--primary)";
+        }}
+        onBlur={(e) => {
+          // only blur-style if focus left the whole dropdown
+          if (!ref.current?.contains(e.relatedTarget)) {
+            e.currentTarget.style.boxShadow = "";
+            e.currentTarget.style.borderColor = "var(--gray-light)";
+          }
         }}
       >
         {selected.length === 0 && (
@@ -899,6 +974,7 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
         />
       </div>
 
+      {/* Dropdown list */}
       {open && !disabled && (
         <div
           style={{
@@ -915,11 +991,13 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
             overflowY: "auto",
           }}
         >
-          {options.map((option) => {
+          {options.map((option, idx) => {
             const isSelected = selected.includes(option);
+            const isFocused = focusedIndex === idx;
             return (
               <div
                 key={option}
+                ref={(el) => (optionRefs.current[idx] = el)}
                 onClick={() => toggleOption(option)}
                 style={{
                   padding: "0.6rem 0.75rem",
@@ -927,7 +1005,11 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
                   display: "flex",
                   alignItems: "center",
                   gap: "0.5rem",
-                  backgroundColor: isSelected ? "#eef1fd" : "white",
+                  backgroundColor: isFocused
+                    ? "#dde3fb"
+                    : isSelected
+                      ? "#eef1fd"
+                      : "white",
                   color: isSelected ? "var(--primary)" : "var(--dark)",
                   fontWeight: isSelected ? "600" : "400",
                   fontSize: "0.95rem",
@@ -968,7 +1050,6 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
     </div>
   );
 };
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function TestDetails() {
@@ -1207,7 +1288,7 @@ function TestDetails() {
       // Auto-calculate derived values
       transformedTests.forEach((test) => {
         if (
-          [498, 551, 196, 550, 449, 467, 315, 362, 205].includes(
+          [498, 551, 196, 550, 449, 467, 315, 362, 205, 517].includes(
             test.test_id,
           ) &&
           test.parametersBySubtitle &&
@@ -1281,6 +1362,29 @@ function TestDetails() {
     }
   }, [barcode, testName]);
 
+  // ── Enter-key → next field ────────────────────────────────────────────────
+  useEffect(() => {
+    const handleEnterKey = (e) => {
+      if (e.key !== "Enter") return;
+
+      // If focus is ON a button, let it click naturally
+      if (e.target.tagName === "BUTTON") return;
+
+      e.preventDefault();
+
+      const focusable = Array.from(
+        document.querySelectorAll("[data-focusable='true']"),
+      ).filter((el) => el.offsetParent !== null && !el.disabled);
+
+      const currentIndex = focusable.indexOf(e.target);
+      if (currentIndex !== -1 && currentIndex < focusable.length - 1) {
+        focusable[currentIndex + 1].focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleEnterKey);
+    return () => document.removeEventListener("keydown", handleEnterKey);
+  }, []);
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleValueChange = (testname, event) => {
@@ -1376,7 +1480,7 @@ function TestDetails() {
       });
 
       if (
-        [498, 551, 196, 550, 449, 467, 315, 362, 205].includes(
+        [498, 551, 196, 550, 449, 467, 315, 362, 205, 517].includes(
           currentTest?.test_id,
         )
       ) {
@@ -2074,34 +2178,26 @@ function TestDetails() {
                           })()}
                         </Label>
                         {test.value_option && test.value_option.length > 0 ? (
-                          !initialValues[test.testname] ||
-                          initialValues[test.testname].trim() === "" ? (
-                            <SelectWrapper>
-                              <Select
-                                value={values[test.testname] || ""}
-                                onChange={(e) =>
-                                  handleValueChange(test.testname, e)
-                                }
-                              >
-                                <option value="">Select value</option>
-                                {test.value_option.map((option, optIndex) => (
-                                  <option key={optIndex} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </Select>
-                              <SelectIcon size={18} />
-                            </SelectWrapper>
-                          ) : (
+                          <div>
                             <Input
+                              data-focusable="true"
                               type="text"
+                              list={`options-${test.testname}`}
                               value={values[test.testname] || ""}
-                              disabled
-                              placeholder="Value available"
+                              onChange={(e) =>
+                                handleValueChange(test.testname, e)
+                              }
+                              placeholder="Select or type value"
                             />
-                          )
+                            <datalist id={`options-${test.testname}`}>
+                              {test.value_option.map((option, optIndex) => (
+                                <option key={optIndex} value={option} />
+                              ))}
+                            </datalist>
+                          </div>
                         ) : (
                           <Input
+                            data-focusable="true"
                             type="text"
                             value={values[test.testname] || ""}
                             onChange={
@@ -2141,6 +2237,7 @@ function TestDetails() {
                             )}
                           </CommentLabel>
                           <CommentTextArea
+                            data-focusable="true"
                             isCritical={critical}
                             value={comments[test.testname] || ""}
                             onChange={(e) =>
@@ -2163,10 +2260,22 @@ function TestDetails() {
                               <span style={{ color: "red" }}>*</span>
                             </Label>
                             <TextArea
+                              data-focusable="true"
                               value={remarks[test.testname] || ""}
                               onChange={(e) =>
                                 handleRemarksChange(test.testname, e)
                               }
+                              onKeyDown={(e) => {
+                                {
+                                  /* ← ADD THIS */
+                                }
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  document
+                                    .querySelector("[data-save-button]")
+                                    ?.focus();
+                                }
+                              }}
                               placeholder="Enter remarks (required)"
                               style={{
                                 borderColor:
@@ -2361,8 +2470,13 @@ function TestDetails() {
 
                                         if (isSingleSelect) {
                                           return (
-                                            <SelectWrapper>
-                                              <Select
+                                            <div
+                                              style={{ position: "relative" }}
+                                            >
+                                              <Input
+                                                data-focusable="true"
+                                                type="text"
+                                                list={`options-${uniqueKey}`}
                                                 value={values[uniqueKey] || ""}
                                                 onChange={(e) =>
                                                   handleParameterValueChange(
@@ -2372,37 +2486,38 @@ function TestDetails() {
                                                   )
                                                 }
                                                 disabled={disabled}
+                                                placeholder="Select or type value"
                                                 style={
                                                   critical
                                                     ? {
                                                         borderColor:
                                                           "var(--danger)",
+                                                        backgroundColor:
+                                                          "#fff5f5",
                                                       }
                                                     : {}
                                                 }
+                                              />
+                                              <datalist
+                                                id={`options-${uniqueKey}`}
                                               >
-                                                <option value="">
-                                                  Select value
-                                                </option>
                                                 {param.value_option.map(
                                                   (option, optIndex) => (
                                                     <option
                                                       key={optIndex}
                                                       value={option}
-                                                    >
-                                                      {option}
-                                                    </option>
+                                                    />
                                                   ),
                                                 )}
-                                              </Select>
-                                              <SelectIcon size={18} />
-                                            </SelectWrapper>
+                                              </datalist>
+                                            </div>
                                           );
                                         }
 
                                         // No options — plain text input
                                         return (
                                           <Input
+                                            data-focusable="true"
                                             type="text"
                                             value={values[uniqueKey] || ""}
                                             onChange={
@@ -2474,6 +2589,7 @@ function TestDetails() {
                                       )}
                                     </CommentLabel>
                                     <CommentTextArea
+                                      data-focusable="true"
                                       isCritical={critical}
                                       value={parameterComments[uniqueKey] || ""}
                                       onChange={(e) =>
@@ -2514,9 +2630,20 @@ function TestDetails() {
                             <span style={{ color: "red" }}>*</span>
                           </Label>
                           <TextArea
+                            data-focusable="true"
                             value={parameterRemarks || ""}
                             onChange={handleParameterRemarksChange}
-                            placeholder="Enter remarks for edited parameters (required)"
+                            onKeyDown={(e) => {
+                              {
+                                /* ← ADD THIS */
+                              }
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                document
+                                  .querySelector("[data-save-button]")
+                                  ?.focus();
+                              }
+                            }}
                             style={{
                               borderColor:
                                 !parameterRemarks ||
@@ -2535,7 +2662,12 @@ function TestDetails() {
           ))}
 
           <ButtonContainer>
-            <SaveButton type="submit" disabled={!isSaveButtonEnabled()}>
+            <SaveButton
+              data-focusable="true"
+              data-save-button
+              type="submit"
+              disabled={!isSaveButtonEnabled()}
+            >
               <Save size={18} />
               {isSubmitting ? "Saving..." : "Save Test Details"}
             </SaveButton>
