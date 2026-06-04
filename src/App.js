@@ -134,7 +134,7 @@ function App() {
         navigate("/PatientForm");
         break;
       case "Lab Technician":
-        navigate("/SampleStatusUpdate");
+        navigate("/PatientDetails");
         break;
       case "Doctor":
         navigate("/PatientList");

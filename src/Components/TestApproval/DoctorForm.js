@@ -384,6 +384,11 @@ const LowBadge = styled(StatusBadge)`
   color: var(--warning);
   animation: ${blink} 2s infinite;
 `;
+const NearBadge = styled(StatusBadge)`
+  background-color: rgba(237, 194, 243, 0.15);
+  color: #bf63db;
+  border: 1px solid #d309ee;
+`;
 
 const EditedBadge = styled(StatusBadge)`
   background-color: rgba(63, 55, 201, 0.15);
@@ -877,13 +882,30 @@ function DoctorForm() {
       !isNaN(rangeParts[1])
     ) {
       const [min, max] = rangeParts;
+
       if (numericValue < min) {
+        // Within 1 point below min → Orange "Near Low"
+        if (numericValue >= min - 1) {
+          return (
+            <NearBadge>
+              <AlertTriangle size={12} /> Slightly Low
+            </NearBadge>
+          );
+        }
         return (
           <LowBadge>
             <AlertTriangle size={12} /> Low
           </LowBadge>
         );
       } else if (numericValue > max) {
+        // Within 1 point above max → Orange "Near High"
+        if (numericValue <= max + 1) {
+          return (
+            <NearBadge>
+              <AlertTriangle size={12} /> Slightly High
+            </NearBadge>
+          );
+        }
         return (
           <HighBadge>
             <AlertTriangle size={12} /> High

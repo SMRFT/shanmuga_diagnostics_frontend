@@ -502,26 +502,97 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   );
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  const buildImpression = (vitals) => {
+  const buildImpression = (vitals, testdetails, chcTests) => {
     const lines = ["Reports within Normal Limits."];
-    const bmi = (vitals?.bmi_status || "").toLowerCase();
-    const bp = (vitals?.BP_status || "").toLowerCase();
-    const spo = (vitals?.spo2_status || "").toLowerCase();
 
-    if (bmi === "obese" || bmi === "over weight" || bmi === "overweight") {
+    // BMI check
+    const bmi = parseFloat(vitals?.bmi || 0);
+    const bmiStatus = (vitals?.bmi_status || "").toLowerCase();
+    if (
+      (bmiStatus === "obese" ||
+        bmiStatus === "over weight" ||
+        bmiStatus === "overweight") &&
+      bmi >= 30
+    ) {
+      lines.push("Needs endocrinology opinion for weight management.");
+    } else if (
+      bmiStatus === "obese" ||
+      bmiStatus === "over weight" ||
+      bmiStatus === "overweight"
+    ) {
       lines.push("Life style modification for weight reduction.");
     }
-    if (bp === "low" || bp === "high") {
-      lines.push(
-        "To recheck BP after 2 weeks and get physician consultation for BP control.",
-      );
+
+    // BP check
+    const bp = vitals?.blood_pressure || "";
+    const bpParts = bp.split("/");
+    if (bpParts.length === 2) {
+      const systolic = parseFloat(bpParts[0]);
+      const diastolic = parseFloat(bpParts[1]);
+      if (systolic > 150 || diastolic > 100) {
+        lines.push("Get physician opinion for hypertension management.");
+      } else if (systolic > 140 || diastolic > 90) {
+        lines.push(
+          "To recheck BP after 2 weeks and get physician consultation for BP control.",
+        );
+      }
     }
-    if (spo === "low" || spo === "high") {
+
+    // SpO2 check
+    const spo2Status = (vitals?.spo2_status || "").toLowerCase();
+    if (spo2Status === "low" || spo2Status === "high") {
       lines.push(
         "To recheck SpO2 after 2 weeks and get cardiologist consultation for SpO2 control.",
       );
     }
-    return lines.join("\n");
+
+    // PFT notes check
+    const pftTest = (chcTests || []).find((t) => t.testname === "PFT");
+    if (
+      pftTest?.notes &&
+      pftTest.notes.trim().toLowerCase() !== "normal study."
+    ) {
+      lines.push("Repeat PFT and to obtain pulmonology opinion.");
+    }
+
+    // Lab test checks
+    const allParams = (testdetails || []).flatMap(
+      (t) => t.parameters || [{ name: t.testname, value: t.value }],
+    );
+
+    // HbA1c
+    const hba1c = allParams.find(
+      (p) => p.name === "Glycosylated Haemoglobin (HbA1C)",
+    );
+    if (hba1c && parseFloat(hba1c.value) > 6.5) {
+      lines.push("Get physician opinion.");
+    }
+
+    // Random glucose
+    const glucose = allParams.find((p) => p.name === "GLUCOSE - RANDOM");
+    if (glucose && parseFloat(glucose.value) > 200) {
+      lines.push("Get physician opinion for Sugar Control.");
+    }
+
+    // Cholesterol
+    const cholesterol = allParams.find((p) => p.name === "Cholesterol (Total)");
+    if (cholesterol && parseFloat(cholesterol.value) > 240) {
+      lines.push("Get physician opinion for hyperlipidemia.");
+    }
+
+    // Triglycerides
+    const tgl = allParams.find((p) => p.name === "Triglycerides - TGL");
+    if (tgl && parseFloat(tgl.value) > 200) {
+      lines.push("Get physician opinion for hyperlipidemia.");
+    }
+
+    // Haemoglobin
+    const hb = allParams.find((p) => p.name === "Haemoglobin");
+    if (hb && parseFloat(hb.value) < 10) {
+      lines.push("Get physician opinion for anemic management.");
+    }
+
+    return [...new Set(lines)].join("\n");
   };
 
   useEffect(() => {
@@ -722,7 +793,9 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
           }
 
           if (merged.vitals && Object.keys(merged.vitals).length > 0) {
-            setImpression(buildImpression(merged.vitals));
+            setImpression(
+              buildImpression(merged.vitals, merged.testdetails, inv.chc_tests),
+            );
           }
 
           return merged;
