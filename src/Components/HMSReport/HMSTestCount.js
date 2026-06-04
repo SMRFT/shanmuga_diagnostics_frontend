@@ -377,8 +377,18 @@ export default function HMSTestCount() {
     const exportData = filteredData.map(item => ({
         "Test ID": item.test_id,
         "Test Name": item.test_name,
-        "Count": item.count
+        "Count": item.count,
+        "Male Count": item.male_count || 0,
+        "Female Count": item.female_count || 0
     }));
+
+    exportData.push({
+        "Test ID": "Total",
+        "Test Name": "",
+        "Count": totalTests,
+        "Male Count": filteredData.reduce((sum, item) => sum + (item.male_count || 0), 0),
+        "Female Count": filteredData.reduce((sum, item) => sum + (item.female_count || 0), 0)
+    });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -388,7 +398,9 @@ export default function HMSTestCount() {
     const maxWidths = [
         { wch: 15 },
         { wch: 40 },
-        { wch: 10 }
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 15 }
     ];
     ws['!cols'] = maxWidths;
 
@@ -467,14 +479,16 @@ export default function HMSTestCount() {
               <THead>
                 <tr>
                   <th style={{ width: '20%' }}>Test ID</th>
-                  <th style={{ width: '60%' }}>Test Name</th>
-                  <th style={{ width: '20%' }}>Count</th>
+                  <th style={{ width: '40%' }}>Test Name</th>
+                  <th style={{ width: '15%' }}>Count</th>
+                  <th style={{ width: '15%' }}>Male Count</th>
+                  <th style={{ width: '10%' }}>Female Count</th>
                 </tr>
               </THead>
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={3}>
+                    <td colSpan={5}>
                       <EmptyState>
                         <FaSearch />
                         <p>{loading ? "Loading data..." : "No HMS test data found for the selected period"}</p>
@@ -488,6 +502,12 @@ export default function HMSTestCount() {
                       <TCell style={{ fontWeight: '500' }}>{t.test_name}</TCell>
                       <TCell className="count">
                         <span>{t.count}</span>
+                      </TCell>
+                      <TCell className="count">
+                        <span>{t.male_count || 0}</span>
+                      </TCell>
+                      <TCell className="count">
+                        <span>{t.female_count || 0}</span>
                       </TCell>
                     </TRow>
                   ))
