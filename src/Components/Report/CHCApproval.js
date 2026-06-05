@@ -560,14 +560,24 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       (t) => t.parameters || [{ name: t.testname, value: t.value }],
     );
 
-    // HbA1c
+    // HbA1c + EAG combined
     const hba1c = allParams.find(
       (p) => p.name === "Glycosylated Haemoglobin (HbA1C)",
     );
-    if (hba1c && parseFloat(hba1c.value) > 6.5) {
+    const eag = allParams.find(
+      (p) => p.name === "Estimated Average Glucose (EAG)",
+    );
+
+    if (
+      hba1c &&
+      parseFloat(hba1c.value) > 7 &&
+      eag &&
+      parseFloat(eag.value) > 200
+    ) {
+      lines.push("Get physician opinion for uncontrolled diabetes.");
+    } else if (hba1c && parseFloat(hba1c.value) > 6.5) {
       lines.push("Get physician opinion.");
     }
-
     // Random glucose
     const glucose = allParams.find((p) => p.name === "GLUCOSE - RANDOM");
     if (glucose && parseFloat(glucose.value) > 200) {
@@ -592,7 +602,37 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       lines.push("Get physician opinion for anemic management.");
     }
 
-    return [...new Set(lines)].join("\n");
+    // ECHO notes check
+    const echoTest = (chcTests || []).find((t) => t.testname === "ECHO");
+    if (
+      echoTest?.notes &&
+      echoTest.notes.trim().toLowerCase() !== "normal study."
+    ) {
+      lines.push("Get cardiology opinion for ECHO Changes.");
+    }
+
+    // ECG notes check
+    const ecgTest = (chcTests || []).find((t) => t.testname === "ECG");
+    if (
+      ecgTest?.notes &&
+      ecgTest.notes.trim().toLowerCase() !== "normal study."
+    ) {
+      lines.push("Get cardiology opinion for ECG Changes.");
+    }
+
+    // VDRL
+    const vdrl = allParams.find((p) => p.name === "VDRL");
+    if (vdrl && vdrl.value.trim().toLowerCase() !== "negative") {
+      lines.push(
+        "To do confirmatory test for syphilis since VDRL is Positive.",
+      );
+    }
+
+    const uniqueLines = [...new Set(lines)];
+    if (uniqueLines.length > 1) {
+      uniqueLines[0] = "Other reports within Normal Limits.";
+    }
+    return uniqueLines.join("\n");
   };
 
   useEffect(() => {
