@@ -386,6 +386,7 @@ const LowBadge = styled(StatusBadge)`
 `;
 const NearBadge = styled(StatusBadge)`
   background-color: rgba(237, 194, 243, 0.15);
+
   color: #bf63db;
   border: 1px solid #d309ee;
 `;
