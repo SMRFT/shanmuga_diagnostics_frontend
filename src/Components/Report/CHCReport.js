@@ -452,29 +452,27 @@ const CHCReport = () => {
     const data = investigationStatuses[bc];
     if (!data) return false;
     if (data.lab_approval?.toLowerCase() === "pending") return true;
+    // Trust chc_investigation_status from API directly
+    if (data.chc_investigation_status === "All Approved") return false;
     const chcTests = data.chc_tests || [];
     if (chcTests.length === 0) return false;
-    return chcTests.some(
-      (t) =>
-        !(t.has_file || t.has_report) || t.status?.toLowerCase() !== "approved",
-    );
+    return chcTests.some((t) => t.status?.toLowerCase() !== "approved");
   };
 
   const getPendingInvestigations = (statusData) => {
     if (!statusData) return <span className="all-approved">All Approved</span>;
     const labPending = statusData.lab_approval?.toLowerCase() === "pending";
     const chcTests = statusData.chc_tests || [];
-    if (chcTests.length === 0 && !labPending)
-      return <span className="all-approved">No CHC Tests</span>;
-    const chcAllDone =
-      chcTests.length === 0 ||
-      chcTests.every(
-        (t) =>
-          (t.has_file || t.has_report) &&
-          t.status?.toLowerCase() === "approved",
-      );
+
+    // Trust chc_investigation_status from API as the primary source
+    const chcAllDone = statusData.chc_investigation_status === "All Approved";
+
     if (!labPending && chcAllDone)
       return <span className="all-approved">All Approved</span>;
+
+    if (chcTests.length === 0 && !labPending)
+      return <span className="all-approved">No CHC Tests</span>;
+
     return (
       <>
         {labPending && (
@@ -482,22 +480,20 @@ const CHCReport = () => {
             Lab Tests<span className="pending-label">Pending</span>
           </div>
         )}
-        {chcTests.map((test, index) => {
-          const collected = test.has_file || test.has_report;
-          const approved = test.status?.toLowerCase() === "approved";
-          if (collected && approved) return null;
-          const label = !collected ? "Not Collected" : "Not Approved";
-          return (
-            <div key={index}>
-              {test.testname}
-              <span className="pending-label">{label}</span>
-            </div>
-          );
-        })}
+        {!chcAllDone &&
+          chcTests.map((test, index) => {
+            // Only show pending ones — trust status from API, not has_file/has_report
+            if (test.status?.toLowerCase() === "approved") return null;
+            return (
+              <div key={index}>
+                {test.testname}
+                <span className="pending-label">Pending</span>
+              </div>
+            );
+          })}
       </>
     );
   };
-
   // ─── Data fetching ────────────────────────────────────────────────────────
   const fetchCombinedPatientData = useCallback(async () => {
     setLoading(true);
