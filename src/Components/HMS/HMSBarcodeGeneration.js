@@ -345,26 +345,22 @@ const HMSBarcodeGeneration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [ipopFilter, setIpopFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [barcodeSource, setBarcodeSource] = useState(() => {
+    return location?.state?.barcodeSource || "HMS";
+  });
 
   const patientsPerPage = 15; // Increased for table layout
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
 
-  // Add this useEffect BEFORE the existing fetchPatients useEffect
-  useEffect(() => {
-    const incomingFrom = location?.state?.fromDate;
-    const incomingTo = location?.state?.toDate;
-    if (incomingFrom) setFromDate(new Date(incomingFrom));
-    if (incomingTo) setToDate(new Date(incomingTo));
-  }, []);
-
-  const fetchPatients = async () => {
+  const fetchPatients = async (source = barcodeSource) => {
     const fromDateStr = fromDate.toISOString().split("T")[0];
     const toDateStr = toDate.toISOString().split("T")[0];
     setIsLoading(true);
     try {
+      const endpoint = source === "SH" ? "sh_hms_patients_get_barcode/" : "hms_patients_get_barcode/";
       const response = await apiRequest(
-        `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
+        `${Labbaseurl}${endpoint}?from_date=${fromDateStr}&to_date=${toDateStr}`,
         "GET",
       );
 
@@ -399,6 +395,14 @@ const HMSBarcodeGeneration = () => {
     }
   };
 
+  const handleBarcodeSourceChange = (e) => {
+    const newSource = e.target.value;
+    setBarcodeSource(newSource);
+    fetchPatients(newSource);
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
   const handleGenerateBarcode = (patient, e) => {
     e.stopPropagation();
 
@@ -423,6 +427,7 @@ const HMSBarcodeGeneration = () => {
 
         fromDate: fromDate.toISOString().split("T")[0],
         toDate: toDate.toISOString().split("T")[0],
+        barcodeSource: barcodeSource,
       },
     });
   };
@@ -480,20 +485,23 @@ const HMSBarcodeGeneration = () => {
   useEffect(() => {
     const incomingFrom = location?.state?.fromDate;
     const incomingTo = location?.state?.toDate;
+    const incomingSource = location?.state?.barcodeSource || "HMS";
 
     const resolvedFrom = incomingFrom ? new Date(incomingFrom) : new Date();
     const resolvedTo = incomingTo ? new Date(incomingTo) : new Date();
 
     setFromDate(resolvedFrom);
     setToDate(resolvedTo);
+    setBarcodeSource(incomingSource);
 
     // Fetch immediately with resolved dates (bypass stale state)
     const fromStr = resolvedFrom.toISOString().split("T")[0];
     const toStr = resolvedTo.toISOString().split("T")[0];
 
     setIsLoading(true);
+    const endpoint = incomingSource === "SH" ? "sh_hms_patients_get_barcode/" : "hms_patients_get_barcode/";
     apiRequest(
-      `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromStr}&to_date=${toStr}`,
+      `${Labbaseurl}${endpoint}?from_date=${fromStr}&to_date=${toStr}`,
       "GET",
     ).then((response) => {
       if (response.success) {
@@ -599,6 +607,21 @@ const HMSBarcodeGeneration = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </SearchContainer>
+
+          <select
+            value={barcodeSource}
+            onChange={(e) => handleBarcodeSourceChange(e)}
+            style={{
+              padding: "0.75rem 1rem",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              background: "#f8fafc",
+              fontWeight: 600,
+            }}
+          >
+            <option value="HMS">HMS Barcode</option>
+            <option value="SH">SH Barcode</option>
+          </select>
 
           <select
             value={ipopFilter}
