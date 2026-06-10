@@ -896,12 +896,10 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
       ) => {
         if (!text) return 0;
 
-        // Match pattern like "12X10^5", "10^-3", "12x10^-3"
         const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/;
         const match = text.match(superscriptRegex);
 
         if (!match) {
-          // No superscript — use wrapped text as before
           if (maxWidth) {
             return renderWrappedText(doc, text, maxWidth, x, y, lineHeight);
           } else {
@@ -910,34 +908,76 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
           }
         }
 
-        // Has superscript — render inline (no wrap needed for scientific notation)
-        const before = text.slice(0, match.index);
-        const base = match[1].replace(/[xX]/, "×");
+        // Split into: textBefore the scientific notation, the notation itself, and after
+        // e.g. "DETECTED (3×10^05)" => before="DETECTED ", base="3", exp="05", after=")"
+        // e.g. "NOT DETECTED(ML^05)" => before="NOT DETECTED(ML", base="ML", exp="05", after=")"
+        const before = text.slice(0, match.index).trimEnd();
+        const base = match[1].replace(/[xX×]/g, "×");
         const exponent = match[2];
         const after = text.slice(match.index + match[0].length);
 
-        let currentX = x;
+        // Find any prefix attached directly to the scientific notation (e.g. opening bracket)
+        // Everything between last space in `before` and the match is a "prefix" to keep with the notation
+        const lastSpaceIndex = before.lastIndexOf(" ");
+        const mainText =
+          lastSpaceIndex !== -1 ? before.slice(0, lastSpaceIndex) : before;
+        const notationPrefix =
+          lastSpaceIndex !== -1 ? before.slice(lastSpaceIndex + 1) : "";
+
         const normalSize = doc.getFontSize();
 
-        if (before) {
-          doc.text(before, currentX, y);
-          currentX += doc.getTextWidth(before);
+        if (!mainText.trim()) {
+          // No "before" text — render everything inline on one line
+          let currentX = x;
+          if (notationPrefix) {
+            doc.text(notationPrefix, currentX, y);
+            currentX += doc.getTextWidth(notationPrefix);
+          }
+          doc.text(base, currentX, y);
+          currentX += doc.getTextWidth(base);
+
+          doc.setFontSize(7);
+          doc.text(exponent, currentX, y - 2);
+          currentX += doc.getTextWidth(exponent);
+          doc.setFontSize(normalSize);
+
+          if (after) {
+            doc.text(after, currentX, y);
+          }
+          return lineHeight;
         }
 
-        doc.text(base, currentX, y);
+        // Render main text (e.g. "DETECTED") — wrap if needed
+        const mainLines = maxWidth
+          ? wrapTextAndGetLines(doc, mainText, maxWidth)
+          : [mainText];
+
+        mainLines.forEach((line, i) => {
+          doc.text(line, x, y + i * lineHeight);
+        });
+
+        // Render the scientific notation part on the next line, kept together
+        const superLineY = y + mainLines.length * lineHeight + 1;
+        let currentX = x;
+
+        if (notationPrefix) {
+          doc.text(notationPrefix, currentX, superLineY);
+          currentX += doc.getTextWidth(notationPrefix);
+        }
+
+        doc.text(base, currentX, superLineY);
         currentX += doc.getTextWidth(base);
 
-        // Superscript
         doc.setFontSize(7);
-        doc.text(exponent, currentX, y - 2);
+        doc.text(exponent, currentX, superLineY - 2);
         currentX += doc.getTextWidth(exponent);
         doc.setFontSize(normalSize);
 
         if (after) {
-          doc.text(after, currentX, y);
+          doc.text(after, currentX, superLineY);
         }
 
-        return lineHeight;
+        return mainLines.length * lineHeight + lineHeight + 1;
       };
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);

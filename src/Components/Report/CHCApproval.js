@@ -613,11 +613,14 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
     // ECG notes check
     const ecgTest = (chcTests || []).find((t) => t.testname === "ECG");
-    if (
-      ecgTest?.notes &&
-      ecgTest.notes.trim().toLowerCase() !== "normal study."
-    ) {
-      lines.push("Get cardiology opinion for ECG Changes.");
+    if (ecgTest?.notes) {
+      const ecgNotes = ecgTest.notes.trim().toLowerCase();
+      const isNormal =
+        ecgNotes === "normal study." ||
+        ecgNotes === "normal study within normal limits.";
+      if (!isNormal) {
+        lines.push("Get cardiology opinion for ECG Changes.");
+      }
     }
 
     // VDRL
