@@ -432,7 +432,7 @@ const BarcodeTestDetails = () => {
       const result = await apiRequest(`${Labbaseurl}get-max-barcode/`, "GET");
 
       if (result.success) {
-        const maxBarcode = result.data.next_barcode;
+        const maxBarcode = parseInt(result.data.next_barcode, 10);
         setBarcodeCounter(maxBarcode);
       } else {
         console.error("Error fetching max barcode:", result.error);
@@ -455,6 +455,11 @@ const BarcodeTestDetails = () => {
   const handleGenerateBarcode = async () => {
     if (!selectedPatient) {
       toast.error("Patient information is missing.");
+      return false;
+    }
+
+    if (barcodeCounter === 0) {
+      toast.warning("Loading barcode sequence, please try again in a moment.");
       return false;
     }
 
@@ -643,6 +648,11 @@ const BarcodeTestDetails = () => {
   const handleReGenerateBarcode = async () => {
     if (!selectedPatient || !selectedDate || !bill_no) {
       toast.error("Patient, date, or bill number is missing.");
+      return;
+    }
+
+    if (barcodeCounter === 0) {
+      toast.warning("Loading barcode sequence, please try again in a moment.");
       return;
     }
 

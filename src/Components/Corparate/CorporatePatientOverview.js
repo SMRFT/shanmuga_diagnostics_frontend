@@ -849,7 +849,9 @@ const CorporatePatientOverview = () => {
       // Call Django proxy instead of Botify directly
       const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
         patient_name: patient.patient_name || "Valued Patient",
-        mobile: phoneNumber,
+        phone: phoneNumber,
+        collection_time: patient.collection_time || "N/A",
+        collected_date: patient.collected_date || "N/A",
         file_url: fileUrl,
         pdf_name: pdfName,
         template_name: "chc_report",
@@ -2303,11 +2305,11 @@ const CorporatePatientOverview = () => {
                             </ActionButton>
                           </PrintDropdown>
                           <ActionButton
-                            disabled={!isPrintMailEnabled}
+                            disabled={!isPrintMailEnabled || !patient.mobile}
                             onClick={() =>
-                              isPrintMailEnabled && handleWhatsAppShare(patient)
+                              isPrintMailEnabled && patient.mobile && handleWhatsAppShare(patient)
                             }
-                            title="Share via WhatsApp"
+                            title={patient.mobile ? "Share via WhatsApp" : "Phone number missing"}
                           >
                             <MessageCircle size={16} />
                           </ActionButton>
