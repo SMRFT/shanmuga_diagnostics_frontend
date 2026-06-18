@@ -346,9 +346,9 @@ const ActionButton = styled.button`
   &:hover {
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
     box-shadow: ${(props) =>
-      props.disabled
-        ? "0 2px 4px rgba(0, 0, 0, 0.1)"
-        : "0 4px 8px rgba(0, 0, 0, 0.1)"};
+    props.disabled
+      ? "0 2px 4px rgba(0, 0, 0, 0.1)"
+      : "0 4px 8px rgba(0, 0, 0, 0.1)"};
   }
 `;
 
@@ -812,61 +812,60 @@ const CorporatePatientOverview = () => {
     });
   };
 
-  // const handleWhatsAppShare = async (patient) => {
-  //   if (!patient || !patient.phone) {
-  //     toast.error("Patient phone number is missing");
-  //     return;
-  //   }
+  const handleWhatsAppShare = async (patient) => {
+    if (!patient || !patient.mobile) {
+      toast.error("Patient phone number is missing");
+      return;
+    }
 
-  //   const phoneNumber = patient.phone.startsWith("+91")
-  //     ? patient.phone.replace("+", "")
-  //     : `91${patient.phone}`;
+    const phoneNumber = patient.mobile.startsWith("+91")
+      ? patient.mobile.replace("+", "")
+      : `91${patient.mobile}`;
 
-  //   try {
-  //     const pdfBlob = await handlePrint(patient, true);
-  //     if (!pdfBlob) {
-  //       toast.error("Failed to generate the PDF");
-  //       return;
-  //     }
+    try {
+      const pdfBlob = await handlePrint(patient, true);
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF");
+        return;
+      }
 
-  //     const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
-  //     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+      const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+      const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
 
-  //     // Upload PDF to server
-  //     const formData = new FormData();
-  //     formData.append("file", pdfFile);
+      // Upload PDF to server
+      const formData = new FormData();
+      formData.append("file", pdfFile);
 
-  //     const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
-  //       headers: { "Content-Type": "multipart/form-data" },
-  //     });
+      const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-  //     const fileUrl = uploadResponse.data.file_url;
-  //     if (!fileUrl) {
-  //       toast.error("File upload failed");
-  //       return;
-  //     }
+      const fileUrl = uploadResponse.data.file_url;
+      if (!fileUrl) {
+        toast.error("File upload failed");
+        return;
+      }
 
-  //     // Call Django proxy instead of Botify directly
-  //     const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
-  //       patient_name: patient.patient_name || "Valued Patient",
-  //       phone: phoneNumber,
-  //       collection_time: patient.collection_time || "N/A",
-  //       collected_date: patient.collected_date || "N/A",
-  //       file_url: fileUrl,
-  //       pdf_name: pdfName,
-  //     });
+      // Call Django proxy instead of Botify directly
+      const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+        patient_name: patient.patient_name || "Valued Patient",
+        mobile: phoneNumber,
+        file_url: fileUrl,
+        pdf_name: pdfName,
+        template_name: "chc_report",
+      });
 
-  //     if (res.data.success) {
-  //       toast.success("WhatsApp PDF message sent successfully!");
-  //     } else {
-  //       toast.error("Failed to send WhatsApp template message.");
-  //       console.error("Backend error:", res.data.error);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error sending WhatsApp message:", error);
-  //     toast.error("Error sending WhatsApp message.");
-  //   }
-  // };
+      if (res.data.success) {
+        toast.success("WhatsApp PDF message sent successfully!");
+      } else {
+        toast.error("Failed to send WhatsApp template message.");
+        console.error("Backend error:", res.data.error);
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp message:", error);
+      toast.error("Error sending WhatsApp message.");
+    }
+  };
 
   //  const handleSendEmail = async (patient) => {
   //   try {
@@ -1111,16 +1110,16 @@ const CorporatePatientOverview = () => {
             ) || "N/A",
         },
         ...(patientDetails.testdetails[0].dispatch_time &&
-        patientDetails.testdetails[0].dispatch_time !== "null"
+          patientDetails.testdetails[0].dispatch_time !== "null"
           ? [
-              {
-                label: "Released On",
-                value: format(
-                  new Date(patientDetails.testdetails[0].dispatch_time),
-                  "dd MMM yy / HH:mm",
-                ),
-              },
-            ]
+            {
+              label: "Released On",
+              value: format(
+                new Date(patientDetails.testdetails[0].dispatch_time),
+                "dd MMM yy / HH:mm",
+              ),
+            },
+          ]
           : []),
         { label: "Printed On", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -1719,9 +1718,9 @@ const CorporatePatientOverview = () => {
                   : currentTest.isLow
                     ? "L"
                     : getHighLowStatus(
-                        paramValueText,
-                        currentTest.reference_range,
-                      );
+                      paramValueText,
+                      currentTest.reference_range,
+                    );
                 if (paramStatus) {
                   doc.setFont("helvetica", "bold");
                   doc.setTextColor(
@@ -1787,10 +1786,10 @@ const CorporatePatientOverview = () => {
                     doc,
                     `Note: ${currentTest.comment}`,
                     colWidths[0] +
-                      colWidths[1] +
-                      colWidths[2] +
-                      colWidths[3] -
-                      2,
+                    colWidths[1] +
+                    colWidths[2] +
+                    colWidths[3] -
+                    2,
                     leftMargin,
                     yPos,
                     3.5,
@@ -2303,7 +2302,6 @@ const CorporatePatientOverview = () => {
                               <Printer size={16} />
                             </ActionButton>
                           </PrintDropdown>
-                          {/* 
                           <ActionButton
                             disabled={!isPrintMailEnabled}
                             onClick={() =>
@@ -2313,6 +2311,7 @@ const CorporatePatientOverview = () => {
                           >
                             <MessageCircle size={16} />
                           </ActionButton>
+                          {/* 
                           <ActionButton
                             disabled={!isPrintMailEnabled}
                             onClick={() =>
