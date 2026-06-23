@@ -172,6 +172,7 @@ const ClearButton = styled(Button)`
 `;
 const TableContainer = styled.div`
   overflow-x: auto;
+  transform: rotateX(180deg);
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -187,6 +188,7 @@ const TableContainer = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  transform: rotateX(180deg);
   min-width: 800px;
 `;
 const TableHead = styled.thead`

@@ -275,12 +275,15 @@ const TCell = styled.td`
   }
 
   &.count {
-    color: #636e72;
-    background: #f1f5f9;
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
+    span {
+      color: #636e72;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 4px 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      display: inline-block;
+    }
   }
 `;
 
@@ -451,14 +454,14 @@ export default function TestSummary() {
                   data.map((t, i) => (
                     <TRow key={i}>
                       <TCell style={{ fontWeight: '500' }}>{t.test_name}</TCell>
-                      <TCell>
-                        <span className="count">{t.count}</span>
+                      <TCell className="count">
+                        <span>{t.count}</span>
                       </TCell>
-                      <TCell>
-                        <span className="count">{t.male_count || 0}</span>
+                      <TCell className="count">
+                        <span>{t.male_count || 0}</span>
                       </TCell>
-                      <TCell>
-                        <span className="count">{t.female_count || 0}</span>
+                      <TCell className="count">
+                        <span>{t.female_count || 0}</span>
                       </TCell>
                       <TCell className="amount">₹{Number(t.total_amount || 0).toLocaleString()}</TCell>
                     </TRow>
