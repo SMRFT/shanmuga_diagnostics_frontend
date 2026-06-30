@@ -19,6 +19,7 @@ import {
   FaSignOutAlt,
   FaDollarSign,
   FaUserCircle,
+  FaMap,
 } from "react-icons/fa";
 import { PiTestTubeDuotone } from "react-icons/pi";
 import { GrOverview } from "react-icons/gr";
@@ -333,6 +334,7 @@ const Sidebar = () => {
     patientDetails: false,
     barcodeDetails: false,
     sampleDetails: false,
+    routeDetails: false,
     reportDetails: false,
     osreportDetails: false,
     salesDetails: false,
@@ -1913,6 +1915,28 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Tracking History
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader
+                isOpen={dropdowns.routeDetails}
+                onClick={() => toggleDropdown("routeDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaMap />
+                  </IconWrapper>
+                  Route Master
+                </div>
+                <ChevronIcon isOpen={dropdowns.routeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.routeDetails}>
+                <SubLink
+                  to="/RouteSetup"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Route Setup
                 </SubLink>
               </DropdownContent>
 

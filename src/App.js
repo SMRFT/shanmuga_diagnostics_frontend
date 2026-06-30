@@ -95,6 +95,9 @@ import PreethamHospitalLedger from "./Components/PreethamHospital/PreethamLedger
 import WorkList from "./Components/Test/WorkList";
 import ApprovedList from "./Components/TestApproval/ApprovedList";
 import EditForm from "./Components/TestApproval/EditForm";
+import RouteSetup from "./Components/Logistics/RouteSetup";
+import RouteAnalysis from "./Components/Logistics/RouteAnalysis";
+
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
   margin-top: 15px;
@@ -261,6 +264,8 @@ function App() {
       "/LogisticsDashboard": "Logistics Dashboard",
       "/LogisticsTracking": "Logistics Tracking",
       "/TrackingHistory": "Tracking History",
+      "/RouteSetup": "Route Setup",
+      "/RouteAnalysis": "Route Analysis",
       "/LogisticsTAT": "Logistics TAT",
       "/HmsBilling": "HMS Billing",
       "/Hmssamplestatus": "HMS Sample Status",
@@ -488,6 +493,9 @@ function App() {
             <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
             <Route path="/LogisticsTracking" element={<LogisticsTracking />} />
             <Route path="/TrackingHistory" element={<TrackingHistory />} />
+
+            <Route path="/RouteSetup" element={<RouteSetup />} />
+            <Route path="/RouteAnalysis" element={<RouteAnalysis />} />
 
             {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling />} />
