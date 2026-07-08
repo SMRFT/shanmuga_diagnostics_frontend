@@ -94,16 +94,9 @@ const Card = styled.div`
 
 const CardHeader = styled.div`
   padding: 1.5rem;
-  border-bottom: 1px solid var(--gray-light);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 const Title = styled.h1`
@@ -111,18 +104,20 @@ const Title = styled.h1`
   color: var(--primary-dark);
   font-weight: 600;
   margin: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-light);
 `;
 
 const FiltersContainer = styled.div`
-  padding: 1.5rem;
+  padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--gray-light);
 `;
 
 const FilterRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -132,17 +127,17 @@ const FilterRow = styled.div`
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 `;
 
 const FilterLabel = styled.label`
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--gray);
   font-weight: 500;
 `;
 
 const FilterInput = styled.input`
-  padding: 0.5rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   font-size: 0.8rem;
@@ -246,10 +241,11 @@ const ClearButton = styled(Button)`
 
 const TableContainer = styled.div`
   overflow-x: auto;
+  transform: rotateX(180deg);
 
   &::-webkit-scrollbar {
     width: 6px;
-    height: 6px;
+    height: 8px;
   }
 
   &::-webkit-scrollbar-track {
@@ -266,6 +262,7 @@ const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   min-width: 800px;
+  transform: rotateX(180deg);
 `;
 
 const TableHead = styled.thead`
@@ -346,9 +343,9 @@ const ActionButton = styled.button`
   &:hover {
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
     box-shadow: ${(props) =>
-      props.disabled
-        ? "0 2px 4px rgba(0, 0, 0, 0.1)"
-        : "0 4px 8px rgba(0, 0, 0, 0.1)"};
+    props.disabled
+      ? "0 2px 4px rgba(0, 0, 0, 0.1)"
+      : "0 4px 8px rgba(0, 0, 0, 0.1)"};
   }
 `;
 
@@ -424,7 +421,7 @@ const DropdownItem = styled.button`
 
 const NavigationContainer = styled.div`
   display: flex;
-  margin-bottom: 20px;
+  width: 100%;
   border-bottom: 2px solid #f0f0f0;
 `;
 
@@ -1343,16 +1340,16 @@ const HMSPatientOverview = () => {
             ) || "N/A",
         },
         ...(patientDetails.testdetails[0].dispatch_time &&
-        patientDetails.testdetails[0].dispatch_time !== "null"
+          patientDetails.testdetails[0].dispatch_time !== "null"
           ? [
-              {
-                label: "Released On",
-                value: format(
-                  new Date(patientDetails.testdetails[0].dispatch_time),
-                  "dd MMM yy / HH:mm",
-                ),
-              },
-            ]
+            {
+              label: "Released On",
+              value: format(
+                new Date(patientDetails.testdetails[0].dispatch_time),
+                "dd MMM yy / HH:mm",
+              ),
+            },
+          ]
           : []),
         { label: "Printed On", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -1951,9 +1948,9 @@ const HMSPatientOverview = () => {
                   : currentTest.isLow
                     ? "L"
                     : getHighLowStatus(
-                        paramValueText,
-                        currentTest.reference_range,
-                      );
+                      paramValueText,
+                      currentTest.reference_range,
+                    );
                 if (paramStatus) {
                   doc.setFont("helvetica", "bold");
                   doc.setTextColor(
@@ -2019,10 +2016,10 @@ const HMSPatientOverview = () => {
                     doc,
                     `Note: ${currentTest.comment}`,
                     colWidths[0] +
-                      colWidths[1] +
-                      colWidths[2] +
-                      colWidths[3] -
-                      2,
+                    colWidths[1] +
+                    colWidths[2] +
+                    colWidths[3] -
+                    2,
                     leftMargin,
                     yPos,
                     3.5,
@@ -2265,7 +2262,6 @@ const HMSPatientOverview = () => {
       <GlobalStyle />
       <Card>
         <CardHeader>
-          {/* Navigation Tabs */}
           <NavigationContainer>
             <NavigationTab
               active={activeTab === "hms"}

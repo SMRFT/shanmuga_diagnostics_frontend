@@ -911,9 +911,19 @@ const BarcodeTestDetails = () => {
 
       // Set patient data
       setSelectedPatient(patientData);
-      setTestDetails(patientData.testdetails || []);
+      
+      const filteredTestDetails = (patientData.testdetails || []).filter(
+        (test) => {
+          const testName = (test.testname || test.test_name || "").toLowerCase();
+          return !testName.includes("service charge") && 
+                 test.is_servicecharge !== true && 
+                 test.is_servicecharge !== "true";
+        }
+      );
+      
+      setTestDetails(filteredTestDetails);
       setSelectedTests(
-        new Array(patientData.test_name?.length || 0).fill(false),
+        new Array(filteredTestDetails.length).fill(false),
       );
 
       // Second API call - get existing barcode data

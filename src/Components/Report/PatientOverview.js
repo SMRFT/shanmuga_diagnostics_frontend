@@ -70,31 +70,27 @@ const Card = styled.div`
 `;
 const CardHeader = styled.div`
   padding: 1.5rem;
-  border-bottom: 1px solid var(--gray-light);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
+  flex-direction: column;
+  gap: 1rem;
 `;
 const Title = styled.h1`
   font-size: 1.5rem;
   color: var(--primary-dark);
   font-weight: 600;
   margin: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-light);
 `;
 const FiltersContainer = styled.div`
-  padding: 1.5rem;
+  padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--gray-light);
 `;
 const FilterRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
@@ -102,15 +98,15 @@ const FilterRow = styled.div`
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 `;
 const FilterLabel = styled.label`
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--gray);
   font-weight: 500;
 `;
 const FilterInput = styled.input`
-  padding: 0.5rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   font-size: 0.8rem;
@@ -132,8 +128,8 @@ const StepButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
   flex-shrink: 0;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
@@ -155,7 +151,7 @@ const StepButton = styled.button`
   }
 `;
 const FilterSelect = styled.select`
-  padding: 0.5rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   font-size: 0.875rem;
@@ -178,7 +174,7 @@ const Button = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   background-color: var(--primary);
   color: white;
   border: none;
@@ -204,9 +200,10 @@ const ClearButton = styled(Button)`
 `;
 const TableContainer = styled.div`
   overflow-x: auto;
+  transform: rotateX(180deg);
   &::-webkit-scrollbar {
     width: 6px;
-    height: 6px;
+    height: 8px;
   }
   &::-webkit-scrollbar-track {
     background: var(--gray-light);
@@ -220,6 +217,7 @@ const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   min-width: 800px;
+  transform: rotateX(180deg);
 `;
 const TableHead = styled.thead`
   background-color: var(--gray-light);
@@ -249,6 +247,27 @@ const TableBody = styled.tbody`
     vertical-align: middle;
     font-size: 0.875rem;
   }
+`;
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-top: 1px solid var(--gray-light);
+`;
+const PageButton = styled.button`
+  padding: 0.5rem 1rem;
+  margin: 0 0.25rem;
+  border: 1px solid var(--gray-light);
+  border-radius: 4px;
+  background: ${(props) => (props.active ? "var(--primary)" : "white")};
+  color: ${(props) => (props.active ? "white" : "var(--dark)")};
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  &:hover:not(:disabled) {
+    background: ${(props) => (props.active ? "var(--primary)" : "var(--gray-light)")};
+  }
+
 `;
 const NoData = styled.div`
   text-align: center;
@@ -289,9 +308,9 @@ const ActionButton = styled.button`
   &:hover {
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
     box-shadow: ${(props) =>
-      props.disabled
-        ? "0 2px 4px rgba(0,0,0,0.1)"
-        : "0 4px 8px rgba(0,0,0,0.1)"};
+    props.disabled
+      ? "0 2px 4px rgba(0,0,0,0.1)"
+      : "0 4px 8px rgba(0,0,0,0.1)"};
   }
 `;
 const CreditAmount = styled.span`
@@ -361,7 +380,7 @@ const DropdownItem = styled.button`
 
 const NavigationContainer = styled.div`
   display: flex;
-  margin-bottom: 20px;
+  width: 100%;
   border-bottom: 2px solid #f0f0f0;
 `;
 const NavigationTab = styled.button`
@@ -576,6 +595,9 @@ const PatientOverview = () => {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [segmentFilter, setSegmentFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("hms");
@@ -815,6 +837,7 @@ const PatientOverview = () => {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     const startOfDay = new Date(startDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(endDate);
@@ -842,6 +865,7 @@ const PatientOverview = () => {
             ?.toLowerCase()
             .includes(patientName.toLowerCase())) &&
         (!statusFilter || patientStatus === statusFilter) &&
+        (!segmentFilter || patient.segment === segmentFilter) &&
         matchesDepartment
       );
     });
@@ -857,6 +881,7 @@ const PatientOverview = () => {
     barcode,
     patientName,
     statusFilter,
+    segmentFilter,
     departmentFilter,
     statuses,
   ]);
@@ -871,6 +896,7 @@ const PatientOverview = () => {
     setPatientId("");
     setPatientName("");
     setStatusFilter("");
+    setSegmentFilter("");
     setDepartmentFilter("");
     setFilteredPatients(patients);
   };
@@ -1172,16 +1198,16 @@ const PatientOverview = () => {
             ) || "N/A",
         },
         ...(patientDetails.testdetails[0].dispatch_time &&
-        patientDetails.testdetails[0].dispatch_time !== "null"
+          patientDetails.testdetails[0].dispatch_time !== "null"
           ? [
-              {
-                label: "Released On",
-                value: format(
-                  new Date(patientDetails.testdetails[0].dispatch_time),
-                  "dd MMM yy / HH:mm",
-                ),
-              },
-            ]
+            {
+              label: "Released On",
+              value: format(
+                new Date(patientDetails.testdetails[0].dispatch_time),
+                "dd MMM yy / HH:mm",
+              ),
+            },
+          ]
           : []),
         { label: "Printed On", value: format(new Date(), "dd MMM yy / HH:mm") },
         { label: "Patient Ref.No", value: patientRefNoNumber },
@@ -1780,9 +1806,9 @@ const PatientOverview = () => {
                   : currentTest.isLow
                     ? "L"
                     : getHighLowStatus(
-                        paramValueText,
-                        currentTest.reference_range,
-                      );
+                      paramValueText,
+                      currentTest.reference_range,
+                    );
                 if (paramStatus) {
                   doc.setFont("helvetica", "bold");
                   doc.setTextColor(
@@ -1849,10 +1875,10 @@ const PatientOverview = () => {
                     doc,
                     `Note: ${currentTest.comment}`,
                     colWidths[0] +
-                      colWidths[1] +
-                      colWidths[2] +
-                      colWidths[3] -
-                      2,
+                    colWidths[1] +
+                    colWidths[2] +
+                    colWidths[3] -
+                    2,
                     leftMargin,
                     yPos,
                     3.5,
@@ -2090,6 +2116,16 @@ const PatientOverview = () => {
       p.patient_id === activeDropdownPatientId,
   );
 
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentPatients = filteredPatients.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   return (
     <Container>
       <GlobalStyle />
@@ -2154,6 +2190,18 @@ const PatientOverview = () => {
                     {name.clinicalname}
                   </option>
                 ))}
+              </FilterSelect>
+            </FilterGroup>
+            <FilterGroup>
+              <FilterLabel>Select Segment</FilterLabel>
+              <FilterSelect
+                value={segmentFilter}
+                onChange={(e) => setSegmentFilter(e.target.value)}
+              >
+                <option value="">All Segments</option>
+                <option value="B2B">B2B</option>
+                <option value="Home Collection">Home Collection</option>
+                <option value="Walk-in">Walk-in</option>
               </FilterSelect>
             </FilterGroup>
             <FilterGroup>
@@ -2307,8 +2355,8 @@ const PatientOverview = () => {
                     {error}
                   </td>
                 </tr>
-              ) : filteredPatients.length > 0 ? (
-                filteredPatients.map((patient) => {
+              ) : currentPatients.length > 0 ? (
+                currentPatients.map((patient) => {
                   const patientStatus = statuses[patient.patient_id] || {};
                   const status = patientStatus.status || "Loading...";
                   const barcodeVal = patientStatus.barcode || "N/A";
@@ -2490,19 +2538,52 @@ const PatientOverview = () => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: "var(--gray)",
-            fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
-          }}
-        >
-          Showing {filteredPatients.length}{" "}
-          {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+        {totalPages > 0 && (
+          <PaginationContainer>
+            <span style={{ fontSize: "0.875rem", color: "var(--gray)" }}>
+              Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPatients.length)} of {filteredPatients.length} entries
+            </span>
+            {totalPages > 1 && (
+              <div>
+                <PageButton
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  Previous
+                </PageButton>
+                {Array.from({ length: totalPages }, (_, i) => {
+                  if (
+                    i === 0 ||
+                    i === totalPages - 1 ||
+                    (i >= currentPage - 2 && i <= currentPage)
+                  ) {
+                    return (
+                      <PageButton
+                        key={i + 1}
+                        active={currentPage === i + 1}
+                        onClick={() => handlePageChange(i + 1)}
+                      >
+                        {i + 1}
+                      </PageButton>
+                    );
+                  } else if (
+                    i === currentPage - 3 ||
+                    i === currentPage + 1
+                  ) {
+                    return <span key={i + 1}>...</span>;
+                  }
+                  return null;
+                })}
+                <PageButton
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  Next
+                </PageButton>
+              </div>
+            )}
+          </PaginationContainer>
+        )}
       </Card>
 
       {/* ── PORTAL DROPDOWN: renders at <body> level, escapes overflow:auto clipping ── */}

@@ -136,12 +136,24 @@ const RefBy = ({ show, setShow, onRefByAdded }) => {
     const handleRefBySave = async (e) => {
     e.preventDefault();
     try {
-        await apiRequest(`${Labbaseurl}refby/`, "POST", formData);
+        const result = await apiRequest(`${Labbaseurl}refby/`, "POST", formData);
+        if (result && !result.success) {
+            toast.error(result.error || result.message || "Failed to save RefBy.");
+            return;
+        }
+        
         toast.success("RefBy saved successfully!");
+        setFormData({
+            name: '',
+            qualification: '',
+            specialization: '',
+            email: '',
+            phone: ''
+        });
         setShow(false);
-        onRefByAdded(); // refresh dropdown/list
+        if (onRefByAdded) onRefByAdded(); // refresh dropdown/list
     } catch (error) {
-        console.error("Error saving refby:", error.message);
+        console.error("Error saving refby:", error);
         toast.error("Error saving RefBy. Please try again.");
     }
     };
@@ -168,7 +180,7 @@ const RefBy = ({ show, setShow, onRefByAdded }) => {
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            
+                            required
                         />
                     </FormGroup>
 

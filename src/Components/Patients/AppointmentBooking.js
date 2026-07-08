@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
@@ -257,17 +257,33 @@ const InfoText = styled.p`
 `
 
 const AppointmentBooking = () => {
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
   const [formData, setFormData] = useState({
     appointment_date: "",
     patient_name: "",
     gender: "Male",
     age: "",
     mobile_number: "",
+    sample_collector: "",
   })
+  
+  const [sampleCollectors, setSampleCollectors] = useState([])
+  
+  useEffect(() => {
+    const fetchSampleCollectors = async () => {
+      try {
+        const result = await apiRequest(`${Labbaseurl}sample-collector/`, "GET");
+        if (result.success) {
+          setSampleCollectors(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching sample collectors:", error);
+      }
+    };
+    fetchSampleCollectors();
+  }, [Labbaseurl]);
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -313,6 +329,7 @@ const handleSubmit = async (e) => {
       gender: "Male",
       age: "",
       mobile_number: "",
+      sample_collector: "",
     });
 
   } catch (error) {
@@ -370,7 +387,7 @@ const handleSubmit = async (e) => {
             </FormGroup>
           </Row>
 
-          <Row>
+          <Row className="row-2">
             <FormGroup>
               <label>
                 Gender<RequiredIndicator>*</RequiredIndicator>
@@ -408,9 +425,7 @@ const handleSubmit = async (e) => {
                 </label>
               </RadioGroup>
             </FormGroup>
-          </Row>
 
-          <Row className="row-2">
             <FormGroup>
               <label>
                 Age<RequiredIndicator>*</RequiredIndicator>
@@ -426,7 +441,9 @@ const handleSubmit = async (e) => {
                 required
               />
             </FormGroup>
+          </Row>
 
+          <Row className="row-2">
             <FormGroup>
               <label>
                 <FaPhone />
@@ -443,7 +460,28 @@ const handleSubmit = async (e) => {
                 required
               />
             </FormGroup>
+
+            <FormGroup>
+              <label>
+                Sample Collector<RequiredIndicator>*</RequiredIndicator>
+              </label>
+              <select
+                name="sample_collector"
+                value={formData.sample_collector}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select Collector</option>
+                {sampleCollectors.map((sc) => (
+                  <option key={sc.employeeId || sc.employeeName} value={sc.employeeId}>
+                    {sc.employeeName}
+                  </option>
+                ))}
+              </select>
+            </FormGroup>
           </Row>
+
+
 
           <ButtonContainer>
             <SubmitButton type="submit" disabled={isSubmitting}>

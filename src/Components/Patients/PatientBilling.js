@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
@@ -121,6 +121,18 @@ const SearchAndFiltersContainer = styled.div`
   flex-wrap: wrap;
   gap: 16px;
   align-items: flex-end;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+`
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
   margin-bottom: 24px;
   padding: 20px;
   background: #f8fafc;
@@ -157,9 +169,9 @@ const FormGroup = styled.div`
   label { font-size: 13px; font-weight: 500; color: #374151; }
 
   select, input[type="date"], input[type="text"], input[type="number"] {
-    padding: 10px 13px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 7px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
     font-size: 14px;
     background: white;
     box-sizing: border-box;
@@ -183,7 +195,7 @@ const PatientTable = styled.table`
   border-spacing: 0;
 
   th, td {
-    padding: 13px 12px;
+    padding: 9px 10px;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
     white-space: nowrap;
@@ -306,10 +318,10 @@ const EmergencyBadge = styled.span`
 ═══════════════════════════════════════════════════ */
 const PatientInfo = styled.div`
   background: white;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 
   h2 {
     margin: 0 0 16px 0;
@@ -322,8 +334,8 @@ const PatientInfo = styled.div`
 
   .patient-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
 
     .detail-item {
       display: flex;
@@ -337,10 +349,10 @@ const PatientInfo = styled.div`
 const BillingSection = styled.div`
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
 
   h3 {
     margin: 0 0 20px 0;
@@ -356,8 +368,8 @@ const BillingSection = styled.div`
 const PaymentRow = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
   align-items: end;
 
   @media (max-width: 768px) { grid-template-columns: 1fr 1fr; }
@@ -367,8 +379,8 @@ const PaymentRow = styled.div`
 const FormRow = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
   align-items: end;
 `
 
@@ -379,9 +391,9 @@ const TestSearchContainer = styled.div`
 
   input {
     width: 100%;
-    padding: 10px 14px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 7px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
     font-size: 14px;
     background: white;
     box-sizing: border-box;
@@ -401,7 +413,7 @@ const TestSearchContainer = styled.div`
     z-index: 1000;
 
     .dropdown-item {
-      padding: 12px 16px;
+      padding: 8px 12px;
       cursor: pointer;
       border-bottom: 1px solid #f3f4f6;
       transition: background 0.15s;
@@ -418,7 +430,7 @@ const TestTable = styled.table`
   margin: 16px 0;
 
   th, td {
-    padding: 11px 12px;
+    padding: 8px 10px;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
     font-size: 13px;
@@ -438,8 +450,8 @@ const PaymentMethodSection = styled.div`
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 18px;
-  margin: 16px 0;
+  padding: 14px;
+  margin: 12px 0;
 
   h4 {
     margin: 0 0 14px 0;
@@ -511,6 +523,7 @@ const PatientBilling = () => {
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [searchValue, setSearchValue] = useState("")
   const [emergencyFilter, setEmergencyFilter] = useState("all")
+  const [segmentFilter, setSegmentFilter] = useState("all")
   const [loading, setLoading] = useState(false)
   const [testOptions, setTestOptions] = useState([])
   const [filteredTestOptions, setFilteredTestOptions] = useState([])
@@ -547,14 +560,23 @@ const PatientBilling = () => {
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
+  const [b2bPackages, setB2bPackages] = useState([])
+  const [selectedPackage, setSelectedPackage] = useState("")
+
   useEffect(() => {
     fetchTestDetails()
+    fetchB2BPackages()
     if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate()
   }, [])
 
-  useEffect(() => {
-    if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate()
-  }, [dateFilters])
+  const fetchB2BPackages = async () => {
+    try {
+      const r = await apiRequest(`${Labbaseurl}b2b_packages/`, "GET")
+      if (r.success) {
+        setB2bPackages(Array.isArray(r.data) ? r.data : r.data?.data || [])
+      }
+    } catch (e) { console.error(e) }
+  }
 
   useEffect(() => { calculateAmounts() }, [selectedTests, billingData.discount, billingData.paymentMethod])
 
@@ -571,7 +593,22 @@ const PatientBilling = () => {
   }
 
   const calculateAmounts = () => {
-    const testsTotal = selectedTests.reduce((s, t) => s + t.amount, 0)
+    const packageGroups = {}
+    let individualTotal = 0
+
+    selectedTests.forEach(t => {
+      if (t.isFromPackage) {
+        if (!packageGroups[t.packageName]) {
+          packageGroups[t.packageName] = Number(t.originalPackageRate || 0)
+        }
+      } else {
+        individualTotal += Number(t.amount || 0)
+      }
+    })
+
+    const packageTotal = Object.values(packageGroups).reduce((s, rate) => s + rate, 0)
+    const testsTotal = individualTotal + packageTotal
+
     let discountAmount = 0
     if (billingData.discount) {
       if (typeof billingData.discount === "string" && billingData.discount.includes("%")) {
@@ -610,7 +647,6 @@ const PatientBilling = () => {
       if (result?.success) {
         const testsData = result.data?.data || result.data || []
         setTestOptions(Array.isArray(testsData) ? testsData : [])
-        if (testsData.length > 0) toast.success(`Loaded ${testsData.length} tests`)
       } else { toast.error("Failed to fetch test details"); setTestOptions([]) }
     } catch { toast.error("Failed to fetch test details"); setTestOptions([]) }
     finally { setLoading(false) }
@@ -651,8 +687,6 @@ const PatientBilling = () => {
 
       setPatientsList(valid)
       setListPage(1)
-      if (valid.length === 0) toast.info("No patients found")
-      else toast.success(`Found ${valid.length} patients`)
     } catch { toast.error("Failed to fetch patients"); setPatientsList([]) }
     finally { setLoading(false) }
   }
@@ -666,7 +700,8 @@ const PatientBilling = () => {
     const em = emergencyFilter === "all" ||
       (emergencyFilter === "emergency" && p.is_emergency) ||
       (emergencyFilter === "normal" && !p.is_emergency)
-    return ok && em
+    const seg = segmentFilter === "all" || (p.segment && p.segment.toLowerCase() === segmentFilter.toLowerCase())
+    return ok && em && seg
   })
 
   const totalPages = Math.ceil(filteredPatients.length / recordsPerPage)
@@ -756,11 +791,66 @@ const PatientBilling = () => {
     toast.success("Test added")
   }
 
+  const handlePackageSelect = (e) => {
+    const pkgId = e.target.value
+    setSelectedPackage(pkgId)
+    if (!pkgId) return
+
+    const pkg = b2bPackages.find((p) => String(p.package_id) === String(pkgId))
+    if (!pkg) return
+
+    let testIds = []
+    try {
+      if (Array.isArray(pkg.testNames)) testIds = pkg.testNames
+      else if (typeof pkg.testNames === "string") testIds = JSON.parse(pkg.testNames)
+    } catch { }
+
+    let addedCount = 0
+    let alreadyCount = 0
+
+    const newSelected = [...selectedTests]
+    testIds.forEach((item) => {
+      const id = typeof item === "object" && item !== null ? (item.test_id || item.testId) : item
+      if (!id) return
+
+      const testOpt = testOptions.find((t) => String(t.test_id) === String(id) || String(t._id?.$oid) === String(id) || String(t.id) === String(id))
+      if (testOpt) {
+        if (!newSelected.some((t) => t.testname === testOpt.test_name)) {
+          const amount = 0 // Package tests are 0, we charge the package rate instead
+          newSelected.push({
+            test_id: testOpt.test_id,
+            testname: testOpt.test_name,
+            suffix: testOpt.suffix,
+            collection_container: testOpt.collection_container,
+            amount,
+            refund: false,
+            cancellation: false,
+            id: Date.now() + Math.random(),
+            isFromPackage: true,
+            packageName: pkg.packageName,
+            originalPackageRate: Number(pkg.rate || 0)
+          })
+          addedCount++
+        } else {
+          alreadyCount++
+        }
+      }
+    })
+
+    setSelectedTests(newSelected)
+    if (addedCount > 0) toast.success(`Added ${addedCount} tests from package`)
+    if (alreadyCount > 0) toast.info(`${alreadyCount} tests were already in list`)
+    setSelectedPackage("") // reset after adding
+  }
+
   const handleTestRemove = (id) => { setSelectedTests((p) => p.filter((t) => t.id !== id)); toast.info("Test removed") }
 
   const addMultiplePayment = () => {
     if (!currentMultiplePayment.amount || !currentMultiplePayment.paymentMethod) {
       toast.error("Please fill amount and payment method"); return
+    }
+    if (currentMultiplePayment.paymentMethod === "UPI" && (!currentMultiplePayment.paymentDetails || !currentMultiplePayment.paymentDetails.trim())) {
+      toast.error("Payment details are mandatory for UPI"); return
     }
     const amt = parseFloat(currentMultiplePayment.amount)
     const rem = getRemainingAmount()
@@ -783,6 +873,7 @@ const PatientBilling = () => {
     if (!selectedPatient || selectedTests.length === 0 || !billingData.paymentMethod) return false
     if (billingData.paymentMethod === "Multiple Payment")
       return billingData.multiplePayments.length > 0 && isMultiplePaymentComplete()
+    if ((billingData.paymentMethod === "UPI" || billingData.paymentMethod === "Credit") && (!billingData.paymentDetails || !billingData.paymentDetails.trim())) return false
     return true
   }
 
@@ -808,9 +899,77 @@ const PatientBilling = () => {
       return tw(parseInt(num))
     }
 
-    const tableRows = selectedTests?.map((t, i) => `
-      <tr><td>${i + 1}</td><td>${t.testname || ""}</td>
-      <td style="text-align:right">₹${parseFloat(t.amount || 0).toFixed(2)}</td></tr>`).join("") || ""
+    const generateTableRows = () => {
+      // Group tests by package
+      const packageGroups = {}
+      const individualTests = []
+
+      selectedTests?.forEach((test, index) => {
+        if (test.isFromPackage) {
+          if (!packageGroups[test.packageName]) {
+            packageGroups[test.packageName] = {
+              tests: [],
+              packageRate: test.originalPackageRate || 0,
+              originalIndex: index,
+            }
+          }
+          packageGroups[test.packageName].tests.push({ ...test, originalIndex: index })
+        } else {
+          individualTests.push({ ...test, originalIndex: index })
+        }
+      })
+
+      let rows = ""
+      let serialNumber = 1
+
+      // Render package groups
+      Object.entries(packageGroups).forEach(([packageName, group]) => {
+        // Package header row
+        rows += `
+          <tr style="background-color: #f8fafc;">
+            <td style="font-weight: 600; color: #1e40af; padding: 8px;">${serialNumber}</td>
+            <td style="font-weight: 600; color: #1e40af; padding: 8px;">
+              ${packageName}
+            </td>
+            <td style="text-align: right; font-weight: 600; color: #1e40af; padding: 8px;">
+              ₹${parseFloat(group.packageRate || 0).toFixed(2)}
+            </td>
+          </tr>
+        `
+        serialNumber++
+
+        // Individual tests under the package (showing as "Included")
+        group.tests.forEach((test) => {
+          rows += `
+            <tr style="background-color: #fafbfc;">
+              <td style="padding-left: 24px; font-size: 0.9rem; color: #4b5563; padding: 4px 8px;"></td>
+              <td style="padding-left: 24px; font-size: 0.9rem; color: #4b5563; padding: 4px 8px;">
+                • ${test.testname}
+              </td>
+              <td style="text-align: right; font-size: 0.8rem; color: #9ca3af; padding: 4px 8px;">
+                Included
+              </td>
+            </tr>
+          `
+        })
+      })
+
+      // Render individual tests
+      individualTests.forEach((test) => {
+        rows += `
+          <tr>
+            <td style="padding: 8px;">${serialNumber}</td>
+            <td style="padding: 8px;">${test.testname || ""}</td>
+            <td style="text-align: right; padding: 8px;">₹${parseFloat(test.amount || 0).toFixed(2)}</td>
+          </tr>
+        `
+        serialNumber++
+      })
+
+      return rows
+    }
+
+    const tableRows = generateTableRows()
 
     let displayPaymentMode = "NIL"
     if (billingData.paymentMethod === "Multiple Payment") {
@@ -981,6 +1140,16 @@ const PatientBilling = () => {
                 </FormGroup>
 
                 <FormGroup>
+                  <label>Segment</label>
+                  <select value={segmentFilter} onChange={(e) => setSegmentFilter(e.target.value)}>
+                    <option value="all">All Segments</option>
+                    <option value="B2B">B2B</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Home Collection">Home Collection</option>
+                  </select>
+                </FormGroup>
+
+                <FormGroup>
                   <label>From Date</label>
                   <input type="date" value={dateFilters.fromDate}
                     onChange={(e) => setDateFilters(p => ({ ...p, fromDate: e.target.value }))} />
@@ -991,6 +1160,10 @@ const PatientBilling = () => {
                   <input type="date" value={dateFilters.toDate}
                     onChange={(e) => setDateFilters(p => ({ ...p, toDate: e.target.value }))} />
                 </FormGroup>
+
+                <Button variant="primary" onClick={fetchPatientsByDate} style={{ height: "42px", padding: "0 20px" }}>
+                  <FaSearch /> Search
+                </Button>
               </SearchAndFiltersContainer>
 
               {/* ── CHANGE 2: Pagination controls top ── */}
@@ -1158,6 +1331,26 @@ const PatientBilling = () => {
                   )}
                 </TestSearchContainer>
               </FormGroup>
+
+              {/* Package Selection */}
+              {selectedPatient?.segment === "B2B" && (() => {
+                const availablePkgs = b2bPackages.filter(p =>
+                  p.status === "Approved" &&
+                  (p.clinicalname === selectedPatient.B2B || p.referrerCode === selectedPatient.lab_id)
+                )
+                if (availablePkgs.length === 0) return null
+                return (
+                  <FormGroup>
+                    <label>Select Package</label>
+                    <select value={selectedPackage} onChange={handlePackageSelect}>
+                      <option value="">-- Choose Package --</option>
+                      {availablePkgs.map(p => (
+                        <option key={p.package_id} value={p.package_id}>{p.packageName}</option>
+                      ))}
+                    </select>
+                  </FormGroup>
+                )
+              })()}
             </FormRow>
 
             {/* Selected Tests */}
@@ -1174,11 +1367,42 @@ const PatientBilling = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedTests.map((test) => (
+                    {/* Render package groups */}
+                    {Object.entries(
+                      selectedTests.reduce((acc, t) => {
+                        if (t.isFromPackage) {
+                          if (!acc[t.packageName]) acc[t.packageName] = { tests: [], rate: t.originalPackageRate };
+                          acc[t.packageName].tests.push(t);
+                        }
+                        return acc;
+                      }, {})
+                    ).map(([pkgName, group]) => (
+                      <React.Fragment key={pkgName}>
+                        <tr style={{ backgroundColor: "#f8fafc" }}>
+                          <td colSpan="2" style={{ fontWeight: 600, color: "#1e40af", padding: "8px" }}>{pkgName}</td>
+                          <td style={{ textAlign: "right", fontWeight: 600, color: "#1e40af", padding: "8px" }}>₹{Number(group.rate || 0).toFixed(2)}</td>
+                          <td style={{ textAlign: "center" }}></td>
+                        </tr>
+                        {group.tests.map(test => (
+                          <tr key={test.id} style={{ backgroundColor: "#fafbfc" }}>
+                            <td style={{ paddingLeft: "24px", color: "#4b5563" }}>• {test.testname}</td>
+                            <td style={{ color: "#4b5563" }}>{test.collection_container || "N/A"}</td>
+                            <td style={{ textAlign: "right", color: "#9ca3af", fontSize: "0.85em" }}>Included</td>
+                            <td style={{ textAlign: "center" }}>
+                              <button className="remove-btn" onClick={() => handleTestRemove(test.id)}>
+                                <FaTrash size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                    {/* Render individual tests */}
+                    {selectedTests.filter(t => !t.isFromPackage).map((test) => (
                       <tr key={test.id}>
                         <td>{test.testname}</td>
                         <td>{test.collection_container || "N/A"}</td>
-                        <td style={{ textAlign: "right" }}>₹{test.amount.toFixed(2)}</td>
+                        <td style={{ textAlign: "right" }}>₹{Number(test.amount || 0).toFixed(2)}</td>
                         <td style={{ textAlign: "center" }}>
                           <button className="remove-btn" onClick={() => handleTestRemove(test.id)}>
                             <FaTrash size={13} />
@@ -1213,7 +1437,7 @@ const PatientBilling = () => {
                   </FormGroup>
 
                   <FormGroup>
-                    <label>Payment Details</label>
+                    <label>Payment Details{(billingData.paymentMethod === "UPI" || billingData.paymentMethod === "Credit") ? " *" : ""}</label>
                     <input type="text"
                       value={billingData.paymentDetails}
                       onChange={(e) => setBillingData(p => ({ ...p, paymentDetails: e.target.value }))}
@@ -1262,10 +1486,10 @@ const PatientBilling = () => {
                         </select>
                       </FormGroup>
                       <FormGroup>
-                        <label>Details</label>
+                        <label>Details{currentMultiplePayment.paymentMethod === "UPI" ? " *" : ""}</label>
                         <input type="text" value={currentMultiplePayment.paymentDetails}
                           onChange={(e) => setCurrentMultiplePayment(p => ({ ...p, paymentDetails: e.target.value }))}
-                          placeholder="Optional" />
+                          placeholder={currentMultiplePayment.paymentMethod === "UPI" ? "Required for UPI" : "Optional"} />
                       </FormGroup>
                       <div style={{ alignSelf: "end" }}>
                         <Button onClick={addMultiplePayment} variant="success" disabled={getRemainingAmount() <= 0}>

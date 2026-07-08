@@ -609,7 +609,14 @@ const LogisticsTaskAssign = () => {
       } else if (Array.isArray(response))         collectors = response;
       else if (Array.isArray(response?.data))      collectors = response.data;
       else if (Array.isArray(response?.results))   collectors = response.results;
-      collectors = collectors.filter(c => c && typeof c === 'string' && c.trim() !== '').map(c => c.trim());
+      // Keep the full object to use employeeId as value and employeeName as label
+      collectors = collectors.map(c => {
+        if (typeof c === 'object' && c !== null) {
+          return { employeeId: c.employeeId || '', employeeName: c.employeeName || c.name || '' };
+        }
+        return { employeeId: c, employeeName: c }; // fallback for strings
+      }).filter(c => c.employeeName.trim() !== '');
+      
       setSampleCollectors(collectors);
     } catch (err) {
       console.error('Error fetching sample collectors:', err);
@@ -787,7 +794,7 @@ const LogisticsTaskAssign = () => {
                   <InputIcon><TruckIcon/></InputIcon>
                   <Select name="sample_collector" value={formData.sample_collector} onChange={handleInputChange} required hasIcon>
                     <option value="">{fetchingCollectors ? 'Loading collectors...' : 'Select Collector'}</option>
-                    {sampleCollectors.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                    {sampleCollectors.map((c, i) => <option key={i} value={c.employeeId}>{c.employeeName}</option>)}
                   </Select>
                 </InputWrapper>
               </FormGroup>
@@ -896,7 +903,7 @@ const LogisticsTaskAssign = () => {
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{formatDate(task.date || task.created_date)}</TableCell>
                       <TableCell>{task.clinicalname}</TableCell>
-                      <TableCell>{task.sample_collector}</TableCell>
+                      <TableCell>{sampleCollectors.find(c => c.employeeId === task.sample_collector)?.employeeName || task.sample_collector}</TableCell>
                       <TableCell>{task.reassigned_to || '—'}</TableCell>
                       <TableCell>{task.sales_person}</TableCell>
                       <TableCell>
@@ -919,7 +926,7 @@ const LogisticsTaskAssign = () => {
                                   onChange={(e) => setNewCollector(e.target.value)}
                                 >
                                   <option value="">Select Collector</option>
-                                  {sampleCollectors.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                                  {sampleCollectors.map((c, i) => <option key={i} value={c.employeeId}>{c.employeeName}</option>)}
                                 </Select>
                                 <FilterButton 
                                    style={{ padding: '5px 10px', fontSize: '0.75rem' }}
