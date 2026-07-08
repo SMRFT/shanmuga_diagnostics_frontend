@@ -213,9 +213,10 @@ const EmptyState = styled.div`
 // =============================================
 // POLYLINE COMPONENT
 // =============================================
-const TrackedPath = ({ points, color = '#4F46E5' }) => {
+const TrackedPath = ({ collectorId, points, color = '#4F46E5', onDistanceCalculated }) => {
   const map = useMap();
-  const polylineRef = useRef(null);
+  const directionsRendererRef = useRef(null);
+  const lastPathStrRef = useRef('');
 
   const pathCoordinates = useMemo(() =>
     points.map(p => ({ lat: parseFloat(p.latitude || p.lat), lng: parseFloat(p.longitude || p.lng) })),
@@ -224,18 +225,88 @@ const TrackedPath = ({ points, color = '#4F46E5' }) => {
 
   useEffect(() => {
     if (!map || pathCoordinates.length < 2) return;
-    if (polylineRef.current) polylineRef.current.setMap(null);
+
+    if (!directionsRendererRef.current) {
+      directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+        map,
+        suppressMarkers: true,
+        polylineOptions: {
+          strokeColor: color,
+          strokeOpacity: 0.85,
+          strokeWeight: 4
+        }
+      });
+    } else {
+      directionsRendererRef.current.setOptions({
+        polylineOptions: { strokeColor: color, strokeOpacity: 0.85, strokeWeight: 4 }
+      });
+    }
+
+    const pathStr = JSON.stringify(pathCoordinates);
+    if (lastPathStrRef.current === pathStr) return;
+    lastPathStrRef.current = pathStr;
+
+    const directionsService = new window.google.maps.DirectionsService();
     
-    polylineRef.current = new window.google.maps.Polyline({
-      path: pathCoordinates,
-      geodesic: true,
-      strokeColor: color,
-      strokeOpacity: 0.85,
-      strokeWeight: 4,
-      map: map
+    const origin = pathCoordinates[0];
+    const destination = pathCoordinates[pathCoordinates.length - 1];
+    
+    let waypoints = [];
+    if (pathCoordinates.length > 2) {
+      const intermediatePoints = pathCoordinates.slice(1, -1);
+      if (intermediatePoints.length > 23) {
+        const step = intermediatePoints.length / 23;
+        for (let i = 0; i < 23; i++) {
+          waypoints.push({
+            location: intermediatePoints[Math.floor(i * step)],
+            stopover: false
+          });
+        }
+      } else {
+        waypoints = intermediatePoints.map(p => ({ location: p, stopover: false }));
+      }
+    }
+
+    directionsService.route({
+      origin: origin,
+      destination: destination,
+      waypoints: waypoints,
+      travelMode: window.google.maps.TravelMode.DRIVING,
+    }, (result, status) => {
+      if (status === window.google.maps.DirectionsStatus.OK) {
+        if (directionsRendererRef.current) {
+           directionsRendererRef.current.setDirections(result);
+        }
+        
+        if (onDistanceCalculated && collectorId) {
+          let totalDistance = 0;
+          const route = result.routes[0];
+          for (let i = 0; i < route.legs.length; i++) {
+            totalDistance += route.legs[i].distance.value;
+          }
+          onDistanceCalculated(collectorId, (totalDistance / 1000).toFixed(2));
+        }
+      } else {
+        console.warn("Directions request failed due to " + status);
+        const polyline = new window.google.maps.Polyline({
+          path: pathCoordinates,
+          geodesic: true,
+          strokeColor: color,
+          strokeOpacity: 0.85,
+          strokeWeight: 4,
+          map: map
+        });
+        if (directionsRendererRef.current) {
+          directionsRendererRef.current.setMap(null);
+          directionsRendererRef.current = polyline;
+        }
+      }
     });
-    return () => { if (polylineRef.current) polylineRef.current.setMap(null); };
-  }, [map, pathCoordinates, color]);
+
+    return () => { 
+      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null); 
+    };
+  }, [map, pathCoordinates, color, collectorId, onDistanceCalculated]);
 
   return null;
 };
@@ -263,6 +334,17 @@ const formatTime = (iso) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatDistance = (dist) => {
+  if (!dist) return '0.00';
+  const val = parseFloat(dist);
+  if (isNaN(val)) return '0.00';
+  // If the stored value is very large (e.g., > 500), it was likely stored in meters from the old system.
+  if (val > 500) {
+    return (val / 1000).toFixed(2);
+  }
+  return val.toFixed(2);
 };
 
 const ROUTE_COLORS = ['#4F46E5', '#059669', '#dc2626', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#ea580c'];
@@ -304,6 +386,7 @@ const TrackingHistory = () => {
   const [mapData, setMapData] = useState([]);
   const [mapLoading, setMapLoading] = useState(false);
   const [selectedMapCollector, setSelectedMapCollector] = useState(null);
+  const [accurateDistances, setAccurateDistances] = useState({});
 
   // Table filters
   const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
@@ -400,7 +483,7 @@ const TrackingHistory = () => {
       'Start Location': locationNames[row.id]?.start || (row.latitudeStart ? `${row.latitudeStart}, ${row.longitudeStart}` : '-'),
       'End Time': formatTime(row.endTime),
       'End Location': locationNames[row.id]?.end || (row.latitudeEnd ? `${row.latitudeEnd}, ${row.longitudeEnd}` : '-'),
-      'Distance (km)': row.distance_travelled || '0.00',
+      'Distance (km)': accurateDistances[row.id] || formatDistance(row.distance_travelled),
       'Duration': formatDuration(row.totalDuration),
       'Status': row.isActive ? 'Active' : 'Completed'
     }));
@@ -472,7 +555,12 @@ const TrackingHistory = () => {
 
               return (
                 <React.Fragment key={collector.id || index}>
-                  <TrackedPath points={history} color={color} />
+                  <TrackedPath 
+                    collectorId={collector.id}
+                    points={history} 
+                    color={color} 
+                    onDistanceCalculated={(id, dist) => setAccurateDistances(prev => ({...prev, [id]: dist}))}
+                  />
                   
                   {/* Start marker */}
                   <Marker
@@ -507,7 +595,7 @@ const TrackingHistory = () => {
                     <b>Status:</b> {selectedMapCollector.isActive ? '🔴 Active' : '✅ Completed'}
                   </p>
                   <p style={{ fontSize: '12px', margin: '3px 0' }}>
-                    <b>Distance:</b> {selectedMapCollector.distance_travelled || '0.00'} km
+                    <b>Distance:</b> {accurateDistances[selectedMapCollector.id] || formatDistance(selectedMapCollector.distance_travelled)} km
                   </p>
                   <p style={{ fontSize: '12px', margin: '3px 0' }}>
                     <b>Duration:</b> {formatDuration(selectedMapCollector.totalDuration)}
@@ -633,7 +721,7 @@ const TrackingHistory = () => {
                         ? locationNames[row.id].end
                         : row.latitudeEnd ? '⏳ Loading...' : '-'}
                     </Td>
-                    <Td style={{ fontWeight: '600' }}>{row.distance_travelled || '0.00'}</Td>
+                    <Td style={{ fontWeight: '600' }}>{accurateDistances[row.id] || formatDistance(row.distance_travelled)}</Td>
                     <Td>{formatDuration(row.totalDuration)}</Td>
                     <Td>
                       <StatusBadge active={row.isActive}>

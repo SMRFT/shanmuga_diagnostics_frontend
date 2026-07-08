@@ -652,6 +652,7 @@ const HMSPatientOverview = () => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
+  const [activeDropdownType, setActiveDropdownType] = useState(null);
   const [refByOptions, setRefByOptions] = useState([]);
   const [branch, setBranch] = useState("");
   const [barcode, setBarcode] = useState("");
@@ -1042,61 +1043,61 @@ const HMSPatientOverview = () => {
     });
   };
 
-  // const handleWhatsAppShare = async (patient) => {
-  //   if (!patient || !patient.phone) {
-  //     toast.error("Patient phone number is missing");
-  //     return;
-  //   }
+  const handleWhatsAppShare = async (patient, withLetterpad = true) => {
+    if (!patient || !patient.phone) {
+      toast.error("Patient phone number is missing");
+      return;
+    }
 
-  //   const phoneNumber = patient.phone.startsWith("+91")
-  //     ? patient.phone.replace("+", "")
-  //     : `91${patient.phone}`;
+    const phoneNumber = patient.phone.startsWith("+91")
+      ? patient.phone.replace("+", "")
+      : `91${patient.phone}`;
 
-  //   try {
-  //     const pdfBlob = await handlePrint(patient, true);
-  //     if (!pdfBlob) {
-  //       toast.error("Failed to generate the PDF");
-  //       return;
-  //     }
+    try {
+      const pdfBlob = await handlePrint(patient, withLetterpad);
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF");
+        return;
+      }
 
-  //     const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
-  //     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+      const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+      const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
 
-  //     // Upload PDF to server
-  //     const formData = new FormData();
-  //     formData.append("file", pdfFile);
+      const formData = new FormData();
+      formData.append("file", pdfFile);
 
-  //     const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
-  //       headers: { "Content-Type": "multipart/form-data" },
-  //     });
+      const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-  //     const fileUrl = uploadResponse.data.file_url;
-  //     if (!fileUrl) {
-  //       toast.error("File upload failed");
-  //       return;
-  //     }
+      const fileUrl = uploadResponse.data.file_url;
+      if (!fileUrl) {
+        toast.error("File upload failed");
+        return;
+      }
 
-  //     // Call Django proxy instead of Botify directly
-  //     const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
-  //       patient_name: patient.patient_name || "Valued Patient",
-  //       phone: phoneNumber,
-  //       collection_time: patient.collection_time || "N/A",
-  //       collected_date: patient.collected_date || "N/A",
-  //       file_url: fileUrl,
-  //       pdf_name: pdfName,
-  //     });
+      const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+        patient_name: patient.patient_name || "Valued Patient",
+        phone: phoneNumber,
+        collection_time: patient.collection_time || "N/A",
+        collected_date: patient.collected_date || "N/A",
+        file_url: fileUrl,
+        pdf_name: pdfName,
+        patient_id: patient.patient_id,
+        template_name: "hms_diagnostics_template",
+      });
 
-  //     if (res.data.success) {
-  //       toast.success("WhatsApp PDF message sent successfully!");
-  //     } else {
-  //       toast.error("Failed to send WhatsApp template message.");
-  //       console.error("Backend error:", res.data.error);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error sending WhatsApp message:", error);
-  //     toast.error("Error sending WhatsApp message.");
-  //   }
-  // };
+      if (res.data.success) {
+        toast.success("WhatsApp PDF message sent successfully!");
+      } else {
+        toast.error("Failed to send WhatsApp template message.");
+        console.error("Backend error:", res.data.error);
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp message:", error);
+      toast.error("Error sending WhatsApp message.");
+    }
+  };
 
   //  const handleSendEmail = async (patient) => {
   //   try {
@@ -2166,7 +2167,7 @@ const HMSPatientOverview = () => {
     setIsMBTestModalOpen(true);
   };
 
-  const showDropdown = (barcode, e) => {
+  const showDropdown = (barcode, type, e) => {
     // Calculate where to place the portal menu based on the trigger button position
     const rect = e.currentTarget.getBoundingClientRect();
     setDropdownPos({
@@ -2174,10 +2175,12 @@ const HMSPatientOverview = () => {
       left: rect.right - 190, // align right edge of menu with button right edge
     });
     setActiveDropdownPatientId(barcode);
+    setActiveDropdownType(type);
   };
 
   const hideDropdown = () => {
     setActiveDropdownPatientId(null);
+    setActiveDropdownType(null);
   };
 
   const getBadgeColor = (status) => {
@@ -2417,6 +2420,8 @@ const HMSPatientOverview = () => {
                 <th>OP Number</th>
                 <th>IP Number</th>
                 <th>Barcode</th>
+                <th>Gen Time</th>
+                <th>Mobile Number</th>
                 <th>Patient Name</th>
                 <th>Referral</th>
                 <th>Department</th>
@@ -2428,7 +2433,7 @@ const HMSPatientOverview = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={12}
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Loading patient data...
@@ -2437,7 +2442,7 @@ const HMSPatientOverview = () => {
               ) : error ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={12}
                     style={{
                       textAlign: "center",
                       padding: "2rem",
@@ -2475,6 +2480,12 @@ const HMSPatientOverview = () => {
                       <td>{patient.patient_id}</td>
                       <td>{patient.ipnumber}</td>
                       <td>{barcode}</td>
+                      <td>
+                        {patient.barcode_generated_time
+                          ? format(new Date(patient.barcode_generated_time), "dd-MMM-yy HH:mm")
+                          : "N/A"}
+                      </td>
+                      <td>{patient.phone || "N/A"}</td>
                       <td>
                         <div style={{ display: "flex", alignItems: "center" }}>
                           <GenderIcon gender={patient.gender}>
@@ -2548,7 +2559,7 @@ const HMSPatientOverview = () => {
                           <PrintDropdown
                             onMouseEnter={(e) =>
                               isPrintMailEnabled &&
-                              showDropdown(patient.barcode, e)
+                              showDropdown(patient.barcode, "print", e)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -2559,16 +2570,23 @@ const HMSPatientOverview = () => {
                               <Printer size={16} />
                             </ActionButton>
                           </PrintDropdown>
+                          {patient.opiptype === "OP" && (
+                            <PrintDropdown
+                              onMouseEnter={(e) =>
+                                isPrintMailEnabled &&
+                                showDropdown(patient.barcode, "whatsapp", e)
+                              }
+                              onMouseLeave={hideDropdown}
+                            >
+                              <ActionButton
+                                disabled={!isPrintMailEnabled}
+                                title="Share via WhatsApp"
+                              >
+                                <MessageCircle size={16} />
+                              </ActionButton>
+                            </PrintDropdown>
+                          )}
                           {/* 
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleWhatsAppShare(patient)
-                            }
-                            title="Share via WhatsApp"
-                          >
-                            <MessageCircle size={16} />
-                          </ActionButton>
                           <ActionButton
                             disabled={!isPrintMailEnabled}
                             onClick={() =>
@@ -2585,7 +2603,7 @@ const HMSPatientOverview = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={12}>
                     <NoData>No patients found</NoData>
                   </td>
                 </tr>
@@ -2618,27 +2636,52 @@ const HMSPatientOverview = () => {
                 <PortalDropdownMenu
                   style={{ top: dropdownPos.top, left: dropdownPos.left }}
                   // Keep the menu open while hovering over it
-                  onMouseEnter={() =>
-                    setActiveDropdownPatientId(activeDropdownPatientId)
-                  }
+                  onMouseEnter={() => {
+                    setActiveDropdownPatientId(activeDropdownPatientId);
+                    setActiveDropdownType(activeDropdownType);
+                  }}
                   onMouseLeave={hideDropdown}
                 >
-                  <DropdownItem
-                    onClick={() => {
-                      handlePrint(activePatient, true);
-                      hideDropdown();
-                    }}
-                  >
-                    Print with Letterpad
-                  </DropdownItem>
-                  <DropdownItem
-                    onClick={() => {
-                      handlePrint(activePatient, false);
-                      hideDropdown();
-                    }}
-                  >
-                    Print without Letterpad
-                  </DropdownItem>
+                  {activeDropdownType === "print" && (
+                    <>
+                      <DropdownItem
+                        onClick={() => {
+                          handlePrint(activePatient, true);
+                          hideDropdown();
+                        }}
+                      >
+                        Print with Letterpad
+                      </DropdownItem>
+                      <DropdownItem
+                        onClick={() => {
+                          handlePrint(activePatient, false);
+                          hideDropdown();
+                        }}
+                      >
+                        Print without Letterpad
+                      </DropdownItem>
+                    </>
+                  )}
+                  {activeDropdownType === "whatsapp" && (
+                    <>
+                      <DropdownItem
+                        onClick={() => {
+                          handleWhatsAppShare(activePatient, true);
+                          hideDropdown();
+                        }}
+                      >
+                        Share with Letterpad
+                      </DropdownItem>
+                      <DropdownItem
+                        onClick={() => {
+                          handleWhatsAppShare(activePatient, false);
+                          hideDropdown();
+                        }}
+                      >
+                        Share without Letterpad
+                      </DropdownItem>
+                    </>
+                  )}
                 </PortalDropdownMenu>
               );
             })(),

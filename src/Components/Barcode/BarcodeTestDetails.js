@@ -432,7 +432,7 @@ const BarcodeTestDetails = () => {
       const result = await apiRequest(`${Labbaseurl}get-max-barcode/`, "GET");
 
       if (result.success) {
-        const maxBarcode = result.data.next_barcode;
+        const maxBarcode = parseInt(result.data.next_barcode, 10);
         setBarcodeCounter(maxBarcode);
       } else {
         console.error("Error fetching max barcode:", result.error);
@@ -455,6 +455,11 @@ const BarcodeTestDetails = () => {
   const handleGenerateBarcode = async () => {
     if (!selectedPatient) {
       toast.error("Patient information is missing.");
+      return false;
+    }
+
+    if (barcodeCounter === 0) {
+      toast.warning("Loading barcode sequence, please try again in a moment.");
       return false;
     }
 
@@ -552,29 +557,28 @@ const BarcodeTestDetails = () => {
       // Generate new barcode (existing logic continues here)
       const patientBarcode = generateBarcode();
 
-      // Group tests by container
+      // Group tests by container and suffix
       const containerGroups = {};
       testDetails.forEach((test) => {
         const container = test.collection_container || "";
-        if (!containerGroups[container]) {
-          containerGroups[container] = [];
+        const suffix = test.suffix || "";
+        const groupKey = `${container}_${suffix}`;
+        if (!containerGroups[groupKey]) {
+          containerGroups[groupKey] = {
+            container: container,
+            suffix: suffix,
+            tests: []
+          };
         }
-        containerGroups[container].push(test);
+        containerGroups[groupKey].tests.push(test);
       });
 
-      // Assign barcodes to containers
-      const containerBarcodes = {};
-      Object.keys(containerGroups).forEach((container) => {
-        containerBarcodes[container] = patientBarcode;
-      });
-
-      const extraBarcode = patientBarcode;
-
-      // Update test details with barcode
+      // Update test details with suffixed barcode
       const updatedTestDetails = testDetails.map((test) => {
+        const suffix = test.suffix ? `-${test.suffix}` : "";
         return {
           ...test,
-          barcode: patientBarcode,
+          barcode: `${patientBarcode}${suffix}`,
         };
       });
 
@@ -582,13 +586,13 @@ const BarcodeTestDetails = () => {
 
       // Create barcode data for UI
       const newBarcodeData = [
-        ...Object.entries(containerGroups).map(([container, testdetails]) => ({
-          barcode: patientBarcode,
-          containerName: container,
+        ...Object.values(containerGroups).map((group) => ({
+          barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
+          containerName: group.container,
           isExtra: false,
         })),
         {
-          barcode: extraBarcode,
+          barcode: patientBarcode,
           containerName: "",
           isExtra: true,
         },
@@ -613,7 +617,7 @@ const BarcodeTestDetails = () => {
         is_emergency: selectedPatient?.is_emergency,
         patient_history: selectedPatient?.patient_history,
         sample_collector: selectedPatient?.sample_collector,
-        extra_barcode: extraBarcode,
+        extra_barcode: patientBarcode,
       };
 
       // Save the barcode using your apiRequest method
@@ -644,6 +648,11 @@ const BarcodeTestDetails = () => {
   const handleReGenerateBarcode = async () => {
     if (!selectedPatient || !selectedDate || !bill_no) {
       toast.error("Patient, date, or bill number is missing.");
+      return;
+    }
+
+    if (barcodeCounter === 0) {
+      toast.warning("Loading barcode sequence, please try again in a moment.");
       return;
     }
 
@@ -681,37 +690,45 @@ const BarcodeTestDetails = () => {
         existingBarcodeResult.status === 200
       ) {
         const existingTests = existingBarcodeResult.data.testdetails || [];
-        const extraBarcode = existingBarcodeResult.data.extra_barcode;
 
-        const patientBarcode =
+        let patientBarcode =
           existingTests.length > 0
             ? existingTests[0].barcode
             : generateBarcode();
 
-        const containerGroups = {};
+        // Strip suffix if present to get the base barcode
+        if (patientBarcode && patientBarcode.includes("-")) {
+          patientBarcode = patientBarcode.split("-")[0];
+        }
 
+        const containerGroups = {};
         existingTests.forEach((test) => {
           const container = test.collection_container || "";
-          if (!containerGroups[container]) {
-            containerGroups[container] = [];
+          const suffix = test.suffix || "";
+          const groupKey = `${container}_${suffix}`;
+          if (!containerGroups[groupKey]) {
+            containerGroups[groupKey] = {
+              container: container,
+              suffix: suffix,
+              tests: []
+            };
           }
-          containerGroups[container].push(test);
+          containerGroups[groupKey].tests.push(test);
         });
 
         const updatedTestDetails = testDetails.map((test) => {
-          return { ...test, barcode: patientBarcode };
+          const suffix = test.suffix ? `-${test.suffix}` : "";
+          return { ...test, barcode: `${patientBarcode}${suffix}` };
         });
 
         setTestDetails(updatedTestDetails);
 
         const newBarcodeData = [
-          ...Object.entries(containerGroups).map(
-            ([container, testdetails]) => ({
-              barcode: patientBarcode,
-              containerName: container,
-              isExtra: false,
-            }),
-          ),
+          ...Object.values(containerGroups).map((group) => ({
+            barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
+            containerName: group.container,
+            isExtra: false,
+          })),
           {
             barcode: patientBarcode,
             containerName: "",

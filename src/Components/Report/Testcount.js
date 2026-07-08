@@ -275,12 +275,15 @@ const TCell = styled.td`
   }
 
   &.count {
-    color: #636e72;
-    background: #f1f5f9;
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
+    span {
+      color: #636e72;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 4px 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      display: inline-block;
+    }
   }
 `;
 
@@ -335,18 +338,20 @@ export default function TestSummary() {
   const totalCount = data.reduce((sum, row) => sum + Number(row.count || 0), 0);
   const totalAmount = data.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
 
-  const exportCSV = () => {
+    const exportCSV = () => {
     if (!data.length) return;
     const csvRows = [
-      ["Test Name", "Count", "Total Amount"].join(","),
+      ["Test Name", "Count", "Male Count", "Female Count", "Total Amount"].join(","),
       ...data.map(row =>
         [
           `"${(row?.test_name ?? "").replace(/"/g, '""')}"`,
           row.count,
+          row.male_count || 0,
+          row.female_count || 0,
           row.total_amount
         ].join(",")
       ),
-      ["Total", totalCount, totalAmount].join(","),
+      ["Total", totalCount, data.reduce((sum, row) => sum + Number(row.male_count || 0), 0), data.reduce((sum, row) => sum + Number(row.female_count || 0), 0), totalAmount].join(","),
     ];
     const csvString = csvRows.join("\n");
     const blob = new Blob([csvString], { type: "text/csv" });
@@ -430,13 +435,15 @@ export default function TestSummary() {
                 <tr>
                   <th>Test Name</th>
                   <th>Count</th>
+                  <th>Male Count</th>
+                  <th>Female Count</th>
                   <th>Total Revenue</th>
                 </tr>
               </THead>
               <tbody>
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={3}>
+                    <td colSpan={5}>
                       <EmptyState>
                         <FaSearch />
                         <p>No test data found for the selected period</p>
@@ -447,8 +454,14 @@ export default function TestSummary() {
                   data.map((t, i) => (
                     <TRow key={i}>
                       <TCell style={{ fontWeight: '500' }}>{t.test_name}</TCell>
-                      <TCell>
-                        <span className="count">{t.count}</span>
+                      <TCell className="count">
+                        <span>{t.count}</span>
+                      </TCell>
+                      <TCell className="count">
+                        <span>{t.male_count || 0}</span>
+                      </TCell>
+                      <TCell className="count">
+                        <span>{t.female_count || 0}</span>
                       </TCell>
                       <TCell className="amount">₹{Number(t.total_amount || 0).toLocaleString()}</TCell>
                     </TRow>

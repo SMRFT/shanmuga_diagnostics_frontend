@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import apiRequest from "../Auth/apiRequest";
-import { FaSearch, FaFileDownload, FaCalendarAlt, FaFlask, FaChartBar } from "react-icons/fa";
+import { FaSearch, FaFileDownload, FaCalendarAlt, FaFlask, FaChartBar, FaFilter } from "react-icons/fa";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -185,6 +185,25 @@ const Input = styled.input`
   }
 `;
 
+const Select = styled.select`
+  padding: 10px 10px 10px 36px;
+  border: 1.5px solid #e1e4e8;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  background: #fff;
+  color: #2d3436;
+  min-width: 130px;
+  cursor: pointer;
+  appearance: none;
+
+  &:focus {
+    outline: none;
+    border-color: #a777e3;
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
+  }
+`;
+
 const Button = styled.button`
   background: linear-gradient(135deg, #6e8efb, #a777e3);
   color: white;
@@ -337,6 +356,7 @@ export default function HMSTestCount() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [ipopFilter, setIpopFilter] = useState("All");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   const fetchData = async () => {
@@ -363,10 +383,12 @@ export default function HMSTestCount() {
     fetchData();
   }, [fromDate, toDate]);
 
-  const filteredData = data.filter(item => 
-    (item.test_name || "").toLowerCase().includes(search.toLowerCase()) ||
-    String(item.test_id || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredData = data.filter(item => {
+    const matchesSearch = (item.test_name || "").toLowerCase().includes(search.toLowerCase()) ||
+                          String(item.test_id || "").toLowerCase().includes(search.toLowerCase());
+    const matchesIpop = ipopFilter === "All" || (item.ipop_type || "UNKNOWN").toUpperCase() === ipopFilter.toUpperCase();
+    return matchesSearch && matchesIpop;
+  });
 
   const totalTests = filteredData.reduce((sum, item) => sum + item.count, 0);
   const uniqueTestTypes = filteredData.length;
@@ -377,8 +399,20 @@ export default function HMSTestCount() {
     const exportData = filteredData.map(item => ({
         "Test ID": item.test_id,
         "Test Name": item.test_name,
-        "Count": item.count
+        "IP/OP Type": item.ipop_type || "UNKNOWN",
+        "Count": item.count,
+        "Male Count": item.male_count || 0,
+        "Female Count": item.female_count || 0
     }));
+
+    exportData.push({
+        "Test ID": "Total",
+        "Test Name": "",
+        "IP/OP Type": "",
+        "Count": totalTests,
+        "Male Count": filteredData.reduce((sum, item) => sum + (item.male_count || 0), 0),
+        "Female Count": filteredData.reduce((sum, item) => sum + (item.female_count || 0), 0)
+    });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -388,7 +422,10 @@ export default function HMSTestCount() {
     const maxWidths = [
         { wch: 15 },
         { wch: 40 },
-        { wch: 10 }
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 15 }
     ];
     ws['!cols'] = maxWidths;
 
@@ -440,6 +477,17 @@ export default function HMSTestCount() {
                 />
               </InputGroup>
               <InputGroup>
+                <Icon><FaFilter /></Icon>
+                <Select
+                  value={ipopFilter}
+                  onChange={e => setIpopFilter(e.target.value)}
+                >
+                  <option value="All">All Types</option>
+                  <option value="IP">IP</option>
+                  <option value="OP">OP</option>
+                </Select>
+              </InputGroup>
+              <InputGroup>
                 <Icon><FaCalendarAlt /></Icon>
                 <Input
                   type="date"
@@ -466,15 +514,18 @@ export default function HMSTestCount() {
             <StyledTable>
               <THead>
                 <tr>
-                  <th style={{ width: '20%' }}>Test ID</th>
-                  <th style={{ width: '60%' }}>Test Name</th>
-                  <th style={{ width: '20%' }}>Count</th>
+                  <th style={{ width: '15%' }}>Test ID</th>
+                  <th style={{ width: '35%' }}>Test Name</th>
+                  <th style={{ width: '10%' }}>IP/OP</th>
+                  <th style={{ width: '15%' }}>Count</th>
+                  <th style={{ width: '15%' }}>Male Count</th>
+                  <th style={{ width: '10%' }}>Female Count</th>
                 </tr>
               </THead>
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={3}>
+                    <td colSpan={5}>
                       <EmptyState>
                         <FaSearch />
                         <p>{loading ? "Loading data..." : "No HMS test data found for the selected period"}</p>
@@ -486,8 +537,26 @@ export default function HMSTestCount() {
                     <TRow key={i}>
                       <TCell className="test-id">{t.test_id}</TCell>
                       <TCell style={{ fontWeight: '500' }}>{t.test_name}</TCell>
+                      <TCell>
+                        <span style={{
+                          background: t.ipop_type === 'IP' ? '#e3f2fd' : (t.ipop_type === 'OP' ? '#f3e5f5' : '#f5f5f5'),
+                          color: t.ipop_type === 'IP' ? '#1976d2' : (t.ipop_type === 'OP' ? '#7b1fa2' : '#757575'),
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.85rem',
+                          fontWeight: '600'
+                        }}>
+                          {t.ipop_type || "UNKNOWN"}
+                        </span>
+                      </TCell>
                       <TCell className="count">
                         <span>{t.count}</span>
+                      </TCell>
+                      <TCell className="count">
+                        <span>{t.male_count || 0}</span>
+                      </TCell>
+                      <TCell className="count">
+                        <span>{t.female_count || 0}</span>
                       </TCell>
                     </TRow>
                   ))

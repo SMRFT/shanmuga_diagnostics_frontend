@@ -43,10 +43,36 @@ const LiveBadge = styled.span`
   }
 `;
 
-// --- Helper: Polyline Component ---
-const TrackedPath = ({ points, isLive }) => {
+// --- Helpers ---
+const stringToColor = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  let color = '#';
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xFF;
+    color += ('00' + value.toString(16)).substr(-2);
+  }
+  return color;
+};
+
+const formatDistance = (dist) => {
+  if (!dist) return '0.00';
+  const val = parseFloat(dist);
+  if (isNaN(val)) return '0.00';
+  if (val > 500) {
+    return (val / 1000).toFixed(2);
+  }
+  return val.toFixed(2);
+};
+
+const TrackedPath = ({ collectorId, points, isLive, collectorName, onDistanceCalculated }) => {
   const map = useMap();
-  const polylineRef = useRef(null);
+  const directionsRendererRef = useRef(null);
+  const lastPathStrRef = useRef('');
+  
+  const pathColor = useMemo(() => isLive ? stringToColor(collectorName || 'default') : '#94A3B8', [isLive, collectorName]);
 
   const pathCoordinates = useMemo(() => 
     points.map(p => ({ lat: parseFloat(p.latitude || p.lat), lng: parseFloat(p.longitude || p.lng) })), 
@@ -54,21 +80,92 @@ const TrackedPath = ({ points, isLive }) => {
   );
 
   useEffect(() => {
-    if (!map) return;
-    if (!polylineRef.current) {
-      polylineRef.current = new window.google.maps.Polyline({
-        path: pathCoordinates,
-        geodesic: true,
-        strokeColor: isLive ? '#4F46E5' : '#94A3B8',
-        strokeOpacity: 0.8,
-        strokeWeight: 4,
-        map: map
+    if (!map || pathCoordinates.length < 2) return;
+
+    if (!directionsRendererRef.current) {
+      directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+        map,
+        suppressMarkers: true,
+        polylineOptions: {
+          strokeColor: pathColor,
+          strokeOpacity: 0.8,
+          strokeWeight: 4
+        }
       });
     } else {
-      polylineRef.current.setPath(pathCoordinates);
+      directionsRendererRef.current.setOptions({
+        polylineOptions: { strokeColor: pathColor, strokeOpacity: 0.8, strokeWeight: 4 }
+      });
     }
-    return () => { if (polylineRef.current) polylineRef.current.setMap(null); };
-  }, [map, pathCoordinates, isLive]);
+
+    const pathStr = JSON.stringify(pathCoordinates);
+    if (lastPathStrRef.current === pathStr) return;
+    lastPathStrRef.current = pathStr;
+
+    const directionsService = new window.google.maps.DirectionsService();
+    
+    const origin = pathCoordinates[0];
+    const destination = pathCoordinates[pathCoordinates.length - 1];
+    
+    let waypoints = [];
+    if (pathCoordinates.length > 2) {
+      const intermediatePoints = pathCoordinates.slice(1, -1);
+      if (intermediatePoints.length > 23) {
+        const step = intermediatePoints.length / 23;
+        for (let i = 0; i < 23; i++) {
+          waypoints.push({
+            location: intermediatePoints[Math.floor(i * step)],
+            stopover: false
+          });
+        }
+      } else {
+        waypoints = intermediatePoints.map(p => ({ location: p, stopover: false }));
+      }
+    }
+
+    directionsService.route({
+      origin: origin,
+      destination: destination,
+      waypoints: waypoints,
+      travelMode: window.google.maps.TravelMode.DRIVING,
+    }, (result, status) => {
+      if (status === window.google.maps.DirectionsStatus.OK) {
+        if (directionsRendererRef.current) {
+          directionsRendererRef.current.setDirections(result);
+        }
+        
+        if (onDistanceCalculated) {
+          let totalDistance = 0;
+          const route = result.routes[0];
+          for (let i = 0; i < route.legs.length; i++) {
+            totalDistance += route.legs[i].distance.value; // in meters
+          }
+          onDistanceCalculated(collectorId, (totalDistance / 1000).toFixed(2));
+        }
+      } else {
+        console.warn("Directions request failed due to " + status);
+        // Fallback to straight line polyline if directions fail
+        const polyline = new window.google.maps.Polyline({
+          path: pathCoordinates,
+          geodesic: true,
+          strokeColor: pathColor,
+          strokeOpacity: 0.8,
+          strokeWeight: 4,
+          map: map
+        });
+        
+        // Clean up previous directions if replacing with polyline fallback
+        if (directionsRendererRef.current) {
+           directionsRendererRef.current.setMap(null);
+           directionsRendererRef.current = polyline; // Hacky but works for unmount cleanup
+        }
+      }
+    });
+
+    return () => { 
+      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null); 
+    };
+  }, [map, pathCoordinates, pathColor, collectorId, onDistanceCalculated]);
 
   return null;
 };
@@ -78,6 +175,7 @@ const LogisticsTracking = () => {
   const [collectors, setCollectors] = useState([]);
   const [selectedCollector, setSelectedCollector] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [accurateDistances, setAccurateDistances] = useState({});
 
   const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
   const BASE_URL = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -137,7 +235,13 @@ const LogisticsTracking = () => {
 
               return (
                 <React.Fragment key={collector.id || index}>
-                  <TrackedPath points={history} isLive={isLive} />
+                  <TrackedPath 
+                    collectorId={collector.id}
+                    points={history} 
+                    isLive={isLive} 
+                    collectorName={collector.sampleCollector} 
+                    onDistanceCalculated={(id, dist) => setAccurateDistances(prev => ({...prev, [id]: dist}))}
+                  />
                   <Marker
                     position={{ lat: parseFloat(lastPos.latitude || lastPos.lat), lng: parseFloat(lastPos.longitude || lastPos.lng) }}
                     onClick={() => setSelectedCollector(collector)}
@@ -166,7 +270,7 @@ const LogisticsTracking = () => {
                     <b>Status:</b> {selectedCollector.isActive ? '🔴 Live' : '✅ Completed'}
                   </p>
                   <p style={{ fontSize: '12px', margin: '2px 0' }}>
-                    <b>Distance:</b> {selectedCollector.distance_travelled || 'Calculating...'} km
+                    <b>Distance:</b> {accurateDistances[selectedCollector.id] || formatDistance(selectedCollector.distance_travelled)} km
                   </p>
                   <p style={{ fontSize: '10px', color: '#666' }}>Started: {new Date(selectedCollector.startTime).toLocaleTimeString()}</p>
                 </div>
@@ -205,7 +309,7 @@ const LogisticsTracking = () => {
                     </div>
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
-                    {c.distance_travelled || 0} km
+                    {accurateDistances[c.id] || formatDistance(c.distance_travelled)} km
                   </div>
                 </div>
               ))}

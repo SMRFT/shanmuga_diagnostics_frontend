@@ -1210,6 +1210,9 @@ const Sidebar = () => {
                 <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
                   Invoice
                 </SubLink>
+                <SubLink to="/Corporatecreditbilling" onClick={() => setIsSidebarOpen(false)}>
+                  Corporate Invoice
+                </SubLink>
                 <SubLink
                   to="/CashTally"
                   onClick={() => setIsSidebarOpen(false)}
@@ -1957,6 +1960,9 @@ const Sidebar = () => {
               <DropdownContent isOpen={dropdowns.financeDetails}>
                 <SubLink to="/Invoice" onClick={() => setIsSidebarOpen(false)}>
                   Invoice
+                </SubLink>
+                <SubLink to="/Corporatecreditbilling" onClick={() => setIsSidebarOpen(false)}>
+                  Corporate Invoice
                 </SubLink>
                 <SubLink
                   to="/CashTally"

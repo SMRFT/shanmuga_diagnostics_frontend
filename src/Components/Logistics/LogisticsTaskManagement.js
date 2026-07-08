@@ -661,10 +661,35 @@ const LogisticsTaskManagement = () => {
     return R * c;
   };
 
+  const calculateTotalDistance = (history) => {
+    if (!history || history.length < 2) return 0;
+    let total = 0;
+    for (let i = 1; i < history.length; i++) {
+      const prev = history[i - 1];
+      const curr = history[i];
+      const lat1 = prev.latitude || prev.lat;
+      const lng1 = prev.longitude || prev.lng;
+      const lat2 = curr.latitude || curr.lat;
+      const lng2 = curr.longitude || curr.lng;
+      if (lat1 && lng1 && lat2 && lng2) {
+        total += calculateDistance(lat1, lng1, lat2, lng2);
+      }
+    }
+    return total.toFixed(2);
+  };
+
   const handleStartLocation = async () => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser');
       return;
+    }
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.warn('Notification permission denied');
+      }
     }
 
     try {
@@ -719,6 +744,16 @@ const LogisticsTaskManagement = () => {
 
             // Start continuous tracking loop
             startWatchPosition(userName, today, startTime);
+
+            // Show persistent notification
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({
+                type: 'SHOW_TRACKING_NOTIFICATION',
+                collector: userName,
+                startTime: startTime.toISOString(),
+                distance: 0
+              });
+            }
           } catch (err) {
             console.error('Error saving to backend:', err);
             setError('Failed to contact server');
@@ -795,6 +830,11 @@ const LogisticsTaskManagement = () => {
             watchIdRef.current = null;
           }
           releaseWakeLock();
+
+          // Stop notification
+          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'STOP_TRACKING_NOTIFICATION' });
+          }
 
           // Save to backend using PUT method
           const userName = localStorage.getItem('name');
@@ -993,6 +1033,15 @@ const LogisticsTaskManagement = () => {
                 },
                 null
               );
+              // Update notification with new distance/status if needed
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'SHOW_TRACKING_NOTIFICATION',
+                  collector: userName,
+                  startTime: startTimeVal.toISOString(),
+                  distance: calculateTotalDistance(locationHistory)
+                });
+              }
             } catch (err) {
               console.error('Error sending local updates to backend', err);
             }
