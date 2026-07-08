@@ -18,8 +18,26 @@ const StyledModal = styled(Modal)`
   }
 
   .modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
     padding: 1.25rem;
-    border-radius: 12px;
+  }
+
+  .modal-header {
+    border-bottom: 1px solid rgba(102,126,234,0.1);
+  }
+
+  .modal-title {
+    background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
   }
 
   @media (max-width: 992px) {
@@ -96,19 +114,25 @@ const Label = styled.label`
   display: inline-block;
   margin-bottom: 0.35rem;
   font-weight: 600;
-  color: #0f172a;
+  color: #4c51bf;
 `
 
 const TextInput = styled.input`
   width: 100%;
   min-height: 44px;
   padding: 8px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 2px solid #e1e8ff;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   outline: none;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+
   &:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 `
 
@@ -116,12 +140,18 @@ const NumberInput = styled.input`
   width: 100%;
   min-height: 44px;
   padding: 8px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 2px solid #e1e8ff;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   outline: none;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+
   &:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 `
 
@@ -144,12 +174,25 @@ const IconBtn = styled.button`
 `
 
 const SubmitBtn = styled.button`
+  background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
+  color: white;
   border: none;
-  padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 25px;
+  padding: 12px 30px;
   cursor: pointer;
-  color: #fff;
-  background-color: #16a34a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px rgba(240, 147, 251, 0.3);
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4);
+  }
 `
 
 const Row = styled.div`
@@ -576,7 +619,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
   return (
     <StyledModal show={show} onHide={handleClose}>
       <Modal.Header closeButton>
-        <Modal.Title>Add Test</Modal.Title>
+        <Modal.Title>Create New Test</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {message && (

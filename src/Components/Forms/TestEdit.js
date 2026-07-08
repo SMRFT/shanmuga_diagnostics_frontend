@@ -1,7 +1,4 @@
 "use client"
-
-"use client"
-
 import { useEffect, useState, useRef } from "react"
 import styled from "styled-components"
 import { FaSearch, FaClipboardList, FaEdit, FaSave, FaTimes, FaPlus, FaTrash } from "react-icons/fa"
@@ -10,11 +7,38 @@ import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import apiRequest from "../Auth/apiRequest"
 
-const Container = styled.div`
-  padding: 1rem;
-  width: 100%;
-  max-width: 100%;
+const PageContainer = styled.div`
+  height: calc(100vh - 55px);
+  padding: 20px;
+  font-family: 'Poppins', sans-serif;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
+`
+
+const ListCard = styled.div`
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 100%;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    padding: 20px;
+    border-radius: 15px;
+  }
 `
 
 const Header = styled.div`
@@ -32,11 +56,14 @@ const Header = styled.div`
   }
 `
 
-const Title = styled.h2`
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #0f172a;
+const StyledTitle = styled.h2`
+  background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin: 0;
+  font-size: 2rem;
+  font-weight: bold;
 
   @media (max-width: 768px) {
     font-size: 1.5rem;
@@ -56,17 +83,22 @@ const SearchInput = styled.input`
   width: 100%;
   height: 45px;
   padding: 0 40px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 16px;
+  border: 2px solid #e1e8ff;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   outline: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   box-sizing: border-box;
 
   &:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  &::placeholder {
+    color: #a0aec0;
   }
 `
 
@@ -80,35 +112,36 @@ const SearchIcon = styled(FaSearch)`
 `
 
 const AddButton = styled.button`
-  background-color: #2563eb;
+  background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 25px;
+  padding: 12px 25px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s ease;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px rgba(240, 147, 251, 0.3);
 
   &:hover {
-    background-color: #1d4ed8;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4);
   }
 
   @media (max-width: 768px) {
     width: 100%;
     justify-content: center;
-    padding: 14px 16px;
   }
 `
 
 const TableWrapper = styled.div`
-  overflow-x: auto;
+  overflow: auto;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   width: 100%;
+  flex: 1;
 `
 
 const ModernTable = styled.table`
@@ -116,35 +149,32 @@ const ModernTable = styled.table`
   min-width: 1100px;
   border-collapse: collapse;
   font-size: 14px;
+  margin-top: 15px;
 
   th,
   td {
-    padding: 1rem;
+    padding: 12px 15px;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid rgba(102,126,234,0.1);
     vertical-align: top;
   }
 
   th {
-    background-color: #f8fafc;
-    font-weight: 700;
-    color: #334155;
+    background: #f4f5fa;
+    color: #4c51bf;
+    font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 10;
   }
 
-  tr:nth-child(even) {
-    background-color: #f9fafb;
-  }
-
-  tr:hover {
-    background-color: #f1f5f9;
+  tr:hover td {
+    background: rgba(102,126,234,0.02);
   }
 
   tr.focused-row {
-    background-color: #e6f3ff !important;
-    border: 2px solid #2563eb;
+    background-color: rgba(102, 126, 234, 0.1) !important;
+    border: 2px solid #667eea;
   }
 
   @media (max-width: 1024px) {
@@ -236,15 +266,18 @@ const ModalOverlay = styled.div`
 `
 
 const ModalContent = styled.div`
-  background-color: white;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
   width: calc(100% - 300px);
   margin-left: 300px;
   max-width: 1100px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   @media (max-width: 992px) {
     width: 94%;
@@ -255,6 +288,7 @@ const ModalContent = styled.div`
     width: 100%;
     margin-left: 0;
     border-radius: 0;
+    height: 100vh;
   }
 `
 
@@ -263,14 +297,17 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid rgba(102,126,234,0.1);
 `
 
 const ModalTitle = styled.h3`
+  background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: bold;
 `
 
 const ModalCloseButton = styled.button`
@@ -282,12 +319,16 @@ const ModalCloseButton = styled.button`
   transition: color 0.2s ease;
 
   &:hover {
-    color: #0f172a;
+    color: #f093fb;
   }
 `
 
 const ModalBody = styled.div`
   padding: 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 `
 
 const ModalFooter = styled.div`
@@ -295,35 +336,39 @@ const ModalFooter = styled.div`
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid rgba(102,126,234,0.1);
 `
 
 const Button = styled.button`
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  min-height: 40px;
 
   ${(props) =>
     props.secondary &&
-    `background-color: #f8fafc;
-    color: #475569;
-    border: 1px solid #e2e8f0;
+    `background: linear-gradient(135deg, #cbd5e0, #a0aec0);
+    color: white;
+    border: none;
     
     &:hover {
-      background-color: #f1f5f9;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(160, 174, 192, 0.4);
     }
   `}
 
   ${(props) =>
     props.primary &&
-    `background-color: #2563eb;
+    `background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
     color: white;
-    border: 1px solid #2563eb;
+    border: none;
+    box-shadow: 0 10px 25px rgba(240, 147, 251, 0.3);
     
     &:hover {
-      background-color: #1d4ed8;
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4);
     }
   `}
 `
@@ -463,6 +508,8 @@ const TestEdit = () => {
   const [filteredTestDetails, setFilteredTestDetails] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedParameters, setSelectedParameters] = useState([])
+  const [fullParameters, setFullParameters] = useState({})
+  const [currentEditingDevice, setCurrentEditingDevice] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [editingRow, setEditingRow] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -589,6 +636,7 @@ const TestEdit = () => {
 
   const ensureParamShape = (arr) =>
     (arr || []).map((p) => ({
+      ...p,
       test_name: p.test_name || "",
       unit: p.unit || "",
       reference_range: p.reference_range || "",
@@ -603,9 +651,28 @@ const TestEdit = () => {
   const handleParameterClick = (test) => {
     const testId = test?.test_id
     const testName = test?.test_name
-    let parsedParameters = ensureParamShape(parseParams(test?.parameters))
-    if (parsedParameters.length === 0) {
-      parsedParameters = [
+
+    const deviceIds = Array.isArray(test?.device_id)
+      ? test.device_id
+      : typeof test?.device_id === "string"
+        ? test.device_id.split(",").map((s) => s.trim()).filter(Boolean)
+        : []
+
+    let paramObj = {}
+
+    if (typeof test?.parameters === "object" && test?.parameters !== null && !Array.isArray(test?.parameters)) {
+      paramObj = test.parameters
+    } else if (Array.isArray(test?.parameters)) {
+      const arr = test.parameters
+      if (deviceIds.length > 0) {
+        deviceIds.forEach(id => {
+          paramObj[id] = arr
+        })
+      } else {
+        paramObj['default'] = arr
+      }
+    } else {
+      const defaultParam = [
         {
           test_name: "",
           unit: "",
@@ -618,16 +685,45 @@ const TestEdit = () => {
           _newOption: "",
         },
       ]
+      if (deviceIds.length > 0) {
+        deviceIds.forEach(id => {
+          paramObj[id] = defaultParam
+        })
+      } else {
+        paramObj['default'] = defaultParam
+      }
     }
-    setSelectedParameters(parsedParameters)
+
+    const finalParamObj = {}
+    Object.keys(paramObj).forEach(key => {
+      finalParamObj[key] = ensureParamShape(paramObj[key])
+    })
+
+    const initialDevice = deviceIds.length > 0 ? deviceIds[0] : (Object.keys(finalParamObj)[0] || 'default')
+
+    setFullParameters(finalParamObj)
+    setCurrentEditingDevice(initialDevice)
+    setSelectedParameters(finalParamObj[initialDevice] || [])
+
     setShowModal(true)
     setSelectedTestId(testId)
     setSelectedTestName(testName)
   }
 
+  const handleDeviceSwitch = (newDeviceId) => {
+    setFullParameters(prev => ({
+      ...prev,
+      [currentEditingDevice]: selectedParameters
+    }))
+    setCurrentEditingDevice(newDeviceId)
+    setSelectedParameters(fullParameters[newDeviceId] || [])
+  }
+
   const handleCloseModal = () => {
     setShowModal(false)
     setSelectedParameters([])
+    setFullParameters({})
+    setCurrentEditingDevice(null)
     setSelectedTestId(null)
     setSelectedTestName("")
   }
@@ -695,35 +791,47 @@ const TestEdit = () => {
   const handleSaveParameters = async () => {
     const currentTest = testDetails.find((t) => t.test_id === selectedTestId)
 
-    // Get device IDs
+    const updatedFullParams = {
+      ...fullParameters,
+      [currentEditingDevice]: selectedParameters
+    }
+
     const deviceIds = Array.isArray(currentTest?.device_id)
       ? currentTest.device_id
       : typeof currentTest?.device_id === "string"
         ? currentTest.device_id
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
         : []
 
-    // Clean parameters - remove UI-only fields
-    const cleanedParams = selectedParameters.map((p) => ({
-      test_name: p.test_name || "",
-      unit: p.unit || "",
-      reference_range: p.reference_range || "",
-      method: p.method || "",
-      test_code: p.test_code || "",
-      sub_title: p.sub_title || "",
-      value_option: Array.isArray(p.value_option) ? p.value_option.filter((v) => v && v.trim()) : [],
-      department: p.department || "",
-    }))
+    const parametersPayload = {}
 
-    const parametersPayload =
-      deviceIds.length === 1 ? cleanedParams : Object.fromEntries(deviceIds.map((id) => [id, cleanedParams]))
+    Object.keys(updatedFullParams).forEach(deviceId => {
+      parametersPayload[deviceId] = updatedFullParams[deviceId].map((p) => {
+        const { _newOption, ...rest } = p;
+        return {
+          ...rest,
+          test_name: p.test_name || "",
+          unit: p.unit || "",
+          reference_range: p.reference_range || "",
+          method: p.method || "",
+          test_code: p.test_code || "",
+          sub_title: p.sub_title || "",
+          value_option: Array.isArray(p.value_option) ? p.value_option.filter((v) => v && v.trim()) : [],
+          department: p.department || "",
+        };
+      })
+    })
+
+    const finalPayload = deviceIds.length === 1 && parametersPayload[deviceIds[0]]
+      ? parametersPayload[deviceIds[0]]
+      : parametersPayload
 
     try {
       const response = await apiRequest(`${Labbaseurl}testdetails/`, "PATCH", {
         test_id: selectedTestId,
-        parameters: parametersPayload,
+        parameters: finalPayload,
       })
 
       if (response.success) {
@@ -736,7 +844,7 @@ const TestEdit = () => {
         toast.success("Parameters updated successfully!")
 
         const updatedAll = testDetails.map((t) =>
-          t.test_id === selectedTestId ? { ...t, parameters: parametersPayload, test_code: "" } : t,
+          t.test_id === selectedTestId ? { ...t, parameters: finalPayload, test_code: "" } : t,
         )
         setTestDetails(updatedAll)
 
@@ -750,6 +858,8 @@ const TestEdit = () => {
         setLastEditedTestId(selectedTestId)
         setShowModal(false)
         setSelectedParameters([])
+        setFullParameters({})
+        setCurrentEditingDevice(null)
         setSelectedTestId(null)
         setSelectedTestName("")
       } else {
@@ -767,14 +877,15 @@ const TestEdit = () => {
       ? updatedTest.device_id
       : typeof updatedTest.device_id === "string"
         ? updatedTest.device_id
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
         : []
 
     try {
       const response = await apiRequest(`${Labbaseurl}test_details_test/`, "PATCH", {
         test_id: updatedTest.test_id,
+        test_name: updatedTest.test_name,
         shortcut: updatedTest.shortcut,
         department: updatedTest.department,
         collection_container: updatedTest.collection_container,
@@ -833,11 +944,11 @@ const TestEdit = () => {
       return prevAll.map((t) =>
         t.test_id === testId
           ? {
-              ...t,
-              device_id: Array.isArray(filteredTestDetails[rowIndex].device_id)
-                ? filteredTestDetails[rowIndex].device_id
-                : [],
-            }
+            ...t,
+            device_id: Array.isArray(filteredTestDetails[rowIndex].device_id)
+              ? filteredTestDetails[rowIndex].device_id
+              : [],
+          }
           : t,
       )
     })
@@ -915,241 +1026,267 @@ const TestEdit = () => {
 
   if (loading) {
     return (
-      <Container>
+      <PageContainer>
         <div>Loading test details...</div>
-      </Container>
+      </PageContainer>
     )
   }
 
   return (
-    <Container>
-      <Header>
-        <Title>Test Details</Title>
-        <SearchContainer>
-          <SearchIcon />
-          <SearchInput
-            type="text"
-            placeholder="Search Test Name or Shortcut"
-            value={searchQuery}
-            onChange={handleSearchChange}
-          />
-        </SearchContainer>
-        <AddButton onClick={() => setShowTestForm(true)}>
-          <FaPlus size={16} />
-          <span>Add Test</span>
-        </AddButton>
-      </Header>
+    <PageContainer>
+      <ListCard>
+        <Header>
+          <StyledTitle>Test Master</StyledTitle>
+          <SearchContainer>
+            <SearchIcon />
+            <SearchInput
+              type="text"
+              placeholder="Search Test Name or Shortcut"
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+          </SearchContainer>
+          <AddButton onClick={() => setShowTestForm(true)}>
+            <FaPlus size={16} />
+            <span>Add Test</span>
+          </AddButton>
+        </Header>
 
-      <TableWrapper ref={tableRef}>
-        <ModernTable>
-          <thead>
-            <tr>
-              <th>Test Name</th>
-              <th>Shortcut</th>
-              <th>Department</th>
-              <th>Collection Container</th>
-              <th>Specimen Type</th>
-              <th>Method</th>
-              <th>Reference Range</th>
-              <th>Unit</th>
-              <th>Device IDs</th>
-              <th>Test Code</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleRows.length > 0 ? (
-              visibleRows.map((test, localIdx) => {
-                const globalIndex = startIndex + localIdx
-                const parameterized = hasParameters(test)
-                const deviceDisplay = Array.isArray(test.device_id)
-                  ? test.device_id.join(", ")
-                  : typeof test.device_id === "string"
-                    ? test.device_id
-                    : ""
-                return (
-                  <tr
-                    key={globalIndex}
-                    ref={(el) => (rowRefs.current[globalIndex] = el)}
-                    className={focusedRow === globalIndex ? "focused-row" : ""}
-                  >
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.test_name || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "test_name")}
-                        />
-                      ) : (
-                        test.test_name
-                      )}
-                    </td>
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.shortcut || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "shortcut")}
-                        />
-                      ) : (
-                        test.shortcut
-                      )}
-                    </td>
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.department || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "department")}
-                        />
-                      ) : (
-                        test.department
-                      )}
-                    </td>
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.collection_container || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "collection_container")}
-                        />
-                      ) : (
-                        test.collection_container
-                      )}
-                    </td>
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.specimen_type || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "specimen_type")}
-                        />
-                      ) : (
-                        test.specimen_type
-                      )}
-                    </td>
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.method || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "method")}
-                        />
-                      ) : (
-                        test.method
-                      )}
-                    </td>
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.reference_range || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "reference_range")}
-                        />
-                      ) : (
-                        test.reference_range
-                      )}
-                    </td>
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.unit || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "unit")}
-                        />
-                      ) : (
-                        test.unit
-                      )}
-                    </td>
-
-                    <td>
-                      {editingRow === globalIndex ? (
-                        <DeviceDropdown
-                          rowIndex={globalIndex}
-                          selected={Array.isArray(test.device_id) ? test.device_id : []}
-                          options={devices}
-                          onToggle={(deviceId) => toggleRowDevice(globalIndex, deviceId)}
-                        />
-                      ) : (
-                        deviceDisplay || "-"
-                      )}
-                    </td>
-
-                    <td>
-                      {parameterized ? (
-                        <span style={{ color: "#64748b" }}>Per-parameter</span>
-                      ) : editingRow === globalIndex ? (
-                        <Input
-                          type="text"
-                          value={test.test_code || ""}
-                          onChange={(e) => handleInputChange(e, globalIndex, "test_code")}
-                        />
-                      ) : (
-                        test.test_code || "-"
-                      )}
-                    </td>
-
-                    <td>
-                      <ActionIcons>
-                        <IconButton onClick={() => handleParameterClick(test)} title="View/Edit Parameters">
-                          <FaClipboardList />
-                        </IconButton>
-
-                        {editingRow === globalIndex ? (
-                          <IconButton onClick={() => handleSaveClick(globalIndex)} title="Save Changes">
-                            <FaSave />
-                          </IconButton>
-                        ) : (
-                          <IconButton onClick={() => handleEditClick(globalIndex)} title="Edit Test">
-                            <FaEdit />
-                          </IconButton>
-                        )}
-                      </ActionIcons>
-                    </td>
-                  </tr>
-                )
-              })
-            ) : (
+        <TableWrapper ref={tableRef}>
+          <ModernTable>
+            <thead>
               <tr>
-                <EmptyMessage colSpan="11">No test details available.</EmptyMessage>
+                <th>Test Name</th>
+                <th>Shortcut</th>
+                <th>Department</th>
+                <th>Collection Container</th>
+                <th>Specimen Type</th>
+                <th>Method</th>
+                <th>Reference Range</th>
+                <th>Unit</th>
+                <th>Device IDs</th>
+                <th>Test Code</th>
+                <th>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </ModernTable>
-      </TableWrapper>
+            </thead>
+            <tbody>
+              {visibleRows.length > 0 ? (
+                visibleRows.map((test, localIdx) => {
+                  const globalIndex = startIndex + localIdx
+                  const parameterized = hasParameters(test)
+                  const deviceDisplay = Array.isArray(test.device_id)
+                    ? test.device_id.join(", ")
+                    : typeof test.device_id === "string"
+                      ? test.device_id
+                      : ""
+                  return (
+                    <tr
+                      key={globalIndex}
+                      ref={(el) => (rowRefs.current[globalIndex] = el)}
+                      className={focusedRow === globalIndex ? "focused-row" : ""}
+                    >
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.test_name || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "test_name")}
+                          />
+                        ) : (
+                          test.test_name
+                        )}
+                      </td>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.shortcut || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "shortcut")}
+                          />
+                        ) : (
+                          test.shortcut
+                        )}
+                      </td>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.department || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "department")}
+                          />
+                        ) : (
+                          test.department
+                        )}
+                      </td>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.collection_container || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "collection_container")}
+                          />
+                        ) : (
+                          test.collection_container
+                        )}
+                      </td>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.specimen_type || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "specimen_type")}
+                          />
+                        ) : (
+                          test.specimen_type
+                        )}
+                      </td>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.method || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "method")}
+                          />
+                        ) : (
+                          test.method
+                        )}
+                      </td>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.reference_range || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "reference_range")}
+                          />
+                        ) : (
+                          test.reference_range
+                        )}
+                      </td>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.unit || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "unit")}
+                          />
+                        ) : (
+                          test.unit
+                        )}
+                      </td>
 
-      <PaginationBar>
-        <span>
-          Showing {filteredTestDetails.length === 0 ? 0 : startIndex + 1}-{" "}
-          {Math.min(endIndex, filteredTestDetails.length)} of {filteredTestDetails.length}
-        </span>
-        <PageControls>
-          <Button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
-            Previous
-          </Button>
+                      <td>
+                        {editingRow === globalIndex ? (
+                          <DeviceDropdown
+                            rowIndex={globalIndex}
+                            selected={Array.isArray(test.device_id) ? test.device_id : []}
+                            options={devices}
+                            onToggle={(deviceId) => toggleRowDevice(globalIndex, deviceId)}
+                          />
+                        ) : (
+                          deviceDisplay || "-"
+                        )}
+                      </td>
+
+                      <td>
+                        {parameterized ? (
+                          <span style={{ color: "#64748b" }}>Per-parameter</span>
+                        ) : editingRow === globalIndex ? (
+                          <Input
+                            type="text"
+                            value={test.test_code || ""}
+                            onChange={(e) => handleInputChange(e, globalIndex, "test_code")}
+                          />
+                        ) : (
+                          test.test_code || "-"
+                        )}
+                      </td>
+
+                      <td>
+                        <ActionIcons>
+                          <IconButton onClick={() => handleParameterClick(test)} title="View/Edit Parameters">
+                            <FaClipboardList />
+                          </IconButton>
+
+                          {editingRow === globalIndex ? (
+                            <IconButton onClick={() => handleSaveClick(globalIndex)} title="Save Changes">
+                              <FaSave />
+                            </IconButton>
+                          ) : (
+                            <IconButton onClick={() => handleEditClick(globalIndex)} title="Edit Test">
+                              <FaEdit />
+                            </IconButton>
+                          )}
+                        </ActionIcons>
+                      </td>
+                    </tr>
+                  )
+                })
+              ) : (
+                <tr>
+                  <EmptyMessage colSpan="11">No test details available.</EmptyMessage>
+                </tr>
+              )}
+            </tbody>
+          </ModernTable>
+        </TableWrapper>
+
+        <PaginationBar>
           <span>
-            Page {currentPage} of {totalPages}
+            Showing {filteredTestDetails.length === 0 ? 0 : startIndex + 1}-{" "}
+            {Math.min(endIndex, filteredTestDetails.length)} of {filteredTestDetails.length}
           </span>
-          <Button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
-        </PageControls>
-      </PaginationBar>
+          <PageControls>
+            <Button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              Previous
+            </Button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </PageControls>
+        </PaginationBar>
+
+      </ListCard>
 
       {showModal && (
         <ModalOverlay>
           <ModalContent>
             <ModalHeader>
-              <ModalTitle>Parameters</ModalTitle>
+              <ModalTitle>Edit Parameters — {selectedTestName}</ModalTitle>
               <ModalCloseButton onClick={handleCloseModal}>
                 <FaTimes />
               </ModalCloseButton>
             </ModalHeader>
 
-            <TestName>Test Name: {selectedTestName}</TestName>
+            {Object.keys(fullParameters).length > 1 ? (
+              <div style={{ padding: "1.5rem 1.25rem 0", display: "flex", gap: "0.5rem" }}>
+                {Object.keys(fullParameters).map(deviceId => (
+                  <button
+                    key={deviceId}
+                    type="button"
+                    onClick={() => handleDeviceSwitch(deviceId)}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: "6px",
+                      border: "none",
+                      backgroundColor: currentEditingDevice === deviceId ? "#2563eb" : "#e2e8f0",
+                      color: currentEditingDevice === deviceId ? "white" : "#475569",
+                      cursor: "pointer",
+                      fontWeight: currentEditingDevice === deviceId ? "600" : "normal"
+                    }}
+                  >
+                    {deviceId}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ height: "1.5rem" }}></div>
+            )}
 
             <ModalBody>
               <TableWrapper>
@@ -1277,7 +1414,7 @@ const TestEdit = () => {
       <TestForm show={showTestForm} setShow={setShowTestForm} onTestAdded={handleTestAdded} />
 
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-    </Container>
+    </PageContainer>
   )
 }
 

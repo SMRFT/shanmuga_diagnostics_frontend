@@ -302,6 +302,52 @@ const EmptyState = styled.div`
   text-align: center;
 `
 
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: white;
+  
+  .info {
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+  
+  .controls {
+    display: flex;
+    gap: 0.5rem;
+    
+    button {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e2e8f0;
+      background: white;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      color: #64748b;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      
+      &:hover:not(:disabled) {
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      &.active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+      }
+    }
+  }
+`
+
 const StatusBadge = styled.span`
   padding: 0.25rem 0.75rem;
   border-radius: 0.5rem;
@@ -325,7 +371,10 @@ const PatientDashboard = () => {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [patients, setPatients] = useState([])
+  const [segmentFilter, setSegmentFilter] = useState("all")
   const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   // Mock API URL - replace with your actual API endpoint
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
@@ -377,12 +426,42 @@ const PatientDashboard = () => {
     }
   }
 
+  const safePatients = Array.isArray(patients) ? patients : []
+  const filteredPatients = safePatients.filter(p => 
+    segmentFilter === "all" || (p.segment && p.segment.toLowerCase() === segmentFilter.toLowerCase())
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [segmentFilter, patients])
+
+  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage)
+  const currentPatients = filteredPatients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const totalPatients = filteredPatients.length
+
+  const totalTests = filteredPatients.reduce(
+    (sum, p) => sum + (p.testdetails?.length || 0),
+    0
+  )
+
+  const totalAmount = filteredPatients
+    .reduce((sum, p) => sum + (parseFloat(p.totalAmount) || 0), 0)
+    .toFixed(2)
+
+  const billedPatients = filteredPatients.filter(
+    (p) => parseFloat(p.totalAmount || 0) > 0
+  ).length
+
   const exportToCSV = () => {
-    if (patients.length === 0) return
+    if (filteredPatients.length === 0) return
 
     const headers = ["Bill No", "Patient Name", "Phone", "Age", "Gender", "Ref By", "Test Count", "Billing Status", "Total Amount"]
 
-    const data = patients.map((p) => [
+    const data = filteredPatients.map((p) => [
       p.bill_no || "",
       p.patientname || "",
       p.phone || "N/A",
@@ -402,29 +481,12 @@ const PatientDashboard = () => {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
-    link.setAttribute("download", `patient-data-${startDate}-to-${endDate}.csv`)
+    link.setAttribute("download", `patient-data-${dateFilters.fromDate}-to-${dateFilters.toDate}.csv`)
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
-
-  const safePatients = Array.isArray(patients) ? patients : []
-
-  const totalPatients = safePatients.length
-
-  const totalTests = safePatients.reduce(
-    (sum, p) => sum + (p.testdetails?.length || 0),
-    0
-  )
-
-  const totalAmount = safePatients
-    .reduce((sum, p) => sum + (parseFloat(p.totalAmount) || 0), 0)
-    .toFixed(2)
-
-  const billedPatients = safePatients.filter(
-    (p) => parseFloat(p.totalAmount || 0) > 0
-  ).length
 
   return (
     <FormContainer>
@@ -449,6 +511,20 @@ const PatientDashboard = () => {
                 value={dateFilters.toDate}
                 onChange={(e)=>setDateFilters(p=>({...p,fromDate:e.target.value}))} 
               />
+            </DateInputGroup>
+
+            <DateInputGroup>
+              <DateLabel>Segment</DateLabel>
+              <DateInput
+                as="select"
+                value={segmentFilter}
+                onChange={(e) => setSegmentFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="B2B">B2B</option>
+                <option value="Walk-in">Walk-in</option>
+                <option value="Home Collection">Home Collection</option>
+              </DateInput>
             </DateInputGroup>
 
             <Button onClick={handleSearch}>
@@ -533,7 +609,7 @@ const PatientDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {patients.map((p, idx) => (
+                  {currentPatients.map((p, idx) => (
                     <tr key={idx}>
                       <Td>{p.bill_no}</Td>
                       <Td>{p.patientname}</Td>
@@ -551,13 +627,50 @@ const PatientDashboard = () => {
                     </tr>
                   ))}
                   <TotalRow>
-                    <Td colSpan={6}>Grand Total</Td>
+                    <Td colSpan={6}>Grand Total (Filtered)</Td>
                     <Td>{totalTests}</Td>
                     <Td></Td>
                     <Td>₹{totalAmount}</Td>
                   </TotalRow>
                 </tbody>
               </Table>
+              {totalPages > 1 && (
+                <PaginationContainer>
+                  <div className="info">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredPatients.length)} of {filteredPatients.length} entries
+                  </div>
+                  <div className="controls">
+                    <button 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(n => n === 1 || n === totalPages || (n >= currentPage - 2 && n <= currentPage + 2))
+                      .map((page, i, arr) => {
+                        const prev = arr[i - 1]
+                        return (
+                          <span key={page} style={{ display: "inline-flex", alignItems: "center" }}>
+                            {prev && page - prev > 1 && <span style={{ color: "#9ca3af", padding: "0 4px" }}>…</span>}
+                            <button
+                              className={currentPage === page ? "active" : ""}
+                              onClick={() => setCurrentPage(page)}
+                            >
+                              {page}
+                            </button>
+                          </span>
+                        )
+                    })}
+                    <button 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </PaginationContainer>
+              )}
             </TableWrapper>
           ) : (
             <EmptyState>

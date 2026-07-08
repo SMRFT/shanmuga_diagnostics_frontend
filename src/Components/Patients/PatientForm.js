@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { FaSearch, FaToggleOn, FaToggleOff, FaPlus, FaTimes, FaUpload, FaFileAlt, FaCalendar } from "react-icons/fa"
+import { FaSearch, FaToggleOn, FaToggleOff, FaPlus, FaTimes, FaUpload, FaFileAlt, FaCalendar, FaCamera } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 import RefBy from "../Forms/RefBy"
 
@@ -168,7 +168,7 @@ const PatientSelectionModal = styled.div`
   right: 0;
   width: 100%;
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 15px;
   max-height: 500px;
   overflow-y: auto;
@@ -225,29 +225,24 @@ const ModalContent = styled.div`
   border-radius: 12px;
   padding: 0;
   width: 100%;
-  max-height: 100%;
-  overflow-y: auto;
-
+  
   h3 {
     text-align: center;
-    margin: 0 0 15px 0;
-    padding: 0 30px 0 0;
+    margin: 0 0 20px 0;
+    padding: 0 30px 15px 0;
     color: #764ba2;
-    font-size: 1.2rem;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    background: white;
-    padding-bottom: 10px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-bottom: 2px solid #f0f4f8;
 
     @media (max-width: 768px) {
-      font-size: 1rem;
-      margin-bottom: 12px;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
     }
 
     @media (max-width: 480px) {
-      font-size: 0.9rem;
-      margin-bottom: 10px;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
     }
   }
 `
@@ -285,19 +280,20 @@ const CloseButton = styled.button`
 `
 
 const PatientCard = styled.div`
-  border: 2px solid #e1e8ff;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: white;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: linear-gradient(145deg, #ffffff, #f8faff);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   
   &:hover {
     border-color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    background: linear-gradient(145deg, #ffffff, #eef1ff);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 15px 30px rgba(102, 126, 234, 0.15);
   }
   
   .patient-header {
@@ -346,18 +342,18 @@ const PatientCard = styled.div`
   
   .patient-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-    margin-bottom: 10px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 15px;
     
     @media (max-width: 768px) {
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: 12px;
     }
     
     @media (max-width: 480px) {
       grid-template-columns: 1fr;
-      gap: 6px;
+      gap: 10px;
     }
   }
   
@@ -730,7 +726,7 @@ const FileUploadWrapper = styled.div`
   }
   
   .file-upload-button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 15px;
@@ -746,6 +742,14 @@ const FileUploadWrapper = styled.div`
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+    }
+    
+    &.camera-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      margin-left: 10px;
+      &:hover {
+        box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+      }
     }
     
     svg {
@@ -790,7 +794,7 @@ const FileUploadWrapper = styled.div`
 
 const FieldWithButton = styled.div`
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   gap: 10px;
   
   .field-input {
@@ -812,6 +816,7 @@ const FieldWithButton = styled.div`
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    margin-bottom: 1px;
     
     &:hover {
       transform: translateY(-2px);
@@ -836,7 +841,7 @@ const FieldWithButton = styled.div`
 const ToggleContainer = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   
   label {
@@ -844,7 +849,7 @@ const ToggleContainer = styled.div`
     font-weight: 600;
     color: #4c51bf;
     font-size: 14px;
-    text-align: center;
+    text-align: left;
     
     @media (max-width: 768px) {
       font-size: 13px;
@@ -1131,6 +1136,7 @@ const PatientForm = () => {
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false)
 
   const [patientSelectionSource, setPatientSelectionSource] = useState(null)
+  const [originalPatientName, setOriginalPatientName] = useState("")
 
   const [refBySearchValue, setRefBySearchValue] = useState("")
   const [showRefByDropdown, setShowRefByDropdown] = useState(false)
@@ -1171,6 +1177,7 @@ const PatientForm = () => {
     bill_no: "",
     bill_date: null,
     salesMapping: "",
+    b2b_area: "",
     MultiplePayment: [],
     emergency: false,
     patient_history: "",
@@ -1328,6 +1335,7 @@ const PatientForm = () => {
         B2B: "",
         lab_id: "",
         salesMapping: "",
+        b2b_area: "",
         phone: "",
         email: "",
       }))
@@ -1386,6 +1394,7 @@ const PatientForm = () => {
       B2B: clinical.clinicalname,
       lab_id: clinical.referrerCode || "",
       salesMapping: clinical.salesMapping || "",
+      b2b_area: clinical.area || "",
       phone: clinical.phone || "",
       email: clinical.email || "",
     }))
@@ -1476,22 +1485,22 @@ const PatientForm = () => {
 
         if (Array.isArray(response.data)) {
           patients = response.data
-        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          patients = response.data.data
-        } else if (response.data && typeof response.data === "object" && !Array.isArray(response.data)) {
+        } else if (response.data && response.data.data) {
+          if (Array.isArray(response.data.data)) {
+            patients = response.data.data
+          } else {
+            patients = [response.data.data] // Extract the actual patient object
+          }
+        } else if (response.data && typeof response.data === "object") {
           patients = [response.data]
         }
 
-        if (patients.length > 1) {
+        if (patients.length >= 1) {
           setMultiplePatients(patients)
           setShowPatientModal(true)
           setIsExistingPatient(false)
           setPatientSelectionSource(null)
-          toast.info(`Found ${patients.length} patients with this phone number. Please select one.`)
-        } else if (patients.length === 1) {
-          loadPatientData(patients[0], "search")
-          setShowPatientModal(false)
-          toast.success("Patient found! Details loaded (read-only).")
+          toast.info(`Found ${patients.length} patient(s) with this phone number. Please select one.`)
         } else {
           throw new Error("Patient not found")
         }
@@ -1560,18 +1569,22 @@ const PatientForm = () => {
       }
     }
 
+    setOriginalPatientName(cleanedName)
+
     setFormData((prev) => ({
       ...prev,
-      patient_id: data.patient_id,
+      patient_id: data.patient_id || prev.patient_id, // Load the existing ID!
       Title: extractedTitle,
       patientname: cleanedName,
       age: data.age || "",
       age_type: data.age_type || "Years",
       gender: patientGender,
-      phone: isB2BEnabled ? prev.phone : data.phone || "",
+      phone: isB2BEnabled ? prev.phone : (data.phone ? data.phone.replace(/[^0-9]/g, "").slice(-10) : ""),
       email: isB2BEnabled ? prev.email : data.email || "",
       address: isB2BEnabled ? { area: "", pincode: "" } : parsedAddress,
       patient_history: data.patient_history || "",
+      appointment_id: data.appointment_id || "",
+      sample_collector: data.sample_collector || prev.sample_collector,
     }))
 
     if (data.emergency) {
@@ -1580,7 +1593,7 @@ const PatientForm = () => {
       setIsEmergencyEnabled(false)
     }
 
-    setIsExistingPatient(true)
+    setIsExistingPatient(source === "appointment" ? true : false)
     setShowPatientModal(false)
     setPatientSelectionSource(source)
   }
@@ -1686,8 +1699,31 @@ const PatientForm = () => {
 
       const patientHistory = formData.patient_history.trim() || ""
 
+      // Check if it's a search load and if the name changed
+      let finalSelectionSource = patientSelectionSource
+      let finalPatientId = formData.patient_id
+
+      if (patientSelectionSource === "search") {
+        const isNameChanged = formData.patientname.trim().toLowerCase() !== originalPatientName.trim().toLowerCase()
+        if (isNameChanged) {
+          finalSelectionSource = null // Treat as new patient!
+
+          // Fetch a NEW patient ID right before submitting
+          try {
+            const idResponse = await apiRequest(`${Labbaseurl}latest-patient-id/`, "GET")
+            if (idResponse && idResponse.patient_id) {
+              finalPatientId = idResponse.patient_id
+            } else if (idResponse && idResponse.data && idResponse.data.patient_id) {
+              finalPatientId = idResponse.data.patient_id
+            }
+          } catch (e) {
+            console.error("Failed to generate new ID for changed name:", e)
+          }
+        }
+      }
+
       const baseData = {
-        patient_id: formData.patient_id,
+        patient_id: finalPatientId,
         patientname: fullPatientName,
         age: formData.age,
         age_type: formData.age_type,
@@ -1719,10 +1755,33 @@ const PatientForm = () => {
         status: "Registered",
         emergency: isEmergencyEnabled,
         patient_history: patientHistory,
+        appointment_id: formData.appointment_id,
       }
 
-      if (patientSelectionSource === "search") {
-        const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billData)
+      let billPayload = billData
+      let headers = {}
+
+      if (prescriptionFile) {
+        const billFormData = new FormData()
+
+        Object.keys(billData).forEach((key) => {
+          const value = billData[key]
+          if (value === null || value === undefined) return
+
+          if (typeof value === "object" && !(value instanceof Date) && key !== "date") {
+            billFormData.append(key, JSON.stringify(value))
+          } else {
+            billFormData.append(key, value)
+          }
+        })
+
+        billFormData.append("prescription_file", prescriptionFile)
+        billPayload = billFormData
+        headers = { "Content-Type": undefined }
+      }
+
+      if (finalSelectionSource === "search") {
+        const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billPayload, headers)
         if (billResult && billResult.success) {
           toast.success(`Bill created successfully for revisit patient!`)
           resetForm()
@@ -1734,28 +1793,6 @@ const PatientForm = () => {
           const patientResult = await apiRequest(`${Labbaseurl}create_patient/`, "POST", baseData)
 
           if (patientResult && patientResult.success) {
-            let billPayload = billData
-            let headers = {}
-
-            if (prescriptionFile) {
-              const billFormData = new FormData()
-
-              Object.keys(billData).forEach((key) => {
-                const value = billData[key]
-                if (value === null || value === undefined) return
-
-                if (typeof value === "object" && !(value instanceof Date) && key !== "date") {
-                  billFormData.append(key, JSON.stringify(value))
-                } else {
-                  billFormData.append(key, value)
-                }
-              })
-
-              billFormData.append("prescription_file", prescriptionFile)
-              billPayload = billFormData
-              headers = { "Content-Type": undefined }
-            }
-
             const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billPayload, headers)
 
             if (billResult && billResult.success) {
@@ -1827,6 +1864,7 @@ const PatientForm = () => {
       MultiplePayment: [],
       emergency: false,
       patient_history: "",
+      appointment_id: "",
     })
 
     generateNewPatientId()
@@ -1867,9 +1905,10 @@ const PatientForm = () => {
       const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
       const todayAppointments = appointments.filter((appointment) => {
-        if (!appointment.appointment_date) return false
-        const appointmentDateStr = appointment.appointment_date.split("T")[0].split(" ")[0]
-        return appointmentDateStr === todayDate
+        if (!appointment.appointment_date) return false;
+        if (appointment.status === "Cancelled") return false;
+        const appointmentDateStr = appointment.appointment_date.split("T")[0].split(" ")[0];
+        return appointmentDateStr === todayDate;
       })
 
       if (todayAppointments.length > 0) {
@@ -1901,6 +1940,8 @@ const PatientForm = () => {
       address: appointment.address || { area: "", pincode: "" },
       patient_history: appointment.patient_history || "",
       emergency: appointment.emergency || false,
+      appointment_id: appointment.appointment_id || "",
+      sample_collector: appointment.sample_collector || "",
     }
 
     loadPatientData(patientData, "appointment")
@@ -1936,68 +1977,68 @@ const PatientForm = () => {
                   <CloseButton onClick={() => setShowPatientModal(false)}>
                     <FaTimes />
                   </CloseButton>
-                  <h3>
-                    Select Patient ({multiplePatients.length} found with phone {searchValue})
-                  </h3>
+                    <h3>
+                      Select Patient ({multiplePatients.length} found with phone {searchValue})
+                    </h3>
 
-                  {multiplePatients.map((patient, index) => (
-                    <PatientCard key={index} onClick={() => handlePatientSelect(patient)}>
-                      <div className="patient-header">
-                        <span className="patient-id-badge">{patient.patient_id}</span>
-                        {patient.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
-                      </div>
+                    {multiplePatients.map((patient, index) => (
+                      <PatientCard key={index} onClick={() => handlePatientSelect(patient)}>
+                        <div className="patient-header">
+                          {patient.patient_id && <span className="patient-id-badge">{patient.patient_id}</span>}
+                          {patient.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
+                        </div>
 
-                      <div className="patient-info">
-                        <div className="info-item">
-                          <span className="label">Name</span>
-                          <span className="value">{patient.patientname || "N/A"}</span>
-                        </div>
-                        <div className="info-item">
-                          <span className="label">Age</span>
-                          <span className="value">
-                            {patient.age} {patient.age_type || "Years"}
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="label">Gender</span>
-                          <span className="value">{patient.gender || "N/A"}</span>
-                        </div>
-                        <div className="info-item">
-                          <span className="label">Phone</span>
-                          <span className="value">{patient.phone || "N/A"}</span>
-                        </div>
-                        <div className="info-item">
-                          <span className="label">Email</span>
-                          <span className={`value ${!patient.email ? "empty" : ""}`}>
-                            {patient.email || "Not provided"}
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="label">Address</span>
-                          <span className={`value ${formatAddress(patient.address) === "N/A" ? "empty" : ""}`}>
-                            {formatAddress(patient.address)}
-                          </span>
-                        </div>
-                        {patient.patient_history && (
-                          <div className="info-item" style={{ gridColumn: "1 / -1" }}>
-                            <span className="label">Medical History</span>
-                            <span className="value">{patient.patient_history}</span>
+                        <div className="patient-info">
+                          <div className="info-item">
+                            <span className="label">Name</span>
+                            <span className="value">{patient.patientname || "N/A"}</span>
                           </div>
-                        )}
-                      </div>
+                          <div className="info-item">
+                            <span className="label">Age</span>
+                            <span className="value">
+                              {patient.age} {patient.age_type || "Years"}
+                            </span>
+                          </div>
+                          <div className="info-item">
+                            <span className="label">Gender</span>
+                            <span className="value">{patient.gender || "N/A"}</span>
+                          </div>
+                          <div className="info-item">
+                            <span className="label">Phone</span>
+                            <span className="value">{patient.phone || "N/A"}</span>
+                          </div>
+                          <div className="info-item">
+                            <span className="label">Email</span>
+                            <span className={`value ${!patient.email ? "empty" : ""}`}>
+                              {patient.email || "Not provided"}
+                            </span>
+                          </div>
+                          <div className="info-item">
+                            <span className="label">Address</span>
+                            <span className={`value ${formatAddress(patient.address) === "N/A" ? "empty" : ""}`}>
+                              {formatAddress(patient.address)}
+                            </span>
+                          </div>
+                          {patient.patient_history && (
+                            <div className="info-item" style={{ gridColumn: "1 / -1" }}>
+                              <span className="label">Medical History</span>
+                              <span className="value">{patient.patient_history}</span>
+                            </div>
+                          )}
+                        </div>
 
-                      <button
-                        className="select-button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handlePatientSelect(patient)
-                        }}
-                      >
-                        Select This Patient
-                      </button>
-                    </PatientCard>
-                  ))}
-                </ModalContent>
+                        <button
+                          className="select-button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handlePatientSelect(patient)
+                          }}
+                        >
+                          Select This Patient
+                        </button>
+                      </PatientCard>
+                    ))}
+                  </ModalContent>
               </PatientSelectionModal>
             )}
 
@@ -2010,9 +2051,19 @@ const PatientForm = () => {
                   <h3>Today's Appointments ({appointmentPatients.length} found)</h3>
 
                   {appointmentPatients.map((appointment, index) => (
-                    <PatientCard key={index} onClick={() => handleAppointmentSelect(appointment)}>
+                    <PatientCard 
+                      key={index} 
+                      onClick={() => {
+                        if (appointment.status !== "Registered") {
+                          handleAppointmentSelect(appointment)
+                        }
+                      }}
+                      style={appointment.status === "Registered" ? { opacity: 0.7, cursor: "not-allowed" } : {}}
+                    >
                       <div className="patient-header">
-                        <span className="patient-id-badge">{appointment.patient_id}</span>
+                        <span className="patient-id-badge">
+                          {appointment.patient_id || `APT-${appointment.appointment_id || index + 1}`}
+                        </span>
                         {appointment.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
                       </div>
 
@@ -2062,12 +2113,16 @@ const PatientForm = () => {
 
                       <button
                         className="select-button"
+                        disabled={appointment.status === "Registered"}
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleAppointmentSelect(appointment)
+                          if (appointment.status !== "Registered") {
+                            handleAppointmentSelect(appointment)
+                          }
                         }}
+                        style={appointment.status === "Registered" ? { background: "#ccc", color: "#666", cursor: "not-allowed" } : {}}
                       >
-                        Load This Patient
+                        {appointment.status === "Registered" ? "Already Registered" : "Load This Patient"}
                       </button>
                     </PatientCard>
                   ))}
@@ -2101,14 +2156,11 @@ const PatientForm = () => {
         <form onSubmit={handleSubmit}>
           <Fieldset>
             <h4>Lab Details</h4>
+            <input type="hidden" name="lab_id" value={formData.lab_id} />
             <Row className="row-4">
               <FormGroup>
                 <label>Date & Time</label>
                 <input type="text" name="date" value={formData.date} onChange={handleChange} disabled />
-              </FormGroup>
-              <FormGroup>
-                <label>Lab ID</label>
-                <input type="text" name="lab_id" value={formData.lab_id} onChange={handleChange} readOnly />
               </FormGroup>
 
               {/* ---- Ref By with dropdown-selection enforcement ---- */}
@@ -2169,9 +2221,20 @@ const PatientForm = () => {
                   <option value="Shanmuga Reference Lab">Shanmuga Reference Lab</option>
                 </select>
               </FormGroup>
+
+              <ToggleContainer>
+                <label>Emergency</label>
+                <div onClick={handleEmergencyToggle}>
+                  {isEmergencyEnabled ? (
+                    <FaToggleOn style={{ fontSize: "40px", color: "red" }} />
+                  ) : (
+                    <FaToggleOff style={{ fontSize: "40px", color: "grey" }} />
+                  )}
+                </div>
+              </ToggleContainer>
             </Row>
 
-            <Row className="row-5">
+            <Row className="row-4">
               <ToggleContainer>
                 <label>B2B</label>
                 <div onClick={handleB2BToggle} className={isHomeCollectionEnabled ? "disabled" : ""}>
@@ -2231,6 +2294,13 @@ const PatientForm = () => {
                 <input type="text" name="salesMapping" value={formData.salesMapping} onChange={handleChange} readOnly />
               </FormGroup>
 
+              <FormGroup>
+                <label>Area of B2B</label>
+                <input type="text" name="b2b_area" value={formData.b2b_area || ""} onChange={handleChange} readOnly />
+              </FormGroup>
+            </Row>
+
+            <Row className="row-4">
               <ToggleContainer>
                 <label>Home Collection</label>
                 <div onClick={handleHomeCollectionToggle} className={isB2BEnabled ? "disabled" : ""}>
@@ -2249,25 +2319,12 @@ const PatientForm = () => {
                 <select name="sample_collector" value={formData.sample_collector} onChange={handleChange} required>
                   <option value="">Select Sample Collector</option>
                   {dropdownOptions.sampleCollectors.map((collector, index) => (
-                    <option key={index} value={collector}>
-                      {collector}
+                    <option key={index} value={collector.employeeId}>
+                      {collector.employeeName}
                     </option>
                   ))}
                 </select>
               </FormGroup>
-            </Row>
-
-            <Row className="row-5">
-              <ToggleContainer>
-                <label>Emergency</label>
-                <div onClick={handleEmergencyToggle}>
-                  {isEmergencyEnabled ? (
-                    <FaToggleOn style={{ fontSize: "40px", color: "red" }} />
-                  ) : (
-                    <FaToggleOff style={{ fontSize: "40px", color: "grey" }} />
-                  )}
-                </div>
-              </ToggleContainer>
             </Row>
           </Fieldset>
 
@@ -2450,15 +2507,18 @@ const PatientForm = () => {
                     <input
                       type="file"
                       id="prescription-upload"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept="image/*,.pdf"
                       onChange={handleFileChange}
+                      style={{ display: "none" }}
                     />
-                    <label htmlFor="prescription-upload" className="file-upload-button">
+                    <label htmlFor="prescription-upload" className="file-upload-button" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FaCamera />
                       <FaUpload />
-                      {prescriptionFile ? "Change File" : "Choose File"}
+                      {prescriptionFile ? "Change Photo / File" : "Take Photo / Upload"}
                     </label>
+
                     {prescriptionFile && (
-                      <div className="file-name">
+                      <div className="file-name" style={{ marginTop: "10px" }}>
                         <FaFileAlt />
                         {prescriptionFile.name}
                       </div>

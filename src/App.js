@@ -12,6 +12,8 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import Sidebar from "./Components/Navbar/Sidebar";
 import PatientForm from "./Components/Patients/PatientForm";
+import EditPatient from "./Components/Patients/EditPatient";
+import PatientRecordView from "./Components/Patients/PatientRecordView";
 import PatientBilling from "./Components/Patients/PatientBilling";
 import Estimate from "./Components/Patients/Estimate";
 import BarcodeGeneration from "./Components/Barcode/BarcodeGeneration";
@@ -60,6 +62,7 @@ import SalesDetailsEdit from "./Components/Sales/SalesDetailsEdit";
 import SalesVisitLogReport from "./Components/Sales/SalesVisitLogReport";
 import SalesindividualReport from "./Components/Sales/SalesindividualReport";
 import AppointmentBooking from "./Components/Patients/AppointmentBooking";
+import AppointmentList from "./Components/Patients/AppointmentList";
 import B2B from "./Components/Lab/B2B";
 import B2BApproval from "./Components/Lab/B2BApproval";
 import B2BFinalApproval from "./Components/Lab/B2BFinalApproval";
@@ -95,6 +98,13 @@ import PreethamHospitalLedger from "./Components/PreethamHospital/PreethamLedger
 import WorkList from "./Components/Test/WorkList";
 import ApprovedList from "./Components/TestApproval/ApprovedList";
 import EditForm from "./Components/TestApproval/EditForm";
+import RouteSetup from "./Components/Logistics/RouteSetup";
+import RouteAnalysis from "./Components/Logistics/RouteAnalysis";
+import RouteAnalysisDashboard from "./Components/Logistics/RouteAnalysisDashboard";
+import B2BPackage from "./Components/Lab/B2BPackage";
+import B2BPackageApproval from "./Components/Lab/B2BPackageApproval";
+import B2BPackageList from "./Components/Lab/B2BPackageList";
+
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
   margin-top: 15px;
@@ -196,6 +206,7 @@ function App() {
   useEffect(() => {
     const routeTitles = {
       "/AppointmentBooking": "Appointment Booking",
+      "/AppointmentList": "Appointment List",
       "/PatientForm": "Patient Registration",
       "/PatientBilling": "Patient Billing",
       "/PaymentDashboard": "Payment Dashboard",
@@ -236,6 +247,9 @@ function App() {
       "/B2BApproval": "B2B Approval",
       "/B2BFinalApproval": "B2B Final Approval",
       "/B2BReport": "B2B Report",
+      "/B2BPackage": "B2B Package",
+      "/B2BPackageApproval": "B2B Package Approval",
+      "/B2BPackageList": "B2B Package List",
       "/MDashboard": "MDashboard",
       "/Testcount": "Test Count",
       "/TestSorting": "Test Sorting",
@@ -261,6 +275,8 @@ function App() {
       "/LogisticsDashboard": "Logistics Dashboard",
       "/LogisticsTracking": "Logistics Tracking",
       "/TrackingHistory": "Tracking History",
+      "/RouteSetup": "Route Setup",
+      "/RouteAnalysis": "Route Analysis",
       "/LogisticsTAT": "Logistics TAT",
       "/HmsBilling": "HMS Billing",
       "/Hmssamplestatus": "HMS Sample Status",
@@ -344,11 +360,13 @@ function App() {
         <ContentWrapper>
           <Routes>
             {/* Define all routes here */}
-            <Route
-              path="/AppointmentBooking"
-              element={<AppointmentBooking />}
-            />
+            <Route path="/salesindividual_report" element={<SalesindividualReport />} />
+            <Route path="/AppointmentBooking" element={<AppointmentBooking />} />
+            <Route path="/AppointmentList" element={<AppointmentList />} />
+            <Route path="/clinical_name" element={<B2B />} />
             <Route path="/PatientForm" element={<PatientForm />} />
+            <Route path="/EditPatient" element={<EditPatient />} />
+            <Route path="/PatientRecordView" element={<PatientRecordView />} />
             <Route path="/PatientBilling" element={<PatientBilling />} />
             <Route path="/PaymentDashboard" element={<PaymentDashboard />} />
             <Route path="/RegisterDashboard" element={<RegisterDashboard />} />
@@ -425,6 +443,9 @@ function App() {
             <Route path="/B2BApproval" element={<B2BApproval />} />
             <Route path="/B2BFinalApproval" element={<B2BFinalApproval />} />
             <Route path="/B2BReport" element={<B2BReport />} />
+            <Route path="/B2BPackage" element={<B2BPackage />} />
+            <Route path="/B2BPackageApproval" element={<B2BPackageApproval />} />
+            <Route path="/B2BPackageList" element={<B2BPackageList />} />
 
             {/* Diagnostics Report */}
             <Route path="/MDashboard" element={<MDashboard />} />
@@ -461,6 +482,7 @@ function App() {
               path="/CorporateTestSorting"
               element={<CorporateTestSorting />}
             />
+            <Route path="/EditPatient" element={<EditPatient />} />
             <Route
               path="/CorporateCreditBilling"
               element={<CorporateCreditBilling />}
@@ -488,6 +510,10 @@ function App() {
             <Route path="/LogisticsTAT" element={<LogisticsTAT />} />
             <Route path="/LogisticsTracking" element={<LogisticsTracking />} />
             <Route path="/TrackingHistory" element={<TrackingHistory />} />
+
+            <Route path="/RouteSetup" element={<RouteSetup />} />
+            <Route path="/RouteAnalysis" element={<RouteAnalysis />} />
+            <Route path="/RouteAnalysisDashboard" element={<RouteAnalysisDashboard />} />
 
             {/*HMS */}
             <Route path="/HmsBilling" element={<HmsBilling />} />

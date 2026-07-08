@@ -64,6 +64,21 @@ const Input = styled.input`
   }
 `;
 
+const Select = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  background-color: white;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
 const ButtonGroup = styled.div`
   display: flex;
   gap: 12px;
@@ -287,13 +302,15 @@ const LogisticsTATReport = () => {
   const [filters, setFilters] = useState({
     start_date: getCurrentDate(),
     end_date: getCurrentDate(),
-    search: ''
+    search: '',
+    sample_collector: ''
   });
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+  const [collectors, setCollectors] = useState([]);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -303,7 +320,33 @@ const LogisticsTATReport = () => {
   // Fetch data on component mount
   useEffect(() => {
     fetchReport();
+    fetchCollectors();
   }, []);
+
+  const fetchCollectors = async () => {
+    try {
+      const res = await apiRequest(`${Labbaseurl}sample-collector/`, 'GET');
+      let names = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      names = names.map(c => {
+        if (typeof c === 'object' && c !== null) {
+          return { employeeId: c.employeeId || '', employeeName: c.employeeName || c.name || '' };
+        }
+        return { employeeId: c, employeeName: c };
+      }).filter(c => c.employeeName && c.employeeName.trim() !== '');
+
+      const uniqueCollectors = [];
+      const seen = new Set();
+      for (const c of names) {
+        if (!seen.has(c.employeeId)) {
+          seen.add(c.employeeId);
+          uniqueCollectors.push(c);
+        }
+      }
+      setCollectors(uniqueCollectors);
+    } catch (err) {
+      console.error('Failed to fetch collectors:', err);
+    }
+  };
 
   const fetchReport = async () => {
     setLoading(true);
@@ -345,7 +388,8 @@ const LogisticsTATReport = () => {
     setFilters({
       start_date: getCurrentDate(),
       end_date: getCurrentDate(),
-      search: ''
+      search: '',
+      sample_collector: ''
     });
   };
 
@@ -422,11 +466,26 @@ const LogisticsTATReport = () => {
             />
           </FilterGroup>
 
+          <FilterGroup>
+            <Label>Sample Collector</Label>
+            <Select
+              value={filters.sample_collector}
+              onChange={(e) => handleFilterChange('sample_collector', e.target.value)}
+            >
+              <option value="">All Collectors</option>
+              {collectors.map((collector, index) => (
+                <option key={index} value={collector.employeeId}>
+                  {collector.employeeName}
+                </option>
+              ))}
+            </Select>
+          </FilterGroup>
+
           <FilterGroup style={{ flex: 2 }}>
             <Label>Search</Label>
             <Input
               type="text"
-              placeholder="Search by collector, lab name..."
+              placeholder="Search by lab name..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
             />

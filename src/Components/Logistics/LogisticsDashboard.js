@@ -545,12 +545,24 @@ const LogisticsDashboard = () => {
         collectorsList = [collectorsData];
       }
 
-      // Clean + dedupe
-      collectorsList = [...new Set(
-        collectorsList
-          .map(c => c?.trim())
-          .filter(Boolean)
-      )];
+      // Normalize array to objects { employeeId, employeeName }
+      collectorsList = collectorsList.map(c => {
+        if (typeof c === 'object' && c !== null) {
+          return { employeeId: c.employeeId || '', employeeName: c.employeeName || c.name || '' };
+        }
+        return { employeeId: c, employeeName: c };
+      }).filter(c => c.employeeName && c.employeeName.trim() !== '');
+
+      // Deduplicate by employeeId
+      const uniqueCollectors = [];
+      const seen = new Set();
+      for (const c of collectorsList) {
+        if (!seen.has(c.employeeId)) {
+          seen.add(c.employeeId);
+          uniqueCollectors.push(c);
+        }
+      }
+      collectorsList = uniqueCollectors;
 
       console.log('Final collectors list:', collectorsList);
       setCollectors(collectorsList);
@@ -727,8 +739,8 @@ const LogisticsDashboard = () => {
                 >
                   <option value="">All Collectors</option>
                   {collectors.map((collector, index) => (
-                    <option key={index} value={collector}>
-                      {collector}
+                    <option key={index} value={collector.employeeId}>
+                      {collector.employeeName}
                     </option>
                   ))}
                 </Select>
