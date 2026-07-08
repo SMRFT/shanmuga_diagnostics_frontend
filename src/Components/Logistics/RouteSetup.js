@@ -5,8 +5,9 @@ import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { FaRoute, FaTruck, FaClock, FaFlask, FaHospital, FaSave } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
+import { format } from "date-fns"
 
-const FormContainer = styled.div`
+const PageContainer = styled.div`
   min-height: 100vh;
   padding: 20px;
   font-family: 'Poppins', sans-serif;
@@ -14,10 +15,6 @@ const FormContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 12px;
-  }
-
-  @media (max-width: 480px) {
-    padding: 10px;
   }
 `
 
@@ -29,16 +26,39 @@ const FormCard = styled.div`
   border-radius: 20px;
   padding: 30px;
   max-width: 800px;
-  margin: 0 auto;
+  margin: 0 auto 30px;
 
   @media (max-width: 768px) {
     padding: 20px;
     border-radius: 15px;
   }
+`
 
-  @media (max-width: 480px) {
-    padding: 15px;
-    border-radius: 10px;
+const ListCard = styled(FormCard)`
+  max-width: 1000px;
+  padding: 24px;
+`
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+
+  th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(102,126,234,0.1);
+    font-size: 14px;
+  }
+
+  th {
+    background: rgba(102,126,234,0.05);
+    color: #4c51bf;
+    font-weight: 600;
+  }
+
+  tr:hover td {
+    background: rgba(102,126,234,0.02);
   }
 `
 
@@ -322,6 +342,12 @@ const RouteSetup = () => {
   const [clinicalOptions, setClinicalOptions] = useState([])
   const [loadingOptions, setLoadingOptions] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const todayDate = new Date().toISOString().split("T")[0]
+  const [selectedDate, setSelectedDate] = useState(todayDate)
+  const [routesList, setRoutesList] = useState([])
+  const [loadingRoutes, setLoadingRoutes] = useState(false)
+  const [expandedRoutes, setExpandedRoutes] = useState({})
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
@@ -329,6 +355,22 @@ const RouteSetup = () => {
     fetchDropdownOptions()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    fetchRoutes()
+  }, [selectedDate])
+
+  const fetchRoutes = async () => {
+    setLoadingRoutes(true)
+    try {
+      const res = await apiRequest(`${Labbaseurl}routesetup/?date=${selectedDate}`, "GET")
+      setRoutesList(res?.data || res || [])
+    } catch (error) {
+      console.error("Error fetching routes list:", error.message)
+    } finally {
+      setLoadingRoutes(false)
+    }
+  }
 
   const fetchDropdownOptions = async () => {
     setLoadingOptions(true)
@@ -340,8 +382,10 @@ const RouteSetup = () => {
 
       const collectorList = collectorRes?.data || collectorRes || []
       const collectors = collectorList.map((item) => {
+        // item is now { employeeId, employeeName }
         const label = typeof item === "string" ? item : item.employeeName || item.name
-        return { label, value: label }
+        const value = typeof item === "string" ? item : (item.employeeId || item.employeeName)
+        return { label, value }
       })
 
       const clinicalList = clinicalRes?.data || clinicalRes || []
@@ -411,6 +455,7 @@ const RouteSetup = () => {
       await apiRequest(`${Labbaseurl}routesetup/`, "POST", formData)
       toast.success("Route Setup saved successfully!")
       resetForm()
+      fetchRoutes()
     } catch (error) {
       console.error("Error saving route setup:", error.message)
       toast.error(error.message || "Failed to save Route Setup")
@@ -420,7 +465,7 @@ const RouteSetup = () => {
   }
 
   return (
-    <FormContainer>
+    <PageContainer>
       <FormCard>
         <StyledTitle>Route Setup</StyledTitle>
 
@@ -539,6 +584,85 @@ const RouteSetup = () => {
         </form>
       </FormCard>
 
+      <ListCard>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <StyledTitle style={{ margin: 0, fontSize: '1.8rem' }}>Assigned Routes</StyledTitle>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FaClock color="#667eea" />
+            <input 
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "8px",
+                border: "1px solid #e1e8ff",
+                fontFamily: "'Poppins', sans-serif",
+                outline: "none"
+              }}
+            />
+          </div>
+        </div>
+
+        {loadingRoutes ? (
+          <p style={{ textAlign: 'center', color: '#a0aec0' }}>Loading routes...</p>
+        ) : routesList.length > 0 ? (
+          <div style={{ overflowX: 'auto' }}>
+            <Table>
+              <thead>
+                <tr>
+                  <th>Route Name</th>
+                  <th>Sample Collector</th>
+                  <th>Time Window</th>
+                  <th>Clinical/Lab Names</th>
+                </tr>
+              </thead>
+              <tbody>
+                {routesList.map((r) => {
+                  const collectorName = collectorOptions.find(opt => opt.value === r.logistics_mapping)?.label || r.logistics_mapping;
+                  return (
+                    <tr key={r.id}>
+                      <td>{r.route_name}</td>
+                      <td>{collectorName}</td>
+                      <td>{r.start_time} - {r.end_time}</td>
+                      <td>
+                        <button 
+                          onClick={() => setExpandedRoutes(prev => ({ ...prev, [r.id]: !prev[r.id] }))}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#667eea",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            textDecoration: "underline"
+                          }}
+                        >
+                          {expandedRoutes[r.id] ? "Hide Labs" : "View Labs"}
+                        </button>
+                        
+                        {expandedRoutes[r.id] && (
+                          <div style={{ marginTop: "8px", fontSize: "13px", color: "#4a5568", background: "#f7fafc", padding: "8px", borderRadius: "8px" }}>
+                            {r.clinical_name_display?.map((c, i) => (
+                              <div key={i} style={{ marginBottom: "4px" }}>
+                                • {c.clinicalname || c.referrerCode}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </Table>
+          </div>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#a0aec0' }}>No routes found for this date.</p>
+        )}
+      </ListCard>
+
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -550,7 +674,7 @@ const RouteSetup = () => {
         draggable
         pauseOnHover
       />
-    </FormContainer>
+    </PageContainer>
   )
 }
 

@@ -572,6 +572,7 @@ const HMSBarcodeTestDetails = () => {
         IPOPType: selectedPatient?.IPOPType || "",
         ref_doctor: selectedPatient?.ref_doctor || "",
         source: selectedPatient?.source || "core_hmspatientbilling",
+        extra_barcode: patientBarcode,
       };
       // Save the barcode using your apiRequest method
       const saveUrl = `${Labbaseurl}save-hms-barcodes/`;

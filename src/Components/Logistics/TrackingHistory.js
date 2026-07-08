@@ -442,8 +442,23 @@ const TrackingHistory = () => {
     const fetchCollectors = async () => {
       try {
         const res = await apiRequest(`${BASE_URL}sample-collector/`, 'GET');
-        const names = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-        setAllCollectors(names.filter(Boolean).sort());
+        let names = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        names = names.map(c => {
+          if (typeof c === 'object' && c !== null) {
+            return { employeeId: c.employeeId || '', employeeName: c.employeeName || c.name || '' };
+          }
+          return { employeeId: c, employeeName: c };
+        }).filter(c => c.employeeName && c.employeeName.trim() !== '');
+
+        const uniqueCollectors = [];
+        const seen = new Set();
+        for (const c of names) {
+          if (!seen.has(c.employeeId)) {
+            seen.add(c.employeeId);
+            uniqueCollectors.push(c);
+          }
+        }
+        setAllCollectors(uniqueCollectors);
       } catch (err) {
         console.error('Failed to fetch collectors:', err);
       }
@@ -654,8 +669,8 @@ const TrackingHistory = () => {
               onChange={(e) => setCollectorFilter(e.target.value)}
             >
               <option value="">All Collectors</option>
-              {allCollectors.map(name => (
-                <option key={name} value={name}>{name}</option>
+              {allCollectors.map(collector => (
+                <option key={collector.employeeId} value={collector.employeeId}>{collector.employeeName}</option>
               ))}
             </Select>
           </FilterGroup>

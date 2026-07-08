@@ -460,6 +460,12 @@ const B2BApproval = () => {
     fileName: null,
     loading: false
   });
+  const [rejectModal, setRejectModal] = useState({
+    isOpen: false,
+    approvalData: null,
+    reason: "",
+    loading: false
+  });
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   useEffect(() => {
     fetchPendingApprovals();
@@ -539,8 +545,59 @@ const B2BApproval = () => {
   };
 
   const handleReject = (approval) => {
-    // Implementation for reject functionality
-    toast.info(`Reject functionality would be implemented here for ${approval.clinicalname || approval.referrerCode}`);
+    setRejectModal({
+      isOpen: true,
+      approvalData: approval,
+      reason: "",
+      loading: false
+    });
+  };
+
+  const handleRejectSubmit = async () => {
+    const approval = rejectModal.approvalData;
+    const { referrerCode, clinicalname } = approval;
+    
+    if (!rejectModal.reason.trim()) {
+      toast.error("Please provide a reason for rejection.");
+      return;
+    }
+
+    try {
+      setRejectModal(prev => ({ ...prev, loading: true }));
+      const userId = localStorage.getItem("employeeId") || "Admin";
+      
+      const payload = {
+        rejected_reason: rejectModal.reason,
+        rejected_id: userId
+      };
+
+      const response = await apiRequest(
+        `${Labbaseurl}clinical-names/${referrerCode}/reject/`,
+        'PATCH',
+        payload
+      );
+
+      if (response.success) {
+        toast.success(`"${clinicalname || referrerCode}" has been rejected.`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        
+        setRejectModal({ isOpen: false, approvalData: null, reason: "", loading: false });
+        fetchPendingApprovals(); // Refresh the list
+      } else {
+        toast.error("Rejection Failed: " + (response.error || "Unknown error"));
+        setRejectModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error("Rejection Failed:", error);
+      toast.error("Rejection Failed: Unknown error");
+      setRejectModal(prev => ({ ...prev, loading: false }));
+    }
   };
 
   const handlePreviewMOU = (approval) => {
@@ -845,6 +902,48 @@ const B2BApproval = () => {
             <ModalFooter>
               <Button onClick={closePreviewModal}>
                 Close
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModal.isOpen && (
+        <ModalOverlay onClick={() => !rejectModal.loading && setRejectModal(prev => ({ ...prev, isOpen: false }))}>
+          <ModalContent style={{ maxWidth: '500px', height: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Reject Approval</ModalTitle>
+              <CloseButton onClick={() => !rejectModal.loading && setRejectModal(prev => ({ ...prev, isOpen: false }))}>
+                <X size={20} />
+              </CloseButton>
+            </ModalHeader>
+            <ModalBody style={{ height: 'auto', padding: '1.5rem' }}>
+              <p style={{ marginBottom: '1rem', color: 'var(--gray)' }}>
+                Please provide a reason for rejecting <strong>{rejectModal.approvalData?.clinicalname || rejectModal.approvalData?.referrerCode}</strong>.
+              </p>
+              <textarea
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--gray-light)',
+                  borderRadius: 'var(--border-radius)',
+                  minHeight: '120px',
+                  fontFamily: 'inherit',
+                  fontSize: '0.875rem'
+                }}
+                placeholder="Enter reason for rejection..."
+                value={rejectModal.reason}
+                onChange={(e) => setRejectModal(prev => ({ ...prev, reason: e.target.value }))}
+                disabled={rejectModal.loading}
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button style={{ marginRight: '0.75rem' }} onClick={() => !rejectModal.loading && setRejectModal(prev => ({ ...prev, isOpen: false }))}>
+                Cancel
+              </Button>
+              <Button danger onClick={handleRejectSubmit} disabled={rejectModal.loading || !rejectModal.reason.trim()}>
+                {rejectModal.loading ? <><LoadingSpinner style={{ width: '14px', height: '14px' }} /> Rejecting...</> : 'Confirm Reject'}
               </Button>
             </ModalFooter>
           </ModalContent>

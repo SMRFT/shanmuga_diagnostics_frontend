@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiRequest from '../Auth/apiRequest';
 import { toast } from 'react-toastify';
-import { CheckCircle, Loader2, AlertCircle, User, Calendar, Tag, Code } from 'lucide-react';
+import { CheckCircle, Loader2, AlertCircle, User, Calendar, Tag, Code, X } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 
 // Global styles
@@ -83,42 +83,54 @@ const CardBody = styled.div`
   padding: 1.5rem;
 `;
 
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+`;
+
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1.5rem;
-  box-shadow: var(--box-shadow);
-  border-radius: var(--border-radius);
-  overflow: hidden;
+  min-width: 800px;
+  background: white;
 `;
 
 const THead = styled.thead`
-  background-color: var(--secondary);
+  background: linear-gradient(135deg, var(--secondary), var(--primary-dark));
   color: white;
 `;
 
 const Th = styled.th`
-  padding: 1rem;
+  padding: 1.25rem 1rem;
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 `;
 
 const Td = styled.td`
   padding: 1rem;
   border-bottom: 1px solid var(--gray-light);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
+  vertical-align: middle;
 `;
 
 const Tr = styled.tr`
+  transition: all 0.2s ease;
+  
   &:nth-child(even) {
-    background-color: var(--light);
+    background-color: rgba(248, 249, 250, 0.7);
   }
   
   &:hover {
-    background-color: rgba(67, 97, 238, 0.05);
+    background-color: rgba(67, 97, 238, 0.08);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   }
 `;
 
@@ -127,19 +139,26 @@ const Button = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background-color: ${props => props.primary ? 'var(--primary)' : props.success ? 'var(--success)' : 'white'};
-  color: ${props => (props.primary || props.success) ? 'white' : 'var(--gray)'};
-  border: 1px solid ${props => props.primary ? 'var(--primary)' : props.success ? 'var(--success)' : 'var(--gray-light)'};
-  border-radius: var(--border-radius);
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.6rem 1.2rem;
+  background-color: ${props => props.primary ? 'var(--primary)' : props.success ? 'var(--success)' : props.danger ? 'var(--danger)' : 'white'};
+  color: ${props => (props.primary || props.success || props.danger) ? 'white' : 'var(--gray)'};
+  border: 1px solid ${props => props.primary ? 'var(--primary)' : props.success ? 'var(--success)' : props.danger ? 'var(--danger)' : 'var(--gray-light)'};
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: var(--transition);
+  transition: all 0.2s ease;
   opacity: ${props => props.disabled ? '0.7' : '1'};
+  white-space: nowrap;
   
-  &:hover {
-    background-color: ${props => props.primary ? 'var(--primary-dark)' : props.success ? 'var(--primary-light)' : 'var(--gray-light)'};
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background-color: ${props => props.primary ? 'var(--primary-dark)' : props.success ? '#38bdf8' : props.danger ? '#e11d48' : 'var(--gray-light)'};
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
 `;
 
@@ -229,11 +248,85 @@ const IconCircle = styled.div`
   }
 `;
 
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--primary-dark);
+`;
+
+const ModalBody = styled.div`
+  flex: 1;
+  overflow: hidden;
+  height: 70vh;
+  position: relative;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--gray);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    color: var(--primary-dark);
+  }
+`;
+
+const ModalFooter = styled.div`
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--gray-light);
+  display: flex;
+  justify-content: flex-end;
+`;
+
 const B2BFinalApproval = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processingApproval, setProcessingApproval] = useState(null);
+  const [rejectModal, setRejectModal] = useState({
+    isOpen: false,
+    approvalData: null,
+    reason: "",
+    loading: false
+  });
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   useEffect(() => {
     fetchPendingApprovals();
@@ -276,8 +369,7 @@ const B2BFinalApproval = () => {
       );
 
       if (response.success) {
-        // Custom success toast message
-        toast.success(`"${clinicalname || referrerCode}" was finally approved!`, {
+        toast.success(`"${clinicalname || referrerCode}" has been finally approved!`, {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -295,6 +387,62 @@ const B2BFinalApproval = () => {
       toast.error("Final Approval Failed: Unknown error");
     } finally {
       setProcessingApproval(null);
+    }
+  };
+
+  const handleReject = (approval) => {
+    setRejectModal({
+      isOpen: true,
+      approvalData: approval,
+      reason: "",
+      loading: false
+    });
+  };
+
+  const handleRejectSubmit = async () => {
+    const approval = rejectModal.approvalData;
+    const { referrerCode, clinicalname } = approval;
+    
+    if (!rejectModal.reason.trim()) {
+      toast.error("Please provide a reason for rejection.");
+      return;
+    }
+
+    try {
+      setRejectModal(prev => ({ ...prev, loading: true }));
+      const userId = localStorage.getItem("employeeId") || "Admin";
+      
+      const payload = {
+        rejected_reason: rejectModal.reason,
+        rejected_id: userId
+      };
+
+      const response = await apiRequest(
+        `${Labbaseurl}clinical-names/${referrerCode}/reject/`,
+        'PATCH',
+        payload
+      );
+
+      if (response.success) {
+        toast.success(`"${clinicalname || referrerCode}" has been rejected.`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        
+        setRejectModal({ isOpen: false, approvalData: null, reason: "", loading: false });
+        fetchPendingApprovals(); // Refresh the list
+      } else {
+        toast.error("Rejection Failed: " + (response.error || "Unknown error"));
+        setRejectModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error("Rejection Failed:", error);
+      toast.error("Rejection Failed: Unknown error");
+      setRejectModal(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -343,54 +491,106 @@ const B2BFinalApproval = () => {
                 <p>All clinical names have been finally approved. Check back later for new submissions.</p>
               </EmptyState>
             ) : (
-              <Table>
-                <THead>
-                  <Tr>
-                    <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={14} /> Clinical Name</div></Th>
-                    <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Code size={14} /> Referrer Code</div></Th>
-                    <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={14} /> First Approved At</div></Th>
-                    <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Tag size={14} /> Type</div></Th>
-                    <Th style={{ textAlign: 'right' }}>Actions</Th>
-                  </Tr>
-                </THead>
-                <tbody>
-                  {pendingApprovals.map((approval) => (
-                    <Tr key={approval.referrerCode}>
-                      <Td>{approval.clinicalname || "N/A"}</Td>
-                      <Td>{approval.referrerCode}</Td>
-                      <Td>{new Date(approval.first_approved_timestamp).toLocaleString()}</Td>
-                      <Td>
-                        <Badge type="primary">
-                          {approval.type || "N/A"}
-                        </Badge>
-                      </Td>
-                      <Td style={{ textAlign: 'right' }}>
-                        <Button
-                          success
-                          onClick={() => handleFinalApprove(approval)}
-                          disabled={processingApproval === approval.referrerCode}
-                        >
-                          {processingApproval === approval.referrerCode ? (
-                            <>
-                              <LoadingSpinner />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle size={16} />
-                              Final Approve
-                            </>
-                          )}
-                        </Button>
-                      </Td>
+              <TableWrapper>
+                <Table>
+                  <THead>
+                    <Tr>
+                      <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={14} /> Clinical Name</div></Th>
+                      <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Code size={14} /> Referrer Code</div></Th>
+                      <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={14} /> First Approved At</div></Th>
+                      <Th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Tag size={14} /> Type</div></Th>
+                      <Th style={{ textAlign: 'right' }}>Actions</Th>
                     </Tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </THead>
+                  <tbody>
+                    {pendingApprovals.map((approval) => (
+                      <Tr key={approval.referrerCode}>
+                        <Td><strong>{approval.clinicalname || "N/A"}</strong></Td>
+                        <Td>{approval.referrerCode}</Td>
+                        <Td>{new Date(approval.first_approved_timestamp).toLocaleString(undefined, {
+                          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'
+                        })}</Td>
+                        <Td>
+                          <Badge type="primary">
+                            {approval.type || "N/A"}
+                          </Badge>
+                        </Td>
+                        <Td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <Button danger onClick={() => handleReject(approval)}>
+                              <AlertCircle size={14} />
+                              Reject
+                            </Button>
+                            <Button
+                              success
+                              onClick={() => handleFinalApprove(approval)}
+                              disabled={processingApproval === approval.referrerCode}
+                            >
+                              {processingApproval === approval.referrerCode ? (
+                                <>
+                                  <LoadingSpinner />
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle size={14} />
+                                  Approve
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </TableWrapper>
             )}
           </CardBody>
         </Card>
       </Container>
+
+      {/* Reject Modal */}
+      {rejectModal.isOpen && (
+        <ModalOverlay onClick={() => !rejectModal.loading && setRejectModal(prev => ({ ...prev, isOpen: false }))}>
+          <ModalContent style={{ maxWidth: '500px', height: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Reject Approval</ModalTitle>
+              <CloseButton onClick={() => !rejectModal.loading && setRejectModal(prev => ({ ...prev, isOpen: false }))}>
+                <X size={20} />
+              </CloseButton>
+            </ModalHeader>
+            <ModalBody style={{ height: 'auto', padding: '1.5rem' }}>
+              <p style={{ marginBottom: '1rem', color: 'var(--gray)' }}>
+                Please provide a reason for rejecting <strong>{rejectModal.approvalData?.clinicalname || rejectModal.approvalData?.referrerCode}</strong>.
+              </p>
+              <textarea
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--gray-light)',
+                  borderRadius: 'var(--border-radius)',
+                  minHeight: '120px',
+                  fontFamily: 'inherit',
+                  fontSize: '0.875rem'
+                }}
+                placeholder="Enter reason for rejection..."
+                value={rejectModal.reason}
+                onChange={(e) => setRejectModal(prev => ({ ...prev, reason: e.target.value }))}
+                disabled={rejectModal.loading}
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button style={{ marginRight: '0.75rem' }} onClick={() => !rejectModal.loading && setRejectModal(prev => ({ ...prev, isOpen: false }))}>
+                Cancel
+              </Button>
+              <Button danger onClick={handleRejectSubmit} disabled={rejectModal.loading || !rejectModal.reason.trim()}>
+                {rejectModal.loading ? <><LoadingSpinner style={{ width: '14px', height: '14px' }} /> Rejecting...</> : 'Confirm Reject'}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
     </>
   );
 };

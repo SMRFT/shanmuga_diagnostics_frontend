@@ -501,17 +501,77 @@ const PrintBill = () => {
       ? patient.testdetails.filter((test) => !test.refund && !test.cancellation)
       : [];
 
-    const tableRows = validTests
-      .map(
-        (test, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${test.testname}</td>
-          <td style="text-align: right;">₹${parseFloat(test.amount || 0).toFixed(2)}</td>
-        </tr>
-      `
-      )
-      .join("");
+    const generateTableRows = () => {
+      // Group tests by package
+      const packageGroups = {}
+      const individualTests = []
+
+      validTests.forEach((test, index) => {
+        if (test.isFromPackage) {
+          if (!packageGroups[test.packageName]) {
+            packageGroups[test.packageName] = {
+              tests: [],
+              packageRate: test.originalPackageRate || 0,
+              originalIndex: index,
+            }
+          }
+          packageGroups[test.packageName].tests.push({ ...test, originalIndex: index })
+        } else {
+          individualTests.push({ ...test, originalIndex: index })
+        }
+      })
+
+      let rows = ""
+      let serialNumber = 1
+
+      // Render package groups
+      Object.entries(packageGroups).forEach(([packageName, group]) => {
+        // Package header row
+        rows += `
+          <tr style="background-color: #f8fafc;">
+            <td style="font-weight: 600; color: #1e40af; padding: 8px;">${serialNumber}</td>
+            <td style="font-weight: 600; color: #1e40af; padding: 8px;">
+              ${packageName}
+            </td>
+            <td style="text-align: right; font-weight: 600; color: #1e40af; padding: 8px;">
+              ₹${parseFloat(group.packageRate || 0).toFixed(2)}
+            </td>
+          </tr>
+        `
+        serialNumber++
+
+        // Individual tests under the package (showing as "Included")
+        group.tests.forEach((test) => {
+          rows += `
+            <tr style="background-color: #fafbfc;">
+              <td style="padding-left: 24px; font-size: 0.9rem; color: #4b5563; padding: 4px 8px;"></td>
+              <td style="padding-left: 24px; font-size: 0.9rem; color: #4b5563; padding: 4px 8px;">
+                • ${test.testname}
+              </td>
+              <td style="text-align: right; font-size: 0.8rem; color: #9ca3af; padding: 4px 8px;">
+                Included
+              </td>
+            </tr>
+          `
+        })
+      })
+
+      // Render individual tests
+      individualTests.forEach((test) => {
+        rows += `
+          <tr>
+            <td style="padding: 8px;">${serialNumber}</td>
+            <td style="padding: 8px;">${test.testname || ""}</td>
+            <td style="text-align: right; padding: 8px;">₹${parseFloat(test.amount || 0).toFixed(2)}</td>
+          </tr>
+        `
+        serialNumber++
+      })
+
+      return rows
+    }
+
+    const tableRows = generateTableRows()
 
     let displayPaymentMode = "NIL";
     if (patient.payment_method && typeof patient.payment_method === "object") {
