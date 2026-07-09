@@ -646,14 +646,14 @@ const CorporateTestSorting = ({ patient, onClose }) => {
         contentWidth * 0.28,
         contentWidth * 0.12,
         contentWidth * 0.05,
-        contentWidth * 0.13,
+        contentWidth * 0.18,
         contentWidth * 0.1,
-        contentWidth * 0.17,
-        contentWidth * 0.15,
+        contentWidth * 0.27,
+        0,
       ];
 
       const leftDetails = [
-        { label: "UHID", value: patientDetails.patient_id || "" },
+        { label: "Patient ID", value: patientDetails.patient_id || "" },
         {
           label: "Name",
           value: patientDetails.patientname || "",
@@ -663,7 +663,6 @@ const CorporateTestSorting = ({ patient, onClose }) => {
           value: `${patientDetails.age || ""} ${patientDetails.age_type || ""}/ ${patientDetails.gender || ""}`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
-        { label: "Phone", value: patientDetails.phone || "N/A" },
       ];
 
       const rightDetails = [
@@ -684,16 +683,16 @@ const CorporateTestSorting = ({ patient, onClose }) => {
             ) || "N/A",
         },
         ...(patientDetails.testdetails[0].dispatch_time &&
-        patientDetails.testdetails[0].dispatch_time !== "null"
+          patientDetails.testdetails[0].dispatch_time !== "null"
           ? [
-              {
-                label: "Released On",
-                value: format(
-                  new Date(patientDetails.testdetails[0].dispatch_time),
-                  "dd MMM yy / HH:mm",
-                ),
-              },
-            ]
+            {
+              label: "Released On",
+              value: format(
+                new Date(patientDetails.testdetails[0].dispatch_time),
+                "dd MMM yy / HH:mm",
+              ),
+            },
+          ]
           : []),
 
         {
@@ -716,20 +715,22 @@ const CorporateTestSorting = ({ patient, onClose }) => {
       let isMolBioSection = false;
 
       let showNablLogo = false; // will be set per department
+      let patientInfoEndY = 0;
+
+      const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+      const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+      const centerPoint = (leftMargin + rightMargin) / 2;
+      const leftLabelX = leftMargin;
+      const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+      const leftValueX = leftColonX + 3;
+      const rightLabelX = centerPoint + 28;
+      const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+      const rightValueX = rightColonX + 1;
 
       const addPatientInfo = (yPos) => {
-        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-        const centerPoint = (leftMargin + rightMargin) / 2;
-        const leftLabelX = leftMargin;
-        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-        const leftValueX = leftColonX + 3;
-        const rightLabelX = centerPoint + 28;
-        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-        const rightValueX = rightColonX + 1;
-
         doc.setFontSize(10);
         let patientInfoY = yPos;
+        let barcodeBottomY = 0;
 
         // FIX: Use the maximum length of both arrays
         const maxLength = Math.max(leftDetails.length, rightDetails.length);
@@ -774,14 +775,16 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               patientRefNoNumber !== "N/A" &&
               barcodeImage
             ) {
+              const barcodeY = patientInfoY + 4;
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 21,
-                patientInfoY + 4,
+                rightValueX + doc.getTextWidth(right.value) - 10,
+                barcodeY,
                 25,
                 10,
               );
+              barcodeBottomY = barcodeY + 10;
             }
           }
 
@@ -789,7 +792,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
           patientInfoY += Math.max(leftRowHeight, 5);
         }
 
-        return patientInfoY;
+        return Math.max(patientInfoY, barcodeBottomY);
       };
 
       const addHeaderFooter = (withNabl = false) => {
@@ -878,88 +881,47 @@ const CorporateTestSorting = ({ patient, onClose }) => {
       ) => {
         if (!text) return 0;
 
-        const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/;
-        const match = text.match(superscriptRegex);
+        const lines = maxWidth ? doc.splitTextToSize(text, maxWidth) : text.split("\n");
+        let currentY = y;
+        let totalHeight = 0;
 
-        if (!match) {
-          if (maxWidth) {
-            return renderWrappedText(doc, text, maxWidth, x, y, lineHeight);
+        lines.forEach((lineText) => {
+          const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/;
+          const match = lineText.match(superscriptRegex);
+
+          if (!match) {
+            doc.text(lineText, x, currentY);
           } else {
-            doc.text(text, x, y);
-            return lineHeight;
+            const before = lineText.slice(0, match.index);
+            const base = match[1].replace(/[xX]/, "×");
+            const exponent = match[2];
+            const after = lineText.slice(match.index + match[0].length);
+
+            let currentX = x;
+            const normalSize = doc.getFontSize();
+
+            if (before) {
+              doc.text(before, currentX, currentY);
+              currentX += doc.getTextWidth(before);
+            }
+
+            doc.text(base, currentX, currentY);
+            currentX += doc.getTextWidth(base);
+
+            doc.setFontSize(7);
+            doc.text(exponent, currentX, currentY - 2);
+            currentX += doc.getTextWidth(exponent);
+            doc.setFontSize(normalSize);
+
+            if (after) {
+              doc.text(after, currentX, currentY);
+            }
           }
-        }
-
-        // Split into: textBefore the scientific notation, the notation itself, and after
-        // e.g. "DETECTED (3×10^05)" => before="DETECTED ", base="3", exp="05", after=")"
-        // e.g. "NOT DETECTED(ML^05)" => before="NOT DETECTED(ML", base="ML", exp="05", after=")"
-        const before = text.slice(0, match.index).trimEnd();
-        const base = match[1].replace(/[xX×]/g, "×");
-        const exponent = match[2];
-        const after = text.slice(match.index + match[0].length);
-
-        // Find any prefix attached directly to the scientific notation (e.g. opening bracket)
-        // Everything between last space in `before` and the match is a "prefix" to keep with the notation
-        const lastSpaceIndex = before.lastIndexOf(" ");
-        const mainText =
-          lastSpaceIndex !== -1 ? before.slice(0, lastSpaceIndex) : before;
-        const notationPrefix =
-          lastSpaceIndex !== -1 ? before.slice(lastSpaceIndex + 1) : "";
-
-        const normalSize = doc.getFontSize();
-
-        if (!mainText.trim()) {
-          // No "before" text — render everything inline on one line
-          let currentX = x;
-          if (notationPrefix) {
-            doc.text(notationPrefix, currentX, y);
-            currentX += doc.getTextWidth(notationPrefix);
-          }
-          doc.text(base, currentX, y);
-          currentX += doc.getTextWidth(base);
-
-          doc.setFontSize(7);
-          doc.text(exponent, currentX, y - 2);
-          currentX += doc.getTextWidth(exponent);
-          doc.setFontSize(normalSize);
-
-          if (after) {
-            doc.text(after, currentX, y);
-          }
-          return lineHeight;
-        }
-
-        // Render main text (e.g. "DETECTED") — wrap if needed
-        const mainLines = maxWidth
-          ? wrapTextAndGetLines(doc, mainText, maxWidth)
-          : [mainText];
-
-        mainLines.forEach((line, i) => {
-          doc.text(line, x, y + i * lineHeight);
+          currentY += lineHeight;
+          totalHeight += lineHeight;
         });
 
-        // Render the scientific notation part on the next line, kept together
-        const superLineY = y + mainLines.length * lineHeight + 1;
-        let currentX = x;
-
-        if (notationPrefix) {
-          doc.text(notationPrefix, currentX, superLineY);
-          currentX += doc.getTextWidth(notationPrefix);
-        }
-
-        doc.text(base, currentX, superLineY);
-        currentX += doc.getTextWidth(base);
-
-        doc.setFontSize(7);
-        doc.text(exponent, currentX, superLineY - 2);
-        currentX += doc.getTextWidth(exponent);
-        doc.setFontSize(normalSize);
-
-        if (after) {
-          doc.text(after, currentX, superLineY);
-        }
-
-        return mainLines.length * lineHeight + lineHeight + 1;
+        return totalHeight;
       };
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
@@ -972,8 +934,8 @@ const CorporateTestSorting = ({ patient, onClose }) => {
           "",
           "Result",
           "Units",
-          "Reference Value",
-          "Method",
+          "Reference Range / Method",
+          "",
         ];
         let xPos = leftMargin;
         headers.forEach((header, index) => {
@@ -1109,7 +1071,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
 
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
+        const footerStart = pageHeight - (footerHeight + signatureHeight - 1);
 
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
@@ -1118,7 +1080,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
           addHeaderFooter(showNablLogo);
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
-          newYPos += 10;
+          newYPos += 12;
           // Only draw table header if NOT in mol bio section
           if (isTableStarted && !isMolBioSection) {
             newYPos = drawTableHeader(newYPos);
@@ -1173,7 +1135,8 @@ const CorporateTestSorting = ({ patient, onClose }) => {
 
       addHeaderFooter(showNablLogo); // showNablLogo is false here, will be corrected below
       let currentYPosition = addPatientInfo(contentYStart);
-      currentYPosition += 10;
+      patientInfoEndY = currentYPosition;
+      currentYPosition += 12;
 
       if (orderedTests.length) {
         isTableStarted = true;
@@ -1276,33 +1239,30 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               const methodText = (test.method || "")
                 .replace(/\bMethod\b/i, "")
                 .trim();
+              const hasParameters = test.parameters && test.parameters.length > 0;
+              const testNameWidth = hasParameters ? contentWidth - 2 : colWidths[0] - 2;
               const testNameLines = wrapTextAndGetLines(
                 doc,
                 testNameText,
-                colWidths[0] - 2,
+                testNameWidth,
               );
               const valueLines = wrapTextAndGetLines(
                 doc,
                 valueText,
                 colWidths[3] - 2,
               );
-              const referenceLines = wrapTextAndGetLines(
+              const refMethodText = [test.reference_range, methodText].filter(p => p && p.trim() !== "").join("\n/ ");
+              const refMethodLines = wrapTextAndGetLines(
                 doc,
-                test.reference_range || "",
+                refMethodText,
                 colWidths[5] - 2,
-              );
-              const methodLines = wrapTextAndGetLines(
-                doc,
-                methodText,
-                colWidths[6] - 2,
               );
               const maxLines = Math.max(
                 testNameLines.length,
                 valueLines.length,
-                referenceLines.length,
-                methodLines.length,
+                refMethodLines.length,
               );
-              const lineHeight = 4;
+              const lineHeight = 4.5;
               const actualRowHeight = maxLines * lineHeight + 2;
 
               yPos = checkForNewPage(yPos, actualRowHeight);
@@ -1312,7 +1272,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               renderWrappedText(
                 doc,
                 testNameText,
-                colWidths[0] - 2,
+                testNameWidth,
                 xPos,
                 yPos,
                 lineHeight,
@@ -1337,6 +1297,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                   0,
                   statusIndicator === "L" ? 255 : 0,
                 );
+                // For test value (statusIndicator block):
                 renderValueWithSuperscript(
                   doc,
                   valueText,
@@ -1356,6 +1317,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                 doc.setTextColor(0, 0, 0);
                 doc.setFont("helvetica", "normal");
               } else {
+                // For test value (statusIndicator block):
                 renderValueWithSuperscript(
                   doc,
                   valueText,
@@ -1370,24 +1332,13 @@ const CorporateTestSorting = ({ patient, onClose }) => {
               xPos += colWidths[4];
               renderWrappedText(
                 doc,
-                test.reference_range || "",
+                refMethodText,
                 colWidths[5] - 2,
                 xPos,
                 yPos,
                 lineHeight,
               );
-              xPos += colWidths[5];
-              doc.setTextColor(0, 0, 0);
-              renderWrappedText(
-                doc,
-                methodText,
-                colWidths[6] - 2,
-                xPos,
-                yPos,
-                lineHeight,
-              );
-
-              yPos += actualRowHeight + 4;
+              yPos += actualRowHeight + (hasParameters ? 2.5 : 6);
               doc.setFont("helvetica", "normal");
               doc.setTextColor(0, 0, 0);
 
@@ -1402,19 +1353,32 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                 if (test.comment && test.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
+                  const commentLines = wrapTextAndGetLines(doc, `Comment: ${test.comment}`, contentWidth);
+                  yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
                   const commentHeight = renderWrappedText(
                     doc,
-                    `Note: ${test.comment}`,
-                    colWidths[0] +
-                      colWidths[1] +
-                      colWidths[2] +
-                      colWidths[3] -
-                      2,
+                    `Comment: ${test.comment}`,
+                    contentWidth,
                     leftMargin,
                     yPos,
                     3.5,
                   );
                   yPos += commentHeight + 2;
+                }
+                if (test.notes && test.notes.trim() !== "") {
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
+                  const notesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
+                  yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                  const notesHeight = renderWrappedText(
+                    doc,
+                    `Notes: ${test.notes}`,
+                    contentWidth,
+                    leftMargin,
+                    yPos,
+                    3.5,
+                  );
+                  yPos += notesHeight + 2;
                 }
               }
 
@@ -1448,23 +1412,18 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                     paramValueText,
                     colWidths[3] - 2,
                   );
-                  const paramRefLines = wrapTextAndGetLines(
+                  const paramRefMethodText = [currentTest.reference_range, paramMethodText].filter(p => p && p.trim() !== "").join("\n/ ");
+                  const paramRefMethodLines = wrapTextAndGetLines(
                     doc,
-                    currentTest.reference_range || "",
+                    paramRefMethodText,
                     colWidths[5] - 2,
-                  );
-                  const paramMethodLines = wrapTextAndGetLines(
-                    doc,
-                    paramMethodText,
-                    colWidths[6] - 2,
                   );
                   const paramMaxLines = Math.max(
                     paramNameLines.length,
                     paramValueLines.length,
-                    paramRefLines.length,
-                    paramMethodLines.length,
+                    paramRefMethodLines.length,
                   );
-                  const paramLineHeight = 4;
+                  const paramLineHeight = 4.5;
                   const paramRowHeight = paramMaxLines * paramLineHeight + 2;
 
                   yPos = checkForNewPage(yPos, paramRowHeight);
@@ -1489,9 +1448,9 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                     : currentTest.isLow
                       ? "L"
                       : getHighLowStatus(
-                          paramValueText,
-                          currentTest.reference_range,
-                        );
+                        paramValueText,
+                        currentTest.reference_range,
+                      );
 
                   if (paramStatus) {
                     doc.setFont("helvetica", "bold");
@@ -1533,18 +1492,8 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                   xPos += colWidths[4];
                   renderWrappedText(
                     doc,
-                    currentTest.reference_range || "",
+                    paramRefMethodText,
                     colWidths[5] - 2,
-                    xPos,
-                    yPos,
-                    paramLineHeight,
-                  );
-                  xPos += colWidths[5];
-                  doc.setTextColor(0, 0, 0);
-                  renderWrappedText(
-                    doc,
-                    paramMethodText,
-                    colWidths[6] - 2,
                     xPos,
                     yPos,
                     paramLineHeight,
@@ -1557,25 +1506,58 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                   ) {
                     doc.setFont("helvetica", "italic");
                     doc.setFontSize(8);
+                    const commentLines = wrapTextAndGetLines(doc, `Comment: ${currentTest.comment}`, contentWidth);
+                    yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
                     const paramCommentHeight = renderWrappedText(
                       doc,
-                      `Note: ${currentTest.comment}`,
-                      colWidths[0] +
-                        colWidths[1] +
-                        colWidths[2] +
-                        colWidths[3] -
-                        2,
+                      `Comment: ${currentTest.comment}`,
+                      contentWidth,
                       leftMargin,
                       yPos,
                       3.5,
                     );
                     yPos += paramCommentHeight + 2;
                   }
+                  if (
+                    currentTest.notes &&
+                    currentTest.notes.trim() !== ""
+                  ) {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const notesLines = wrapTextAndGetLines(doc, `Notes: ${currentTest.notes}`, contentWidth);
+                    yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                    const notesHeight = renderWrappedText(
+                      doc,
+                      `Notes: ${currentTest.notes}`,
+                      contentWidth,
+                      leftMargin,
+                      yPos,
+                      3.5,
+                    );
+                    yPos += notesHeight + 2;
+                  }
+                  yPos += 3;
                   doc.setFont("helvetica", "normal");
                   doc.setFontSize(10);
                   doc.setTextColor(0, 0, 0);
                 });
               });
+
+              if (test.parameters && test.parameters.length > 0 && test.notes && test.notes.trim() !== "") {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                const testNotesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
+                yPos = checkForNewPage(yPos, testNotesLines.length * 3.5 + 2);
+                const testNotesHeight = renderWrappedText(
+                  doc,
+                  `Notes: ${test.notes}`,
+                  contentWidth,
+                  leftMargin,
+                  yPos,
+                  3.5,
+                );
+                yPos += testNotesHeight + 2;
+              }
 
               if (
                 hasMultipleVerifiers &&
@@ -1630,7 +1612,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
             addHeaderFooter(false);
             currentYPosition = contentYStart;
             currentYPosition = addPatientInfo(currentYPosition);
-            currentYPosition += 10;
+            currentYPosition += 12;
           } else {
             // Only false tests: no logo anywhere
             showNablLogo = false;
@@ -2097,13 +2079,13 @@ const CorporateTestSorting = ({ patient, onClose }) => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight + 5); // CHANGED from 10 to 15
+        const footerStart = pageHeight - (footerHeight + signatureHeight - 1);
         if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
           addHeaderFooter(showNablLogo);
-          return addPatientInfo(contentYStart);
+          return addPatientInfo(contentYStart) + 12;
         }
         return currentYPosition;
       };
@@ -2141,20 +2123,43 @@ const CorporateTestSorting = ({ patient, onClose }) => {
       doc.text("**End of the Report**", centerX, currentYPosition, {
         align: "center",
       });
+      currentYPosition += 6;
+
+      const allTestStatuses = patient.test_statuses || [];
+      const unapprovedTests = allTestStatuses.filter((hmsTest) => {
+        return !tests.some((sortingTest) => sortingTest.test_id === hmsTest.test_id);
+      });
+
+      if (unapprovedTests.length > 0) {
+        currentYPosition = checkForNewPage(currentYPosition, 10);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("Result/s to follow:", leftMargin, currentYPosition);
+        currentYPosition += 4.5;
+
+        doc.setFont("helvetica", "normal");
+        unapprovedTests.forEach((t) => {
+          currentYPosition = checkForNewPage(currentYPosition, 5);
+          doc.text(`- ${t.test_name}`, leftMargin + 2, currentYPosition);
+          currentYPosition += 4.5;
+        });
+      }
 
       addSignatures();
 
       const finalPageCount = pageCount;
+      const barcodeX = rightValueX + doc.getTextWidth(patientRefNoNumber) - 10;
+      const pageNumberX = barcodeX + 12.5; // Centered under the barcode
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
-        const pageHeight = doc.internal.pageSize.height;
-        const pageNumberY = pageHeight - footerHeight - 6;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
-        const centerX = leftMargin + contentWidth / 2;
-        doc.text(`Page ${i} of ${finalPageCount}`, centerX, pageNumberY, {
-          align: "center",
-        });
+        doc.text(
+          `Page ${i} of ${finalPageCount}`,
+          pageNumberX,
+          patientInfoEndY + 4,
+          { align: "center" },
+        );
       }
 
       // Generate the PDF as a Blob
