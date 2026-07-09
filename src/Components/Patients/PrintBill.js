@@ -585,22 +585,22 @@ const PrintBill = () => {
       ? numberToWords(patient.netAmount) + " rupees only"
       : "";
 
-   const formatDateTimeUTC = (isoString) => {
-  if (!isoString) return "NIL";
+    const formatDateTimeUTC = (isoString) => {
+      if (!isoString) return "NIL";
 
-  const dateObj = new Date(isoString);
+      const dateObj = new Date(isoString);
 
-  return dateObj.toLocaleString("en-IN", {
-    year: "numeric",
-    month: "long",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-    timeZone: "UTC",   // 🔥 Force UTC display
-  }).replace(/am|pm/gi, (m) => m.toUpperCase());
-};
+      return dateObj.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "long",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+        timeZone: "UTC",   // 🔥 Force UTC display
+      }).replace(/am|pm/gi, (m) => m.toUpperCase());
+    };
 
     // ── CHANGE 1: Emergency / Normal label in print ──
     const emergencyLabel = patient.is_emergency
@@ -642,7 +642,7 @@ const PrintBill = () => {
               <table id="invoiceTable">
                 <tr>
                   <td><strong>Bill Date:</strong> ${formatDateTimeUTC(patient.bill_date) || "NIL"}</td>
-                  <td><strong>Bill No / Lab ID:</strong> ${patient.lab_id || "NIL"}</td>
+                  <td><strong>Bill No:</strong> ${patient.bill_no || "NIL"}</td>
                 </tr>
                 <tr>
                   <td><strong>Patient ID:</strong> ${patient.patient_id || "NIL"}</td>

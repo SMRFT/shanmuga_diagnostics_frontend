@@ -1014,7 +1014,7 @@ const PatientBilling = () => {
       <div class="details"><table>
         <tr>
           <td><strong>Bill Date:</strong> ${fmtDT(new Date().toISOString())}</td>
-          <td><strong>Bill No / Lab ID:</strong> ${selectedPatient.lab_id || "NIL"}</td>
+          <td><strong>Bill No:</strong> ${selectedPatient.bill_no || "NIL"}</td>
         </tr>
         <tr>
           <td><strong>Patient ID:</strong> ${selectedPatient.patient_id || "NIL"}</td>
