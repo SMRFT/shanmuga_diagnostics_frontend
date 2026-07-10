@@ -109,15 +109,15 @@ const Title = styled.h1`
 `;
 
 const FiltersContainer = styled.div`
-  padding: 0.75rem 1.5rem;
+  padding: 0.4rem 1rem;
   border-bottom: 1px solid var(--gray-light);
 `;
 
 const FilterRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -127,20 +127,22 @@ const FilterRow = styled.div`
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
 `;
 
 const FilterLabel = styled.label`
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--gray);
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 `;
 
 const FilterInput = styled.input`
-  padding: 0.35rem 0.5rem;
+  padding: 0.25rem 0.4rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   transition: var(--transition);
 
   &:focus {
@@ -152,7 +154,7 @@ const FilterInput = styled.input`
 const BarcodeSearchWrapper = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   width: 100%;
 `;
 
@@ -160,14 +162,14 @@ const StepButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 1.6rem;
+  height: 1.6rem;
   flex-shrink: 0;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   background: white;
   color: var(--primary);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -184,10 +186,10 @@ const StepButton = styled.button`
 `;
 
 const FilterSelect = styled.select`
-  padding: 0.5rem;
+  padding: 0.25rem 0.4rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
-  font-size: 0.875rem;
+  font-size: 0.775rem;
   transition: var(--transition);
   background-color: white;
 
@@ -202,7 +204,7 @@ const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0.4rem;
 `;
 
 const Button = styled.button`
@@ -261,7 +263,6 @@ const TableContainer = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 800px;
   transform: rotateX(180deg);
 `;
 
@@ -269,7 +270,7 @@ const TableHead = styled.thead`
   background-color: var(--gray-light);
 
   th {
-    padding: 1rem;
+    padding: 0.5rem 0.6rem;
     text-align: left;
     font-weight: 600;
     color: var(--gray);
@@ -294,9 +295,9 @@ const TableBody = styled.tbody`
   }
 
   td {
-    padding: 1rem;
+    padding: 0.5rem 0.6rem;
     vertical-align: middle;
-    font-size: 0.875rem;
+    font-size: 0.825rem;
   }
 `;
 
@@ -482,8 +483,9 @@ const DepartmentBadge = styled.span`
 
 const DepartmentCell = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  max-width: 320px;
 `;
 
 const DepartmentRow = styled.div`
@@ -491,6 +493,26 @@ const DepartmentRow = styled.div`
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
+`;
+
+const DepartmentPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background-color: ${(props) => (props.isPending ? "rgba(220, 53, 69, 0.1)" : props.color)};
+  color: ${(props) => (props.isPending ? "#dc3545" : "white")};
+  border: 1px solid ${(props) => (props.isPending ? "#dc3545" : "transparent")};
+  animation: ${(props) => (props.isPending ? "blink 1s infinite" : "none")};
+  white-space: nowrap;
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 `;
 
 const ModalOverlay = styled.div`
@@ -2466,14 +2488,10 @@ const HMSPatientOverview = () => {
           <Table>
             <TableHead>
               <tr>
-                <th>Date</th>
-                <th>OP/IP Type</th>
-                <th>OP Number</th>
-                <th>IP Number</th>
+                <th>Date / Gen Time</th>
+                <th>OP/IP Info</th>
+                <th>Patient Name & Mobile</th>
                 <th>Barcode</th>
-                <th>Gen Time</th>
-                <th>Mobile Number</th>
-                <th>Patient Name</th>
                 <th>Referral</th>
                 <th>Department</th>
                 <th>Status</th>
@@ -2484,7 +2502,7 @@ const HMSPatientOverview = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={8}
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Loading patient data...
@@ -2493,7 +2511,7 @@ const HMSPatientOverview = () => {
               ) : error ? (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={8}
                     style={{
                       textAlign: "center",
                       padding: "2rem",
@@ -2523,22 +2541,34 @@ const HMSPatientOverview = () => {
                   return (
                     <tr key={`${patient.patient_id}-${patient.barcode}`}>
                       <td>
-                        {patient.date
-                          ? format(new Date(patient.date), "yyyy-MM-dd")
-                          : "N/A"}
+                        <div>
+                          {patient.date
+                            ? format(new Date(patient.date), "yyyy-MM-dd")
+                            : "N/A"}
+                        </div>
+                        {patient.barcode_generated_time && (
+                          <div style={{ fontSize: "0.7rem", color: "var(--gray)", marginTop: "0.15rem", whiteSpace: "nowrap" }}>
+                            {format(new Date(patient.barcode_generated_time), "dd-MMM-yy HH:mm")}
+                          </div>
+                        )}
                       </td>
-                      <td>{patient.opiptype}</td>
-                      <td>{patient.patient_id}</td>
-                      <td>{patient.ipnumber}</td>
-                      <td>{barcode}</td>
                       <td>
-                        {patient.barcode_generated_time
-                          ? format(new Date(patient.barcode_generated_time), "dd-MMM-yy HH:mm")
-                          : "N/A"}
+                        <div style={{ fontWeight: 600, fontSize: "0.75rem", color: "var(--primary-dark)" }}>{patient.opiptype}</div>
+                        {patient.opiptype === "IP" ? (
+                          <div>
+                            <span style={{ fontSize: "0.7rem", color: "var(--gray)" }}>IP:</span> {patient.ipnumber || "N/A"}
+                            {patient.patient_id && (
+                              <div style={{ fontSize: "0.7rem", color: "var(--gray)" }}>UHID: {patient.patient_id}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <span style={{ fontSize: "0.7rem", color: "var(--gray)" }}>OP:</span> {patient.patient_id || "N/A"}
+                          </div>
+                        )}
                       </td>
-                      <td>{patient.phone || "N/A"}</td>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", fontWeight: 500 }}>
                           <GenderIcon gender={patient.gender}>
                             {patient.gender === "Female" ? (
                               <IoIosFemale size={14} />
@@ -2548,22 +2578,24 @@ const HMSPatientOverview = () => {
                           </GenderIcon>
                           {patient.patient_name}
                         </div>
+                        {patient.phone && (
+                          <div style={{ fontSize: "0.7rem", color: "var(--gray)", marginLeft: "2rem", marginTop: "0.15rem" }}>
+                            Mob: {patient.phone}
+                          </div>
+                        )}
                       </td>
+                      <td>{barcode}</td>
                       <td>{patient.refby || "N/A"}</td>
                       <td>
                         <DepartmentCell>
                           {getDepartmentStatus(patient).map((deptInfo, idx) => (
-                            <DepartmentRow key={idx}>
-                              <span style={{ whiteSpace: "nowrap" }}>
-                                {deptInfo.department}
-                              </span>
-                              <DepartmentBadge
-                                color={deptInfo.color}
-                                isPending={deptInfo.isPending}
-                              >
-                                {deptInfo.status}
-                              </DepartmentBadge>
-                            </DepartmentRow>
+                            <DepartmentPill
+                              key={idx}
+                              color={deptInfo.color}
+                              isPending={deptInfo.isPending}
+                            >
+                              {deptInfo.department}: {deptInfo.status}
+                            </DepartmentPill>
                           ))}
                         </DepartmentCell>
                       </td>
@@ -2654,7 +2686,7 @@ const HMSPatientOverview = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={12}>
+                  <td colSpan={8}>
                     <NoData>No patients found</NoData>
                   </td>
                 </tr>

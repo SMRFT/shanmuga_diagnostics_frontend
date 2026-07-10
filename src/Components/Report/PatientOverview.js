@@ -83,14 +83,14 @@ const Title = styled.h1`
   border-bottom: 1px solid var(--gray-light);
 `;
 const FiltersContainer = styled.div`
-  padding: 0.75rem 1.5rem;
+  padding: 0.4rem 1rem;
   border-bottom: 1px solid var(--gray-light);
 `;
 const FilterRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
@@ -98,18 +98,20 @@ const FilterRow = styled.div`
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
 `;
 const FilterLabel = styled.label`
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--gray);
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 `;
 const FilterInput = styled.input`
-  padding: 0.35rem 0.5rem;
+  padding: 0.25rem 0.4rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   transition: var(--transition);
   &:focus {
     outline: none;
@@ -120,7 +122,7 @@ const FilterInput = styled.input`
 const BarcodeSearchWrapper = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   width: 100%;
 `;
 
@@ -128,14 +130,14 @@ const StepButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.6rem;
+  height: 1.6rem;
   flex-shrink: 0;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   background: white;
   color: var(--primary);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -151,10 +153,10 @@ const StepButton = styled.button`
   }
 `;
 const FilterSelect = styled.select`
-  padding: 0.35rem 0.5rem;
+  padding: 0.25rem 0.4rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
-  font-size: 0.875rem;
+  font-size: 0.775rem;
   transition: var(--transition);
   background-color: white;
   &:focus {
@@ -167,7 +169,7 @@ const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0.4rem;
 `;
 const Button = styled.button`
   display: inline-flex;
@@ -216,13 +218,12 @@ const TableContainer = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 800px;
   transform: rotateX(180deg);
 `;
 const TableHead = styled.thead`
   background-color: var(--gray-light);
   th {
-    padding: 1rem;
+    padding: 0.5rem 0.6rem;
     text-align: left;
     font-weight: 600;
     color: var(--gray);
@@ -243,9 +244,9 @@ const TableBody = styled.tbody`
     }
   }
   td {
-    padding: 1rem;
+    padding: 0.5rem 0.6rem;
     vertical-align: middle;
-    font-size: 0.875rem;
+    font-size: 0.825rem;
   }
 `;
 const PaginationContainer = styled.div`
@@ -435,14 +436,34 @@ const DepartmentBadge = styled.span`
 `;
 const DepartmentCell = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  max-width: 320px;
 `;
 const DepartmentRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
+`;
+const DepartmentPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background-color: ${(props) => (props.isPending ? "rgba(220, 53, 69, 0.1)" : props.color)};
+  color: ${(props) => (props.isPending ? "#dc3545" : "white")};
+  border: 1px solid ${(props) => (props.isPending ? "#dc3545" : "transparent")};
+  animation: ${(props) => (props.isPending ? "blink 1s infinite" : "none")};
+  white-space: nowrap;
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 `;
 const ModalOverlay = styled.div`
   position: fixed;
@@ -2436,7 +2457,7 @@ const PatientOverview = () => {
                       <td>{patient.patient_id}</td>
                       <td>{barcodeVal}</td>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", fontWeight: 500 }}>
                           <GenderIcon gender={patient.gender}>
                             {patient.gender === "Female" ? (
                               <IoIosFemale size={14} />
@@ -2446,6 +2467,11 @@ const PatientOverview = () => {
                           </GenderIcon>
                           {patient.patient_name}
                         </div>
+                        {patient.phone && (
+                          <div style={{ fontSize: "0.7rem", color: "var(--gray)", marginLeft: "2rem", marginTop: "0.15rem" }}>
+                            Mob: {patient.phone}
+                          </div>
+                        )}
                       </td>
                       <td>{patient.branch || "N/A"}</td>
                       <td>{patient.refby || "N/A"}</td>
@@ -2453,17 +2479,13 @@ const PatientOverview = () => {
                       <td>
                         <DepartmentCell>
                           {getDepartmentStatus(patient).map((deptInfo, idx) => (
-                            <DepartmentRow key={idx}>
-                              <span style={{ whiteSpace: "nowrap" }}>
-                                {deptInfo.department}
-                              </span>
-                              <DepartmentBadge
-                                color={deptInfo.color}
-                                isPending={deptInfo.isPending}
-                              >
-                                {deptInfo.status}
-                              </DepartmentBadge>
-                            </DepartmentRow>
+                            <DepartmentPill
+                              key={idx}
+                              color={deptInfo.color}
+                              isPending={deptInfo.isPending}
+                            >
+                              {deptInfo.department}: {deptInfo.status}
+                            </DepartmentPill>
                           ))}
                         </DepartmentCell>
                       </td>
