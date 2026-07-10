@@ -814,9 +814,9 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
 
   const selected = value
     ? value
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean)
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
     : [];
 
   const toggleOption = (option) => {
@@ -1181,7 +1181,6 @@ function TestDetails() {
             sample_status: test.sample_status,
             parametersBySubtitle: {},
             specimen_options: test.specimen_options || [],
-            comment_options: test.comment_options || [],
           };
         }
 
@@ -1210,7 +1209,6 @@ function TestDetails() {
             method: test.method,
             value: test.test_value,
             value_option: test.value_option || [],
-            comment_options: test.comment_options || [],
             sub_title: subtitle,
             processing_status: test.processing_status,
           });
@@ -1223,7 +1221,6 @@ function TestDetails() {
           groupedTests[tName].test_code = test.test_code;
           groupedTests[tName].processing_status = test.processing_status;
           groupedTests[tName].value_option = test.value_option || [];
-          groupedTests[tName].comment_options = test.comment_options || [];
           groupedTests[tName].interpretation = test.interpretation || {}; // ADD
           groupedTests[tName].critical_range = test.critical_range || {}; // ADD
           groupedTests[tName].specimen_options = test.specimen_options || []; // ADD
@@ -1415,7 +1412,7 @@ function TestDetails() {
           if (
             !prev[testname] ||
             prev[testname] ===
-            "Critical, Rechecked, Kindly correlate clinically"
+              "Critical, Rechecked, Kindly correlate clinically"
           ) {
             autoCriticalComments.current.add(testname);
             return {
@@ -1518,7 +1515,7 @@ function TestDetails() {
           if (
             !prev[uniqueKey] ||
             prev[uniqueKey] ===
-            "Critical, Rechecked, Kindly correlate clinically"
+              "Critical, Rechecked, Kindly correlate clinically"
           ) {
             autoCriticalComments.current.add(uniqueKey);
             return {
@@ -1676,7 +1673,7 @@ function TestDetails() {
       if (validationErrors.length > 0) {
         alert(
           "Please fill in all required values:\n\n" +
-          validationErrors.map((e, i) => `${i + 1}. ${e}`).join("\n"),
+            validationErrors.map((e, i) => `${i + 1}. ${e}`).join("\n"),
         );
         setIsSubmitting(false);
         return;
@@ -1717,16 +1714,16 @@ function TestDetails() {
 
         const approveFields = allNormal
           ? {
-            approve: true,
-            approve_time: approveTime,
-            status: "Normal",
-          }
+              approve: true,
+              approve_time: approveTime,
+              status: "Normal",
+            }
           : {
-            approve: null,
-            approve_time: null,
-            approve_by: null,
-            status: null,
-          };
+              approve: null,
+              approve_time: null,
+              approve_by: null,
+              status: null,
+            };
         // ──────────────────────────────────────────────────────────────────────
 
         if (
@@ -1816,13 +1813,13 @@ function TestDetails() {
               .join("\n");
             alert(
               "Save was blocked because test data already exists:\n\n" +
-              details +
-              "\n\nTo re-enter values, the test must first be flagged for rerun by the doctor.",
+                details +
+                "\n\nTo re-enter values, the test must first be flagged for rerun by the doctor.",
             );
           } else {
             alert(
               postResult.error ||
-              "Save blocked: test data already exists or has already been approved.",
+                "Save blocked: test data already exists or has already been approved.",
             );
           }
         } else {
@@ -1991,7 +1988,7 @@ function TestDetails() {
               <TestHeader>{test.testname}</TestHeader>
               <TestContent>
                 {!test.parametersBySubtitle ||
-                  Object.keys(test.parametersBySubtitle).length === 0 ? (
+                Object.keys(test.parametersBySubtitle).length === 0 ? (
                   // ── Single-value test ────────────────────────────────────
                   <>
                     <FormRow>
@@ -2004,7 +2001,7 @@ function TestDetails() {
                             )}
                         </Label>
                         {test.specimen_options &&
-                          test.specimen_options.length > 0 ? (
+                        test.specimen_options.length > 0 ? (
                           <SelectWrapper>
                             <Select
                               value={specimenSelections[test.testname] || ""}
@@ -2168,8 +2165,8 @@ function TestDetails() {
                           Value{" "}
                           {(!initialValues[test.testname] ||
                             initialValues[test.testname].trim() === "") && (
-                              <span style={{ color: "red" }}>*</span>
-                            )}
+                            <span style={{ color: "red" }}>*</span>
+                          )}
                           {(() => {
                             const flag = getHLFlag(
                               values[test.testname],
@@ -2205,7 +2202,7 @@ function TestDetails() {
                             value={values[test.testname] || ""}
                             onChange={
                               !initialValues[test.testname] ||
-                                initialValues[test.testname].trim() === ""
+                              initialValues[test.testname].trim() === ""
                                 ? (e) => handleValueChange(test.testname, e)
                                 : undefined
                             }
@@ -2217,7 +2214,7 @@ function TestDetails() {
                             }
                             placeholder={
                               !initialValues[test.testname] ||
-                                initialValues[test.testname].trim() === ""
+                              initialValues[test.testname].trim() === ""
                                 ? "Enter value"
                                 : "Value available"
                             }
@@ -2239,25 +2236,6 @@ function TestDetails() {
                               <CriticalBadge>⚠ Critical</CriticalBadge>
                             )}
                           </CommentLabel>
-                          {test.comment_options && test.comment_options.length > 0 && (
-                            <div style={{ marginBottom: "8px" }}>
-                              <Input
-                                type="text"
-                                list={`comments-search-${test.testname}`}
-                                value={comments[test.testname] || ""}
-                                onChange={(e) =>
-                                  handleCommentChange(test.testname, e)
-                                }
-                                placeholder="🔍 Search or select comment option..."
-                                style={{ width: "100%" }}
-                              />
-                              <datalist id={`comments-search-${test.testname}`}>
-                                {test.comment_options.map((option, optIndex) => (
-                                  <option key={optIndex} value={option} />
-                                ))}
-                              </datalist>
-                            </div>
-                          )}
                           <CommentTextArea
                             data-focusable="true"
                             isCritical={critical}
@@ -2302,7 +2280,7 @@ function TestDetails() {
                               style={{
                                 borderColor:
                                   !remarks[test.testname] ||
-                                    remarks[test.testname].trim() === ""
+                                  remarks[test.testname].trim() === ""
                                     ? "red"
                                     : undefined,
                               }}
@@ -2339,7 +2317,7 @@ function TestDetails() {
                             )}
                         </Label>
                         {test.specimen_options &&
-                          test.specimen_options.length > 0 ? (
+                        test.specimen_options.length > 0 ? (
                           <SelectWrapper>
                             <Select
                               value={specimenSelections[test.testname] || ""}
@@ -2512,11 +2490,11 @@ function TestDetails() {
                                                 style={
                                                   critical
                                                     ? {
-                                                      borderColor:
-                                                        "var(--danger)",
-                                                      backgroundColor:
-                                                        "#fff5f5",
-                                                    }
+                                                        borderColor:
+                                                          "var(--danger)",
+                                                        backgroundColor:
+                                                          "#fff5f5",
+                                                      }
                                                     : {}
                                                 }
                                               />
@@ -2545,11 +2523,11 @@ function TestDetails() {
                                             onChange={
                                               !disabled
                                                 ? (e) =>
-                                                  handleParameterValueChange(
-                                                    test.testname,
-                                                    paramName,
-                                                    e,
-                                                  )
+                                                    handleParameterValueChange(
+                                                      test.testname,
+                                                      paramName,
+                                                      e,
+                                                    )
                                                 : undefined
                                             }
                                             disabled={disabled}
@@ -2561,10 +2539,10 @@ function TestDetails() {
                                             style={
                                               critical
                                                 ? {
-                                                  borderColor:
-                                                    "var(--danger)",
-                                                  backgroundColor: "#fff5f5",
-                                                }
+                                                    borderColor:
+                                                      "var(--danger)",
+                                                    backgroundColor: "#fff5f5",
+                                                  }
                                                 : {}
                                             }
                                           />
@@ -2610,29 +2588,6 @@ function TestDetails() {
                                         </CriticalBadge>
                                       )}
                                     </CommentLabel>
-                                    {test.comment_options && test.comment_options.length > 0 && (
-                                      <div style={{ marginBottom: "8px" }}>
-                                        <Input
-                                          type="text"
-                                          list={`comments-search-${uniqueKey}`}
-                                          value={parameterComments[uniqueKey] || ""}
-                                          onChange={(e) =>
-                                            handleParameterCommentChange(
-                                              test.testname,
-                                              paramName,
-                                              e,
-                                            )
-                                          }
-                                          placeholder="🔍 Search or select comment option..."
-                                          style={{ width: "100%" }}
-                                        />
-                                        <datalist id={`comments-search-${uniqueKey}`}>
-                                          {test.comment_options.map((option, optIndex) => (
-                                            <option key={optIndex} value={option} />
-                                          ))}
-                                        </datalist>
-                                      </div>
-                                    )}
                                     <CommentTextArea
                                       data-focusable="true"
                                       isCritical={critical}
@@ -2668,38 +2623,38 @@ function TestDetails() {
                           currentValue.trim() !== ""
                         );
                       }) && (
-                        <RemarksSection>
-                          <FormGroup>
-                            <Label>
-                              Parameter Remarks (Required for edited parameters){" "}
-                              <span style={{ color: "red" }}>*</span>
-                            </Label>
-                            <TextArea
-                              data-focusable="true"
-                              value={parameterRemarks || ""}
-                              onChange={handleParameterRemarksChange}
-                              onKeyDown={(e) => {
-                                {
-                                  /* ← ADD THIS */
-                                }
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  document
-                                    .querySelector("[data-save-button]")
-                                    ?.focus();
-                                }
-                              }}
-                              style={{
-                                borderColor:
-                                  !parameterRemarks ||
-                                    parameterRemarks.trim() === ""
-                                    ? "red"
-                                    : undefined,
-                              }}
-                            />
-                          </FormGroup>
-                        </RemarksSection>
-                      )}
+                      <RemarksSection>
+                        <FormGroup>
+                          <Label>
+                            Parameter Remarks (Required for edited parameters){" "}
+                            <span style={{ color: "red" }}>*</span>
+                          </Label>
+                          <TextArea
+                            data-focusable="true"
+                            value={parameterRemarks || ""}
+                            onChange={handleParameterRemarksChange}
+                            onKeyDown={(e) => {
+                              {
+                                /* ← ADD THIS */
+                              }
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                document
+                                  .querySelector("[data-save-button]")
+                                  ?.focus();
+                              }
+                            }}
+                            style={{
+                              borderColor:
+                                !parameterRemarks ||
+                                parameterRemarks.trim() === ""
+                                  ? "red"
+                                  : undefined,
+                            }}
+                          />
+                        </FormGroup>
+                      </RemarksSection>
+                    )}
                   </ParameterSection>
                 )}
               </TestContent>
