@@ -1251,7 +1251,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                 valueText,
                 colWidths[3] - 2,
               );
-              const refMethodText = [test.reference_range, methodText].filter(p => p && p.trim() !== "").join("\n/ ");
+              const refMethodText = [test.reference_range, methodText].filter(p => p && p.trim() !== "").join(" / ");
               const refMethodLines = wrapTextAndGetLines(
                 doc,
                 refMethodText,
@@ -1338,7 +1338,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                 yPos,
                 lineHeight,
               );
-              yPos += actualRowHeight + (hasParameters ? 2.5 : 6);
+              yPos += actualRowHeight + (hasParameters ? 1.5 : 3.5);
               doc.setFont("helvetica", "normal");
               doc.setTextColor(0, 0, 0);
 
@@ -1412,7 +1412,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                     paramValueText,
                     colWidths[3] - 2,
                   );
-                  const paramRefMethodText = [currentTest.reference_range, paramMethodText].filter(p => p && p.trim() !== "").join("\n/ ");
+                  const paramRefMethodText = [currentTest.reference_range, paramMethodText].filter(p => p && p.trim() !== "").join(" / ");
                   const paramRefMethodLines = wrapTextAndGetLines(
                     doc,
                     paramRefMethodText,
@@ -1536,7 +1536,7 @@ const CorporateTestSorting = ({ patient, onClose }) => {
                     );
                     yPos += notesHeight + 2;
                   }
-                  yPos += 3;
+                  yPos += 1;
                   doc.setFont("helvetica", "normal");
                   doc.setFontSize(10);
                   doc.setTextColor(0, 0, 0);
