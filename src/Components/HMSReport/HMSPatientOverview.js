@@ -109,15 +109,15 @@ const Title = styled.h1`
 `;
 
 const FiltersContainer = styled.div`
-  padding: 0.4rem 1rem;
+  padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--gray-light);
 `;
 
 const FilterRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.35rem;
-  margin-bottom: 0.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -127,22 +127,20 @@ const FilterRow = styled.div`
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
 `;
 
 const FilterLabel = styled.label`
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--gray);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 500;
 `;
 
 const FilterInput = styled.input`
-  padding: 0.25rem 0.4rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
-  font-size: 0.775rem;
+  font-size: 0.8rem;
   transition: var(--transition);
 
   &:focus {
@@ -154,7 +152,7 @@ const FilterInput = styled.input`
 const BarcodeSearchWrapper = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   width: 100%;
 `;
 
@@ -162,14 +160,14 @@ const StepButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 2.25rem;
+  height: 2.25rem;
   flex-shrink: 0;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   background: white;
   color: var(--primary);
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -186,10 +184,10 @@ const StepButton = styled.button`
 `;
 
 const FilterSelect = styled.select`
-  padding: 0.25rem 0.4rem;
+  padding: 0.5rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
-  font-size: 0.775rem;
+  font-size: 0.875rem;
   transition: var(--transition);
   background-color: white;
 
@@ -204,7 +202,7 @@ const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 0.4rem;
+  margin-top: 1rem;
 `;
 
 const Button = styled.button`
@@ -263,6 +261,7 @@ const TableContainer = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
   transform: rotateX(180deg);
 `;
 
@@ -270,7 +269,7 @@ const TableHead = styled.thead`
   background-color: var(--gray-light);
 
   th {
-    padding: 0.5rem 0.6rem;
+    padding: 1rem;
     text-align: left;
     font-weight: 600;
     color: var(--gray);
@@ -295,9 +294,9 @@ const TableBody = styled.tbody`
   }
 
   td {
-    padding: 0.5rem 0.6rem;
+    padding: 1rem;
     vertical-align: middle;
-    font-size: 0.825rem;
+    font-size: 0.875rem;
   }
 `;
 
@@ -483,9 +482,8 @@ const DepartmentBadge = styled.span`
 
 const DepartmentCell = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  max-width: 320px;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
 const DepartmentRow = styled.div`
@@ -493,26 +491,6 @@ const DepartmentRow = styled.div`
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
-`;
-
-const DepartmentPill = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  background-color: ${(props) => (props.isPending ? "rgba(220, 53, 69, 0.1)" : props.color)};
-  color: ${(props) => (props.isPending ? "#dc3545" : "white")};
-  border: 1px solid ${(props) => (props.isPending ? "#dc3545" : "transparent")};
-  animation: ${(props) => (props.isPending ? "blink 1s infinite" : "none")};
-  white-space: nowrap;
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
 `;
 
 const ModalOverlay = styled.div`
@@ -1203,9 +1181,6 @@ const HMSPatientOverview = () => {
         setLoading(false);
         return null;
       }
-      // Keep a copy of all fetched tests (including Molecular Biology) for unapproved tests comparison
-      const allFetchedTests = [...(patientDetails.testdetails || [])];
-
       // Skip Molecular Biology tests from the printed report
       patientDetails.testdetails = patientDetails.testdetails.filter(
         (test) => test.department !== "Molecular Biology",
@@ -1329,10 +1304,10 @@ const HMSPatientOverview = () => {
         contentWidth * 0.28,
         contentWidth * 0.12,
         contentWidth * 0.05,
-        contentWidth * 0.18,
+        contentWidth * 0.13,
         contentWidth * 0.1,
-        contentWidth * 0.27,
-        0,
+        contentWidth * 0.17,
+        contentWidth * 0.15,
       ];
       const leftDetails = [
         { label: "UHID", value: patientDetails.patient_id || "N/A" },
@@ -1389,23 +1364,12 @@ const HMSPatientOverview = () => {
       const doc = new jsPDF();
       let pageCount = 1;
       let isTableStarted = false;
-      let patientInfoEndY = 0;
 
       // ── Track which "section" we are currently rendering ─────────────────
       // showNablLogo = true  → pages for NABL=true tests
       // showNablLogo = false → pages for NABL=false tests
       let showNablLogo = nablTrueTests.length > 0; // start with NABL pages if any exist
       // ──────────────────────────────────────────────────────────────────────
-
-      const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
-      const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
-      const centerPoint = (leftMargin + rightMargin) / 2;
-      const leftLabelX = leftMargin;
-      const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
-      const leftValueX = leftColonX + 3;
-      const rightLabelX = centerPoint + 28;
-      const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
-      const rightValueX = rightColonX + 1;
 
       const wrapTextAndGetLines = (doc, text, maxWidth) => {
         if (!text) return [];
@@ -1427,9 +1391,17 @@ const HMSPatientOverview = () => {
         return lines.length * lineHeight;
       };
       const addPatientInfo = (yPos) => {
+        const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+        const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+        const centerPoint = (leftMargin + rightMargin) / 2;
+        const leftLabelX = leftMargin;
+        const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+        const leftValueX = leftColonX + 3;
+        const rightLabelX = centerPoint + 28;
+        const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+        const rightValueX = rightColonX + 1;
         doc.setFontSize(10);
         let patientInfoY = yPos;
-        let barcodeBottomY = 0;
         const maxLength = Math.max(leftDetails.length, rightDetails.length);
         for (let i = 0; i < maxLength; i++) {
           const left = leftDetails[i];
@@ -1463,21 +1435,19 @@ const HMSPatientOverview = () => {
               patientRefNoNumber !== "N/A" &&
               barcodeImage
             ) {
-              const barcodeY = patientInfoY + 4;
               doc.addImage(
                 barcodeImage,
                 "PNG",
                 rightValueX + doc.getTextWidth(right.value) - 21,
-                barcodeY,
+                patientInfoY + 4,
                 25,
                 10,
               );
-              barcodeBottomY = barcodeY + 10;
             }
           }
           patientInfoY += Math.max(leftRowHeight, 5);
         }
-        return Math.max(patientInfoY, barcodeBottomY);
+        return patientInfoY;
       };
 
       // ── addHeaderFooter now accepts a boolean: whether to show NABL logo ──
@@ -1570,47 +1540,48 @@ const HMSPatientOverview = () => {
       ) => {
         if (!text) return 0;
 
-        const lines = maxWidth ? doc.splitTextToSize(text, maxWidth) : text.split("\n");
-        let currentY = y;
-        let totalHeight = 0;
+        // Match pattern like "12X10^5", "10^-3", "12x10^-3"
+        const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/;
+        const match = text.match(superscriptRegex);
 
-        lines.forEach((lineText) => {
-          const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/;
-          const match = lineText.match(superscriptRegex);
-
-          if (!match) {
-            doc.text(lineText, x, currentY);
+        if (!match) {
+          // No superscript — use wrapped text as before
+          if (maxWidth) {
+            return renderWrappedText(doc, text, maxWidth, x, y, lineHeight);
           } else {
-            const before = lineText.slice(0, match.index);
-            const base = match[1].replace(/[xX]/, "×");
-            const exponent = match[2];
-            const after = lineText.slice(match.index + match[0].length);
-
-            let currentX = x;
-            const normalSize = doc.getFontSize();
-
-            if (before) {
-              doc.text(before, currentX, currentY);
-              currentX += doc.getTextWidth(before);
-            }
-
-            doc.text(base, currentX, currentY);
-            currentX += doc.getTextWidth(base);
-
-            doc.setFontSize(7);
-            doc.text(exponent, currentX, currentY - 2);
-            currentX += doc.getTextWidth(exponent);
-            doc.setFontSize(normalSize);
-
-            if (after) {
-              doc.text(after, currentX, currentY);
-            }
+            doc.text(text, x, y);
+            return lineHeight;
           }
-          currentY += lineHeight;
-          totalHeight += lineHeight;
-        });
+        }
 
-        return totalHeight;
+        // Has superscript — render inline (no wrap needed for scientific notation)
+        const before = text.slice(0, match.index);
+        const base = match[1].replace(/[xX]/, "×");
+        const exponent = match[2];
+        const after = text.slice(match.index + match[0].length);
+
+        let currentX = x;
+        const normalSize = doc.getFontSize();
+
+        if (before) {
+          doc.text(before, currentX, y);
+          currentX += doc.getTextWidth(before);
+        }
+
+        doc.text(base, currentX, y);
+        currentX += doc.getTextWidth(base);
+
+        // Superscript
+        doc.setFontSize(7);
+        doc.text(exponent, currentX, y - 2);
+        currentX += doc.getTextWidth(exponent);
+        doc.setFontSize(normalSize);
+
+        if (after) {
+          doc.text(after, currentX, y);
+        }
+
+        return lineHeight;
       };
       const drawTableHeader = (yPos) => {
         doc.line(leftMargin, yPos, rightMargin, yPos);
@@ -1623,8 +1594,8 @@ const HMSPatientOverview = () => {
           "",
           "Result",
           "Units",
-          "Reference Range / Method",
-          "",
+          "Reference Value",
+          "Method",
         ];
         let xPos = leftMargin;
         headers.forEach((header, index) => {
@@ -1663,7 +1634,7 @@ const HMSPatientOverview = () => {
       };
       const checkForNewPage = (yPos, estimatedHeight) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight - 1);
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
         if (yPos + estimatedHeight >= footerStart) {
           addSignatures();
           doc.addPage();
@@ -1671,7 +1642,7 @@ const HMSPatientOverview = () => {
           addHeaderFooter(showNablLogo); // ← pass current NABL flag
           let newYPos = contentYStart;
           newYPos = addPatientInfo(newYPos);
-          newYPos += 12;
+          newYPos += 10;
           if (isTableStarted) newYPos = drawTableHeader(newYPos);
           return newYPos;
         }
@@ -1779,30 +1750,33 @@ const HMSPatientOverview = () => {
             const methodText = (test.method || "")
               .replace(/\bMethod\b/i, "")
               .trim();
-            const hasParameters = test.parameters && test.parameters.length > 0;
-            const testNameWidth = hasParameters ? contentWidth - 2 : colWidths[0] - 2;
             const testNameLines = wrapTextAndGetLines(
               doc,
               testNameText,
-              testNameWidth,
+              colWidths[0] - 2,
             );
             const valueLines = wrapTextAndGetLines(
               doc,
               valueText,
               colWidths[3] - 2,
             );
-            const refMethodText = [test.reference_range, methodText].filter(p => p && p.trim() !== "").join(" / ");
-            const refMethodLines = wrapTextAndGetLines(
+            const referenceLines = wrapTextAndGetLines(
               doc,
-              refMethodText,
+              test.reference_range || "",
               colWidths[5] - 2,
+            );
+            const methodLines = wrapTextAndGetLines(
+              doc,
+              methodText,
+              colWidths[6] - 2,
             );
             const maxLines = Math.max(
               testNameLines.length,
               valueLines.length,
-              refMethodLines.length,
+              referenceLines.length,
+              methodLines.length,
             );
-            const lineHeight = 4.5;
+            const lineHeight = 4;
             const actualRowHeight = maxLines * lineHeight + 2;
 
             yPos = checkForNewPage(yPos, actualRowHeight);
@@ -1811,7 +1785,7 @@ const HMSPatientOverview = () => {
             renderWrappedText(
               doc,
               testNameText,
-              testNameWidth,
+              colWidths[0] - 2,
               xPos,
               yPos,
               lineHeight,
@@ -1866,20 +1840,29 @@ const HMSPatientOverview = () => {
             xPos += colWidths[4];
             renderWrappedText(
               doc,
-              refMethodText,
+              test.reference_range || "",
               colWidths[5] - 2,
               xPos,
               yPos,
               lineHeight,
             );
-            yPos += actualRowHeight + (hasParameters ? 1.5 : 3.5);
+            xPos += colWidths[5];
+            doc.setTextColor(0, 0, 0);
+            renderWrappedText(
+              doc,
+              methodText,
+              colWidths[6] - 2,
+              xPos,
+              yPos,
+              lineHeight,
+            );
+            yPos += actualRowHeight + 4;
             doc.setFont("helvetica", "normal");
             doc.setTextColor(0, 0, 0);
 
             if (test.outsourced === true) {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
-              yPos = checkForNewPage(yPos, 4);
               doc.text("(Outsourced)", leftMargin, yPos);
               yPos += 4;
             }
@@ -1887,32 +1870,15 @@ const HMSPatientOverview = () => {
               if (test.comment && test.comment.trim() !== "") {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
-                const commentLines = wrapTextAndGetLines(doc, `Comment: ${test.comment}`, contentWidth);
-                yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
                 const commentHeight = renderWrappedText(
                   doc,
-                  `Comment: ${test.comment}`,
-                  contentWidth,
+                  `Note: ${test.comment}`,
+                  colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 2,
                   leftMargin,
                   yPos,
                   3.5,
                 );
                 yPos += commentHeight + 2;
-              }
-              if (test.notes && test.notes.trim() !== "") {
-                doc.setFont("helvetica", "italic");
-                doc.setFontSize(8);
-                const notesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
-                yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
-                const notesHeight = renderWrappedText(
-                  doc,
-                  `Notes: ${test.notes}`,
-                  contentWidth,
-                  leftMargin,
-                  yPos,
-                  3.5,
-                );
-                yPos += notesHeight + 2;
               }
             }
             doc.setFont("helvetica", "normal");
@@ -1944,18 +1910,23 @@ const HMSPatientOverview = () => {
                   paramValueText,
                   colWidths[3] - 2,
                 );
-                const paramRefMethodText = [currentTest.reference_range, paramMethodText].filter(p => p && p.trim() !== "").join(" / ");
-                const paramRefMethodLines = wrapTextAndGetLines(
+                const paramRefLines = wrapTextAndGetLines(
                   doc,
-                  paramRefMethodText,
+                  currentTest.reference_range || "",
                   colWidths[5] - 2,
+                );
+                const paramMethodLines = wrapTextAndGetLines(
+                  doc,
+                  paramMethodText,
+                  colWidths[6] - 2,
                 );
                 const paramMaxLines = Math.max(
                   paramNameLines.length,
                   paramValueLines.length,
-                  paramRefMethodLines.length,
+                  paramRefLines.length,
+                  paramMethodLines.length,
                 );
-                const paramLineHeight = 4.5;
+                const paramLineHeight = 4;
                 const paramRowHeight = paramMaxLines * paramLineHeight + 2;
                 yPos = checkForNewPage(yPos, paramRowHeight);
                 let xPos = leftMargin;
@@ -2020,8 +1991,18 @@ const HMSPatientOverview = () => {
                 xPos += colWidths[4];
                 renderWrappedText(
                   doc,
-                  paramRefMethodText,
+                  currentTest.reference_range || "",
                   colWidths[5] - 2,
+                  xPos,
+                  yPos,
+                  paramLineHeight,
+                );
+                xPos += colWidths[5];
+                doc.setTextColor(0, 0, 0);
+                renderWrappedText(
+                  doc,
+                  paramMethodText,
+                  colWidths[6] - 2,
                   xPos,
                   yPos,
                   paramLineHeight,
@@ -2031,59 +2012,25 @@ const HMSPatientOverview = () => {
                 if (currentTest.comment && currentTest.comment.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
-                  const commentLines = wrapTextAndGetLines(
-                    doc,
-                    `Comment: ${currentTest.comment}`,
-                    contentWidth
-                  );
-                  yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
                   const paramCommentHeight = renderWrappedText(
                     doc,
-                    `Comment: ${currentTest.comment}`,
-                    contentWidth,
+                    `Note: ${currentTest.comment}`,
+                    colWidths[0] +
+                    colWidths[1] +
+                    colWidths[2] +
+                    colWidths[3] -
+                    2,
                     leftMargin,
                     yPos,
                     3.5,
                   );
                   yPos += paramCommentHeight + 2;
                 }
-                if (currentTest.notes && currentTest.notes.trim() !== "") {
-                  doc.setFont("helvetica", "italic");
-                  doc.setFontSize(8);
-                  const notesLines = wrapTextAndGetLines(doc, `Notes: ${currentTest.notes}`, contentWidth);
-                  yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
-                  const notesHeight = renderWrappedText(
-                    doc,
-                    `Notes: ${currentTest.notes}`,
-                    contentWidth,
-                    leftMargin,
-                    yPos,
-                    3.5,
-                  );
-                  yPos += notesHeight + 2;
-                }
-                yPos += 1;
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
               });
             });
-
-            if (test.parameters && test.parameters.length > 0 && test.notes && test.notes.trim() !== "") {
-              doc.setFont("helvetica", "italic");
-              doc.setFontSize(8);
-              const testNotesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
-              yPos = checkForNewPage(yPos, testNotesLines.length * 3.5 + 2);
-              const testNotesHeight = renderWrappedText(
-                doc,
-                `Notes: ${test.notes}`,
-                contentWidth,
-                leftMargin,
-                yPos,
-                3.5,
-              );
-              yPos += testNotesHeight + 2;
-            }
 
             if (
               hasMultipleVerifiers &&
@@ -2119,8 +2066,7 @@ const HMSPatientOverview = () => {
       // ── FIRST PAGE: always starts with NABL logo state = nablTrueTests exist ─
       addHeaderFooter(showNablLogo);
       let currentYPosition = addPatientInfo(contentYStart);
-      patientInfoEndY = currentYPosition;
-      currentYPosition += 12;
+      currentYPosition += 10;
 
       // ── Render NABL=true tests (with logo) ───────────────────────────────
       if (nablTrueTests.length > 0) {
@@ -2138,7 +2084,7 @@ const HMSPatientOverview = () => {
           addHeaderFooter(false); // no NABL logo
           currentYPosition = contentYStart;
           currentYPosition = addPatientInfo(currentYPosition);
-          currentYPosition += 12;
+          currentYPosition += 10;
         } else {
           // No NABL=true tests at all – first (and only) section, no logo
           showNablLogo = false;
@@ -2150,13 +2096,13 @@ const HMSPatientOverview = () => {
 
       const ensureSpaceForFooter = (currentYPosition) => {
         const pageHeight = doc.internal.pageSize.height;
-        const footerStart = pageHeight - (footerHeight + signatureHeight - 1);
+        const footerStart = pageHeight - (footerHeight + signatureHeight + 5);
         if (currentYPosition + 5 >= footerStart) {
           addSignatures();
           doc.addPage();
           pageCount++;
           addHeaderFooter(showNablLogo);
-          return addPatientInfo(contentYStart) + 12;
+          return addPatientInfo(contentYStart);
         }
         return currentYPosition;
       };
@@ -2168,42 +2114,19 @@ const HMSPatientOverview = () => {
       doc.text("**End of the Report**", centerX, currentYPosition, {
         align: "center",
       });
-      currentYPosition += 6;
-
-      const allTestStatuses = patient.test_statuses || [];
-      const unapprovedTests = allTestStatuses.filter((hmsTest) => {
-        return !allFetchedTests.some((fetchedTest) => fetchedTest.test_id === hmsTest.test_id);
-      });
-
-      if (unapprovedTests.length > 0) {
-        currentYPosition = checkForNewPage(currentYPosition, 10);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.text("Result/s to follow:", leftMargin, currentYPosition);
-        currentYPosition += 4.5;
-
-        doc.setFont("helvetica", "normal");
-        unapprovedTests.forEach((t) => {
-          currentYPosition = checkForNewPage(currentYPosition, 5);
-          doc.text(`- ${t.test_name}`, leftMargin + 2, currentYPosition);
-          currentYPosition += 4.5;
-        });
-      }
-
       addSignatures();
 
       // ── Page numbering ────────────────────────────────────────────────────
       const finalPageCount = pageCount;
-      const barcodeX = rightValueX + doc.getTextWidth(patientRefNoNumber) - 21;
-      const pageNumberX = barcodeX + 12.5; // Centered under the barcode
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
+        const pageHeight = doc.internal.pageSize.height;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.text(
           `Page ${i} of ${finalPageCount}`,
-          pageNumberX,
-          patientInfoEndY + 4,
+          centerX,
+          pageHeight - footerHeight - 6,
           { align: "center" },
         );
       }
@@ -2488,10 +2411,14 @@ const HMSPatientOverview = () => {
           <Table>
             <TableHead>
               <tr>
-                <th>Date / Gen Time</th>
-                <th>OP/IP Info</th>
-                <th>Patient Name & Mobile</th>
+                <th>Date</th>
+                <th>OP/IP Type</th>
+                <th>OP Number</th>
+                <th>IP Number</th>
                 <th>Barcode</th>
+                <th>Gen Time</th>
+                <th>Mobile Number</th>
+                <th>Patient Name</th>
                 <th>Referral</th>
                 <th>Department</th>
                 <th>Status</th>
@@ -2502,7 +2429,7 @@ const HMSPatientOverview = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={12}
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Loading patient data...
@@ -2511,7 +2438,7 @@ const HMSPatientOverview = () => {
               ) : error ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={12}
                     style={{
                       textAlign: "center",
                       padding: "2rem",
@@ -2541,34 +2468,22 @@ const HMSPatientOverview = () => {
                   return (
                     <tr key={`${patient.patient_id}-${patient.barcode}`}>
                       <td>
-                        <div>
-                          {patient.date
-                            ? format(new Date(patient.date), "yyyy-MM-dd")
-                            : "N/A"}
-                        </div>
-                        {patient.barcode_generated_time && (
-                          <div style={{ fontSize: "0.7rem", color: "var(--gray)", marginTop: "0.15rem", whiteSpace: "nowrap" }}>
-                            {format(new Date(patient.barcode_generated_time), "dd-MMM-yy HH:mm")}
-                          </div>
-                        )}
+                        {patient.date
+                          ? format(new Date(patient.date), "yyyy-MM-dd")
+                          : "N/A"}
                       </td>
+                      <td>{patient.opiptype}</td>
+                      <td>{patient.patient_id}</td>
+                      <td>{patient.ipnumber}</td>
+                      <td>{barcode}</td>
                       <td>
-                        <div style={{ fontWeight: 600, fontSize: "0.75rem", color: "var(--primary-dark)" }}>{patient.opiptype}</div>
-                        {patient.opiptype === "IP" ? (
-                          <div>
-                            <span style={{ fontSize: "0.7rem", color: "var(--gray)" }}>IP:</span> {patient.ipnumber || "N/A"}
-                            {patient.patient_id && (
-                              <div style={{ fontSize: "0.7rem", color: "var(--gray)" }}>UHID: {patient.patient_id}</div>
-                            )}
-                          </div>
-                        ) : (
-                          <div>
-                            <span style={{ fontSize: "0.7rem", color: "var(--gray)" }}>OP:</span> {patient.patient_id || "N/A"}
-                          </div>
-                        )}
+                        {patient.barcode_generated_time
+                          ? format(new Date(patient.barcode_generated_time), "dd-MMM-yy HH:mm")
+                          : "N/A"}
                       </td>
+                      <td>{patient.phone || "N/A"}</td>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center", fontWeight: 500 }}>
+                        <div style={{ display: "flex", alignItems: "center" }}>
                           <GenderIcon gender={patient.gender}>
                             {patient.gender === "Female" ? (
                               <IoIosFemale size={14} />
@@ -2578,24 +2493,22 @@ const HMSPatientOverview = () => {
                           </GenderIcon>
                           {patient.patient_name}
                         </div>
-                        {patient.phone && (
-                          <div style={{ fontSize: "0.7rem", color: "var(--gray)", marginLeft: "2rem", marginTop: "0.15rem" }}>
-                            Mob: {patient.phone}
-                          </div>
-                        )}
                       </td>
-                      <td>{barcode}</td>
                       <td>{patient.refby || "N/A"}</td>
                       <td>
                         <DepartmentCell>
                           {getDepartmentStatus(patient).map((deptInfo, idx) => (
-                            <DepartmentPill
-                              key={idx}
-                              color={deptInfo.color}
-                              isPending={deptInfo.isPending}
-                            >
-                              {deptInfo.department}: {deptInfo.status}
-                            </DepartmentPill>
+                            <DepartmentRow key={idx}>
+                              <span style={{ whiteSpace: "nowrap" }}>
+                                {deptInfo.department}
+                              </span>
+                              <DepartmentBadge
+                                color={deptInfo.color}
+                                isPending={deptInfo.isPending}
+                              >
+                                {deptInfo.status}
+                              </DepartmentBadge>
+                            </DepartmentRow>
                           ))}
                         </DepartmentCell>
                       </td>
@@ -2686,7 +2599,7 @@ const HMSPatientOverview = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={12}>
                     <NoData>No patients found</NoData>
                   </td>
                 </tr>
