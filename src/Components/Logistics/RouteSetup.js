@@ -348,6 +348,7 @@ const RouteSetup = () => {
   const [routesList, setRoutesList] = useState([])
   const [loadingRoutes, setLoadingRoutes] = useState(false)
   const [expandedRoutes, setExpandedRoutes] = useState({})
+  const [clinicalSearchInput, setClinicalSearchInput] = useState("")
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
@@ -417,6 +418,14 @@ const RouteSetup = () => {
   const handleMultiSelectChange = (selectedOptions, field) => {
     const values = selectedOptions ? selectedOptions.map((opt) => opt.value) : []
     setFormData((prev) => ({ ...prev, [field]: values }))
+  }
+
+  const handleClinicalInputChange = (inputValue, { action }) => {
+    if (action === "input-change") {
+      setClinicalSearchInput(inputValue)
+    } else if (action === "menu-close") {
+      setClinicalSearchInput("")
+    }
   }
 
   const handleTimeChange = (field, value) => {
@@ -550,6 +559,8 @@ const RouteSetup = () => {
               </label>
               <Select
                 isMulti
+                closeMenuOnSelect={false}
+                blurInputOnSelect={false}
                 options={clinicalOptions}
                 isLoading={loadingOptions}
                 isClearable
@@ -558,6 +569,8 @@ const RouteSetup = () => {
                 styles={selectStyles}
                 value={clinicalOptions.filter((opt) => formData.clinical_name.includes(opt.value))}
                 onChange={(options) => handleMultiSelectChange(options, "clinical_name")}
+                inputValue={clinicalSearchInput}
+                onInputChange={handleClinicalInputChange}
               />
             </FormGroup>
           </Row>
