@@ -591,6 +591,16 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
+              
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink
+                  to="/Busfare"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                 Bus Sample Tracking
+                </SubLink>
+              </DropdownContent>
+
               <DropdownHeader
                 isOpen={dropdowns.routeDetails}
                 onClick={() => toggleDropdown("routeDetails")}
@@ -1257,6 +1267,28 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Sales Report
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader
+                isOpen={dropdowns.logisticsDetails}
+                onClick={() => toggleDropdown("logisticsDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaTruck />
+                  </IconWrapper>
+                  Logistics
+                </div>
+                <ChevronIcon isOpen={dropdowns.logisticsDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink
+                  to="/Busfare"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                 Bus Sample Tracking
                 </SubLink>
               </DropdownContent>
 
@@ -2067,6 +2099,15 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Tracking History
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink
+                  to="/Busfare"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                 Bus Sample Tracking
                 </SubLink>
               </DropdownContent>
 
