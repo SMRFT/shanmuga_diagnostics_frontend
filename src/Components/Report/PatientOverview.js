@@ -36,6 +36,7 @@ import NABLImage from "../Images/NABL.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 
+
 // Global styles
 const GlobalStyle = createGlobalStyle`
   :root {
