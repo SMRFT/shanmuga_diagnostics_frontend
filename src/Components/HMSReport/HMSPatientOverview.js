@@ -1095,11 +1095,25 @@ const HMSPatientOverview = () => {
         return;
       }
 
+      let extractedCollectedTime = patient.collection_time || "N/A";
+      let extractedCollectedDate = patient.collected_date || "N/A";
+
+      if (extractedCollectedTime === "N/A" || extractedCollectedDate === "N/A") {
+        if (patient.test_statuses && patient.test_statuses.length > 0) {
+          const testWithTime = patient.test_statuses.find(t => t.sample_collected_time);
+          if (testWithTime) {
+            const dateObj = new Date(testWithTime.sample_collected_time);
+            extractedCollectedTime = format(dateObj, "hh:mm a");
+            extractedCollectedDate = format(dateObj, "dd MMM yyyy");
+          }
+        }
+      }
+
       const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
         patient_name: patient.patient_name || "Valued Patient",
         phone: phoneNumber,
-        collection_time: patient.collection_time || "N/A",
-        collected_date: patient.collected_date || "N/A",
+        collection_time: extractedCollectedTime,
+        collected_date: extractedCollectedDate,
         file_url: fileUrl,
         pdf_name: pdfName,
         patient_id: patient.patient_id,

@@ -668,6 +668,52 @@ const B2BPatients = () => {
     );
   };
 
+  const handleExportCSV = () => {
+    const filteredInvoices = getFilteredInvoices();
+    if (filteredInvoices.length === 0) {
+      toast.error('No invoices to export');
+      return;
+    }
+
+    const headers = [
+      'Invoice Number',
+      'Clinical Name',
+      'Generated Date',
+      'Date Range',
+      'Total Amount',
+      'Paid Amount',
+      'Pending Amount'
+    ];
+
+    const rows = filteredInvoices.map(invoice => {
+      const generatedDate = invoice.generateDate ? new Date(invoice.generateDate).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "N/A";
+      const dateRange = invoice.fromDate && invoice.toDate ? `${new Date(invoice.fromDate).toLocaleDateString()} - ${new Date(invoice.toDate).toLocaleDateString()}` : "N/A";
+
+      return [
+        invoice.invoiceNumber,
+        invoice.clinicalName || invoice.labName || "",
+        generatedDate,
+        dateRange,
+        invoice.totalCreditAmount || "0",
+        invoice.paidAmount || "0.00",
+        invoice.pendingAmount || invoice.totalCreditAmount || "0"
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'Generated_Invoices.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleAmountChange = (e) => {
     const value = e.target.value;
     setEditingInvoice((prev) => {
@@ -1533,6 +1579,14 @@ const B2BPatients = () => {
               >
                 <RefreshCw size={16} />
                 Refresh
+              </RefreshButton>
+              <RefreshButton
+                onClick={handleExportCSV}
+                disabled={getFilteredInvoices().length === 0}
+                style={{ background: "#10b981", color: "white", borderColor: "#10b981" }}
+              >
+                <Download size={16} />
+                Export CSV
               </RefreshButton>
               <Badge>{getFilteredInvoices().length} Invoices</Badge>
             </div>
