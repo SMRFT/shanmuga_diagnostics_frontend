@@ -6,7 +6,7 @@ import Swal from 'sweetalert2';
 import { 
   Edit2, Trash2, Save, X, FileText, Building2, 
   CalendarRange, CheckSquare, Receipt, AlertCircle,
-  Filter, RotateCcw, ChevronDown, Check, History, Clock, Printer
+  Filter, RotateCcw, ChevronDown, Check, History, Clock, Printer, Download, Search
 } from 'lucide-react';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -447,6 +447,7 @@ const CorporateCreditBilling = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [filters, setFilters] = useState({ company_id: '', from_date: '', to_date: '' });
+  const [invoiceSearchTerm, setInvoiceSearchTerm] = useState('');
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -589,6 +590,47 @@ const CorporateCreditBilling = () => {
     catch { return ds; }
   };
 
+  const filteredInvoices = generatedInvoices.filter(inv => {
+    const term = invoiceSearchTerm.toLowerCase();
+    return (
+      inv.invoice_number?.toLowerCase().includes(term) ||
+      inv.company_name?.toLowerCase().includes(term) ||
+      inv.status?.toLowerCase().includes(term)
+    );
+  });
+
+  const handleExportInvoicesCSV = () => {
+    if (filteredInvoices.length === 0) {
+      toast.error('No invoices to export');
+      return;
+    }
+
+    const headers = ['Invoice #', 'Date', 'Company', 'Items Count', 'Total Amount', 'Paid Amount', 'Pending Amount', 'Status'];
+    const rows = filteredInvoices.map(inv => [
+      inv.invoice_number,
+      formatDate(inv.created_at),
+      inv.company_name,
+      inv.bill_items?.length || 0,
+      inv.total_amount,
+      inv.paid_amount,
+      inv.remaining_amount,
+      inv.status
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'Generated_Corporate_Invoices.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const formatAmount = (v) => Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
   const selectedTotal = data.filter(r => selectedIds.includes(r._id)).reduce((s, r) => s + (Number(r.netAmount) || 0), 0);
@@ -715,6 +757,21 @@ const CorporateCreditBilling = () => {
 
       {tabValue === 1 && (
         <Card compact flex noMargin>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: T.surfaceOffset, padding: '6px 12px', borderRadius: '6px', width: '300px' }}>
+              <Search size={16} color={T.textMuted} />
+              <input 
+                type="text" 
+                placeholder="Search by invoice #, company, status..." 
+                value={invoiceSearchTerm}
+                onChange={(e) => setInvoiceSearchTerm(e.target.value)}
+                style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.85rem' }}
+              />
+            </div>
+            <Button variant="outline" onClick={handleExportInvoicesCSV} disabled={filteredInvoices.length === 0}>
+              <Download size={16} /> Export CSV
+            </Button>
+          </div>
           <TableContainer>
             <Table>
               <thead>
@@ -735,9 +792,9 @@ const CorporateCreditBilling = () => {
                    [...Array(5)].map((_, i) => (
                     <tr key={i}><Td colSpan={9}><SkeletonBox /></Td></tr>
                   ))
-                ) : generatedInvoices.length === 0 ? (
+                ) : filteredInvoices.length === 0 ? (
                   <tr><Td colSpan={9} style={{ textAlign: 'center', padding: '60px' }}>No invoices found</Td></tr>
-                ) : generatedInvoices.map(inv => (
+                ) : filteredInvoices.map(inv => (
                   <Tr key={inv.invoice_number}>
                     <Td style={{ fontWeight: 800, color: T.blue }}>{inv.invoice_number}</Td>
                     <Td style={{ color: T.textMuted }}>{formatDate(inv.created_at)}</Td>
