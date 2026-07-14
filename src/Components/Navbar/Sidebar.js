@@ -597,7 +597,7 @@ const Sidebar = () => {
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Tracking
+                 Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -631,6 +631,16 @@ const Sidebar = () => {
                   <FaChartLine />
                 </IconWrapper>
                 Report Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
               </SidebarNavLink>
             </>
           )}
@@ -1104,6 +1114,16 @@ const Sidebar = () => {
                 </IconWrapper>
                 HMS Test Count
               </SidebarNavLink>
+
+               <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
             </>
           )}
 
@@ -1288,7 +1308,7 @@ const Sidebar = () => {
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Tracking
+                 Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -1307,6 +1327,17 @@ const Sidebar = () => {
                   <FaChartLine />
                 </IconWrapper>
                 Report Dashboard
+              </SidebarNavLink>
+
+
+               <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
               </SidebarNavLink>
             </>
           )}
@@ -2107,7 +2138,7 @@ const Sidebar = () => {
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Tracking
+                 Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -2301,6 +2332,16 @@ const Sidebar = () => {
                   Rejected Samples
                 </SubLink>
               </DropdownContent>
+
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
             </>
           )}
 

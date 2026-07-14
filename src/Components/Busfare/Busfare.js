@@ -3,6 +3,9 @@ import ReactDOM from "react-dom";
 import styled from "styled-components";
 import axios from "axios";
 import apiRequest from "../Auth/apiRequest";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ---------------------------------------------------------------------
 // NOTE ON ASSUMPTIONS (please adjust to match your actual project setup):
@@ -197,6 +200,116 @@ const EmptyState = styled.div`
     padding: 28px 16px;
     font-size: 14px;
   }
+`;
+
+const FilterBar = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: #f7f5fc;
+  border-radius: 8px;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const ExportBar = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+  }
+`;
+
+const ExportButton = styled.button`
+  background: #fff;
+  color: ${TEAL_DARK};
+  border: 1.5px solid ${TEAL_DARK};
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: ${TEAL_DARK};
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+`;
+
+const FilterField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${TEAL_DARK};
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+`;
+
+const DateInput = styled.input`
+  padding: 8px 10px;
+  border: 1px solid #d5dede;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+
+  &:focus {
+    outline: none;
+    border-color: ${TEAL};
+  }
+`;
+
+const TotalBox = styled.div`
+  text-align: right;
+
+  @media (max-width: 640px) {
+    text-align: left;
+  }
+`;
+
+const TotalLabel = styled.div`
+  font-size: 12px;
+  color: #7a8a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+`;
+
+const TotalValue = styled.div`
+  font-size: 22px;
+  font-weight: 700;
+  color: ${TEAL_DARK};
 `;
 
 const Overlay = styled.div`
@@ -430,13 +543,42 @@ const PhotoButton = styled.label`
   }
 `;
 
-const PhotoPreview = styled.img`
+const PhotoPreviewWrapper = styled.div`
+  position: relative;
   margin-top: 12px;
+  width: 100%;
+`;
+
+const PhotoPreview = styled.img`
   width: 100%;
   max-height: 180px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #d5dede;
+  display: block;
+`;
+
+const RemovePhotoButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #d64545;
+  }
 `;
 
 const PhotoThumb = styled.img`
@@ -534,10 +676,22 @@ function Busfare() {
   const [pickingUpId, setPickingUpId] = useState(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState(null);
 
-  const loadBusfares = useCallback(async () => {
+  // Date range filter — defaults to "today" for both ends so the table
+  // initially shows just the current date's entries.
+  const [fromDate, setFromDate] = useState(getTodayDate());
+  const [toDate, setToDate] = useState(getTodayDate());
+
+  const loadBusfares = useCallback(async (from, to) => {
     setLoading(true);
     try {
-      const res = await apiRequest(`${Labbaseurl}bus_fare/`, "GET");
+      const params = new URLSearchParams();
+      if (from) params.append("from_date", from);
+      if (to) params.append("to_date", to);
+      const qs = params.toString();
+      const res = await apiRequest(
+        `${Labbaseurl}bus_fare/${qs ? `?${qs}` : ""}`,
+        "GET"
+      );
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
@@ -582,9 +736,12 @@ function Busfare() {
   }, []);
 
   useEffect(() => {
-    loadBusfares();
     loadCollectors();
-  }, [loadBusfares, loadCollectors]);
+  }, [loadCollectors]);
+
+  useEffect(() => {
+    loadBusfares(fromDate, toDate);
+  }, [fromDate, toDate, loadBusfares]);
 
   const openModal = () => {
     setFormData({ ...emptyForm, date: getTodayDate() });
@@ -618,6 +775,15 @@ function Busfare() {
 
     // Allow re-selecting the same file (upload then camera, or vice versa)
     e.target.value = "";
+  };
+
+  // Clears whatever photo is currently staged (uploaded or captured) so the
+  // person can pick "Upload Photo" / "Use Camera" again if it was the wrong
+  // shot.
+  const handleRemovePhoto = () => {
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    setPhotoPreviewUrl(null);
+    setFormData((prev) => ({ ...prev, bustphoto: null }));
   };
 
   const handleTimeChange = (field) => (value) => {
@@ -692,12 +858,93 @@ function Busfare() {
       }
 
       closeModal();
-      loadBusfares();
+      loadBusfares(fromDate, toDate);
     } catch (err) {
       console.error("Failed to save bus fare:", err);
     } finally {
       setSaving(false);
     }
+  };
+
+  // Sum of "amount" across whatever rows are currently loaded — since
+  // loadBusfares() is always called with the active fromDate/toDate range,
+  // this total naturally reflects just the filtered rows on screen.
+  const totalAmount = (Array.isArray(busfares) ? busfares : []).reduce(
+    (sum, row) => sum + (parseFloat(row.amount) || 0),
+    0
+  );
+
+  // Builds the row data shared by both export formats, in display order,
+  // using the same lookups the table already uses for collector names.
+  const buildExportRows = () =>
+    (Array.isArray(busfares) ? busfares : []).map((row) => ({
+      Date: row.date || "",
+      Location: row.location || "",
+      Amount: row.amount || "",
+      "Collected By": getCollectorNameById(collectors, row.collectedby),
+      "Pickup Time": row.pickuptime || "",
+      "Bus Reached Time": row.busreachedtime || "",
+      "Picked Up By": getCollectorNameById(collectors, row.pickedupby),
+    }));
+
+  const handleExportExcel = () => {
+    const rows = buildExportRows();
+    if (rows.length === 0) return;
+
+    rows.push({
+      Date: "",
+      Location: "Total",
+      Amount: totalAmount.toFixed(2),
+      "Collected By": "",
+      "Pickup Time": "",
+      "Bus Reached Time": "",
+      "Picked Up By": "",
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = [
+      { wch: 12 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 18 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bus Fares");
+    XLSX.writeFile(workbook, `bus-fares_${fromDate}_to_${toDate}.xlsx`);
+  };
+
+  const handleExportPDF = () => {
+    const rows = buildExportRows();
+    if (rows.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    doc.setFontSize(14);
+    doc.text("Bus Sample Summary", 14, 16);
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(`${fromDate} to ${toDate}`, 14, 22);
+    doc.setTextColor(0);
+
+    autoTable(doc, {
+      head: [Object.keys(rows[0])],
+      body: rows.map((row) => Object.values(row)),
+      startY: 28,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [124, 92, 196], textColor: 255 },
+      alternateRowStyles: { fillColor: [247, 245, 252] },
+    });
+
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 28;
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.text(`Total Amount: Rs.${totalAmount.toFixed(2)}`, 14, finalY + 10);
+
+    doc.save(`bus-fares_${fromDate}_to_${toDate}.pdf`);
   };
 
   const handlePickedUpChange = async (busfareId, pickedupby) => {
@@ -715,10 +962,10 @@ function Busfare() {
         busfare_id: busfareId,
         pickedupby,
       });
-      loadBusfares();
+      loadBusfares(fromDate, toDate);
     } catch (err) {
       console.error("Failed to update pickedupby:", err);
-      loadBusfares(); // revert to server state on failure
+      loadBusfares(fromDate, toDate); // revert to server state on failure
     } finally {
       setPickingUpId(null);
     }
@@ -727,9 +974,53 @@ function Busfare() {
   return (
     <Wrapper>
       <Header>
-        <Title>Bus Sample Tracker</Title>
+        <Title>Bus Sample Summary</Title>
         <AddButton onClick={openModal}>+ Add Bus Fare</AddButton>
       </Header>
+
+      <FilterBar>
+        <FilterGroup>
+          <FilterField>
+            <FilterLabel htmlFor="busfare-from-date">From</FilterLabel>
+            <DateInput
+              id="busfare-from-date"
+              type="date"
+              value={fromDate}
+              max={toDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+          </FilterField>
+          <FilterField>
+            <FilterLabel htmlFor="busfare-to-date">To</FilterLabel>
+            <DateInput
+              id="busfare-to-date"
+              type="date"
+              value={toDate}
+              min={fromDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
+          </FilterField>
+        </FilterGroup>
+        <TotalBox>
+          <TotalLabel>Total Amount</TotalLabel>
+          <TotalValue>₹{totalAmount.toFixed(2)}</TotalValue>
+        </TotalBox>
+      </FilterBar>
+
+      <ExportBar>
+        <ExportButton
+          onClick={handleExportExcel}
+          disabled={!Array.isArray(busfares) || busfares.length === 0}
+        >
+          ⬇ Export Excel
+        </ExportButton>
+        <ExportButton
+          onClick={handleExportPDF}
+          disabled={!Array.isArray(busfares) || busfares.length === 0}
+        >
+          ⬇ Export PDF
+        </ExportButton>
+      </ExportBar>
 
       <TableWrapper>
         <Table>
@@ -893,7 +1184,17 @@ function Busfare() {
                   </PhotoButton>
                 </PhotoActions>
                 {photoPreviewUrl && (
-                  <PhotoPreview src={photoPreviewUrl} alt="Bus photo preview" />
+                  <PhotoPreviewWrapper>
+                    <PhotoPreview src={photoPreviewUrl} alt="Bus photo preview" />
+                    <RemovePhotoButton
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      aria-label="Remove photo"
+                      title="Remove photo"
+                    >
+                      ×
+                    </RemovePhotoButton>
+                  </PhotoPreviewWrapper>
                 )}
               </FormGroup>
 
