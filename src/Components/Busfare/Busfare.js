@@ -40,6 +40,52 @@ import autoTable from "jspdf-autotable";
 const TEAL_DARK = "#7c5cc4";
 const TEAL = "#9f7ae6";
 
+// ---------------------------------------------------------------------
+// Toast (success / error banner)
+// ---------------------------------------------------------------------
+const Toast = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  padding: 14px 20px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  background: ${(props) => (props.$type === "error" ? "#d64545" : "#3fae6a")};
+  max-width: 380px;
+
+  @media (max-width: 480px) {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    max-width: none;
+  }
+`;
+
+// Pulls a human-readable message out of a backend error response, no
+// matter whether it came from apiRequest (axios-style err.response.data)
+// or from a raw axios call made directly (like the multipart upload in
+// handleSave). Falls back to a sensible default if nothing usable is found.
+const getErrorMessage = (err, fallback = "Something went wrong. Please try again.") => {
+  const data = err?.response?.data || err?.data || err;
+  if (!data || typeof data !== "object") {
+    return (typeof data === "string" && data) || err?.message || fallback;
+  }
+  if (data.message) return data.message;
+  if (data.error) return data.error;
+  if (data.errors && typeof data.errors === "object") {
+    const firstKey = Object.keys(data.errors)[0];
+    const firstVal = data.errors[firstKey];
+    const detail = Array.isArray(firstVal) ? firstVal[0] : firstVal;
+    return firstKey ? `${firstKey}: ${detail}` : fallback;
+  }
+  return err?.message || fallback;
+};
+
 const Wrapper = styled.div`
   padding: 24px;
   font-family: "Segoe UI", Arial, sans-serif;
@@ -675,6 +721,13 @@ function Busfare() {
   const [saving, setSaving] = useState(false);
   const [pickingUpId, setPickingUpId] = useState(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState(null);
+  const [toast, setToast] = useState(null); // { type: "success" | "error", message }
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   // Date range filter — defaults to "today" for both ends so the table
   // initially shows just the current date's entries.
@@ -848,19 +901,36 @@ function Busfare() {
 
         if (response.status < 200 || response.status >= 300) {
           console.error("Failed to save bus fare:", response.data);
+          setToast({
+            type: "error",
+            message: getErrorMessage({ response }, "Failed to save bus fare entry."),
+          });
           return;
         }
+
+        setToast({
+          type: "success",
+          message: response.data?.message || "Bus fare entry saved successfully.",
+        });
       } else {
         // No photo selected — plain JSON, apiRequest handles this fine.
         const { bustphoto, ...rest } = baseData;
         console.log("handleSave: no photo selected, sending JSON without bustphoto");
-        await apiRequest(`${Labbaseurl}bus_fare/`, "POST", rest);
+        const res = await apiRequest(`${Labbaseurl}bus_fare/`, "POST", rest);
+        setToast({
+          type: "success",
+          message: res?.message || res?.data?.message || "Bus fare entry saved successfully.",
+        });
       }
 
       closeModal();
       loadBusfares(fromDate, toDate);
     } catch (err) {
       console.error("Failed to save bus fare:", err);
+      setToast({
+        type: "error",
+        message: getErrorMessage(err, "Failed to save bus fare entry."),
+      });
     } finally {
       setSaving(false);
     }
@@ -958,13 +1028,21 @@ function Busfare() {
     );
 
     try {
-      await apiRequest(`${Labbaseurl}bus_fare/`, "PATCH", {
+      const res = await apiRequest(`${Labbaseurl}bus_fare/`, "PATCH", {
         busfare_id: busfareId,
         pickedupby,
+      });
+      setToast({
+        type: "success",
+        message: res?.message || res?.data?.message || "Pickup details updated successfully.",
       });
       loadBusfares(fromDate, toDate);
     } catch (err) {
       console.error("Failed to update pickedupby:", err);
+      setToast({
+        type: "error",
+        message: getErrorMessage(err, "Failed to update pickup details."),
+      });
       loadBusfares(fromDate, toDate); // revert to server state on failure
     } finally {
       setPickingUpId(null);
@@ -973,6 +1051,8 @@ function Busfare() {
 
   return (
     <Wrapper>
+      {toast && <Toast $type={toast.type}>{toast.message}</Toast>}
+
       <Header>
         <Title>Bus Sample Summary</Title>
         <AddButton onClick={openModal}>+ Add Bus Fare</AddButton>
