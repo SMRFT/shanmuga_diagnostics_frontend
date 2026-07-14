@@ -591,6 +591,16 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
+              
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink
+                  to="/Busfare"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                 Bus Sample Summary
+                </SubLink>
+              </DropdownContent>
+
               <DropdownHeader
                 isOpen={dropdowns.routeDetails}
                 onClick={() => toggleDropdown("routeDetails")}
@@ -621,6 +631,16 @@ const Sidebar = () => {
                   <FaChartLine />
                 </IconWrapper>
                 Report Dashboard
+              </SidebarNavLink>
+
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
               </SidebarNavLink>
             </>
           )}
@@ -1094,6 +1114,16 @@ const Sidebar = () => {
                 </IconWrapper>
                 HMS Test Count
               </SidebarNavLink>
+
+               <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
             </>
           )}
 
@@ -1260,6 +1290,28 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
+              <DropdownHeader
+                isOpen={dropdowns.logisticsDetails}
+                onClick={() => toggleDropdown("logisticsDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaTruck />
+                  </IconWrapper>
+                  Logistics
+                </div>
+                <ChevronIcon isOpen={dropdowns.logisticsDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink
+                  to="/Busfare"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                 Bus Sample Summary
+                </SubLink>
+              </DropdownContent>
+
               <SidebarNavLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
                   <FaBuilding />
@@ -1275,6 +1327,17 @@ const Sidebar = () => {
                   <FaChartLine />
                 </IconWrapper>
                 Report Dashboard
+              </SidebarNavLink>
+
+
+               <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
               </SidebarNavLink>
             </>
           )}
@@ -2070,6 +2133,15 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
+              <DropdownContent isOpen={dropdowns.logisticsDetails}>
+                <SubLink
+                  to="/Busfare"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                 Bus Sample Summary
+                </SubLink>
+              </DropdownContent>
+
               <DropdownHeader
                 isOpen={dropdowns.routeDetails}
                 onClick={() => toggleDropdown("routeDetails")}
@@ -2260,6 +2332,16 @@ const Sidebar = () => {
                   Rejected Samples
                 </SubLink>
               </DropdownContent>
+
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
             </>
           )}
 
