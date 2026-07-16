@@ -1,6 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { useState, useEffect, useRef } from 'react';
+import styled, { keyframes } from 'styled-components';
 import apiRequest from "../Auth/apiRequest";
+import { categories, monthNames } from "../Constantdata/Salesplanconstant";
+
+const slideIn = keyframes`
+  from { transform: translate(-50%, -20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+`;
+
+const slideOut = keyframes`
+  from { transform: translate(-50%, 0); opacity: 1; }
+  to { transform: translate(-50%, -20px); opacity: 0; }
+`;
+
+const ToastWrapper = styled.div`
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+const ToastItem = styled.div`
+  min-width: 260px;
+  max-width: 420px;
+  padding: 0.9rem 1.25rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  background: ${props => (props.$type === 'error'
+    ? 'linear-gradient(135deg, #f5576c 0%, #d92550 100%)'
+    : 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)')};
+  animation: ${props => (props.$leaving ? slideOut : slideIn)} 0.3s ease forwards;
+`;
 
 const Container = styled.div`
   min-height: 100vh;
@@ -93,15 +130,15 @@ const TableContainer = styled.div`
 
 const TableWrapper = styled.div`
   overflow-x: auto;
-  
+
   &::-webkit-scrollbar {
     height: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: #f1f5f9;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: #667eea;
     border-radius: 4px;
@@ -125,7 +162,7 @@ const Th = styled.th`
   color: white;
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
   min-width: ${props => props.minWidth || '80px'};
-  
+
   ${props => props.sticky && `
     position: sticky;
     left: 0;
@@ -139,18 +176,18 @@ const Tbody = styled.tbody``;
 
 const Tr = styled.tr`
   transition: background-color 0.2s ease;
-  
+
   ${props => props.isTotal && `
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
     font-weight: 700;
   `}
-  
+
   ${props => props.isGrandTotal && `
     background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
     font-weight: 700;
     font-size: 1.1rem;
   `}
-  
+
   &:hover {
     background-color: ${props => props.isTotal || props.isGrandTotal ? '' : '#f9fafb'};
   }
@@ -161,7 +198,8 @@ const Td = styled.td`
   border-bottom: 1px solid #e5e7eb;
   font-size: 0.875rem;
   color: #374151;
-  
+  position: relative;
+
   ${props => props.sticky && `
     position: sticky;
     left: 0;
@@ -170,11 +208,11 @@ const Td = styled.td`
     border-right: 2px solid #e5e7eb;
     font-weight: 600;
   `}
-  
+
   ${props => props.isTotal && `
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   `}
-  
+
   ${props => props.isGrandTotal && `
     background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
   `}
@@ -183,17 +221,17 @@ const Td = styled.td`
 const Input = styled.input`
   width: 100%;
   padding: 0.5rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid ${props => (props.$saving ? '#fbbf24' : '#e5e7eb')};
   border-radius: 8px;
   font-size: 0.875rem;
   transition: all 0.2s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
-  
+
   &::placeholder {
     color: #9ca3af;
   }
@@ -220,12 +258,13 @@ const SaveButton = styled.button`
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   float: right;
-  
+  opacity: ${props => (props.disabled ? 0.6 : 1)};
+
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    transform: ${props => (props.disabled ? 'none' : 'translateY(-2px)')};
+    box-shadow: ${props => (props.disabled ? '0 4px 15px rgba(102, 126, 234, 0.3)' : '0 6px 20px rgba(102, 126, 234, 0.4)')};
   }
-  
+
   &:active {
     transform: translateY(0);
   }
@@ -263,16 +302,50 @@ const SummaryValue = styled.div`
   font-weight: 700;
 `;
 
+const LoadingText = styled.div`
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+`;
+
 const Salesplan = () => {
   const [salesMappings, setSalesMappings] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('B2B');
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [planData, setPlanData] = useState({});
-  
-  const categories = ['B2B', 'Corporate Health Checkup', 'Home Collection'];
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                      'July', 'August', 'September', 'October', 'November', 'December'];
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savingCells, setSavingCells] = useState({});
+  const [toasts, setToasts] = useState([]);
+
+  // Shows a toast at the top of the page; auto-dismisses after 4s.
+  const showToast = (message, type = 'success') => {
+    const toastId = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id: toastId, message, type, leaving: false }]);
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => (t.id === toastId ? { ...t, leaving: true } : t)));
+    }, 3700);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== toastId));
+    }, 4000);
+  };
+
+  // Matches the employeeId key convention used by get_sales_executives/
+  // and the rest of this app — this is the logged-in user's own id.
+  const getAuthUserId = () => localStorage.getItem('employeeId');
+
+  // Caches sales_plan_id per category_employeeId so cell PATCHes can hit
+  // the record directly instead of relying on the compound employee/
+  // category/month/year lookup after the first save.
+  const planIdMapRef = useRef({});
+
+  // Chains PATCH calls one after another so a fast tab-through of cells
+  // can't fire overlapping requests that read stale data and clobber
+  // each other's writes.
+  const patchQueueRef = useRef(Promise.resolve());
+
 
   const getDaysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
@@ -294,7 +367,7 @@ const Salesplan = () => {
           name: exec.employeeName,
           employeeId: exec.employeeId
         }));
-        
+
         setSalesMappings(mappings);
       } catch (error) {
         console.error("Error fetching sales mappings:", error.message || error);
@@ -305,6 +378,39 @@ const Salesplan = () => {
     fetchSalesExecutives();
   }, [Labbaseurl]);
 
+  // Fetch saved plan data whenever month/year changes (all categories at once)
+  useEffect(() => {
+    const fetchPlanData = async () => {
+      setIsLoading(true);
+      try {
+        const res = await apiRequest(
+          `${Labbaseurl}salesplan/?month=${currentMonth}&year=${currentYear}`,
+          "GET"
+        );
+        const records = res?.data || [];
+
+        const rebuilt = {};
+        const idMap = {};
+        records.forEach(record => {
+          idMap[`${record.category}_${record.employee_id}`] = record.sales_plan_id;
+          (record.entries || []).forEach(entry => {
+            rebuilt[`${record.category}_${record.employee_id}_${entry.date}`] = entry.amount;
+          });
+        });
+        planIdMapRef.current = idMap;
+        setPlanData(rebuilt);
+      } catch (error) {
+        console.error("Error fetching sales plan:", error.message || error);
+        planIdMapRef.current = {};
+        setPlanData({});
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlanData();
+  }, [Labbaseurl, currentMonth, currentYear]);
+
   const handleInputChange = (salesExecId, day, value) => {
     setPlanData(prev => ({
       ...prev,
@@ -313,7 +419,47 @@ const Salesplan = () => {
   };
 
   const getInputValue = (salesExecId, day) => {
-    return planData[`${selectedCategory}_${salesExecId}_${day}`] || '';
+    const val = planData[`${selectedCategory}_${salesExecId}_${day}`];
+    return val === undefined || val === null ? '' : val;
+  };
+
+  // PATCH a single cell on blur (upserts the SalesPlan doc for that employee/category/month/year).
+  // Queued through patchQueueRef so overlapping edits can't race each other.
+  const handleCellBlur = (salesExecId, day) => {
+    const cellKey = `${selectedCategory}_${salesExecId}_${day}`;
+    setSavingCells(prev => ({ ...prev, [cellKey]: true }));
+
+    patchQueueRef.current = patchQueueRef.current
+      .then(async () => {
+        const value = getInputValue(salesExecId, day);
+        const mapKey = `${selectedCategory}_${salesExecId}`;
+        try {
+          const res = await apiRequest(`${Labbaseurl}salesplan/`, "PATCH", {
+            'auth-user-id': getAuthUserId(),
+            sales_plan_id: planIdMapRef.current[mapKey],
+            employee_id: salesExecId,
+            category: selectedCategory,
+            month: currentMonth,
+            year: currentYear,
+            day,
+            amount: parseFloat(value) || 0
+          });
+          // First edit for this employee/category/month/year creates the
+          // record — cache its id so later edits go straight to it.
+          if (res?.data?.sales_plan_id) {
+            planIdMapRef.current[mapKey] = res.data.sales_plan_id;
+          }
+        } catch (error) {
+          console.error("Error saving cell:", error.message || error);
+          showToast(`Failed to save value for day ${day}.`, 'error');
+        } finally {
+          setSavingCells(prev => {
+            const next = { ...prev };
+            delete next[cellKey];
+            return next;
+          });
+        }
+      });
   };
 
   // Calculate daily total for a specific day
@@ -364,14 +510,52 @@ const Salesplan = () => {
   const categoryTotals = getAllCategoryTotals();
   const overallTotal = Object.values(categoryTotals).reduce((sum, val) => sum + val, 0);
 
+  // Bulk save the entire grid for the currently selected category
+  const handleSavePlan = async () => {
+    setIsSaving(true);
+
+    const plans = salesMappings.map(exec => ({
+      employee_id: exec.employeeId,
+      category: selectedCategory,
+      month: currentMonth,
+      year: currentYear,
+      entries: Array.from({ length: daysInMonth }, (_, i) => i + 1)
+        .map(day => ({
+          date: day,
+          amount: parseFloat(getInputValue(exec.employeeId, day)) || 0
+        }))
+        .filter(e => e.amount > 0)
+    }));
+
+    try {
+      await apiRequest(`${Labbaseurl}salesplan/`, "POST", {
+        'auth-user-id': getAuthUserId(),
+        plans
+      });
+      showToast(`Sales plan saved successfully! Total: ₹${getGrandTotal().toLocaleString()}`, 'success');
+    } catch (error) {
+      console.error("Error saving plan:", error.message || error);
+      showToast("Failed to save sales plan.", 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <Container>
+      <ToastWrapper>
+        {toasts.map(toast => (
+          <ToastItem key={toast.id} $type={toast.type} $leaving={toast.leaving}>
+            {toast.message}
+          </ToastItem>
+        ))}
+      </ToastWrapper>
       <ContentWrapper>
         <Header>
           <Title>Sales Plan Management</Title>
-          
+
           <Controls>
-            <Select 
+            <Select
               value={currentMonth}
               onChange={(e) => setCurrentMonth(Number(e.target.value))}
             >
@@ -379,7 +563,7 @@ const Salesplan = () => {
                 <option key={index} value={index}>{month}</option>
               ))}
             </Select>
-            <Select 
+            <Select
               value={currentYear}
               onChange={(e) => setCurrentYear(Number(e.target.value))}
             >
@@ -427,60 +611,64 @@ const Salesplan = () => {
         </SummaryCard>
 
         <TableContainer>
-          <TableWrapper>
-            <Table>
-              <Thead>
-                <tr>
-                  <Th sticky align="left">Sales Executive</Th>
-                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-                    <Th key={day}>{day}</Th>
-                  ))}
-                  <Th>Total</Th>
-                </tr>
-                <tr>
-                  <Th sticky align="left">Daily Total</Th>
-                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-                    <Th key={day}>
-                      <TotalCell style={{ color: '#fbbf24' }}>₹{getDailyTotal(day).toLocaleString()}</TotalCell>
-                    </Th>
-                  ))}
-                  <Th>
-                    <TotalCell style={{ color: '#10b981' }}>₹{getGrandTotal().toLocaleString()}</TotalCell>
-                  </Th>
-                </tr>
-              </Thead>
-              <Tbody>
-                {salesMappings.map((exec) => (
-                  <Tr key={exec.id}>
-                    <Td sticky>{exec.name}</Td>
+          {isLoading ? (
+            <LoadingText>Loading sales plan…</LoadingText>
+          ) : (
+            <TableWrapper>
+              <Table>
+                <Thead>
+                  <tr>
+                    <Th sticky align="left">Sales Executive</Th>
                     {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-                      <Td key={day}>
-                        <Input
-                          type="number"
-                          value={getInputValue(exec.employeeId, day)}
-                          onChange={(e) => handleInputChange(exec.employeeId, day, e.target.value)}
-                          placeholder="0"
-                          min="0"
-                        />
-                      </Td>
+                      <Th key={day}>{day}</Th>
                     ))}
-                    <Td>
-                      <TotalCell>₹{getRowTotal(exec.employeeId).toLocaleString()}</TotalCell>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </TableWrapper>
+                    <Th>Total</Th>
+                  </tr>
+                  <tr>
+                    <Th sticky align="left">Daily Total</Th>
+                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
+                      <Th key={day}>
+                        <TotalCell style={{ color: '#fbbf24' }}>₹{getDailyTotal(day).toLocaleString()}</TotalCell>
+                      </Th>
+                    ))}
+                    <Th>
+                      <TotalCell style={{ color: '#10b981' }}>₹{getGrandTotal().toLocaleString()}</TotalCell>
+                    </Th>
+                  </tr>
+                </Thead>
+                <Tbody>
+                  {salesMappings.map((exec) => (
+                    <Tr key={exec.id}>
+                      <Td sticky>{exec.name}</Td>
+                      {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                        const cellKey = `${selectedCategory}_${exec.employeeId}_${day}`;
+                        return (
+                          <Td key={day}>
+                            <Input
+                              type="number"
+                              value={getInputValue(exec.employeeId, day)}
+                              onChange={(e) => handleInputChange(exec.employeeId, day, e.target.value)}
+                              onBlur={() => handleCellBlur(exec.employeeId, day)}
+                              placeholder="0"
+                              min="0"
+                              $saving={!!savingCells[cellKey]}
+                            />
+                          </Td>
+                        );
+                      })}
+                      <Td>
+                        <TotalCell>₹{getRowTotal(exec.employeeId).toLocaleString()}</TotalCell>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </TableWrapper>
+          )}
         </TableContainer>
 
-        <SaveButton
-          onClick={() => {
-            console.log('Plan Data:', planData);
-            alert(`Sales plan saved successfully!\nTotal: ₹${getGrandTotal().toLocaleString()}`);
-          }}
-        >
-          Save Plan
+        <SaveButton onClick={handleSavePlan} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save Plan'}
         </SaveButton>
       </ContentWrapper>
     </Container>

@@ -476,6 +476,41 @@ const TextInput = styled.input`
   }
 `;
 
+const LabSearchWrapper = styled.div`
+  position: relative;
+`;
+
+const LabDropdownList = styled.div`
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #d5dede;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+`;
+
+const LabDropdownItem = styled.div`
+  padding: 9px 10px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+
+  &:hover {
+    background: #f7edfa;
+  }
+`;
+
+const LabDropdownEmpty = styled.div`
+  padding: 9px 10px;
+  font-size: 13px;
+  color: #7a8a8a;
+`;
+
 const CheckboxGroup = styled.div`
   display: flex;
   flex-direction: column;
@@ -591,6 +626,7 @@ const ToastItem = styled.div`
 
 const initialFormData = {
   labcode: "",
+  patientId: "",
   issuetype: [], // array of selected checkbox values
   otherIssueText: "",
   comments: "",
@@ -608,6 +644,11 @@ const CustomerComplaints = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+
+  // Lab Name is a searchable combobox rather than a plain <select> — these
+  // track what's typed and whether the filtered dropdown is showing.
+  const [labSearchTerm, setLabSearchTerm] = useState("");
+  const [labDropdownOpen, setLabDropdownOpen] = useState(false);
 
   // Per-row "complete with comments" state, keyed by complaint_id
   const [completingId, setCompletingId] = useState(null);
@@ -737,6 +778,8 @@ const CustomerComplaints = () => {
   const openModal = () => {
     setFormData(initialFormData);
     setErrors({});
+    setLabSearchTerm("");
+    setLabDropdownOpen(false);
     setShowModal(true);
   };
 
@@ -746,6 +789,31 @@ const CustomerComplaints = () => {
 
   const handleChange = (field) => (e) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+  };
+
+  // Filters the lab dropdown as the user types. Matches on clinicalname,
+  // case-insensitive, substring match.
+  const filteredClinicalNames = useMemo(() => {
+    const term = labSearchTerm.trim().toLowerCase();
+    if (!term) return clinicalNames;
+    return clinicalNames.filter((cn) =>
+      (cn.clinicalname || "").toLowerCase().includes(term)
+    );
+  }, [clinicalNames, labSearchTerm]);
+
+  const handleLabSearchChange = (e) => {
+    const value = e.target.value;
+    setLabSearchTerm(value);
+    setLabDropdownOpen(true);
+    // Typing invalidates whatever was previously selected until the user
+    // picks a fresh match from the dropdown — keeps labcode honest.
+    setFormData((prev) => ({ ...prev, labcode: "" }));
+  };
+
+  const handleSelectLab = (cn) => {
+    setFormData((prev) => ({ ...prev, labcode: cn.referrerCode }));
+    setLabSearchTerm(cn.clinicalname);
+    setLabDropdownOpen(false);
   };
 
   const handleIssueTypeToggle = (value) => {
@@ -779,11 +847,20 @@ const CustomerComplaints = () => {
     if (!formData.assignedby) newErrors.assignedby = "Assigned by is required";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
+  // Field order used to pick which single message to toast when several
+  // fields are missing at once — top-to-bottom as they appear in the form.
+  const FIELD_ORDER = ["labcode", "issuetype", "otherIssueText", "comments", "assignedby"];
+
   const handleSave = async () => {
-    if (!validate()) return;
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+      const firstField = FIELD_ORDER.find((key) => newErrors[key]);
+      showToast(newErrors[firstField], "error");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -798,6 +875,7 @@ const CustomerComplaints = () => {
       const payload = {
         "auth-user-id": getAuthUserId(),
         labcode: formData.labcode,
+        patient_id: formData.patientId.trim() || null,
         issuetype: issuetypeString,
         comments: formData.comments.trim(),
         assignedby: formData.assignedby,
@@ -872,6 +950,7 @@ const CustomerComplaints = () => {
   const EXPORT_COLUMNS = [
     "ID",
     "Lab Name",
+    "Patient ID",
     "Issue Type",
     "Comments",
     "Assigned By",
@@ -889,6 +968,7 @@ const CustomerComplaints = () => {
       return [
         row.complaint_id,
         labCodeToName[row.labcode] || row.labcode || "",
+        row.patient_id || "",
         row.issuetype || "",
         row.comments || "",
         employeeIdToName[row.assignedby] || row.assignedby || "",
@@ -1032,6 +1112,7 @@ const CustomerComplaints = () => {
             <tr>
               <Th>ID</Th>
               <Th>Lab Name</Th>
+              <Th>Patient ID</Th>
               <Th>Issue Type</Th>
               <Th>Comments</Th>
               <Th>Assigned By</Th>
@@ -1045,6 +1126,7 @@ const CustomerComplaints = () => {
               <tr key={row.complaint_id}>
                 <Td>{row.complaint_id}</Td>
                 <Td>{labCodeToName[row.labcode] || row.labcode}</Td>
+                <Td>{row.patient_id || "—"}</Td>
                 <Td>{row.issuetype}</Td>
                 <Td>{row.comments}</Td>
                 <Td>{employeeIdToName[row.assignedby] || row.assignedby}</Td>
@@ -1121,19 +1203,44 @@ const CustomerComplaints = () => {
 
               <FormGroup>
                 <Label htmlFor="complaint-labname">Lab Name</Label>
-                <Select
-                  id="complaint-labname"
-                  value={formData.labcode}
-                  onChange={handleChange("labcode")}
-                >
-                  <option value="">Select lab</option>
-                  {clinicalNames.map((cn) => (
-                    <option key={cn.referrerCode} value={cn.referrerCode}>
-                      {cn.clinicalname}
-                    </option>
-                  ))}
-                </Select>
+                <LabSearchWrapper>
+                  <TextInput
+                    id="complaint-labname"
+                    placeholder="Search and select a lab"
+                    autoComplete="off"
+                    value={labSearchTerm}
+                    onChange={handleLabSearchChange}
+                    onFocus={() => setLabDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setLabDropdownOpen(false), 150)}
+                  />
+                  {labDropdownOpen && (
+                    <LabDropdownList>
+                      {filteredClinicalNames.length === 0 ? (
+                        <LabDropdownEmpty>No labs found</LabDropdownEmpty>
+                      ) : (
+                        filteredClinicalNames.map((cn) => (
+                          <LabDropdownItem
+                            key={cn.referrerCode}
+                            onMouseDown={() => handleSelectLab(cn)}
+                          >
+                            {cn.clinicalname}
+                          </LabDropdownItem>
+                        ))
+                      )}
+                    </LabDropdownList>
+                  )}
+                </LabSearchWrapper>
                 {errors.labcode && <ErrorText>{errors.labcode}</ErrorText>}
+              </FormGroup>
+
+              <FormGroup>
+                <Label htmlFor="complaint-patientid">Patient ID</Label>
+                <TextInput
+                  id="complaint-patientid"
+                  placeholder="Optional"
+                  value={formData.patientId}
+                  onChange={handleChange("patientId")}
+                />
               </FormGroup>
 
               <FormGroup>
