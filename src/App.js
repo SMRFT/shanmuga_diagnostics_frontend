@@ -107,6 +107,7 @@ import B2BPackageList from "./Components/Lab/B2BPackageList";
 
 import Busfare from "./Components/Busfare/Busfare";
 import CustomerComplaints from "./Components/Complaints/Customercomplaints";
+import Salesplan from "./Components/Sales/Salesplan";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -569,7 +570,15 @@ function App() {
               path="/CustomerComplaints"
               element={<CustomerComplaints/>}
             />
+
+
+            <Route
+              path="/Salesplan"
+              element={<Salesplan/>}
+            />
+
           </Routes>
+
         </ContentWrapper>
       )}
     </div>

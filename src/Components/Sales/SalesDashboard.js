@@ -221,6 +221,42 @@ const AverageChange = styled.span`
   margin-left: 0.5rem;
 `;
 
+const TrendContainer = styled.div`
+  margin: 2rem 0;
+  background: ${props => props.theme.colors.card};
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+`;
+
+const TrendTitle = styled.h3`
+  font-size: 1.25rem;
+  color: ${props => props.theme.colors.text};
+  margin-bottom: 1.5rem;
+`;
+
+const TrendTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const TrendTh = styled.th`
+  text-align: left;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: ${props => props.theme.colors.text};
+  opacity: 0.7;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
+`;
+
+const TrendTd = styled.td`
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  color: ${props => props.theme.colors.text};
+  border-bottom: 1px solid ${props => props.theme.colors.border};
+`;
+
 // ================== MAIN COMPONENT ==================
 function SalesDashboard() {
   const [salesMappings, setSalesMappings] = useState([]);
@@ -233,7 +269,8 @@ function SalesDashboard() {
     totalAmount: 0,
     totalTests: 0,
     testCounts: {},
-    monthlyData: []
+    monthlyData: [],
+    trendData: []
   });
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const [averages, setAverages] = useState({
@@ -271,9 +308,22 @@ function SalesDashboard() {
   // ✅ Fetch Dashboard Data using apiRequest
   useEffect(() => {
     const fetchDashboardData = async () => {
-      if (!selectedSalesMapping) return;
+      // "" only means the placeholder is still showing (nothing chosen yet).
+      // "ALL" is a real selection and must still trigger a fetch.
+      if (selectedSalesMapping === "") return;
       try {
-        let apiUrl = `${Labbaseurl}salesdashboard/?salesMapping=${selectedSalesMapping}`;
+        // "ALL" is a sentinel for the All option — send no filter so the
+        // backend returns unfiltered totals for the date/month range.
+        const isAll = selectedSalesMapping === "ALL";
+
+        // Billing.salesMapping is stored inconsistently — some records hold the
+        // employeeName, others the employeeId — so send both and let the
+        // backend match against whichever value is present.
+        const matchedExec = isAll ? null : salesMappings.find(m => m.name === selectedSalesMapping);
+        const employeeId = matchedExec?.employeeId || "";
+        const salesMappingParam = isAll ? "" : selectedSalesMapping;
+
+        let apiUrl = `${Labbaseurl}salesdashboard/?salesMapping=${encodeURIComponent(salesMappingParam)}&employeeId=${encodeURIComponent(employeeId)}`;
         apiUrl += filterType === "date"
           ? `&date=${format(selectedDate, 'yyyy-MM-dd')}`
           : `&month=${format(selectedMonth, 'yyyy-MM')}`;
@@ -300,13 +350,14 @@ function SalesDashboard() {
             { month: 'Mar', revenue: 30000, tests: 350 },
             { month: 'Apr', revenue: 27000, tests: 310 },
             { month: 'May', revenue: 35000, tests: 400 }
-          ]
+          ],
+          trendData: []
         });
       }
     };
 
     fetchDashboardData();
-  }, [selectedSalesMapping, selectedDate, selectedMonth, filterType]);
+  }, [selectedSalesMapping, selectedDate, selectedMonth, filterType, salesMappings]);
 
   // ✅ Calculate Averages
   useEffect(() => {
@@ -343,7 +394,7 @@ function SalesDashboard() {
             >
               <option value="">Select Sales Executive</option>
               {salesMappings.map(mapping => (
-                <option key={mapping.id} value={mapping.name === "All" ? "" : mapping.name}>
+                <option key={mapping.id} value={mapping.name === "All" ? "ALL" : mapping.name}>
                   {mapping.name}
                 </option>
               ))}
@@ -434,6 +485,32 @@ function SalesDashboard() {
             </AverageCard>
           </AveragesGrid>
         </AveragesContainer>
+
+        {dashboardData.trendData?.length > 0 && (
+          <TrendContainer>
+            <TrendTitle>Day-wise Breakdown</TrendTitle>
+            <TrendTable>
+              <thead>
+                <tr>
+                  <TrendTh>Date</TrendTh>
+                  <TrendTh>Patients</TrendTh>
+                  <TrendTh>Revenue</TrendTh>
+                  <TrendTh>Tests</TrendTh>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardData.trendData.map(row => (
+                  <tr key={row.date}>
+                    <TrendTd>{row.date}</TrendTd>
+                    <TrendTd>{row.totalPatients}</TrendTd>
+                    <TrendTd>₹{row.totalAmount?.toLocaleString()}</TrendTd>
+                    <TrendTd>{row.totalTests}</TrendTd>
+                  </tr>
+                ))}
+              </tbody>
+            </TrendTable>
+          </TrendContainer>
+        )}
       </Container>
     </ThemeProvider>
   );
