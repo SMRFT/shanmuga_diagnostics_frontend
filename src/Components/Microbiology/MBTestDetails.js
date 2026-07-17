@@ -504,6 +504,98 @@ const getResultStatus = (value) => {
   return "Sensitive";
 };
 
+// Static inline-style objects hoisted to module scope so they aren't
+// recreated on every render (they don't depend on props/state/loop vars).
+const styles = {
+  errorBox: {
+    color: "red",
+    padding: "1rem",
+    backgroundColor: "#ffe6e6",
+    borderRadius: "8px",
+  },
+  retryButton: { marginTop: "1rem" },
+  noDataSmall: { marginTop: "1rem", display: "block" },
+  requiredMark: { color: "red" },
+  remarksOptionsRow: {
+    display: "flex",
+    gap: "0.5rem",
+    marginBottom: "0.5rem",
+    flexWrap: "wrap",
+  },
+  remarksOptionButton: {
+    fontSize: "0.875rem",
+    padding: "0.5rem 0.75rem",
+    backgroundColor: "var(--secondary)",
+    minWidth: "45%",
+  },
+  preliminaryOptionButton: {
+    fontSize: "0.875rem",
+    padding: "0.5rem 0.75rem",
+    backgroundColor: "#7b2ff7",
+    minWidth: "45%",
+  },
+  parametersSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "1.5rem",
+  },
+  formRowMarginBottom: { marginBottom: "1.5rem" },
+  antimicrobialInput: { resize: "none" },
+  optionColorSensitive: { color: "#4caf50" },
+  optionColorIntermediate: { color: "#ff9800" },
+  optionColorResistant: { color: "#f44336" },
+  optionColorNil: { color: "#1f1a1a" },
+  optionColorNilAlt: { color: "#111010" },
+  previewSummaryBox: {
+    marginTop: "1.5rem",
+    padding: "1rem",
+    backgroundColor: "var(--light)",
+    borderRadius: "var(--border-radius)",
+    border: "1px solid var(--gray-light)",
+  },
+  previewSummaryLabel: { color: "var(--secondary)", fontSize: "1rem" },
+  previewSummaryText: {
+    marginTop: "0.5rem",
+    color: "var(--dark)",
+    whiteSpace: "pre-wrap",
+  },
+  previewTestBlockMargin: { marginBottom: "2rem" },
+  previewTestHeader: {
+    backgroundColor: "var(--primary)",
+    color: "white",
+    padding: "0.75rem 1rem",
+    fontWeight: "600",
+    fontSize: "1.125rem",
+    borderRadius: "8px 8px 0 0",
+  },
+  previewColonyCountBox: {
+    backgroundColor: "#fff3cd",
+    padding: "0.75rem 1rem",
+    borderLeft: "4px solid var(--warning)",
+    marginBottom: "1rem",
+  },
+  previewTableNoMarginTop: { marginTop: 0 },
+  previewRemarksBox: {
+    marginTop: "0.5rem",
+    padding: "1rem",
+    backgroundColor: "var(--light)",
+    borderRadius: "0 0 8px 8px",
+    border: "1px solid var(--gray-light)",
+    borderTop: "none",
+  },
+  previewRemarksLabel: {
+    color: "var(--secondary)",
+    fontSize: "0.875rem",
+  },
+  previewRemarksText: {
+    marginTop: "0.25rem",
+    color: "var(--dark)",
+    fontSize: "0.875rem",
+    whiteSpace: "pre-wrap",
+  },
+};
+
 function MBTestDetails() {
   const [testDetails, setTestDetails] = useState([]);
   const [values, setValues] = useState({});
@@ -585,8 +677,6 @@ function MBTestDetails() {
         queryParams += `&parameter_type=${encodeURIComponent(parameterType)}`;
       }
 
-      console.log(`DEBUG: Fetching test details with query: ${queryParams}`);
-
       const response = await apiRequest(
         `${Labbaseurl}mb-compare_test_details/?${queryParams}`,
         "GET",
@@ -603,22 +693,12 @@ function MBTestDetails() {
         throw new Error(actualResponse.error || "Failed to fetch test details");
       }
 
-      if (actualResponse.filtered_by_test) {
-        console.log(
-          `DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`,
-        );
-      }
-
       if (
         actualResponse.processed_records &&
         Array.isArray(actualResponse.processed_records)
       ) {
         setProcessedRecords(actualResponse.processed_records);
-        console.log(
-          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`,
-        );
       } else {
-        console.log("DEBUG: No processed records found in response");
         setProcessedRecords([]);
       }
 
@@ -990,8 +1070,6 @@ function MBTestDetails() {
         processed_records: processedRecords,
       };
 
-      console.log("DEBUG: Sending POST request with payload:", payload);
-
       const postResult = await apiRequest(
         `${Labbaseurl}mb-test-value/save/`,
         "POST",
@@ -1053,18 +1131,13 @@ function MBTestDetails() {
       <Container>
         <GlobalStyle />
         <div
-          style={{
-            color: "red",
-            padding: "1rem",
-            backgroundColor: "#ffe6e6",
-            borderRadius: "8px",
-          }}
+          style={styles.errorBox}
         >
           <strong>Error:</strong> {error}
           <br />
           <button
             onClick={() => window.location.reload()}
-            style={{ marginTop: "1rem" }}
+            style={styles.retryButton}
           >
             Retry
           </button>
@@ -1126,7 +1199,7 @@ function MBTestDetails() {
         <NoData>
           No test details available for the selected patient.
           <br />
-          <small style={{ marginTop: "1rem", display: "block" }}>
+          <small style={styles.noDataSmall}>
             Barcode: {barcode} | Test Name: {testName || "All tests"}
           </small>
         </NoData>
@@ -1152,16 +1225,9 @@ function MBTestDetails() {
                     <RemarksSection>
                       <FormGroup>
                         <Label>
-                          Impression <span style={{ color: "red" }}>*</span>
+                          Impression <span style={styles.requiredMark}>*</span>
                         </Label>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                            flexWrap: "wrap",
-                          }}
-                        >
+                        <div style={styles.remarksOptionsRow}>
                           {remarksOptions.map((option, idx) => (
                             <Button
                               key={idx}
@@ -1172,12 +1238,7 @@ function MBTestDetails() {
                                   target: { value: option.text },
                                 });
                               }}
-                              style={{
-                                fontSize: "0.875rem",
-                                padding: "0.5rem 0.75rem",
-                                backgroundColor: "var(--secondary)",
-                                minWidth: "45%",
-                              }}
+                              style={styles.remarksOptionButton}
                             >
                               {option.title}
                             </Button>
@@ -1221,16 +1282,9 @@ function MBTestDetails() {
                       <FormGroup>
                         <Label>
                           Preliminary Report Impression{" "}
-                          <span style={{ color: "red" }}>*</span>
+                          <span style={styles.requiredMark}>*</span>
                         </Label>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "0.5rem",
-                            marginBottom: "0.5rem",
-                            flexWrap: "wrap",
-                          }}
-                        >
+                        <div style={styles.remarksOptionsRow}>
                           {preliminaryRemarksOptions.map((option, idx) => (
                             <Button
                               key={idx}
@@ -1241,12 +1295,7 @@ function MBTestDetails() {
                                   target: { value: option.text },
                                 });
                               }}
-                              style={{
-                                fontSize: "0.875rem",
-                                padding: "0.5rem 0.75rem",
-                                backgroundColor: "#7b2ff7",
-                                minWidth: "45%",
-                              }}
+                              style={styles.preliminaryOptionButton}
                             >
                               {option.title}
                             </Button>
@@ -1292,7 +1341,7 @@ function MBTestDetails() {
                             <FormGroup>
                               <Label>
                                 Colony Count{" "}
-                                <span style={{ color: "red" }}>*</span>
+                                <span style={styles.requiredMark}>*</span>
                               </Label>
                               <SelectWrapper>
                                 <Select
@@ -1348,25 +1397,25 @@ function MBTestDetails() {
                               >
                                 <option
                                   value="Sensitive"
-                                  style={{ color: "#4caf50" }}
+                                  style={styles.optionColorSensitive}
                                 >
                                   Sensitive
                                 </option>
                                 <option
                                   value="Intermediate"
-                                  style={{ color: "#ff9800" }}
+                                  style={styles.optionColorIntermediate}
                                 >
                                   Intermediate
                                 </option>
                                 <option
                                   value="Resistant"
-                                  style={{ color: "#f44336" }}
+                                  style={styles.optionColorResistant}
                                 >
                                   Resistant
                                 </option>
                                 <option
                                   value="Nil"
-                                  style={{ color: "#1f1a1a" }}
+                                  style={styles.optionColorNil}
                                 >
                                   Nil
                                 </option>
@@ -1453,16 +1502,9 @@ function MBTestDetails() {
                               <FormGroup>
                                 <Label>
                                   Remarks (Required for edited values){" "}
-                                  <span style={{ color: "red" }}>*</span>
+                                  <span style={styles.requiredMark}>*</span>
                                 </Label>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: "0.5rem",
-                                    marginBottom: "0.5rem",
-                                    flexWrap: "wrap",
-                                  }}
-                                >
+                                <div style={styles.remarksOptionsRow}>
                                   {remarksOptions.map((option, idx) => (
                                     <Button
                                       key={idx}
@@ -1472,12 +1514,7 @@ function MBTestDetails() {
                                           target: { value: option.text },
                                         });
                                       }}
-                                      style={{
-                                        fontSize: "0.875rem",
-                                        padding: "0.5rem 0.75rem",
-                                        backgroundColor: "var(--secondary)",
-                                        minWidth: "45%",
-                                      }}
+                                      style={styles.remarksOptionButton}
                                     >
                                       {option.title}
                                     </Button>
@@ -1503,14 +1540,7 @@ function MBTestDetails() {
                       </>
                     ) : (
                       <ParameterSection>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: "1.5rem",
-                          }}
-                        >
+                        <div style={styles.parametersSectionHeader}>
                           <ParameterTitle>
                             Parameters (
                             {
@@ -1521,7 +1551,7 @@ function MBTestDetails() {
                           </ParameterTitle>
                         </div>
 
-                        <FormRow style={{ marginBottom: "1.5rem" }}>
+                        <FormRow style={styles.formRowMarginBottom}>
                           <FormGroup>
                             <Label>Specimen Type</Label>
                             <Input
@@ -1535,7 +1565,7 @@ function MBTestDetails() {
                             <FormGroup>
                               <Label>
                                 Colony Count{" "}
-                                <span style={{ color: "red" }}>*</span>
+                                <span style={styles.requiredMark}>*</span>
                               </Label>
                               <SelectWrapper>
                                 <Select
@@ -1600,7 +1630,7 @@ function MBTestDetails() {
                                             as="textarea"
                                             value={paramName}
                                             disabled
-                                            style={{ resize: "none" }}
+                                            style={styles.antimicrobialInput}
                                           />
                                         </FormGroup>
                                         <FormGroup>
@@ -1649,25 +1679,25 @@ function MBTestDetails() {
                                             >
                                               <option
                                                 value="Sensitive"
-                                                style={{ color: "#4caf50" }}
+                                                style={styles.optionColorSensitive}
                                               >
                                                 Sensitive
                                               </option>
                                               <option
                                                 value="Intermediate"
-                                                style={{ color: "#ff9800" }}
+                                                style={styles.optionColorIntermediate}
                                               >
                                                 Intermediate
                                               </option>
                                               <option
                                                 value="Resistant"
-                                                style={{ color: "#f44336" }}
+                                                style={styles.optionColorResistant}
                                               >
                                                 Resistant
                                               </option>
                                               <option
                                                 value="Nil"
-                                                style={{ color: "#111010" }}
+                                                style={styles.optionColorNilAlt}
                                               >
                                                 Nil
                                               </option>
@@ -1772,16 +1802,9 @@ function MBTestDetails() {
                             <FormGroup>
                               <Label>
                                 Impression{" "}
-                                <span style={{ color: "red" }}>*</span>
+                                <span style={styles.requiredMark}>*</span>
                               </Label>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.5rem",
-                                  marginBottom: "0.5rem",
-                                  flexWrap: "wrap",
-                                }}
-                              >
+                              <div style={styles.remarksOptionsRow}>
                                 {remarksOptions.map((option, idx) => (
                                   <Button
                                     key={idx}
@@ -1789,12 +1812,7 @@ function MBTestDetails() {
                                     onClick={() => {
                                       setParameterRemarks(option.text);
                                     }}
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      padding: "0.5rem 0.75rem",
-                                      backgroundColor: "var(--secondary)",
-                                      minWidth: "45%",
-                                    }}
+                                    style={styles.remarksOptionButton}
                                   >
                                     {option.title}
                                   </Button>
@@ -1869,25 +1887,15 @@ function MBTestDetails() {
                 </PreviewTable>
 
                 <div
-                  style={{
-                    marginTop: "1.5rem",
-                    padding: "1rem",
-                    backgroundColor: "var(--light)",
-                    borderRadius: "var(--border-radius)",
-                    border: "1px solid var(--gray-light)",
-                  }}
+                  style={styles.previewSummaryBox}
                 >
                   <strong
-                    style={{ color: "var(--secondary)", fontSize: "1rem" }}
+                    style={styles.previewSummaryLabel}
                   >
                     Impression:
                   </strong>
                   <p
-                    style={{
-                      marginTop: "0.5rem",
-                      color: "var(--dark)",
-                      whiteSpace: "pre-wrap",
-                    }}
+                    style={styles.previewSummaryText}
                   >
                     {previewData[0]?.remarks || "-"}
                   </p>
@@ -1896,34 +1904,22 @@ function MBTestDetails() {
             ) : (
               <>
                 {previewData.map((testData, testIndex) => (
-                  <div key={testIndex} style={{ marginBottom: "2rem" }}>
+                  <div key={testIndex} style={styles.previewTestBlockMargin}>
                     <div
-                      style={{
-                        backgroundColor: "var(--primary)",
-                        color: "white",
-                        padding: "0.75rem 1rem",
-                        fontWeight: "600",
-                        fontSize: "1.125rem",
-                        borderRadius: "8px 8px 0 0",
-                      }}
+                      style={styles.previewTestHeader}
                     >
                       {testData.testName}
                     </div>
 
                     {testData.colony_count && (
                       <div
-                        style={{
-                          backgroundColor: "#fff3cd",
-                          padding: "0.75rem 1rem",
-                          borderLeft: "4px solid var(--warning)",
-                          marginBottom: "1rem",
-                        }}
+                        style={styles.previewColonyCountBox}
                       >
                         <strong>Colony Count:</strong> {testData.colony_count}
                       </div>
                     )}
 
-                    <PreviewTable style={{ marginTop: 0 }}>
+                    <PreviewTable style={styles.previewTableNoMarginTop}>
                       <thead>
                         <tr>
                           <TableHeader>Subtitle</TableHeader>
@@ -1955,32 +1951,11 @@ function MBTestDetails() {
                     </PreviewTable>
 
                     {testData.remarks && testData.remarks !== "-" && (
-                      <div
-                        style={{
-                          marginTop: "0.5rem",
-                          padding: "1rem",
-                          backgroundColor: "var(--light)",
-                          borderRadius: "0 0 8px 8px",
-                          border: "1px solid var(--gray-light)",
-                          borderTop: "none",
-                        }}
-                      >
-                        <strong
-                          style={{
-                            color: "var(--secondary)",
-                            fontSize: "0.875rem",
-                          }}
-                        >
+                      <div style={styles.previewRemarksBox}>
+                        <strong style={styles.previewRemarksLabel}>
                           Impression:
                         </strong>
-                        <p
-                          style={{
-                            marginTop: "0.25rem",
-                            color: "var(--dark)",
-                            fontSize: "0.875rem",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
+                        <p style={styles.previewRemarksText}>
                           {testData.remarks}
                         </p>
                       </div>

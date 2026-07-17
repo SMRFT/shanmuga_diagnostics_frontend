@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { Calendar, Download, Search, MapPin, Clock, Users, Filter } from 'lucide-react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import styled from 'styled-components';
 import apiRequest from '../Auth/apiRequest';
-import * as XLSX from 'xlsx';
+import { exportToExcel } from '../../utils/xlsxUtils';
 
 // =============================================
 // STYLED COMPONENTS
@@ -210,6 +211,49 @@ const EmptyState = styled.div`
   font-size: 14px;
 `;
 
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
 // =============================================
 // POLYLINE COMPONENT
 // =============================================
@@ -394,6 +438,10 @@ const TrackingHistory = () => {
   const [collectorFilter, setCollectorFilter] = useState('');
   const [tableData, setTableData] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
   const [allCollectors, setAllCollectors] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [locationNames, setLocationNames] = useState({}); // { rowId: { start, end } }
@@ -417,12 +465,14 @@ const TrackingHistory = () => {
   }, [mapDate, BASE_URL]);
 
   // --- Fetch table data for date range ---
-  const fetchTableData = useCallback(async () => {
+  const fetchTableData = useCallback(async (page = 1) => {
     try {
       setTableLoading(true);
-      const res = await apiRequest(`${BASE_URL}sample-collector-location-history/?from_date=${fromDate}&to_date=${toDate}${collectorFilter ? `&sampleCollector=${encodeURIComponent(collectorFilter)}` : ''}`, 'GET');
-      const dataArray = Array.isArray(res) ? res : (res?.data || res?.results || []);
+      const res = await apiRequest(`${BASE_URL}sample-collector-location-history/?from_date=${fromDate}&to_date=${toDate}${collectorFilter ? `&sampleCollector=${encodeURIComponent(collectorFilter)}` : ''}&page=${page}&limit=${limit}`, 'GET');
+      const dataArray = Array.isArray(res) ? res : (res?.data?.data || res?.data?.results || []);
       setTableData(dataArray);
+      setTotalPages(res?.data?.total_pages || 1);
+      setTotalCount(res?.data?.total_count || dataArray.length);
 
       // Build unique collector names
       const names = [...new Set(dataArray.map(d => d.sampleCollector))].sort();
@@ -435,7 +485,7 @@ const TrackingHistory = () => {
     } finally {
       setTableLoading(false);
     }
-  }, [fromDate, toDate, collectorFilter, BASE_URL]);
+  }, [fromDate, toDate, collectorFilter, BASE_URL, limit]);
 
   // --- Fetch sample collectors from the dedicated API ---
   useEffect(() => {
@@ -465,8 +515,14 @@ const TrackingHistory = () => {
     };
     fetchCollectors();
     fetchMapData();
-    fetchTableData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // --- Re-fetch table data whenever the page changes ---
+  useEffect(() => {
+    fetchTableData(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // --- Reverse geocode table rows after data loads ---
   useEffect(() => {
@@ -503,17 +559,15 @@ const TrackingHistory = () => {
       'Status': row.isActive ? 'Active' : 'Completed'
     }));
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Tracking History');
-
     // Auto-fit column widths
     const colWidths = Object.keys(rows[0] || {}).map(key => ({
       wch: Math.max(key.length, ...rows.map(r => String(r[key] || '').length)) + 2
     }));
-    ws['!cols'] = colWidths;
 
-    XLSX.writeFile(wb, `Tracking_History_${fromDate}_to_${toDate}.xlsx`);
+    exportToExcel(rows, `Tracking_History_${fromDate}_to_${toDate}.xlsx`, {
+      sheetName: 'Tracking History',
+      colWidths,
+    });
   };
 
   // --- Row click -> show on map ---
@@ -674,7 +728,7 @@ const TrackingHistory = () => {
               ))}
             </Select>
           </FilterGroup>
-          <PrimaryButton onClick={fetchTableData} disabled={tableLoading}>
+          <PrimaryButton onClick={() => { setCurrentPage(1); fetchTableData(1); }} disabled={tableLoading}>
             <Search size={14} /> {tableLoading ? 'Loading...' : 'Search'}
           </PrimaryButton>
           <SuccessButton onClick={handleDownloadExcel} disabled={tableData.length === 0}>
@@ -687,7 +741,7 @@ const TrackingHistory = () => {
       <TableCard>
         <TableHeader>
           <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '15px' }}>
-            Tracking Records ({tableData.length})
+            Tracking Records ({totalCount || tableData.length})
           </span>
         </TableHeader>
         <div style={{ overflowX: 'auto' }}>
@@ -749,6 +803,19 @@ const TrackingHistory = () => {
             </tbody>
           </Table>
         </div>
+        {!tableLoading && tableData.length > 0 && (
+          <Pagination>
+            <div className="page-info">Showing page {currentPage} of {totalPages}</div>
+            <div className="controls">
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                <FaChevronLeft /> Prev
+              </button>
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                Next <FaChevronRight />
+              </button>
+            </div>
+          </Pagination>
+        )}
       </TableCard>
     </PageContainer>
   );

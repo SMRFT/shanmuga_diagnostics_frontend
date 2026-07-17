@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import {
-  FiDownload,
-  FiFilter,
-  FiDatabase,
-  FiInfo,
-  FiList,
-} from "react-icons/fi";
-import * as XLSX from "xlsx";
-import apiRequest from '../Auth/apiRequest';
+  Download,
+  Filter,
+  Database,
+  Info,
+  List,
+} from "lucide-react";
+import { exportToExcel as exportExcelFile } from "../../utils/xlsxUtils";
+import { useCachedApi } from '../../hooks/useApiCache';
 
 // Global styles
 const GlobalStyle = createGlobalStyle`
@@ -526,54 +526,44 @@ const PatientDataTable = () => {
   // API base URL - replace with your actual API endpoint
   const API_BASE_URL = `${Labbaseurl}overall_report/`;
 
-  // Fetch data from API
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams();
-      if (filters.patient_id) queryParams.append("patient_id", filters.patient_id);
-      if (filters.from_date) queryParams.append("from_date", filters.from_date);
-      if (filters.to_date) queryParams.append("to_date", filters.to_date);
+  // ✅ Cached read. The request URL already encodes patient_id/from_date/to_date,
+  // so each distinct filter combination gets its own cache entry - changing any
+  // filter (including via the date inputs) now naturally triggers a fetch,
+  // reusing the cached response if the same combination was fetched recently.
+  const queryParams = new URLSearchParams();
+  if (filters.patient_id) queryParams.append("patient_id", filters.patient_id);
+  if (filters.from_date) queryParams.append("from_date", filters.from_date);
+  if (filters.to_date) queryParams.append("to_date", filters.to_date);
+  const requestUrl = `${API_BASE_URL}?${queryParams.toString()}`;
 
-      // If no valid date range or patient_id is provided, don't fetch or handle as needed
-      // Based on the error, backend requires dates or selected_date. 
-      // We are defaulting to from_date and to_date.
+  const {
+    data: cachedResponse,
+    loading: apiLoading,
+    error: apiError,
+    refetch: refetchPatientData,
+  } = useCachedApi(requestUrl, null, { ttl: 60 * 1000 });
 
-      const response = await apiRequest(`${API_BASE_URL}?${queryParams.toString()}`);
+  // Sync the hook's state into the local state the rest of this component
+  // (pagination, export, table rendering) already relies on.
+  useEffect(() => {
+    setLoading(apiLoading);
+  }, [apiLoading]);
 
-      if (!response.success) {
-        throw new Error(response.error || `HTTP error! Status: ${response.status}`);
-      }
-
-      const data = response.data;
-      console.log("API Response Data:", data); // Log the data to inspect structure
-      setAllPatients(data);
-      setPatients(data); // Backend filtered data
-
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setError(`Error fetching data: ${err.message}`);
+  useEffect(() => {
+    if (apiError) {
+      console.error("Error fetching data:", apiError);
+      setError(`Error fetching data: ${apiError}`);
       setPatients([]);
       setAllPatients([]);
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
-
-  useEffect(() => {
-    // Fetch data when component mounts or when filters change
-    fetchData();
-  }, [filters.patient_id]); // Adjusted dependency to only patient_id? No, usually filters should drive it. 
-  // But the design below has an "Apply" button for dates. 
-  // Let's stick to the previous pattern: fetch on mount and when interactions happen.
-  // Actually, the original code fetched on mount AND patient_id change. 
-  // The Apply button triggers handleApplyFilter.
-
-  // Initial fetch on mount with default dates
-  useEffect(() => {
-    fetchData();
-  }, []);
+    if (cachedResponse) {
+      const data = Array.isArray(cachedResponse?.data) ? cachedResponse.data : [];
+      setAllPatients(data);
+      setPatients(data);
+      setError(null);
+    }
+  }, [cachedResponse, apiError]);
 
   const handleFilterChange = (e) => {
     setFilters({
@@ -584,7 +574,9 @@ const PatientDataTable = () => {
 
   const handleApplyFilter = () => {
     setCurrentPage(1);
-    fetchData(); // Trigger fetch with current filters (dates and/or patient_id)
+    // Force-bypass the cache: the user explicitly asked for the latest data
+    // for the currently-typed filters, even if a cached entry is still fresh.
+    refetchPatientData(true);
   };
 
   const handleClearFilter = () => {
@@ -594,31 +586,13 @@ const PatientDataTable = () => {
       to_date: today,
     };
     setFilters(defaultFilters);
-    // Needed to set state and then fetch, but setState is async. 
-    // Effect hook on filters would be better, but avoiding major refactor:
-    // We can call fetchData with the default values directly or wait for re-render if using effect.
-    // For simplicity with current structure:
-    setLoading(true); // Manually show loading
-
-    // Construct query with defaults
-    const queryParams = new URLSearchParams();
-    queryParams.append("from_date", today);
-    queryParams.append("to_date", today);
-
-    apiRequest(`${API_BASE_URL}?${queryParams.toString()}`)
-      .then(response => response.json())
-      .then(data => {
-        setAllPatients(data);
-        setPatients(data);
-        setLoading(false);
-        setError(null);
-      })
-      .catch(err => {
-        console.error("Error clearing filters:", err);
-        setLoading(false);
-      });
-
     setCurrentPage(1);
+    // Resetting filters changes the request URL, so useCachedApi will fetch
+    // automatically for the new (default) filter combination. Note: the
+    // previous implementation here called apiRequest(...).then(response =>
+    // response.json()), but apiRequest already resolves to a plain
+    // { success, data, error } object (not a fetch Response), so that
+    // .json() call was dead/broken code - removed as part of this cleanup.
   };
 
   // Toggle tooltip visibility
@@ -792,13 +766,6 @@ const PatientDataTable = () => {
       };
     });
 
-    // Create workbook and worksheet
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Patient Report");
-
     // Generate filename with current date and date range if filtered
     let fileName = "patient_report";
 
@@ -817,7 +784,7 @@ const PatientDataTable = () => {
     fileName += ".xlsx";
 
     // Export to file
-    XLSX.writeFile(workbook, fileName);
+    exportExcelFile(exportData, fileName, { sheetName: "Patient Report" });
   };
 
   // Get current patients for pagination
@@ -843,7 +810,7 @@ const PatientDataTable = () => {
               onClick={exportToExcel}
               disabled={loading || patients.length === 0}
             >
-              <FiDownload /> Export to Excel
+              <Download /> Export to Excel
             </Button>
           </CardHeader>
           <CardBody>
@@ -887,7 +854,7 @@ const PatientDataTable = () => {
 
               <ButtonGroup>
                 <Button primary onClick={handleApplyFilter}>
-                  <FiFilter /> Apply Filters
+                  <Filter /> Apply Filters
                 </Button>
                 <Button onClick={handleClearFilter}>Clear</Button>
               </ButtonGroup>
@@ -895,7 +862,7 @@ const PatientDataTable = () => {
 
             {error && (
               <Alert type="error">
-                <FiInfo />
+                <Info />
                 <div>{error}</div>
               </Alert>
             )}
@@ -908,7 +875,7 @@ const PatientDataTable = () => {
             ) : patients.length === 0 ? (
               <EmptyState>
                 <IconCircle>
-                  <FiDatabase />
+                  <Database />
                 </IconCircle>
                 <h3 style={{ marginBottom: "0.5rem", fontWeight: "500" }}>
                   No patient data found
@@ -1067,7 +1034,7 @@ const PatientDataTable = () => {
                                       toggleTooltip(patientId);
                                     }}
                                   >
-                                    <FiList />
+                                    <List />
                                   </ViewDetailsButton>
                                 )}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import apiRequest from '../Auth/apiRequest';
 
 // Styled Components
@@ -156,6 +157,24 @@ const TotalAmount = styled.div`
   color: #2c3e50;
 `;
 
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+  .page-info { color: #64748b; font-size: 14px; }
+  .controls { display: flex; gap: 10px;
+    button { background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 5px; cursor: pointer; color: #334155; font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+`;
+
 const RefundIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M19 8L15 12H18C18 15.31 15.31 18 12 18C10.99 18 10.03 17.75 9.2 17.3L7.74 18.76C8.97 19.54 10.43 20 12 20C16.42 20 20 16.42 20 12H23L19 8ZM6 12C6 8.69 8.69 6 12 6C13.01 6 13.97 6.25 14.8 6.7L16.26 5.24C15.03 4.46 13.57 4 12 4C7.58 4 4 7.58 4 12H1L5 16L9 12H6Z" fill="currentColor" />
@@ -196,6 +215,7 @@ const RefundAndCancellationLog = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   // Initialize with current date as default
   const [startDate, setStartDate] = useState(() => {
     const today = new Date();
@@ -205,17 +225,33 @@ const RefundAndCancellationLog = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   useEffect(() => {
-    fetchData();
+    setCurrentPage(1);
   }, [activeTab]);
-  
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timerId);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchData();
+  }, [activeTab, currentPage, debouncedSearchTerm]);
+
 const fetchData = async () => {
   try {
     setLoading(true);
 
     // Build query string manually
-    let url = `${Labbaseurl}refund_cancellation_logs/?type=${encodeURIComponent(activeTab)}`;
+    let url = `${Labbaseurl}refund_cancellation_logs/?type=${encodeURIComponent(activeTab)}&page=${currentPage}&limit=${limit}`;
 
     if (startDate) {
       url += `&start_date=${encodeURIComponent(startDate)}`;
@@ -223,38 +259,49 @@ const fetchData = async () => {
     if (endDate) {
       url += `&end_date=${encodeURIComponent(endDate)}`;
     }
+    if (debouncedSearchTerm) {
+      url += `&search=${encodeURIComponent(debouncedSearchTerm)}`;
+    }
 
     const response = await apiRequest(url, "GET");
 
     if (response.success) {
-      setData(response.data);
+      setData(response.data.data || []);
+      setTotalPages(response.data.total_pages || 1);
+      setTotalCount(response.data.total_count || 0);
     } else {
       console.error(response.error);
       setData([]);
+      setTotalPages(1);
+      setTotalCount(0);
     }
   } catch (error) {
     console.error(`Error fetching ${activeTab} data:`, error);
     setData([]);
+    setTotalPages(1);
+    setTotalCount(0);
   } finally {
     setLoading(false);
   }
 };
 
-  
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
-  
+
   const handleDateChange = () => {
-    fetchData();
+    if (currentPage === 1) {
+      fetchData();
+    } else {
+      setCurrentPage(1);
+    }
   };
-  
-  const filteredData = data.filter(item => 
-    item.patientname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.bill_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.testname?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
+
+  // Search is now performed server-side (see debouncedSearchTerm above),
+  // so the fetched page's data is already filtered.
+  const filteredData = data;
+
   const calculateTotalAmount = () => {
     return filteredData.reduce((total, item) => total + parseFloat(item.refund_amount || 0), 0);
   };
@@ -358,6 +405,25 @@ const fetchData = async () => {
           <TotalAmount>
             Total {activeTab === 'refund' ? 'Refunded' : 'Cancelled'} Amount: ₹{calculateTotalAmount().toFixed(2)}
           </TotalAmount>
+          <Pagination>
+            <div className="page-info">
+              Showing page {currentPage} of {totalPages} ({totalCount} total records)
+            </div>
+            <div className="controls">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <FaChevronLeft /> Prev
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next <FaChevronRight />
+              </button>
+            </div>
+          </Pagination>
         </>
       ) : (
         <EmptyState>

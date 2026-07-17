@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { FaUser, FaFlask, FaCreditCard, FaPlus, FaTrash, FaSave, FaArrowLeft, FaSearch } from "react-icons/fa"
+import { User, FlaskConical, CreditCard, Plus, Trash2, Save, ArrowLeft, Search } from "lucide-react"
 import { AlertCircle, CheckCircle } from "lucide-react"
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 import headerImage from "../Images/Header.png"
 
@@ -276,6 +277,22 @@ const PaginationRow = styled.div`
   }
 `
 
+/* Server-side pagination for the "patients by date" search results (distinct from the
+   client-side listPage/recordsPerPage pager above, which paginates a single fetched batch) */
+const Pagination = styled.div`
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px; background: white; border-top: 1px solid #edf2f9;
+  .page-info { color: #64748b; font-size: 14px; }
+  .controls { display: flex; gap: 10px;
+    button { background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 5px; cursor: pointer; color: #334155; font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+`
+
 /* ── CHANGE 1: Emergency badges ── */
 const StatusBadge = styled.span`
   padding: 3px 8px;
@@ -522,6 +539,7 @@ const PatientBilling = () => {
   const [currentPage, setCurrentPage] = useState("list")
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [searchValue, setSearchValue] = useState("")
+  const [debouncedSearchValue, setDebouncedSearchValue] = useState("")
   const [emergencyFilter, setEmergencyFilter] = useState("all")
   const [segmentFilter, setSegmentFilter] = useState("all")
   const [loading, setLoading] = useState(false)
@@ -533,6 +551,13 @@ const PatientBilling = () => {
   /* ── CHANGE 2: pagination state ── */
   const [listPage, setListPage] = useState(1)
   const [recordsPerPage, setRecordsPerPage] = useState(10)
+
+  /* Server-side pagination state for fetchPatientsByDate (patients_by_date/), kept distinct
+     from listPage/recordsPerPage above (which paginate the already-fetched batch client-side) */
+  const [dateFetchPage, setDateFetchPage] = useState(1)
+  const [dateFetchTotalPages, setDateFetchTotalPages] = useState(1)
+  const [dateFetchTotalCount, setDateFetchTotalCount] = useState(0)
+  const dateFetchLimit = 50
 
   const [paymentOptions, setPaymentOptions] = useState({
     credit: true, cash: true, upi: true, neft: true, cheque: true, multiplePayment: true,
@@ -566,12 +591,27 @@ const PatientBilling = () => {
   useEffect(() => {
     fetchTestDetails()
     fetchB2BPackages()
-    if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate()
   }, [])
+
+  /* Debounce searchValue into debouncedSearchValue, then reset the server-side date-fetch page to 1 */
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchValue(searchValue)
+      setDateFetchPage(1)
+    }, 500)
+    return () => clearTimeout(timerId)
+  }, [searchValue])
+
+  /* Re-fetch patients_by_date whenever the server-side page changes (Prev/Next controls)
+     or the debounced search term changes */
+  useEffect(() => {
+    if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate(dateFetchPage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFetchPage, debouncedSearchValue])
 
   const fetchB2BPackages = async () => {
     try {
-      const r = await apiRequest(`${Labbaseurl}b2b_packages/`, "GET")
+      const r = await apiRequest(`${Labbaseurl}b2b_packages/?limit=500`, "GET")
       if (r.success) {
         setB2bPackages(Array.isArray(r.data) ? r.data : r.data?.data || [])
       }
@@ -643,7 +683,7 @@ const PatientBilling = () => {
   const fetchTestDetails = async () => {
     try {
       setLoading(true)
-      const result = await apiRequest(`${Labbaseurl}testdetails/`, "GET")
+      const result = await apiRequest(`${Labbaseurl}testdetails/?limit=500`, "GET")
       if (result?.success) {
         const testsData = result.data?.data || result.data || []
         setTestOptions(Array.isArray(testsData) ? testsData : [])
@@ -652,19 +692,34 @@ const PatientBilling = () => {
     finally { setLoading(false) }
   }
 
-  const fetchPatientsByDate = async () => {
+  const fetchPatientsByDate = async (page = dateFetchPage) => {
     if (!dateFilters.fromDate || !dateFilters.toDate) { toast.warning("Please select both dates"); return }
     setLoading(true)
     try {
+      const searchParam = debouncedSearchValue
+        ? `&search=${encodeURIComponent(debouncedSearchValue)}`
+        : ""
       const response = await apiRequest(
-        `${Labbaseurl}patients_by_date/?start_date=${dateFilters.fromDate}&end_date=${dateFilters.toDate}`, "GET"
+        `${Labbaseurl}patients_by_date/?start_date=${dateFilters.fromDate}&end_date=${dateFilters.toDate}&page=${page}&limit=${dateFetchLimit}${searchParam}`, "GET"
       )
       let patients = []
-      if (response?.success && Array.isArray(response.data)) patients = response.data
-      else if (response && Array.isArray(response.data)) patients = response.data
-      else if (Array.isArray(response)) patients = response
-      else if (response?.data && Array.isArray(response.data.data)) patients = response.data.data
-      else { toast.error("Unexpected response structure"); setPatientsList([]); setLoading(false); return }
+      if (response?.success && Array.isArray(response.data)) {
+        patients = response.data
+        setDateFetchTotalPages(1)
+        setDateFetchTotalCount(patients.length)
+      } else if (response && Array.isArray(response.data)) {
+        patients = response.data
+        setDateFetchTotalPages(1)
+        setDateFetchTotalCount(patients.length)
+      } else if (Array.isArray(response)) {
+        patients = response
+        setDateFetchTotalPages(1)
+        setDateFetchTotalCount(patients.length)
+      } else if (response?.data && Array.isArray(response.data.data)) {
+        patients = response.data.data
+        setDateFetchTotalPages(response.data.total_pages || 1)
+        setDateFetchTotalCount(response.data.total_count || patients.length)
+      } else { toast.error("Unexpected response structure"); setPatientsList([]); setLoading(false); return }
 
       const valid = patients
         .filter((p) => p && (p.patient_id || p._id) && (p.patientname || p.name))
@@ -691,17 +746,14 @@ const PatientBilling = () => {
     finally { setLoading(false) }
   }
 
-  /* ── filter + paginate ── */
+  /* ── filter (emergency/segment, client-side over the current server-fetched page) + paginate ── */
+  /* Search is now handled server-side via the `search` param on patients_by_date/ (see fetchPatientsByDate) */
   const filteredPatients = patientsList.filter((p) => {
-    const s = searchValue.toLowerCase()
-    const ok = p.patient_id?.toLowerCase().includes(s) ||
-      p.patientname?.toLowerCase().includes(s) ||
-      p.lab_id?.toLowerCase().includes(s)
     const em = emergencyFilter === "all" ||
       (emergencyFilter === "emergency" && p.is_emergency) ||
       (emergencyFilter === "normal" && !p.is_emergency)
     const seg = segmentFilter === "all" || (p.segment && p.segment.toLowerCase() === segmentFilter.toLowerCase())
-    return ok && em && seg
+    return em && seg
   })
 
   const totalPages = Math.ceil(filteredPatients.length / recordsPerPage)
@@ -1117,7 +1169,7 @@ const PatientBilling = () => {
         <ScrollArea>
           <Container>
             <Header>
-              <h1><FaUser /> Patient Billing Management</h1>
+              <h1><User /> Patient Billing Management</h1>
               <p>Select a patient to update their billing information</p>
             </Header>
 
@@ -1125,8 +1177,8 @@ const PatientBilling = () => {
               {/* Filters */}
               <SearchAndFiltersContainer>
                 <SearchContainer>
-                  <FaSearch />
-                  <input type="text" placeholder="Search by Patient ID, Name or Lab ID"
+                  <Search />
+  <input type="text" placeholder="Search by Patient ID, Name or Lab ID"
                     value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
                 </SearchContainer>
 
@@ -1161,8 +1213,8 @@ const PatientBilling = () => {
                     onChange={(e) => setDateFilters(p => ({ ...p, toDate: e.target.value }))} />
                 </FormGroup>
 
-                <Button variant="primary" onClick={fetchPatientsByDate} style={{ height: "42px", padding: "0 20px" }}>
-                  <FaSearch /> Search
+                <Button variant="primary" onClick={() => { setDateFetchPage(1); fetchPatientsByDate(1) }} style={{ height: "42px", padding: "0 20px" }}>
+                  <Search /> Search
                 </Button>
               </SearchAndFiltersContainer>
 
@@ -1260,6 +1312,30 @@ const PatientBilling = () => {
                   </div>
                 </PaginationRow>
               )}
+
+              {/* Server-side pagination for the patients_by_date fetch itself (separate from the
+                  client-side listPage pager above, which only pages through the currently-fetched batch) */}
+              {!loading && patientsList.length > 0 && (
+                <Pagination>
+                  <div className="page-info">
+                    Fetched page {dateFetchPage} of {dateFetchTotalPages} ({dateFetchTotalCount} total patients for selected dates)
+                  </div>
+                  <div className="controls">
+                    <button
+                      onClick={() => setDateFetchPage(p => Math.max(1, p - 1))}
+                      disabled={dateFetchPage === 1}
+                    >
+                      <FaChevronLeft /> Prev
+                    </button>
+                    <button
+                      onClick={() => setDateFetchPage(p => Math.min(dateFetchTotalPages, p + 1))}
+                      disabled={dateFetchPage === dateFetchTotalPages}
+                    >
+                      Next <FaChevronRight />
+                    </button>
+                  </div>
+                </Pagination>
+              )}
             </PatientListContainer>
           </Container>
         </ScrollArea>
@@ -1275,17 +1351,17 @@ const PatientBilling = () => {
       <ScrollArea>
         <Container>
           <BackButton onClick={() => { setCurrentPage("list"); resetBillingData() }}>
-            <FaArrowLeft /> Back to Patients
+            <ArrowLeft /> Back to Patients
           </BackButton>
 
           <Header>
-            <h1><FaFlask /> Update Patient Billing</h1>
+            <h1><FlaskConical /> Update Patient Billing</h1>
             <p>Update billing information for the selected patient</p>
           </Header>
 
           {selectedPatient && (
             <PatientInfo>
-              <h2><FaUser /> Patient Information</h2>
+              <h2><User /> Patient Information</h2>
               <div className="patient-details">
                 {[
                   ["Patient ID", selectedPatient.patient_id],
@@ -1310,7 +1386,7 @@ const PatientBilling = () => {
           )}
 
           <BillingSection>
-            <h3><FaFlask /> Billing Information</h3>
+            <h3><FlaskConical /> Billing Information</h3>
 
             {/* Test Search */}
             <FormRow>
@@ -1390,7 +1466,7 @@ const PatientBilling = () => {
                             <td style={{ textAlign: "right", color: "#9ca3af", fontSize: "0.85em" }}>Included</td>
                             <td style={{ textAlign: "center" }}>
                               <button className="remove-btn" onClick={() => handleTestRemove(test.id)}>
-                                <FaTrash size={13} />
+                                <Trash2 size={13} />
                               </button>
                             </td>
                           </tr>
@@ -1405,7 +1481,7 @@ const PatientBilling = () => {
                         <td style={{ textAlign: "right" }}>₹{Number(test.amount || 0).toFixed(2)}</td>
                         <td style={{ textAlign: "center" }}>
                           <button className="remove-btn" onClick={() => handleTestRemove(test.id)}>
-                            <FaTrash size={13} />
+                            <Trash2 size={13} />
                           </button>
                         </td>
                       </tr>
@@ -1461,7 +1537,7 @@ const PatientBilling = () => {
                 {/* Multiple Payment */}
                 {billingData.paymentMethod === "Multiple Payment" && (
                   <PaymentMethodSection>
-                    <h4><FaCreditCard /> Multiple Payment Details</h4>
+                    <h4><CreditCard /> Multiple Payment Details</h4>
                     {getRemainingAmount() > 0 && (
                       <PaymentValidationWarning>
                         ⚠️ Remaining: ₹{getRemainingAmount().toFixed(2)} — complete all payments before saving.
@@ -1493,7 +1569,7 @@ const PatientBilling = () => {
                       </FormGroup>
                       <div style={{ alignSelf: "end" }}>
                         <Button onClick={addMultiplePayment} variant="success" disabled={getRemainingAmount() <= 0}>
-                          <FaPlus /> Add
+                          <Plus /> Add
                         </Button>
                       </div>
                     </FormRow>
@@ -1511,7 +1587,7 @@ const PatientBilling = () => {
                               {p.paymentDetails && <div className="details">{p.paymentDetails}</div>}
                             </div>
                             <Button variant="danger" size="sm" onClick={() => removeMultiplePayment(p.id)}>
-                              <FaTrash />
+                              <Trash2 />
                             </Button>
                           </MultiplePaymentItem>
                         ))}
@@ -1562,7 +1638,7 @@ const PatientBilling = () => {
                   <Button variant="primary" onClick={handleUpdateBill}
                     disabled={!isFormValid() || loading}
                     style={{ fontSize: 15, padding: "13px 28px" }}>
-                    <FaSave /> {loading ? "Saving…" : "Save"}
+                    <Save /> {loading ? "Saving…" : "Save"}
                   </Button>
                 </div>
               </>

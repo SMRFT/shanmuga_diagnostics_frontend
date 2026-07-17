@@ -400,7 +400,6 @@ const HMSTestSorting = ({ patient, onClose }) => {
             });
             setDispatchedTests(dispatchedSet);
           } else {
-            console.log("No test data found for this barcode");
             setTests([]);
           }
         } else {
@@ -550,7 +549,6 @@ const HMSTestSorting = ({ patient, onClose }) => {
     }
 
     try {
-      console.log("Fetching patient details for barcode:", patient.barcode);
       const response = await apiRequest(
         `${Labbaseurl}get_hms_patient_test_details/?barcode=${patient.barcode}`,
         "GET",
@@ -561,8 +559,6 @@ const HMSTestSorting = ({ patient, onClose }) => {
         toast.error(response.error || "Failed to fetch patient details");
         return;
       }
-
-      console.log("API Response:", response.data);
 
       // Extract patient data and signatures from the new response structure
       let patientDetails;
@@ -586,10 +582,6 @@ const HMSTestSorting = ({ patient, onClose }) => {
         };
       }
 
-      console.log("Processed Patient Details:", patientDetails);
-      console.log("Signatures Data:", signaturesData);
-      console.log("Selected Tests:", selectedTests);
-
       // Filter tests by test_id
       const orderedTests = selectedTests
         .map((selectedTest) =>
@@ -599,7 +591,6 @@ const HMSTestSorting = ({ patient, onClose }) => {
         )
         .filter((test) => test);
 
-      console.log("Ordered Tests:", orderedTests);
       if (!orderedTests.length) {
         toast.error("No matching tests found for the selected tests.");
         return;
@@ -730,8 +721,6 @@ const HMSTestSorting = ({ patient, onClose }) => {
 
       // Filter out null entries (positions without signatures)
       const activeConsultants = consultants.filter((c) => c !== null);
-
-      console.log("Active Consultants:", activeConsultants);
 
       const departmentOrder = [
         "Haematology",

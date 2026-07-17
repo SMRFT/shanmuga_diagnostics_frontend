@@ -334,9 +334,8 @@ const SalesDetailsEdit = () => {
  const fetchRecords = async () => {
   try {
     setLoading(true);
-    const res = await apiRequest(`${Labbaseurl}get_all_clinicalnames/`, "GET");
-    console.log("API Response:", res.data); 
-    
+    const res = await apiRequest(`${Labbaseurl}get_all_clinicalnames/?limit=500`, "GET");
+
     const recordsArray = Array.isArray(res.data)
       ? res.data
       : Array.isArray(res.data.data)
@@ -353,10 +352,10 @@ const SalesDetailsEdit = () => {
  // ✅ Clean apiRequest usage
   const fetchSalesMapping = async () => {
     try {
-      const res = await apiRequest(`${Labbaseurl}get_sales_executives/`, "GET");
+      const res = await apiRequest(`${Labbaseurl}get_sales_executives/?limit=500`, "GET");
       const salesMappingArray = [
         { id: 0, name: "All" },
-        ...res.data.map((person, index) => ({
+        ...res.data.data.map((person, index) => ({
           id: index + 1,
           name: person.employeeName,
           employeeId: person.employeeId,

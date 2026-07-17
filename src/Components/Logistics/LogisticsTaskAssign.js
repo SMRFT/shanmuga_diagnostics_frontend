@@ -587,6 +587,7 @@ const LogisticsTaskAssign = () => {
       const labs =
         Array.isArray(response)             ? response :
         Array.isArray(response?.data)       ? response.data :
+        Array.isArray(response?.data?.data) ? response.data.data :
         Array.isArray(response?.results)    ? response.results :
         Array.isArray(response?.clinicalNames) ? response.clinicalNames : [];
       setClinicalNames(labs);

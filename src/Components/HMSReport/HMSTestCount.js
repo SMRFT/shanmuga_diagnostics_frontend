@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import apiRequest from "../Auth/apiRequest";
-import { FaSearch, FaFileDownload, FaCalendarAlt, FaFlask, FaChartBar, FaFilter } from "react-icons/fa";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import { Search, Download, Calendar, FlaskConical, BarChart3, Filter } from "lucide-react";
+import { exportToExcelBlob } from "../../utils/xlsxUtils";
 
 // Animations
 const fadeIn = keyframes`
@@ -414,10 +413,6 @@ export default function HMSTestCount() {
         "Female Count": filteredData.reduce((sum, item) => sum + (item.female_count || 0), 0)
     });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "HMS Test Count");
-    
     // Auto-width for columns
     const maxWidths = [
         { wch: 15 },
@@ -427,11 +422,11 @@ export default function HMSTestCount() {
         { wch: 15 },
         { wch: 15 }
     ];
-    ws['!cols'] = maxWidths;
 
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(dataBlob, `HMS_Test_Count_${fromDate}_to_${toDate}.xlsx`);
+    exportToExcelBlob(exportData, `HMS_Test_Count_${fromDate}_to_${toDate}.xlsx`, {
+        sheetName: "HMS Test Count",
+        colWidths: maxWidths,
+    });
   };
 
   return (
@@ -441,7 +436,7 @@ export default function HMSTestCount() {
         <StatsGrid>
           <StatCard>
             <StatIcon bg="rgba(110, 142, 251, 0.1)" color="#6e8efb">
-              <FaFlask />
+              <FlaskConical />
             </StatIcon>
             <StatInfo>
               <StatLabel>Total HMS Tests</StatLabel>
@@ -451,7 +446,7 @@ export default function HMSTestCount() {
 
           <StatCard>
             <StatIcon bg="rgba(167, 119, 227, 0.1)" color="#a777e3">
-              <FaChartBar />
+              <BarChart3 />
             </StatIcon>
             <StatInfo>
               <StatLabel>Unique Test Types</StatLabel>
@@ -468,7 +463,7 @@ export default function HMSTestCount() {
             <Title>HMS Test Frequency Analysis</Title>
             <ControlsGrid>
               <InputGroup>
-                <Icon><FaSearch /></Icon>
+                <Icon><Search /></Icon>
                 <Input
                   type="text"
                   placeholder="Filter by test name or ID..."
@@ -477,7 +472,7 @@ export default function HMSTestCount() {
                 />
               </InputGroup>
               <InputGroup>
-                <Icon><FaFilter /></Icon>
+                <Icon><Filter /></Icon>
                 <Select
                   value={ipopFilter}
                   onChange={e => setIpopFilter(e.target.value)}
@@ -488,7 +483,7 @@ export default function HMSTestCount() {
                 </Select>
               </InputGroup>
               <InputGroup>
-                <Icon><FaCalendarAlt /></Icon>
+                <Icon><Calendar /></Icon>
                 <Input
                   type="date"
                   value={fromDate}
@@ -496,7 +491,7 @@ export default function HMSTestCount() {
                 />
               </InputGroup>
               <InputGroup>
-                <Icon><FaCalendarAlt /></Icon>
+                <Icon><Calendar /></Icon>
                 <Input
                   type="date"
                   value={toDate}
@@ -505,7 +500,7 @@ export default function HMSTestCount() {
                 />
               </InputGroup>
               <Button onClick={exportExcel}>
-                <FaFileDownload /> Export Excel
+                <Download /> Export Excel
               </Button>
             </ControlsGrid>
           </CardHeader>
@@ -527,7 +522,7 @@ export default function HMSTestCount() {
                   <tr>
                     <td colSpan={5}>
                       <EmptyState>
-                        <FaSearch />
+                        <Search />
                         <p>{loading ? "Loading data..." : "No HMS test data found for the selected period"}</p>
                       </EmptyState>
                     </td>

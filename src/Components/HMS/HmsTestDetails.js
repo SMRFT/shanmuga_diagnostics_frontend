@@ -372,11 +372,7 @@ function TestDetails() {
         Array.isArray(actualResponse.processed_records)
       ) {
         setProcessedRecords(actualResponse.processed_records);
-        console.log(
-          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`
-        );
       } else {
-        console.log("DEBUG: No processed records found in response");
         setProcessedRecords([]);
       }
 
@@ -706,8 +702,6 @@ function TestDetails() {
         testdetails: testDetailsData,
         processed_records: processedRecords,
       };
-
-      console.log("DEBUG: Sending POST request with payload:", payload);
 
       const postResult = await apiRequest(
         `${Labbaseurl}test-value/save/`,

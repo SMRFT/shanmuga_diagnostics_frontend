@@ -546,14 +546,11 @@ const handleSearch = async () => {
   setIsLoading(true);
 
   try {
-    const url = `${Labbaseurl}search_refund/?patient_id=${encodeURIComponent(patientId)}&date=${encodeURIComponent(selectDate)}`;
+    const url = `${Labbaseurl}search_refund/?patient_id=${encodeURIComponent(patientId)}&date=${encodeURIComponent(selectDate)}&limit=200`;
     const response = await apiRequest(url, "GET");
-    console.log("Raw response:", response.data);
 
     // Process the response data and clean JSON fields
     const processedPatients = response.data.patients.map(patient => {
-      console.log("Processing patient:", patient);
-
       // Clean payment_method if it exists
       if (patient.payment_method) {
         try {
@@ -566,15 +563,11 @@ const handleSearch = async () => {
 
       // Parse testdetails - THIS IS THE KEY FIX
       if (patient.testdetails) {
-        console.log("Raw testdetails:", patient.testdetails);
-        console.log("Type:", typeof patient.testdetails);
-        
         if (typeof patient.testdetails === 'string') {
           try {
             // Parse the JSON string
             const parsed = JSON.parse(patient.testdetails);
-            console.log("Parsed testdetails:", parsed);
-            
+
             // Ensure it's an array
             patient.testdetails = Array.isArray(parsed) ? parsed : [parsed];
             
@@ -587,8 +580,6 @@ const handleSearch = async () => {
               refund: test.refund,
               cancellation: test.cancellation
             }));
-            
-            console.log("Final testdetails:", patient.testdetails);
           } catch (e) {
             console.error('Could not parse testdetails:', e);
             patient.testdetails = [];
@@ -613,11 +604,9 @@ const handleSearch = async () => {
         patient.refundStatus = "All tests have been refunded";
       }
 
-      console.log("Final processed patient:", patient);
       return patient;
     });
 
-    console.log("All processed patients:", processedPatients);
     setPatients(processedPatients);
     setIsLoading(false);
 
@@ -754,8 +743,6 @@ const handleSearch = async () => {
       const testIds = selectedTests
         .map((test) => test.test_id)
         .filter((id) => id !== null && id !== undefined);
-
-      console.log("Sending test IDs:", testIds);
 
       if (testIds.length === 0) {
         throw new Error("No valid test IDs found in selected tests");

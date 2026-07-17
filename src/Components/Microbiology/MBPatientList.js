@@ -577,8 +577,8 @@ function MBPatientList() {
         throw new Error(
           patientResponse.error || "Failed to fetch patient data",
         );
-      const patientData = Array.isArray(patientResponse.data)
-        ? patientResponse.data
+      const patientData = Array.isArray(patientResponse.data?.data)
+        ? patientResponse.data.data
         : [];
       setPatientList(patientData);
       setLoading(false);

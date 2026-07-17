@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaCalendarAlt, FaUser, FaPhone, FaTimesCircle, FaVial, FaInfoCircle } from "react-line-awesome";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import apiRequest from "../Auth/apiRequest";
 
 const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -179,26 +180,46 @@ const EmptyState = styled.div`
   }
 `;
 
+const Pagination = styled.div`
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px; background: white; border-top: 1px solid #edf2f9;
+  .page-info { color: #64748b; font-size: 14px; }
+  .controls { display: flex; gap: 10px;
+    button { background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 5px; cursor: pointer; color: #334155; font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+`;
+
 const AppointmentList = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const today = new Date().toISOString().split('T')[0];
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (page = currentPage) => {
     setLoading(true);
     let url = `${Labbaseurl}appointments_by_date/`;
-    if (fromDate || toDate) {
-      const params = new URLSearchParams();
-      if (fromDate) params.append("from_date", fromDate);
-      if (toDate) params.append("to_date", toDate);
-      url += `?${params.toString()}`;
-    }
-    
+    const params = new URLSearchParams();
+    if (fromDate) params.append("from_date", fromDate);
+    if (toDate) params.append("to_date", toDate);
+    params.append("page", page);
+    params.append("limit", limit);
+    url += `?${params.toString()}`;
+
     const result = await apiRequest(url, "GET");
     if (result.success && result.data.appointments) {
       setAppointments(result.data.appointments);
+      setTotalPages(result.data.total_pages || 1);
+      setTotalCount(result.data.total_count || result.data.appointments.length);
     } else {
       toast.error("Failed to load appointments");
     }
@@ -206,15 +227,23 @@ const AppointmentList = () => {
   };
 
   useEffect(() => {
-    fetchAppointments();
-  }, []);
+    fetchAppointments(currentPage);
+  }, [currentPage]);
+
+  const handleSearch = () => {
+    if (currentPage === 1) {
+      fetchAppointments(1);
+    } else {
+      setCurrentPage(1);
+    }
+  };
 
   const handleCancel = async (id) => {
     if (window.confirm("Are you sure you want to cancel this appointment?")) {
       const result = await apiRequest(`${Labbaseurl}appointments/${id}/cancel/`, "PATCH");
       if (result.success) {
         toast.success("Appointment cancelled successfully");
-        fetchAppointments(); // Refresh list
+        fetchAppointments(currentPage); // Refresh list
       } else {
         toast.error(result.data.message || "Failed to cancel appointment");
       }
@@ -252,7 +281,7 @@ const AppointmentList = () => {
           <label style={{marginRight: '8px', color: '#4a5568'}}>To:</label>
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
         </div>
-        <button onClick={fetchAppointments}>Search</button>
+        <button onClick={handleSearch}>Search</button>
       </FilterSection>
 
       {loading ? (
@@ -308,6 +337,16 @@ const AppointmentList = () => {
             </CardsGrid>
           </DateGroup>
         ))
+      )}
+
+      {!loading && sortedDates.length > 0 && (
+        <Pagination>
+          <div className="page-info">Showing page {currentPage} of {totalPages} ({totalCount} total)</div>
+          <div className="controls">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><FaChevronLeft /> Prev</button>
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next <FaChevronRight /></button>
+          </div>
+        </Pagination>
       )}
     </PageContainer>
   );

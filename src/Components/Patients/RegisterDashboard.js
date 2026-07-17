@@ -3,6 +3,7 @@ import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { Calendar, Users, FileText, Search, RefreshCw, Download } from "lucide-react"
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 
 // Styled Components
@@ -361,9 +362,52 @@ const StatusBadge = styled.span`
 
 const ExportButton = styled(Button)`
   background: linear-gradient(135deg, #10b981, #059669);
-  
+
   &:hover {
     box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+  }
+`
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
   }
 `
 
@@ -373,8 +417,14 @@ const PatientDashboard = () => {
   const [patients, setPatients] = useState([])
   const [segmentFilter, setSegmentFilter] = useState("all")
   const [loading, setLoading] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [localPage, setLocalPage] = useState(1)
   const itemsPerPage = 10
+
+  // Server-side pagination (backend caps patients_by_date/ responses at `limit` per page)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const limit = 50
 
   // Mock API URL - replace with your actual API endpoint
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
@@ -388,10 +438,16 @@ const PatientDashboard = () => {
 
   useEffect(() => {
     if (dateFilters.fromDate && dateFilters.toDate) fetchData()
-  }, [])
+  }, [currentPage])
 
   useEffect(() => {
-    if (dateFilters.fromDate && dateFilters.toDate) fetchData()
+    if (dateFilters.fromDate && dateFilters.toDate) {
+      if (currentPage === 1) {
+        fetchData()
+      } else {
+        setCurrentPage(1)
+      }
+    }
   }, [dateFilters])
 
   const fetchData = async () => {
@@ -400,17 +456,23 @@ const PatientDashboard = () => {
     try {
       // Replace this with your actual API call
       const response = await apiRequest(
-        `${Labbaseurl}patients_by_date/?start_date=${dateFilters.fromDate}&end_date=${dateFilters.toDate}`, "GET"
+        `${Labbaseurl}patients_by_date/?start_date=${dateFilters.fromDate}&end_date=${dateFilters.toDate}&page=${currentPage}&limit=${limit}`, "GET"
       )
       const data = response.data
 
       // Handle the API response structure
       if (data.success && Array.isArray(data.data)) {
         setPatients(data.data)
+        setTotalPages(data.total_pages || 1)
+        setTotalCount(data.total_count || 0)
       } else if (Array.isArray(data)) {
         setPatients(data)
+        setTotalPages(1)
+        setTotalCount(data.length)
       } else {
         setPatients([])
+        setTotalPages(1)
+        setTotalCount(0)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -432,13 +494,13 @@ const PatientDashboard = () => {
   )
 
   useEffect(() => {
-    setCurrentPage(1)
+    setLocalPage(1)
   }, [segmentFilter, patients])
 
-  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage)
+  const localTotalPages = Math.ceil(filteredPatients.length / itemsPerPage)
   const currentPatients = filteredPatients.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (localPage - 1) * itemsPerPage,
+    localPage * itemsPerPage
   )
 
   const totalPatients = filteredPatients.length
@@ -634,37 +696,37 @@ const PatientDashboard = () => {
                   </TotalRow>
                 </tbody>
               </Table>
-              {totalPages > 1 && (
+              {localTotalPages > 1 && (
                 <PaginationContainer>
                   <div className="info">
-                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredPatients.length)} of {filteredPatients.length} entries
+                    Showing {(localPage - 1) * itemsPerPage + 1} to {Math.min(localPage * itemsPerPage, filteredPatients.length)} of {filteredPatients.length} entries
                   </div>
                   <div className="controls">
-                    <button 
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
+                    <button
+                      onClick={() => setLocalPage(p => Math.max(1, p - 1))}
+                      disabled={localPage === 1}
                     >
                       Previous
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter(n => n === 1 || n === totalPages || (n >= currentPage - 2 && n <= currentPage + 2))
+                    {Array.from({ length: localTotalPages }, (_, i) => i + 1)
+                      .filter(n => n === 1 || n === localTotalPages || (n >= localPage - 2 && n <= localPage + 2))
                       .map((page, i, arr) => {
                         const prev = arr[i - 1]
                         return (
                           <span key={page} style={{ display: "inline-flex", alignItems: "center" }}>
                             {prev && page - prev > 1 && <span style={{ color: "#9ca3af", padding: "0 4px" }}>…</span>}
                             <button
-                              className={currentPage === page ? "active" : ""}
-                              onClick={() => setCurrentPage(page)}
+                              className={localPage === page ? "active" : ""}
+                              onClick={() => setLocalPage(page)}
                             >
                               {page}
                             </button>
                           </span>
                         )
                     })}
-                    <button 
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
+                    <button
+                      onClick={() => setLocalPage(p => Math.min(localTotalPages, p + 1))}
+                      disabled={localPage === localTotalPages}
                     >
                       Next
                     </button>
@@ -680,6 +742,28 @@ const PatientDashboard = () => {
                 Refresh Data
               </Button>
             </EmptyState>
+          )}
+
+          {!loading && patients.length > 0 && totalPages > 1 && (
+            <Pagination>
+              <div className="page-info">
+                Showing page {currentPage} of {totalPages} ({totalCount} total records)
+              </div>
+              <div className="controls">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <FaChevronLeft /> Prev
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next <FaChevronRight />
+                </button>
+              </div>
+            </Pagination>
           )}
         </TableContainer>
       </FormCard>

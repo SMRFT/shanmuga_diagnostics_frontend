@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Download, Calendar, User } from "lucide-react";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import apiRequest from "../Auth/apiRequest";
-import {
-  faDownload,
-  faFilter,
-  faCalendarDay,
-  faCalendarWeek,
-  faCalendarAlt,
-  faUser,
-} from "@fortawesome/free-solid-svg-icons";
 
 // Styled Components
 const PageContainer = styled.div`
@@ -235,6 +228,49 @@ const SummaryValue = styled.p`
   color: #2d3748;
 `;
 
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
 // Helper function to get current date in YYYY-MM-DD format
 const getCurrentDate = () => {
   const today = new Date();
@@ -260,6 +296,11 @@ const SalesVisitLogReport = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
+
   const [filter, setFilter] = useState({
     fromDate: getCurrentDate(),
     toDate: getCurrentDate(),
@@ -271,12 +312,16 @@ const SalesVisitLogReport = () => {
   }, []);
 
   useEffect(() => {
-    if (filter.fromDate && filter.toDate) {
-      fetchLogs();
-    }
+    setCurrentPage(1);
   }, [filter]);
 
-const fetchLogs = async () => {
+  useEffect(() => {
+    if (filter.fromDate && filter.toDate) {
+      fetchLogs(currentPage);
+    }
+  }, [currentPage, filter]);
+
+const fetchLogs = async (page = currentPage) => {
   try {
     setLoading(true);
     setError(null);
@@ -285,7 +330,7 @@ const fetchLogs = async () => {
     const fromDate = filter.fromDate;
     const toDate = filter.toDate;
 
-    let url = `${Labbaseurl}salesexecutive_report/?fromDate=${fromDate}&toDate=${toDate}`;
+    let url = `${Labbaseurl}salesexecutive_report/?fromDate=${fromDate}&toDate=${toDate}&page=${page}&limit=${limit}`;
 
     if (filter.salesPerson) {
       url += `&salesExecutive=${filter.salesPerson}`;
@@ -293,10 +338,13 @@ const fetchLogs = async () => {
 
     const response = await apiRequest(url, "GET");
 
-    const data = response?.data || [];
+    const data = response?.data?.data || [];
+    const logsArray = Array.isArray(data) ? data : [];
 
-    setLogs(Array.isArray(data) ? data : []);
-    updateVisitCounts(Array.isArray(data) ? data : []);
+    setLogs(logsArray);
+    updateVisitCounts(logsArray);
+    setTotalPages(response?.data?.total_pages || 1);
+    setTotalCount(response?.data?.total_count || 0);
 
   } catch (error) {
     console.error("Error fetching logs:", error);
@@ -309,7 +357,7 @@ const fetchLogs = async () => {
 
 const fetchSalesMapping = async () => {
   try {
-    const url = `${Labbaseurl}get_sales_executives/`;
+    const url = `${Labbaseurl}get_sales_executives/?limit=500`;
     const response = await apiRequest(url, "GET");
 
     // ✅ Safely extract array — handle multiple response shapes
@@ -413,7 +461,7 @@ const fetchSalesMapping = async () => {
       <FilterContainer>
         <FilterGroup>
           <FilterLabel>
-            <FontAwesomeIcon icon={faCalendarAlt} />
+            <Calendar size={16} />
             From Date:
           </FilterLabel>
           <DateInput
@@ -425,7 +473,7 @@ const fetchSalesMapping = async () => {
 
         <FilterGroup>
           <FilterLabel>
-            <FontAwesomeIcon icon={faCalendarAlt} />
+            <Calendar size={16} />
             To Date:
           </FilterLabel>
           <DateInput
@@ -437,7 +485,7 @@ const fetchSalesMapping = async () => {
 
         <FilterGroup>
           <FilterLabel>
-            <FontAwesomeIcon icon={faUser} />
+            <User size={16} />
             SalesExecutive:
           </FilterLabel>
          <Select
@@ -454,7 +502,7 @@ const fetchSalesMapping = async () => {
         </FilterGroup>
 
         <Button primary onClick={downloadCSV}>
-          <FontAwesomeIcon icon={faDownload} />
+          <Download size={16} />
           Export
         </Button>
       </FilterContainer>
@@ -501,6 +549,28 @@ const fetchSalesMapping = async () => {
           )}
         </TableBody>
       </Table>
+
+      {!loading && logs.length > 0 && (
+        <Pagination>
+          <div className="page-info">
+            Showing page {currentPage} of {totalPages} ({totalCount} total)
+          </div>
+          <div className="controls">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <FaChevronLeft /> Prev
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next <FaChevronRight />
+            </button>
+          </div>
+        </Pagination>
+      )}
 
       <SummarySection>
         <SummaryTitle>Performance Summary</SummaryTitle>

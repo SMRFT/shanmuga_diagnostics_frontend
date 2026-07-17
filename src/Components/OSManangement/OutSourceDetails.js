@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import styled, { createGlobalStyle, ThemeProvider, keyframes, css } from "styled-components"
 import { Calendar, Search, AlertCircle, ChevronRight, CheckCircle, RefreshCcw, Clock, User, Tag, FileText, CalendarDays, Users, Stethoscope } from 'lucide-react'
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { useNavigate, useLocation } from "react-router-dom"
@@ -531,12 +532,56 @@ const DepartmentHeader = styled.div`
   color: ${(props) => props.theme.colors.primary};
 `
 
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+`
+
 // Main Component
 const OutSourceDetails = () => {
   const getDefaultFromDate = () => new Date()
   const getDefaultToDate = () => new Date()
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [patientDetails, setPatientDetails] = useState([])
   const [fromDate, setFromDate] = useState(getDefaultFromDate())
   const [toDate, setToDate] = useState(getDefaultToDate())
@@ -547,6 +592,10 @@ const OutSourceDetails = () => {
   const [fromFilter, setFromFilter] = useState("all")
   const [opipFilter, setOpipFilter] = useState("all")
   const [departmentFilter, setDepartmentFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const limit = 50
   const navigate = useNavigate()
   const location = useLocation()
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
@@ -554,64 +603,75 @@ const OutSourceDetails = () => {
   // Handle navigation state from previous page
   useEffect(() => {
     if (location.state?.fromDate || location.state?.toDate || location.state?.barcode) {
-      console.log("[v0] Navigation state received:", location.state)
-
       if (location.state.fromDate) {
         const newFromDate = new Date(location.state.fromDate)
-        console.log("[v0] Setting fromDate from state:", newFromDate)
         setFromDate(newFromDate)
       }
 
       if (location.state.toDate) {
         const newToDate = new Date(location.state.toDate)
-        console.log("[v0] Setting toDate from state:", newToDate)
         setToDate(newToDate)
       }
 
       if (location.state.barcode) {
-        console.log("[v0] Setting search query from state:", location.state.barcode)
         setSearchQuery(location.state.barcode)
       }
     }
   }, [location.state])
 
+  // Reset to first page whenever the date range changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [fromDate, toDate])
+
+  // Debounce search query before triggering server-side filtering
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      setCurrentPage(1)
+    }, 500)
+    return () => clearTimeout(timerId)
+  }, [searchQuery])
+
   // Fetch patient details from API
   useEffect(() => {
     const fetchPatientDetails = async () => {
-      console.log("[v0] Fetching patient details with dates:", { fromDate, toDate })
       setLoading(true)
       setError(null)
 
       try {
         const formattedFromDate = format(fromDate, "yyyy-MM-dd")
         const formattedToDate = format(toDate, "yyyy-MM-dd")
-        console.log("[v0] Formatted dates:", { formattedFromDate, formattedToDate })
 
-        const patientResponse = await apiRequest(
-          `${Labbaseurl}os-samplestatus-testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
-          "GET",
-        )
+        let url = `${Labbaseurl}os-samplestatus-testvalue/?from_date=${formattedFromDate}&to_date=${formattedToDate}&page=${currentPage}&limit=${limit}`
 
-        console.log("[v0] API Response:", patientResponse)
+        if (debouncedSearchQuery) {
+          url += `&search=${encodeURIComponent(debouncedSearchQuery)}`
+        }
+
+        const patientResponse = await apiRequest(url, "GET")
 
         if (!patientResponse.success) {
           throw new Error(patientResponse.error || "Failed to fetch patient data")
         }
 
-        console.log("[v0] Patient data received:", patientResponse.data?.length || 0, "records")
-        setPatientDetails(patientResponse.data)
+        setPatientDetails(patientResponse.data?.data || [])
+        setTotalPages(patientResponse.data?.total_pages || 1)
+        setTotalCount(patientResponse.data?.total_count || 0)
         setError(null)
       } catch (err) {
         console.error("[v0] Error fetching patient details:", err)
         setError(err.message || "Failed to fetch patient details. Please try again.")
         setPatientDetails([])
+        setTotalPages(1)
+        setTotalCount(0)
       } finally {
         setLoading(false)
       }
     }
 
     fetchPatientDetails()
-  }, [fromDate, toDate, Labbaseurl])
+  }, [fromDate, toDate, Labbaseurl, currentPage, limit, debouncedSearchQuery])
 
   const handlePatientClick = (
     patientId,
@@ -692,13 +752,6 @@ const OutSourceDetails = () => {
   }
 
   const filteredPatients = patientDetails.filter((patient) => {
-    const matchesSearch =
-      (patient.patientname || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.barcode || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (patient.patient_id || "").toLowerCase().includes(searchQuery.toLowerCase())
-
-    if (!matchesSearch) return false
-
     const patientLocation = patient.company_id || "Shanmuga Hospital"
     const matchesFrom = fromFilter === "all" || patientLocation === fromFilter
 
@@ -1037,8 +1090,30 @@ const OutSourceDetails = () => {
             borderTop: `1px solid ${theme.colors.border}`,
           }}
         >
-          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"}
+          Showing {filteredPatients.length} {filteredPatients.length === 1 ? "entry" : "entries"} on this page
+          {totalCount ? ` (${totalCount} total)` : ""}
         </div>
+        {!loading && !error && totalPages > 1 && (
+          <Pagination>
+            <div className="page-info">
+              Showing page {currentPage} of {totalPages}
+            </div>
+            <div className="controls">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <FaChevronLeft /> Prev
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next <FaChevronRight />
+              </button>
+            </div>
+          </Pagination>
+        )}
       </Container>
     </ThemeProvider>
   )

@@ -420,7 +420,7 @@ const RouteAnalysis = () => {
   const fetchRoutesAndStatus = async () => {
     setLoadingRoutes(true)
     try {
-      let routeParams = `?date=${selectedDate}`
+      let routeParams = `?date=${selectedDate}&limit=500`
       if (employeeId) {
         routeParams += `&collector_id=${employeeId}`
       }
@@ -431,7 +431,7 @@ const RouteAnalysis = () => {
         apiRequest(`${Labbaseurl}route-analysis/today-status/?date=${selectedDate}${employeeId ? `&collector_id=${employeeId}` : ""}`, "GET"),
       ])
 
-      const list = routeRes?.data || routeRes || []
+      const list = routeRes?.data?.data || []
 
       // Build a map: route_id -> { status, analysis_id }
       const statuses = statusRes?.data?.route_statuses || []

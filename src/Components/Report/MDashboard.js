@@ -300,6 +300,40 @@ const TableValue = styled.span`
 
 const COLORS = ['#6e8efb', '#a777e3', '#e56f8f', '#00b894'];
 
+// Static inline-style objects hoisted to module scope so they aren't
+// recreated on every render (they don't depend on props/state/loop vars).
+const styles = {
+    loadingContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '1rem' },
+    spinnerColor: { color: '#a777e3' },
+    loadingText: { color: '#666' },
+    dateInputWrapper: { position: 'relative' },
+    calendarIcon: { position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#888' },
+    datePaddingLeft: { paddingLeft: '2.5rem' },
+    toLabel: { color: '#888' },
+    searchIconMargin: { marginRight: '8px' },
+    cardSubLabel: { marginTop: '1rem', fontSize: '0.9rem', opacity: 0.9 },
+    cardValueLarge: { fontSize: '2rem' },
+    chartCardHeaderMargin: { marginBottom: '2rem' },
+    chartCardLabel: { color: '#555', fontSize: '1.2rem' },
+    segmentBorderBlue: { borderLeft: '5px solid #6e8efb' },
+    segmentBorderPurple: { borderLeft: '5px solid #a777e3' },
+    segmentBorderPink: { borderLeft: '5px solid #e56f8f' },
+    segmentBorderGreen: { borderLeft: '5px solid #00b894' },
+    segmentLabel: { color: '#555' },
+    segmentValue: { color: '#333' },
+    sectionHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' },
+    sectionHeaderTitle: { margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#333' },
+    pendingCard: { marginBottom: '1.5rem', border: '1px solid #FFDada', height: 'auto', padding: '1.5rem', boxShadow: 'none' },
+    pendingLabel: { color: '#e74c3c', marginBottom: '0.5rem' },
+    pendingValue: { fontSize: '1.8rem', color: '#c0392b' },
+    pendingSubtext: { fontSize: '0.8rem', color: '#e74c3c', marginTop: '0.5rem' },
+    iconMarginSmall: { marginRight: '5px' },
+    netCard: { border: '1px solid #bbf7d0', height: 'auto', padding: '1.5rem', boxShadow: 'none' },
+    netLabel: { color: '#16a34a', marginBottom: '0.5rem' },
+    netValueLarge: { fontSize: '2rem', color: '#16a34a' },
+    netSubtext: { fontSize: '0.8rem', color: '#16a34a', marginTop: '0.5rem' },
+};
+
 const MDashboard = () => {
     const [data, setData] = useState(null);
     const [fromDate, setFromDate] = useState("");
@@ -366,9 +400,9 @@ const MDashboard = () => {
     };
 
     if (loading && !data) return (
-        <DashboardContainer style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '1rem' }}>
-            <div className="spinner-border" style={{ color: '#a777e3' }} role="status"></div>
-            <h3 style={{ color: '#666' }}>Loading Analytics...</h3>
+        <DashboardContainer style={styles.loadingContainer}>
+            <div className="spinner-border" style={styles.spinnerColor} role="status"></div>
+            <h3 style={styles.loadingText}>Loading Analytics...</h3>
         </DashboardContainer>
     );
 
@@ -385,17 +419,17 @@ const MDashboard = () => {
                     <Title>Analytics Overview</Title>
                 </TitleGroup>
                 <Controls>
-                    <div style={{ position: 'relative' }}>
-                        <i className="bi bi-calendar-event" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}></i>
-                        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
+                    <div style={styles.dateInputWrapper}>
+                        <i className="bi bi-calendar-event" style={styles.calendarIcon}></i>
+                        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={styles.datePaddingLeft} />
                     </div>
-                    <span style={{ color: '#888' }}>to</span>
-                    <div style={{ position: 'relative' }}>
-                        <i className="bi bi-calendar-event" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}></i>
-                        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
+                    <span style={styles.toLabel}>to</span>
+                    <div style={styles.dateInputWrapper}>
+                        <i className="bi bi-calendar-event" style={styles.calendarIcon}></i>
+                        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={styles.datePaddingLeft} />
                     </div>
                     <Button onClick={handleSearch}>
-                        <i className="bi bi-search" style={{ marginRight: '8px' }}></i>
+                        <i className="bi bi-search" style={styles.searchIconMargin}></i>
                         Search
                     </Button>
                 </Controls>
@@ -414,7 +448,7 @@ const MDashboard = () => {
                                 </IconBox>
                             </CardHeader>
                             <CardValue>{data.patients?.total_registered || 0}</CardValue>
-                            <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.9 }}>Patients Registered</div>
+                            <div style={styles.cardSubLabel}>Patients Registered</div>
                         </Card>
                         <Card bg="linear-gradient(135deg, #6e8efb 0%, #a777e3 100%)" color="white" delay="0.2s">
                             <CardHeader>
@@ -424,7 +458,7 @@ const MDashboard = () => {
                                 </IconBox>
                             </CardHeader>
                             <CardValue>{data.samples.total}</CardValue>
-                            <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.9 }}>Collected Samples</div>
+                            <div style={styles.cardSubLabel}>Collected Samples</div>
                         </Card>
                         <Card bg="linear-gradient(135deg, #e56f8f 0%, #ff9a9e 100%)" color="white" delay="0.3s">
                             <CardHeader>
@@ -434,7 +468,7 @@ const MDashboard = () => {
                                 </IconBox>
                             </CardHeader>
                             <CardValue>{data.tests.total}</CardValue>
-                            <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.9 }}>Processed Tests Count</div>
+                            <div style={styles.cardSubLabel}>Processed Tests Count</div>
                         </Card>
                         <Card bg="linear-gradient(135deg, #6e8efb 0%, #4facfe 100%)" color="white" delay="0.4s">
                             <CardHeader>
@@ -443,16 +477,16 @@ const MDashboard = () => {
                                     <i className="bi bi-currency-rupee"></i>
                                 </IconBox>
                             </CardHeader>
-                            <CardValue style={{ fontSize: '2rem' }}>{formatCurrency(data.financials.net_amount)}</CardValue>
-                            <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.9 }}>Across All Segments</div>
+                            <CardValue style={styles.cardValueLarge}>{formatCurrency(data.financials.net_amount)}</CardValue>
+                            <div style={styles.cardSubLabel}>Across All Segments</div>
                         </Card>
                     </VolumeGrid>
 
                     <SectionTitle>Visual Analytics</SectionTitle>
                     <ChartsGrid>
                         <Card delay="0.4s" justify="flex-start" minHeight="400px">
-                            <CardHeader style={{ marginBottom: '2rem' }}>
-                                <CardLabel style={{ color: '#555', fontSize: '1.2rem' }}>Sample Volume by Segment</CardLabel>
+                            <CardHeader style={styles.chartCardHeaderMargin}>
+                                <CardLabel style={styles.chartCardLabel}>Sample Volume by Segment</CardLabel>
                                 <IconBox iconBg="rgba(110, 142, 251, 0.1)" iconColor="#6e8efb">
                                     <i className="bi bi-bar-chart-fill"></i>
                                 </IconBox>
@@ -476,8 +510,8 @@ const MDashboard = () => {
                         </Card>
 
                         <Card delay="0.5s" justify="flex-start" minHeight="400px">
-                            <CardHeader style={{ marginBottom: '2rem' }}>
-                                <CardLabel style={{ color: '#555', fontSize: '1.2rem' }}>Revenue Distribution</CardLabel>
+                            <CardHeader style={styles.chartCardHeaderMargin}>
+                                <CardLabel style={styles.chartCardLabel}>Revenue Distribution</CardLabel>
                                 <IconBox iconBg="rgba(167, 119, 227, 0.1)" iconColor="#a777e3">
                                     <i className="bi bi-pie-chart-fill"></i>
                                 </IconBox>
@@ -507,49 +541,49 @@ const MDashboard = () => {
 
                     <SectionTitle>Segment Volume Breakdown</SectionTitle>
                     <SegmentGrid>
-                        <Card delay="0.4s" style={{ borderLeft: '5px solid #6e8efb' }}>
+                        <Card delay="0.4s" style={styles.segmentBorderBlue}>
                             <CardHeader>
-                                <CardLabel style={{ color: '#555' }}>Home Collection</CardLabel>
+                                <CardLabel style={styles.segmentLabel}>Home Collection</CardLabel>
                                 <IconBox iconBg="rgba(110, 142, 251, 0.1)" iconColor="#6e8efb">
                                     <i className="bi bi-house-door"></i>
                                 </IconBox>
                             </CardHeader>
-                            <CardValue style={{ color: '#333' }}>{data.samples.segments.home_collection}</CardValue>
+                            <CardValue style={styles.segmentValue}>{data.samples.segments.home_collection}</CardValue>
                         </Card>
-                        <Card delay="0.5s" style={{ borderLeft: '5px solid #a777e3' }}>
+                        <Card delay="0.5s" style={styles.segmentBorderPurple}>
                             <CardHeader>
-                                <CardLabel style={{ color: '#555' }}>B2B / Clients</CardLabel>
+                                <CardLabel style={styles.segmentLabel}>B2B / Clients</CardLabel>
                                 <IconBox iconBg="rgba(167, 119, 227, 0.1)" iconColor="#a777e3">
                                     <i className="bi bi-briefcase"></i>
                                 </IconBox>
                             </CardHeader>
-                            <CardValue style={{ color: '#333' }}>{data.samples.segments.b2b}</CardValue>
+                            <CardValue style={styles.segmentValue}>{data.samples.segments.b2b}</CardValue>
                         </Card>
-                        <Card delay="0.6s" style={{ borderLeft: '5px solid #e56f8f' }}>
+                        <Card delay="0.6s" style={styles.segmentBorderPink}>
                             <CardHeader>
-                                <CardLabel style={{ color: '#555' }}>Franchise</CardLabel>
+                                <CardLabel style={styles.segmentLabel}>Franchise</CardLabel>
                                 <IconBox iconBg="rgba(229, 111, 143, 0.1)" iconColor="#e56f8f">
                                     <i className="bi bi-shop"></i>
                                 </IconBox>
                             </CardHeader>
-                            <CardValue style={{ color: '#333' }}>{data.samples.segments.franchise}</CardValue>
+                            <CardValue style={styles.segmentValue}>{data.samples.segments.franchise}</CardValue>
                         </Card>
-                        <Card delay="0.7s" style={{ borderLeft: '5px solid #00b894' }}>
+                        <Card delay="0.7s" style={styles.segmentBorderGreen}>
                             <CardHeader>
-                                <CardLabel style={{ color: '#555' }}>Corp Health</CardLabel>
+                                <CardLabel style={styles.segmentLabel}>Corp Health</CardLabel>
                                 <IconBox iconBg="rgba(0, 184, 148, 0.1)" iconColor="#00b894">
                                     <i className="bi bi-building"></i>
                                 </IconBox>
                             </CardHeader>
-                            <CardValue style={{ color: '#333' }}>{data.samples.segments.company_health_check}</CardValue>
+                            <CardValue style={styles.segmentValue}>{data.samples.segments.company_health_check}</CardValue>
                         </Card>
                     </SegmentGrid>
 
                     <SectionTitle>Financial Intelligence</SectionTitle>
                     <FinancialSection>
                         <FinancialCard>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#333' }}>Revenue Sources (Net Amount)</h3>
+                            <div style={styles.sectionHeaderRow}>
+                                <h3 style={styles.sectionHeaderTitle}>Revenue Sources (Net Amount)</h3>
                                 <IconBox iconBg="linear-gradient(135deg, #a777e3, #e56f8f)" iconColor="white">
                                     <i className="bi bi-wallet2"></i>
                                 </IconBox>
@@ -586,26 +620,26 @@ const MDashboard = () => {
                         </FinancialCard>
 
                         <FinancialCard>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#333' }}>Consolidated Summary</h3>
+                            <div style={styles.sectionHeaderRow}>
+                                <h3 style={styles.sectionHeaderTitle}>Consolidated Summary</h3>
                                 <IconBox iconBg="linear-gradient(135deg, #6e8efb, #4facfe)" iconColor="white">
                                     <i className="bi bi-pie-chart"></i>
                                 </IconBox>
                             </div>
 
-                            <Card bg="#FFF5F5" style={{ marginBottom: '1.5rem', border: '1px solid #FFDada', height: 'auto', padding: '1.5rem', boxShadow: 'none' }}>
-                                <CardLabel style={{ color: '#e74c3c', marginBottom: '0.5rem' }}>Pending Collections</CardLabel>
-                                <CardValue style={{ fontSize: '1.8rem', color: '#c0392b' }}>{formatCurrency(data.financials.credit_amount)}</CardValue>
-                                <div style={{ fontSize: '0.8rem', color: '#e74c3c', marginTop: '0.5rem' }}>
-                                    <i className="bi bi-exclamation-circle-fill" style={{ marginRight: '5px' }}></i>
+                            <Card bg="#FFF5F5" style={styles.pendingCard}>
+                                <CardLabel style={styles.pendingLabel}>Pending Collections</CardLabel>
+                                <CardValue style={styles.pendingValue}>{formatCurrency(data.financials.credit_amount)}</CardValue>
+                                <div style={styles.pendingSubtext}>
+                                    <i className="bi bi-exclamation-circle-fill" style={styles.iconMarginSmall}></i>
                                 </div>
                             </Card>
 
-                            <Card bg="#f0fdf4" style={{ border: '1px solid #bbf7d0', height: 'auto', padding: '1.5rem', boxShadow: 'none' }}>
-                                <CardLabel style={{ color: '#16a34a', marginBottom: '0.5rem' }}>Total Net Amount</CardLabel>
-                                <CardValue style={{ fontSize: '2rem', color: '#16a34a' }}>{formatCurrency(data.financials.net_amount)}</CardValue>
-                                <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.5rem' }}>
-                                    <i className="bi bi-check-circle-fill" style={{ marginRight: '5px' }}></i>
+                            <Card bg="#f0fdf4" style={styles.netCard}>
+                                <CardLabel style={styles.netLabel}>Total Net Amount</CardLabel>
+                                <CardValue style={styles.netValueLarge}>{formatCurrency(data.financials.net_amount)}</CardValue>
+                                <div style={styles.netSubtext}>
+                                    <i className="bi bi-check-circle-fill" style={styles.iconMarginSmall}></i>
                                     After discounts & adjustments
                                 </div>
                             </Card>

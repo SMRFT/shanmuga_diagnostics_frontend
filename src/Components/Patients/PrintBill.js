@@ -427,24 +427,27 @@ const PrintBill = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [patients, setPatients] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [patientsPerPage, setPatientsPerPage] = useState(10); // default 10
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [patientsPerPage, setPatientsPerPage] = useState(10); // default 10, doubles as the server page size
   const [loading, setLoading] = useState(false);
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  useEffect(() => {
-    fetchPatients();
-  }, [startDate, endDate]);
-
-  const fetchPatients = async () => {
+  const fetchPatients = async (page = 1) => {
     setLoading(true);
     try {
       const formattedStart = format(startDate, "yyyy-MM-dd");
       const formattedEnd = format(endDate, "yyyy-MM-dd");
 
+      const searchQuery = debouncedSearchTerm
+        ? `&search=${encodeURIComponent(debouncedSearchTerm)}`
+        : "";
+
       const response = await apiRequest(
-        `${Labbaseurl}patients_by_date/?start_date=${formattedStart}&end_date=${formattedEnd}`,
+        `${Labbaseurl}patients_by_date/?start_date=${formattedStart}&end_date=${formattedEnd}&page=${page}&limit=${patientsPerPage}${searchQuery}`,
         "GET"
       );
 
@@ -468,16 +471,50 @@ const PrintBill = () => {
           return patient;
         });
         setPatients(processedData);
-        setCurrentPage(1);
+        setTotalPages(response.data.total_pages || 1);
+        setTotalCount(response.data.total_count || response.data.total_records || processedData.length);
       } else {
         setPatients([]);
+        setTotalPages(1);
+        setTotalCount(0);
       }
     } catch (error) {
       console.error("Error fetching patients:", error);
       setPatients([]);
+      setTotalPages(1);
+      setTotalCount(0);
     }
     setLoading(false);
   };
+
+  // Debounce the raw search input into debouncedSearchTerm before it drives any fetch.
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timerId);
+  }, [searchTerm]);
+
+  // Re-fetch page 1 whenever the date range or page size changes.
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchPatients(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, patientsPerPage]);
+
+  // Re-fetch when navigating to a different page, or when the debounced search term changes
+  // (page 1 is already covered by the effects above).
+  useEffect(() => {
+    if (currentPage === 1) return;
+    fetchPatients(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
+  useEffect(() => {
+    fetchPatients(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm]);
 
   const handlePrint = (patient) => {
     const numberToWords = (num) => {
@@ -723,18 +760,11 @@ const PrintBill = () => {
     }, 1000);
   };
 
-  const filteredPatients = patients.filter(
-    (patient) =>
-      patient.patient_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.patientname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.lab_id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // ── CHANGE 2: dynamic per-page ──
-  const indexOfLastPatient = currentPage * patientsPerPage;
-  const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
-  const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
-  const pageCount = Math.ceil(filteredPatients.length / patientsPerPage);
+  // Search and pagination are now fully server-driven: the backend filters by
+  // `search` and returns at most `patientsPerPage` records for the requested page,
+  // so no further client-side filtering or slicing is needed.
+  const currentPatients = patients;
+  const pageCount = totalPages;
 
   const handlePerPageChange = (e) => {
     setPatientsPerPage(Number(e.target.value));
@@ -808,7 +838,9 @@ const PrintBill = () => {
       <ResultsSection>
         <ResultsHeader>
           <ResultsCount>
-            {loading ? "Loading..." : `${filteredPatients.length} patient(s) found`}
+            {loading
+              ? "Loading..."
+              : `${patients.length} shown on this page • ${totalCount} bill(s) total (page ${currentPage} of ${totalPages})`}
           </ResultsCount>
 
           {/* ── CHANGE 2: records-per-page selector ── */}

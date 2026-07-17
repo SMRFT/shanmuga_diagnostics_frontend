@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 import styled from "styled-components";
 import axios from "axios";
 import apiRequest from "../Auth/apiRequest";
-import * as XLSX from "xlsx";
+import { exportToExcel } from "../../utils/xlsxUtils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -767,8 +767,7 @@ function Busfare() {
 
   const loadCollectors = useCallback(async () => {
     try {
-      const res = await apiRequest(`${Labbaseurl}get_b2b_employees/`, "GET");
-      console.log("get_b2b_employees raw response:", res);
+      const res = await apiRequest(`${Labbaseurl}get_b2b_employees/?limit=500`, "GET");
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
@@ -780,7 +779,6 @@ function Busfare() {
         : Array.isArray(res?.data?.results)
         ? res.data.results
         : [];
-      console.log("collectors list resolved to:", list);
       setCollectors(list);
     } catch (err) {
       console.error("Failed to load collectors:", err);
@@ -866,8 +864,6 @@ function Busfare() {
       const cleanAmount = Number(formData.amount).toFixed(2);
       const baseData = { ...formData, amount: cleanAmount };
 
-      console.log("handleSave: formData.bustphoto =", formData.bustphoto);
-
       if (baseData.bustphoto) {
         // ── Multipart branch ────────────────────────────────────────
         // apiRequest hardcodes "Content-Type: application/json" on every
@@ -881,10 +877,6 @@ function Busfare() {
         Object.entries(baseData).forEach(([key, value]) => {
           if (value !== null && value !== "") payload.append(key, value);
         });
-        console.log(
-          "handleSave: sending multipart, bustphoto entry =",
-          payload.get("bustphoto")
-        );
 
         const token = localStorage.getItem("access_token");
         const branch = localStorage.getItem("selected_branch");
@@ -915,7 +907,6 @@ function Busfare() {
       } else {
         // No photo selected — plain JSON, apiRequest handles this fine.
         const { bustphoto, ...rest } = baseData;
-        console.log("handleSave: no photo selected, sending JSON without bustphoto");
         const res = await apiRequest(`${Labbaseurl}bus_fare/`, "POST", rest);
         setToast({
           type: "success",
@@ -971,8 +962,7 @@ function Busfare() {
       "Picked Up By": "",
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    worksheet["!cols"] = [
+    const colWidths = [
       { wch: 12 },
       { wch: 20 },
       { wch: 10 },
@@ -982,9 +972,10 @@ function Busfare() {
       { wch: 18 },
     ];
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Bus Fares");
-    XLSX.writeFile(workbook, `bus-fares_${fromDate}_to_${toDate}.xlsx`);
+    exportToExcel(rows, `bus-fares_${fromDate}_to_${toDate}.xlsx`, {
+      sheetName: "Bus Fares",
+      colWidths,
+    });
   };
 
   const handleExportPDF = () => {

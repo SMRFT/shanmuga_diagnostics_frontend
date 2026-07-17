@@ -3,16 +3,14 @@ import Select from "react-select"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import * as XLSX from "xlsx"
+import { exportToExcel } from "../../utils/xlsxUtils"
 import {
-  FaCalendarAlt,
-  FaUserTie,
-  FaRoute,
-  FaCheckCircle,
-  FaFlask,
-  FaImages,
-  FaFileExcel,
-} from "react-icons/fa"
+  Calendar,
+  User,
+  Route,
+  CheckCircle,
+  FileSpreadsheet,
+} from "lucide-react"
 import apiRequest from "../Auth/apiRequest"
 
 // ─── Styled Components ────────────────────────────────────────────────────────
@@ -360,12 +358,8 @@ const RouteAnalysisDashboard = () => {
       });
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(excelRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Route Analysis");
-    
     const fileName = `Route_Analysis_Report_${fromDate}_to_${toDate}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    exportToExcel(excelRows, fileName, { sheetName: "Route Analysis" });
   }
 
   const openImage = (imageId) => {
@@ -396,7 +390,7 @@ const RouteAnalysisDashboard = () => {
         
         <FiltersContainer>
           <FilterGroup>
-            <label><FaCalendarAlt /> From Date</label>
+            <label><Calendar /> From Date</label>
             <input 
               type="date" 
               value={fromDate}
@@ -411,7 +405,7 @@ const RouteAnalysisDashboard = () => {
           </FilterGroup>
 
           <FilterGroup>
-            <label><FaCalendarAlt /> To Date</label>
+            <label><Calendar /> To Date</label>
             <input 
               type="date" 
               value={toDate}
@@ -426,7 +420,7 @@ const RouteAnalysisDashboard = () => {
           </FilterGroup>
           
           <FilterGroup>
-            <label><FaUserTie /> Sample Collector (Optional)</label>
+            <label><User /> Sample Collector (Optional)</label>
             <Select 
               options={collectorOptions}
               value={selectedCollector}
@@ -441,7 +435,7 @@ const RouteAnalysisDashboard = () => {
             onClick={handleExportExcel} 
             disabled={!reportData || routes.length === 0}
           >
-            <FaFileExcel /> Export to Excel
+            <FileSpreadsheet /> Export to Excel
           </ExportBtn>
         </FiltersContainer>
       </DashboardHeader>
@@ -479,7 +473,7 @@ const RouteAnalysisDashboard = () => {
                     {/* Route Header Row */}
                     <RouteHeader>
                       <td colSpan={dates.length + 2}>
-                        <FaRoute style={{ marginRight: '8px', color: '#667eea' }} />
+                        <Route style={{ marginRight: '8px', color: '#667eea' }} />
                         {route.route_name} <span style={{ color: '#718096', fontWeight: 'normal' }}>({route.collector_name})</span>
                       </td>
                     </RouteHeader>
@@ -501,7 +495,7 @@ const RouteAnalysisDashboard = () => {
                                   <span className="y-badge">
                                     Y
                                     <PhotoLink onClick={() => openModal({ ...visit, clinicalname: lab.clinicalname })} title="View Details">
-                                      <FaCheckCircle size={12} style={{marginLeft: "4px"}} />
+                                      <CheckCircle size={12} style={{marginLeft: "4px"}} />
                                     </PhotoLink>
                                   </span>
                                 </div>

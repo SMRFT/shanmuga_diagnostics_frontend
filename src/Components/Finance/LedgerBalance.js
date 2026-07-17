@@ -14,7 +14,7 @@ import {
     FileText
 } from "lucide-react";
 import { toast } from "react-toastify";
-import * as XLSX from "xlsx";
+import { exportToExcel as exportExcelFile } from "../../utils/xlsxUtils";
 
 // --- Styled Components ---
 
@@ -263,8 +263,8 @@ const LedgerBalance = () => {
         const fetchB2B = async () => {
             try {
                 const response = await apiRequest(`${Labbaseurl}clinical_name/`, "GET");
-                if (response.success && Array.isArray(response.data)) {
-                    setB2bList(response.data);
+                if (response.success && Array.isArray(response.data?.data)) {
+                    setB2bList(response.data.data);
                 }
             } catch (error) {
                 console.error("Error fetching B2B names:", error);
@@ -343,18 +343,19 @@ const LedgerBalance = () => {
     const totalDiscount = filteredData.reduce((sum, item) => sum + (item.discount || 0), 0);
 
     const exportToExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
-            Date: item.date,
-            "Bill No": item.bill_no,
-            "Patient Name": item.patient_name,
-            "B2B Name": item.b2b_name,
-            "Total Amount": item.total_amount,
-            "Discount": item.discount,
-            "Net Amount": item.net_amount
-        })));
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Ledger Balance");
-        XLSX.writeFile(wb, "B2B_Ledger_Balance.xlsx");
+        exportExcelFile(
+            filteredData.map(item => ({
+                Date: item.date,
+                "Bill No": item.bill_no,
+                "Patient Name": item.patient_name,
+                "B2B Name": item.b2b_name,
+                "Total Amount": item.total_amount,
+                "Discount": item.discount,
+                "Net Amount": item.net_amount
+            })),
+            "B2B_Ledger_Balance.xlsx",
+            { sheetName: "Ledger Balance" },
+        );
     };
 
     return (

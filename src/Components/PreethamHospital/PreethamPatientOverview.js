@@ -400,7 +400,6 @@ const PreethamPatientOverview = () => {
     // ---------------------------------------------------------------------------
     const handlePrint = async (patient, withLetterpad = true) => {
         try {
-        console.log("Fetching patient details for barcode:", patient.barcode);
         const response = await apiRequest(
             `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
             "GET"
@@ -413,8 +412,6 @@ const PreethamPatientOverview = () => {
             return null;
         }
 
-        console.log("API Response:", response.data);
-        
         // Extract patient data and signatures from the new response structure
         let patientDetails;
         let signaturesData = [];
@@ -434,9 +431,6 @@ const PreethamPatientOverview = () => {
             testdetails: patientDetails.flatMap((record) => record.testdetails || []),
             };
         }
-
-        console.log("Processed Patient Details:", patientDetails);
-        console.log("Signatures Data:", signaturesData);
 
         if (!patientDetails.testdetails || patientDetails.testdetails.length === 0) {
             console.error("No test details found for the patient.");
@@ -502,8 +496,6 @@ const PreethamPatientOverview = () => {
         });
         
         const activeConsultants = consultants.filter(c => c !== null);
-
-        console.log("Active Consultants:", activeConsultants);
 
         const departmentOrder = [
             "Haematology",

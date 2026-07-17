@@ -461,7 +461,6 @@ useEffect(() => {
         "GET"
       );
 
-      console.log("API RESPONSE:", response);
       setSalesPersons(response.data || []);
     } catch (error) {
       console.error("Error fetching sales persons:", error);
@@ -529,8 +528,6 @@ const handleGetLastReferrerCode = async () => {
       `${Labbaseurl}clinical_name/last/`,
       "GET"
     );
-
-    console.log("API RESPONSE:", response);
 
     const lastReferrerCode =
       response?.data?.referrerCode || "SD0000";

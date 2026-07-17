@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import apiRequest from "../Auth/apiRequest";
-import { FaSearch, FaFileDownload, FaCalendarAlt, FaFlask, FaRupeeSign } from "react-icons/fa";
+import { useCachedApi } from "../../hooks/useApiCache";
+import { Search, Download, Calendar, FlaskConical, IndianRupee } from "lucide-react";
 
 // Animations
 const fadeIn = keyframes`
@@ -314,26 +314,32 @@ export default function TestSummary() {
   const [search, setSearch] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
+  // ✅ Cached read - this endpoint is called via POST with a filter payload,
+  // so the payload doubles as both the request body and the cache-key
+  // differentiator (same URL, different search/date range = different entry).
+  const testSummaryPayload = {
+    search: search.trim(),
+    from_date: fromDate,
+    to_date: toDate,
+  };
+  const {
+    data: testSummaryData,
+    error: testSummaryError,
+  } = useCachedApi(
+    Labbaseurl ? `${Labbaseurl}test-summary/` : null,
+    testSummaryPayload,
+    { method: "POST", ttl: 60 * 1000, enabled: !!Labbaseurl }
+  );
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const payload = {
-          search: search.trim(),
-          from_date: fromDate,
-          to_date: toDate
-        };
-        const result = await apiRequest(`${Labbaseurl}test-summary/`, 'POST', payload);
-        if (result.success) {
-          setData(result.data);
-        } else {
-          console.error(result.error);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchData();
-  }, [search, fromDate, toDate, Labbaseurl]);
+    if (testSummaryError) {
+      console.error(testSummaryError);
+      return;
+    }
+    if (testSummaryData) {
+      setData(testSummaryData);
+    }
+  }, [testSummaryData, testSummaryError]);
 
   const totalCount = data.reduce((sum, row) => sum + Number(row.count || 0), 0);
   const totalAmount = data.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
@@ -373,7 +379,7 @@ export default function TestSummary() {
         <StatsGrid>
           <StatCard>
             <StatIcon bg="rgba(110, 142, 251, 0.1)" color="#6e8efb">
-              <FaFlask />
+              <FlaskConical />
             </StatIcon>
             <StatInfo>
               <StatLabel>Total Tests Performed</StatLabel>
@@ -383,7 +389,7 @@ export default function TestSummary() {
 
           <StatCard>
             <StatIcon bg="rgba(167, 119, 227, 0.1)" color="#a777e3">
-              <FaRupeeSign />
+              <IndianRupee />
             </StatIcon>
             <StatInfo>
               <StatLabel>Total Revenue Generated</StatLabel>
@@ -398,7 +404,7 @@ export default function TestSummary() {
             <Title>Test Analysis</Title>
             <ControlsGrid>
               <InputGroup>
-                <Icon><FaSearch /></Icon>
+                <Icon><Search /></Icon>
                 <Input
                   type="text"
                   placeholder="Search test names..."
@@ -407,7 +413,7 @@ export default function TestSummary() {
                 />
               </InputGroup>
               <InputGroup>
-                <Icon><FaCalendarAlt /></Icon>
+                <Icon><Calendar /></Icon>
                 <Input
                   type="date"
                   value={fromDate}
@@ -415,7 +421,7 @@ export default function TestSummary() {
                 />
               </InputGroup>
               <InputGroup>
-                <Icon><FaCalendarAlt /></Icon>
+                <Icon><Calendar /></Icon>
                 <Input
                   type="date"
                   value={toDate}
@@ -424,7 +430,7 @@ export default function TestSummary() {
                 />
               </InputGroup>
               <Button onClick={exportCSV}>
-                <FaFileDownload /> Export
+                <Download /> Export
               </Button>
             </ControlsGrid>
           </CardHeader>
@@ -445,7 +451,7 @@ export default function TestSummary() {
                   <tr>
                     <td colSpan={5}>
                       <EmptyState>
-                        <FaSearch />
+                        <Search />
                         <p>No test data found for the selected period</p>
                       </EmptyState>
                     </td>

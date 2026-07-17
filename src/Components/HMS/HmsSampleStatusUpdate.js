@@ -20,6 +20,7 @@ import {
   Tag,
   Activity,
 } from "lucide-react";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import apiRequest from "../Auth/apiRequest";
 
 const blink = keyframes`
@@ -554,6 +555,44 @@ const Checkbox = styled.input.attrs({ type: "checkbox" })`
   cursor: pointer;
 `;
 
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
 // Calendar component (same as HmsSampleStatus)
 const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
@@ -637,6 +676,7 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
 // Main component
 const HmsSampleStatusUpdate = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [showFromDatePicker, setShowFromDatePicker] = useState(false);
@@ -655,11 +695,15 @@ const HmsSampleStatusUpdate = () => {
   const [selectedTests, setSelectedTests] = useState([]);
   const [statusFilter, setStatusFilter] = useState("All");
   const [opIpFilter, setopIPFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   // Add this inside the component, before the useEffects
-  const fetchSampleCollected = async () => {
+  const fetchSampleCollected = async (page = currentPage) => {
     setLoading(true);
     try {
       const localFromDate = new Date(fromDate);
@@ -674,13 +718,19 @@ const HmsSampleStatusUpdate = () => {
       );
       const formattedToDate = localToDate.toISOString().split("T")[0];
 
+      const searchParam = debouncedSearchQuery
+        ? `&search=${encodeURIComponent(debouncedSearchQuery)}`
+        : "";
+
       const response = await apiRequest(
-        `${Labbaseurl}hms_get_sample_collected/?from_date=${formattedFromDate}&to_date=${formattedToDate}`,
+        `${Labbaseurl}hms_get_sample_collected/?from_date=${formattedFromDate}&to_date=${formattedToDate}&page=${page}&limit=${limit}${searchParam}`,
         "GET",
       );
 
       if (response.success) {
         setSamples(response.data.data || []);
+        setTotalPages(response.data.total_pages || 1);
+        setTotalCount(response.data.total_count || 0);
         setError(null);
       } else {
         setError(response.error);
@@ -704,18 +754,10 @@ const HmsSampleStatusUpdate = () => {
   useEffect(() => {
     const fetchOutsourceLabs = async () => {
       try {
-        console.log(
-          "Fetching outsource labs from:",
-          `${Labbaseurl}get_outsource_labs/`,
-        );
         const response = await apiRequest(
           `${Labbaseurl}get_outsource_labs/`,
           "GET",
         );
-
-        console.log("Full API response:", response);
-        console.log("response.data:", response.data);
-        console.log("response.success:", response.success);
 
         // Handle different response structures
         let labs = [];
@@ -735,8 +777,6 @@ const HmsSampleStatusUpdate = () => {
           }
         }
 
-        console.log("Extracted labs array:", labs);
-        console.log("Labs array length:", labs.length);
         setOutsourceLabs(labs);
       } catch (err) {
         console.error("Error fetching outsource labs:", err);
@@ -749,10 +789,19 @@ const HmsSampleStatusUpdate = () => {
     }
   }, [Labbaseurl]);
 
+  // Debounce searchQuery into debouncedSearchQuery and reset to page 1
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timerId);
+  }, [searchQuery]);
+
   // Replace the existing fetchSampleCollected useEffect with:
   useEffect(() => {
-    fetchSampleCollected();
-  }, [fromDate, toDate]);
+    fetchSampleCollected(currentPage);
+  }, [fromDate, toDate, currentPage, debouncedSearchQuery]);
 
   const handleStatusChange = (barcode, testIndex, newStatus) => {
     setStatusChanges((prev) => ({
@@ -978,13 +1027,9 @@ const HmsSampleStatusUpdate = () => {
     fetchSampleCollected(); // ← refetch with current dates instead of reloading
   };
 
-  // Updated filteredPatients to include barcode search
+  // Search is now handled server-side via debouncedSearchQuery; only
+  // status/opIp filters remain client-side.
   const filteredPatients = samples.filter((sample) => {
-    const matchesSearch =
-      sample.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sample.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sample.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
-
     const matchesStatus =
       statusFilter === "All" ||
       (statusFilter === "Emergency" && sample.is_emergency) ||
@@ -995,7 +1040,7 @@ const HmsSampleStatusUpdate = () => {
       (opIpFilter === "OP" && sample.opiptype === "OP") ||
       (opIpFilter === "IP" && sample.opiptype === "IP");
 
-    return matchesSearch && matchesStatus && opIpStatus;
+    return matchesStatus && opIpStatus;
   });
 
   return (
@@ -1033,6 +1078,7 @@ const HmsSampleStatusUpdate = () => {
                     onChange={(date) => {
                       setFromDate(date);
                       setShowFromDatePicker(false);
+                      setCurrentPage(1);
                     }}
                     onClose={() => setShowFromDatePicker(false)}
                   />
@@ -1056,6 +1102,7 @@ const HmsSampleStatusUpdate = () => {
                     onChange={(date) => {
                       setToDate(date);
                       setShowToDatePicker(false);
+                      setCurrentPage(1);
                     }}
                     onClose={() => setShowToDatePicker(false)}
                   />
@@ -1196,9 +1243,33 @@ const HmsSampleStatusUpdate = () => {
               borderTop: "1px solid var(--gray-light)",
             }}
           >
-            Showing {filteredPatients.length}{" "}
-            {filteredPatients.length === 1 ? "entry" : "entries"}
+            Showing {filteredPatients.length} of {totalCount}{" "}
+            {totalCount === 1 ? "entry" : "entries"}
           </div>
+
+          {!loading && !error && totalPages > 1 && (
+            <Pagination>
+              <div className="page-info">
+                Showing page {currentPage} of {totalPages}
+              </div>
+              <div className="controls">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <FaChevronLeft /> Prev
+                </button>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next <FaChevronRight />
+                </button>
+              </div>
+            </Pagination>
+          )}
         </Card>
 
         {selectedPatient && Array.isArray(selectedPatient.testdetails) && (

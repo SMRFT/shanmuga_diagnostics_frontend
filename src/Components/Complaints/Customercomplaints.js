@@ -655,6 +655,10 @@ const CustomerComplaints = () => {
         ? res.data
         : Array.isArray(res?.results)
         ? res.results
+        : Array.isArray(res?.data?.data)
+        ? res.data.data
+        : Array.isArray(res?.data?.results)
+        ? res.data.results
         : [];
       // Defensive sort — the backend already orders by complaint_id
       // ascending, but sorting again here keeps the table correct even if
@@ -676,6 +680,8 @@ const CustomerComplaints = () => {
         ? res
         : Array.isArray(res?.data)
         ? res.data
+        : Array.isArray(res?.data?.data)
+        ? res.data.data
         : Array.isArray(res?.results)
         ? res.results
         : [];
@@ -688,7 +694,7 @@ const CustomerComplaints = () => {
 
   const loadEmployees = useCallback(async () => {
     try {
-      const res = await apiRequest(`${Labbaseurl}get_b2b_lab_employees/`, "GET");
+      const res = await apiRequest(`${Labbaseurl}get_b2b_lab_employees/?limit=500`, "GET");
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)

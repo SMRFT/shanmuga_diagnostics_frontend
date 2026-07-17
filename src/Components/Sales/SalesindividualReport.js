@@ -1,11 +1,12 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CSVLink } from "react-csv";
 import axios from "axios";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import styled, { keyframes } from "styled-components";
 import apiRequest from "../Auth/apiRequest";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import {
   Calendar,
   Download,
@@ -22,6 +23,10 @@ const SalesindividualReport = () => {
   const [filterByMonth, setFilterByMonth] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
@@ -29,9 +34,16 @@ const SalesindividualReport = () => {
     if (storedName) setSalesMapping(storedName);
   }, []);
 
+  // Reset to page 1 whenever the filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDate, salesMapping, filterByMonth]);
+
         // :white_check_mark: Fetch sales data using apiRequest
-      useEffect(() => {
-        if (selectedDate && salesMapping) {
+      const fetchSalesData = useCallback(
+        (page) => {
+          if (!selectedDate || !salesMapping) return;
+
           setIsLoading(true);
           setError(null);
 
@@ -39,12 +51,14 @@ const SalesindividualReport = () => {
             ? selectedDate.toISOString().slice(0, 7)
             : selectedDate.toISOString().split("T")[0];
 
-          const url = `${Labbaseurl}getsalesindividual/?salesMapping=${salesMapping}&date=${formattedDate}`;
+          const url = `${Labbaseurl}getsalesindividual/?salesMapping=${salesMapping}&date=${formattedDate}&page=${page}&limit=${limit}`;
 
           apiRequest(url, "GET")
             .then((response) => {
-              const data = response?.data || [];
+              const data = response?.data?.data || [];
               setSalesData(Array.isArray(data) ? data : []);
+              setTotalPages(response?.data?.total_pages || 1);
+              setTotalCount(response?.data?.total_count || 0);
               setIsLoading(false);
             })
             .catch((error) => {
@@ -52,8 +66,13 @@ const SalesindividualReport = () => {
               setError("Failed to fetch data. Please try again.");
               setIsLoading(false);
             });
-        }
-      }, [selectedDate, salesMapping, filterByMonth, Labbaseurl]);
+        },
+        [selectedDate, salesMapping, filterByMonth, Labbaseurl, limit]
+      );
+
+      useEffect(() => {
+        fetchSalesData(currentPage);
+      }, [currentPage, fetchSalesData]);
 
 
   const csvHeaders = [
@@ -161,7 +180,9 @@ const SalesindividualReport = () => {
           ) : (
             <>
               <ActionBar>
-                <ResultCount>{salesData.length} records found</ResultCount>
+                <ResultCount>
+                  {totalCount || salesData.length} records found
+                </ResultCount>
                 <StyledCSVLink
                   data={salesData}
                   headers={csvHeaders}
@@ -194,6 +215,28 @@ const SalesindividualReport = () => {
                   </tbody>
                 </Table>
               </TableContainer>
+
+              <Pagination>
+                <div className="page-info">
+                  Showing page {currentPage} of {totalPages}
+                </div>
+                <div className="controls">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <FaChevronLeft /> Prev
+                  </button>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next <FaChevronRight />
+                  </button>
+                </div>
+              </Pagination>
             </>
           )}
         </ContentWrapper>
@@ -760,6 +803,44 @@ const Td = styled.td`
   padding: 12px 16px;
   border-bottom: 1px solid #e2e8f0;
   color: #334155;
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
 `;
 
 export default SalesindividualReport;

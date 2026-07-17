@@ -489,7 +489,7 @@ function MBDoctorForm() {
         throw new Error(response.error || "Failed to fetch test data");
       }
 
-      const processedData = response.data.map((item) => ({
+      const processedData = response.data.data.map((item) => ({
         ...item,
         testdetails: typeof item.testdetails === "string"
           ? JSON.parse(item.testdetails)

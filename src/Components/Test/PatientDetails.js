@@ -595,7 +595,11 @@ const PatientDetails = () => {
           throw new Error(
             patientResponse.error || "Failed to fetch patient data",
           );
-        setPatientDetails(patientResponse.data);
+        setPatientDetails(
+          Array.isArray(patientResponse.data?.data)
+            ? patientResponse.data.data
+            : [],
+        );
         setError(null);
       } catch (err) {
         setError(

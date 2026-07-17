@@ -286,8 +286,8 @@ const Salesplan = () => {
   useEffect(() => {
     const fetchSalesExecutives = async () => {
       try {
-        const res = await apiRequest(`${Labbaseurl}get_sales_executives/`, "GET");
-        const data = res?.data || [];
+        const res = await apiRequest(`${Labbaseurl}get_sales_executives/?limit=500`, "GET");
+        const data = res?.data?.data || [];
 
         const mappings = data.map((exec, index) => ({
           id: index + 1,
@@ -476,7 +476,6 @@ const Salesplan = () => {
 
         <SaveButton
           onClick={() => {
-            console.log('Plan Data:', planData);
             alert(`Sales plan saved successfully!\nTotal: ₹${getGrandTotal().toLocaleString()}`);
           }}
         >

@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
 import styled from "styled-components"
-import { FaSearch, FaClipboardList, FaEdit, FaSave, FaTimes, FaPlus, FaTrash } from "react-icons/fa"
+import { Search, ClipboardList, Edit2, Save, X, Plus, Trash2 } from "lucide-react"
 import TestForm from "./TestForm"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
@@ -102,13 +102,14 @@ const SearchInput = styled.input`
   }
 `
 
-const SearchIcon = styled(FaSearch)`
+const SearchIcon = styled(Search)`
   position: absolute;
   top: 50%;
   left: 15px;
   transform: translateY(-50%);
   color: #94a3b8;
-  font-size: 16px;
+  width: 16px;
+  height: 16px;
 `
 
 const AddButton = styled.button`
@@ -533,7 +534,7 @@ const TestEdit = () => {
       setLoading(true)
       try {
         const [testsRes, devicesRes] = await Promise.all([
-          apiRequest(`${Labbaseurl}testdetails/`, "GET"),
+          apiRequest(`${Labbaseurl}testdetails/?limit=500`, "GET"),
           apiRequest(`${Labbaseurl}get_devices/`, "GET"),
         ])
         if (testsRes.success) {
@@ -957,7 +958,7 @@ const TestEdit = () => {
   const handleTestAdded = (newTestId) => {
     const fetchTestDetails = async () => {
       try {
-        const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET")
+        const response = await apiRequest(`${Labbaseurl}testdetails/?limit=500`, "GET")
 
         if (response.success) {
           const data = response.data?.data || response.data || []
@@ -1047,7 +1048,7 @@ const TestEdit = () => {
             />
           </SearchContainer>
           <AddButton onClick={() => setShowTestForm(true)}>
-            <FaPlus size={16} />
+            <Plus size={16} />
             <span>Add Test</span>
           </AddButton>
         </Header>
@@ -1204,16 +1205,16 @@ const TestEdit = () => {
                       <td>
                         <ActionIcons>
                           <IconButton onClick={() => handleParameterClick(test)} title="View/Edit Parameters">
-                            <FaClipboardList />
+                            <ClipboardList />
                           </IconButton>
 
                           {editingRow === globalIndex ? (
                             <IconButton onClick={() => handleSaveClick(globalIndex)} title="Save Changes">
-                              <FaSave />
-                            </IconButton>
+                              <Save />
+</IconButton>
                           ) : (
                             <IconButton onClick={() => handleEditClick(globalIndex)} title="Edit Test">
-                              <FaEdit />
+                              <Edit2 />
                             </IconButton>
                           )}
                         </ActionIcons>
@@ -1259,8 +1260,8 @@ const TestEdit = () => {
             <ModalHeader>
               <ModalTitle>Edit Parameters — {selectedTestName}</ModalTitle>
               <ModalCloseButton onClick={handleCloseModal}>
-                <FaTimes />
-              </ModalCloseButton>
+                <X />
+</ModalCloseButton>
             </ModalHeader>
 
             {Object.keys(fullParameters).length > 1 ? (
@@ -1356,7 +1357,7 @@ const TestEdit = () => {
                               <Chip key={`${index}-opt-${i}`}>
                                 {opt}
                                 <button type="button" onClick={() => removeValueOption(index, i)} aria-label="Remove">
-                                  <FaTimes size={12} />
+                                  <X size={12} />
                                 </button>
                               </Chip>
                             ))}
@@ -1379,7 +1380,7 @@ const TestEdit = () => {
                         <td>
                           <ActionIcons>
                             <IconButton className="add-icon" onClick={handleAddParameter} title="Add Parameter">
-                              <FaPlus />
+                              <Plus />
                             </IconButton>
                             {selectedParameters.length > 1 && (
                               <IconButton
@@ -1387,7 +1388,7 @@ const TestEdit = () => {
                                 onClick={() => handleDeleteParameter(index)}
                                 title="Delete Parameter"
                               >
-                                <FaTrash />
+                                <Trash2 />
                               </IconButton>
                             )}
                           </ActionIcons>

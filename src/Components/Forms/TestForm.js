@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Modal } from "react-bootstrap"
 import styled from "styled-components"
-import { FaPlus, FaTrash, FaTimes } from "react-icons/fa"
+import { Plus, Trash2, X } from "lucide-react"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import apiRequest from "../Auth/apiRequest"
@@ -417,8 +417,6 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
   // ✅ FIXED: Accept test_id (number) from backend
   const sendApprovalEmail = async (testId) => {
     try {
-      console.log("📧 Sending approval email for test_id:", testId)
-      
       const response = await apiRequest(
         `${Labbaseurl}send_approval_email/`,
         "POST",
@@ -428,7 +426,6 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
       )
 
       if (response.success) {
-        console.log("✅ Approval email sent successfully")
         toast.success("Approval email sent successfully!")
         return true
       } else {
@@ -541,27 +538,16 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
         : { test_code: formData.test_code }),
     }
 
-    console.log("=== Submitting Payload ===")
-    console.log("Parameters Visible:", parametersVisible)
-    console.log("Cleaned Params Length:", cleanedParams.length)
-    console.log("Payload:", JSON.stringify(payload, null, 2))
-
     try {
       const response = await apiRequest(`${Labbaseurl}testdetails/`, "POST", payload)
-      
-      console.log("📥 Backend Response:", response)
-      
+
       if (response.success) {
         // ✅ CRITICAL FIX: Extract test_id from the backend response
         // The backend returns it in response.test_id or response.data.test_id
         const createdTestId = response.test_id || response.data?.test_id
-        
-        console.log("✅ Test created successfully!")
-        console.log("🆔 Created test_id:", createdTestId)
-        
+
         if (!createdTestId) {
           console.error("⚠️ WARNING: No test_id received from backend!")
-          console.log("Full response:", JSON.stringify(response, null, 2))
         }
         
         toast.success("Test created successfully! Sending approval email...")
@@ -868,7 +854,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
                               onClick={() => removeValueOption(index, i)}
                               aria-label="Remove option"
                             >
-                              <FaTimes size={12} />
+                              <X size={12} />
                             </button>
                           </Chip>
                         ))}
@@ -891,7 +877,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
 
                     <Col basis="100%" minw="100px" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <IconBtn type="button" onClick={addParameter} title="Add Parameter">
-                        <FaPlus />
+                        <Plus />
                       </IconBtn>
                       {parameterList.length > 1 && (
                         <IconBtn
@@ -900,7 +886,7 @@ const TestForm = ({ show, setShow, onTestAdded }) => {
                           onClick={() => removeParameter(index)}
                           title="Remove Parameter"
                         >
-                          <FaTrash />
+                          <Trash2 />
                         </IconBtn>
                       )}
                     </Col>

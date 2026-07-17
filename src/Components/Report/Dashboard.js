@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import styled from "styled-components";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import {
   Tooltip,
   Legend,
@@ -262,6 +263,47 @@ const ActiveFilterBadge = styled.div`
   }
 `;
 
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+  border-radius: 16px;
+  margin-top: 2rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
 const Dashboard = () => {
   // Helper function to format ISO date to YYYY-MM-DD
   const formatDateForInput = (date) => {
@@ -292,17 +334,25 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [dateFilterApplied, setDateFilterApplied] = useState(false);
   const [periodLabel, setPeriodLabel] = useState("Today's");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(currentPage);
+  }, [currentPage]);
 
-  const fetchData = async () => {
+  const fetchData = async (page = currentPage) => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${Labbaseurl}patient_overview/`);
-      const data = response.data;
+      const response = await axios.get(
+        `${Labbaseurl}patient_overview/?page=${page}&limit=${limit}`
+      );
+      const data = response.data.data || [];
+      setTotalPages(response.data.total_pages || 1);
+      setTotalCount(response.data.total_count || 0);
       setPatients(data);
       setFilteredPatients(data);
       const uniqueB2bNames = [
@@ -837,6 +887,27 @@ const Dashboard = () => {
           <ChartsGrid>{/* Charts can be added here */}</ChartsGrid>
         </motion.div>
       </AnimatePresence>
+
+      <Pagination>
+        <div className="page-info">
+          Showing page {currentPage} of {totalPages} ({totalCount} total
+          records)
+        </div>
+        <div className="controls">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <FaChevronLeft /> Prev
+          </button>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next <FaChevronRight />
+          </button>
+        </div>
+      </Pagination>
     </DashboardContainer>
   );
 };

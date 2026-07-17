@@ -11,7 +11,7 @@ import {
     Building2
 } from "lucide-react";
 import { toast } from "react-toastify";
-import * as XLSX from "xlsx";
+import { exportToExcel as exportExcelFile } from "../../utils/xlsxUtils";
 
 // --- Styled Components ---
 
@@ -334,7 +334,7 @@ const PreethamHospitalLedger = () => {
     const totalDiscount = filteredData.reduce((sum, item) => sum + (item.discount || 0), 0);
 
     const exportToExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(
+        exportExcelFile(
             filteredData.map((item) => ({
                 Date: item.date,
                 "Bill No": item.bill_no,
@@ -343,11 +343,10 @@ const PreethamHospitalLedger = () => {
                 "Total Amount": item.total_amount,
                 Discount: item.discount,
                 "Net Amount": item.net_amount,
-            }))
+            })),
+            "Preetham_Hospital_Ledger.xlsx",
+            { sheetName: "Preetham Hospital" },
         );
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Preetham Hospital");
-        XLSX.writeFile(wb, "Preetham_Hospital_Ledger.xlsx");
     };
 
     return (

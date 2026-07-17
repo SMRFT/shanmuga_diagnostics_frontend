@@ -569,14 +569,12 @@ const handleSearch = async () => {
   setIsLoading(true);
   
   try {
-    const url = `${Labbaseurl}search_cancellation/?patient_id=${encodeURIComponent(patientId)}&date=${new Date().toISOString().split("T")[0]}`;
+    const url = `${Labbaseurl}search_cancellation/?patient_id=${encodeURIComponent(patientId)}&date=${new Date().toISOString().split("T")[0]}&limit=200`;
     
     const response = await apiRequest(url, "GET");
-    console.log('Raw response:', response.data);
-    
+
     const processedPatients = response.data.patients.map(patient => {
-      console.log('Processing patient - raw:', patient);
-      
+
       // Clean payment_method
       if (patient.payment_method) {
         try {
@@ -589,15 +587,12 @@ const handleSearch = async () => {
 
       // Parse testdetails - THIS IS THE KEY FIX
       if (patient.testdetails) {
-        console.log("Raw testdetails:", patient.testdetails);
-        console.log("Type:", typeof patient.testdetails);
-        
+
         if (typeof patient.testdetails === 'string') {
           try {
             // Parse the JSON string
             const parsed = JSON.parse(patient.testdetails);
-            console.log("Parsed testdetails:", parsed);
-            
+
             // Ensure it's an array
             patient.testdetails = Array.isArray(parsed) ? parsed : [parsed];
             
@@ -611,7 +606,6 @@ const handleSearch = async () => {
               cancellation: test.cancellation
             }));
             
-            console.log("Final testdetails:", patient.testdetails);
           } catch (e) {
             console.error('Could not parse testdetails:', e);
             patient.testdetails = [];
@@ -631,11 +625,9 @@ const handleSearch = async () => {
         patient.testdetails = [];
       }
 
-      console.log('Final processed patient:', patient);
       return patient;
     });
-    
-    console.log('Processed patients:', processedPatients);
+
     setPatients(processedPatients);
     setIsLoading(false);
     
@@ -771,8 +763,6 @@ const handleSearch = async () => {
       const testIds = selectedTests
         .map((test) => test.test_id)
         .filter((id) => id !== null && id !== undefined);
-
-      console.log("Sending test IDs:", testIds);
 
       if (testIds.length === 0) {
         throw new Error("No valid test IDs found in selected tests");

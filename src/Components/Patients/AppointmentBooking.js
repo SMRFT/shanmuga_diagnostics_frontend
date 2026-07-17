@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { FaCalendarAlt, FaUser, FaPhone, FaSave } from "react-icons/fa"
+import { Calendar, User, Phone, Save } from "lucide-react"
 import apiRequest from "../Auth/apiRequest"
 
 const FormContainer = styled.div`
@@ -358,7 +358,7 @@ const handleSubmit = async (e) => {
           <Row>
             <FormGroup>
               <label>
-                <FaCalendarAlt />
+                <Calendar />
                 Appointment Date<RequiredIndicator>*</RequiredIndicator>
               </label>
               <input
@@ -373,7 +373,7 @@ const handleSubmit = async (e) => {
 
             <FormGroup>
               <label>
-                <FaUser />
+                <User />
                 Patient Name<RequiredIndicator>*</RequiredIndicator>
               </label>
               <input
@@ -446,7 +446,7 @@ const handleSubmit = async (e) => {
           <Row className="row-2">
             <FormGroup>
               <label>
-                <FaPhone />
+                <Phone />
                 Mobile Number<RequiredIndicator>*</RequiredIndicator>
               </label>
               <input
@@ -492,7 +492,7 @@ const handleSubmit = async (e) => {
                 </>
               ) : (
                 <>
-                  <FaSave />
+                  <Save />
                   Book Appointment
                 </>
               )}

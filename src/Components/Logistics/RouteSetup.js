@@ -3,7 +3,7 @@ import Select from "react-select"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { FaRoute, FaTruck, FaClock, FaFlask, FaHospital, FaSave } from "react-icons/fa"
+import { FaRoute, FaTruck, FaClock, FaFlask, FaHospital, FaSave, FaChevronLeft, FaChevronRight } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 import { format } from "date-fns"
 
@@ -251,6 +251,20 @@ const InfoText = styled.p`
   }
 `
 
+const Pagination = styled.div`
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px; background: white; border-top: 1px solid #edf2f9;
+  .page-info { color: #64748b; font-size: 14px; }
+  .controls { display: flex; gap: 10px;
+    button { background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 5px; cursor: pointer; color: #334155; font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+`
+
 const selectStyles = {
   control: (base, state) => ({
     ...base,
@@ -349,6 +363,10 @@ const RouteSetup = () => {
   const [loadingRoutes, setLoadingRoutes] = useState(false)
   const [expandedRoutes, setExpandedRoutes] = useState({})
   const [clinicalSearchInput, setClinicalSearchInput] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const routesLimit = 50
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
@@ -358,14 +376,24 @@ const RouteSetup = () => {
   }, [])
 
   useEffect(() => {
-    fetchRoutes()
+    setCurrentPage(1)
   }, [selectedDate])
+
+  useEffect(() => {
+    fetchRoutes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, currentPage])
 
   const fetchRoutes = async () => {
     setLoadingRoutes(true)
     try {
-      const res = await apiRequest(`${Labbaseurl}routesetup/?date=${selectedDate}`, "GET")
-      setRoutesList(res?.data || res || [])
+      const res = await apiRequest(
+        `${Labbaseurl}routesetup/?date=${selectedDate}&page=${currentPage}&limit=${routesLimit}`,
+        "GET"
+      )
+      setRoutesList(res?.data?.data || [])
+      setTotalPages(res?.data?.total_pages || 1)
+      setTotalCount(res?.data?.total_count || 0)
     } catch (error) {
       console.error("Error fetching routes list:", error.message)
     } finally {
@@ -389,7 +417,7 @@ const RouteSetup = () => {
         return { label, value }
       })
 
-      const clinicalList = clinicalRes?.data || clinicalRes || []
+      const clinicalList = clinicalRes?.data?.data || []
       // value = referrerCode (what gets stored), label = clinicalname (what's shown)
       const clinicals = clinicalList.map((item) => ({
         label: item.clinicalname,
@@ -673,6 +701,28 @@ const RouteSetup = () => {
           </div>
         ) : (
           <p style={{ textAlign: 'center', color: '#a0aec0' }}>No routes found for this date.</p>
+        )}
+
+        {!loadingRoutes && routesList.length > 0 && (
+          <Pagination>
+            <div className="page-info">
+              Showing page {currentPage} of {totalPages} ({totalCount} total)
+            </div>
+            <div className="controls">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <FaChevronLeft /> Prev
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next <FaChevronRight />
+              </button>
+            </div>
+          </Pagination>
         )}
       </ListCard>
 

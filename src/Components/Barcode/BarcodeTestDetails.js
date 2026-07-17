@@ -484,9 +484,6 @@ const BarcodeTestDetails = () => {
 
       const fullUrl = `${Labbaseurl}get-existing-barcode/?${queryString}`;
 
-      console.log("DEBUG - Final URL:", fullUrl);
-      console.log("DEBUG - Parameters:", { patientId, dateString, bill_no });
-
       // Check for existing barcode using your apiRequest method
       try {
         existingBarcodeResult = await apiRequest(fullUrl, "GET");
@@ -662,13 +659,6 @@ const BarcodeTestDetails = () => {
       // Get existing barcode data with debugging
       const dateString = selectedDate.toISOString().split("T")[0];
 
-      // Debug: Log the values we're trying to send
-      console.log("DEBUG REGEN - Values to send:", {
-        patient_id: patientId,
-        date: dateString,
-        bill_no: bill_no,
-      });
-
       const queryParams = new URLSearchParams({
         patient_id: patientId,
         date: dateString,
@@ -677,13 +667,7 @@ const BarcodeTestDetails = () => {
 
       const fullUrl = `${Labbaseurl}get-existing-barcode/?${queryParams}`;
 
-      // Debug: Log the full URL being called
-      console.log("DEBUG REGEN - Full URL:", fullUrl);
-
       const existingBarcodeResult = await apiRequest(fullUrl, "GET");
-
-      // Debug: Log the response
-      console.log("DEBUG REGEN - API Response:", existingBarcodeResult);
 
       if (
         existingBarcodeResult.success &&
@@ -889,7 +873,7 @@ const BarcodeTestDetails = () => {
 
       // First API call - get patient data
       const patientResult = await apiRequest(
-        `${Labbaseurl}patients_get_barcode/?date=${dateString}`,
+        `${Labbaseurl}patients_get_barcode/?date=${dateString}&limit=1000`,
         "GET",
       );
 
@@ -974,7 +958,6 @@ const BarcodeTestDetails = () => {
       } else {
         // No existing barcode → enable Generate, disable Regenerate
         setBarcodeGenerated(false);
-        console.log("No existing barcodes found");
       }
     };
 

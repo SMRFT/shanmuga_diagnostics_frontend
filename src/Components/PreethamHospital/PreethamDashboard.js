@@ -198,7 +198,6 @@ function PreethamBillingDashboard() {
 
     try {
       const url = `${Labbaseurl}preetham_billing_dashboard/?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}`
-      console.log("Fetching dashboard data from:", url)
 
       const result = await apiRequest(url, "GET")
 

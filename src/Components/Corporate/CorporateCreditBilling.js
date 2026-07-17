@@ -3,8 +3,8 @@ import apiRequest from '../Auth/apiRequest';
 import styled, { keyframes, css } from 'styled-components';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
-import { 
-  Edit2, Trash2, Save, X, FileText, Building2, 
+import {
+  Edit2, Trash2, Save, X, FileText, Building2,
   CalendarRange, CheckSquare, Receipt, AlertCircle,
   Filter, RotateCcw, ChevronDown, Check, History, Clock, Printer, Download, Search
 } from 'lucide-react';
@@ -36,6 +36,50 @@ const T = {
   shadowSm: '0 1px 2px rgba(0,0,0,0.06)',
   shadowMd: '0 4px 12px rgba(0,0,0,0.08)',
   shadowLg: '0 8px 24px rgba(0,0,0,0.10)',
+};
+
+// ─── Static inline-style objects hoisted to module scope ──────────────────────
+// (previously recreated on every render as inline style={{...}} literals)
+const styles = {
+  kpiSelectedCount: { fontSize: '0.7rem', color: T.textMuted, fontWeight: 600 },
+  filterSectionLabel: { fontSize: '0.7rem', fontWeight: 800, color: T.textMuted, textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
+  filterButtonRow: { display: 'flex', gap: '8px' },
+  flexOne: { flex: 1 },
+  recordsCountText: { fontSize: '0.8rem', fontWeight: 600, color: T.textMuted },
+  checkboxColWidth: { width: '40px' },
+  textRight: { textAlign: 'right' },
+  emptyStateCell: { textAlign: 'center', padding: '60px' },
+  mutedText: { color: T.textMuted },
+  fw600: { fontWeight: 600 },
+  fw700: { fontWeight: 700 },
+  testIdText: { fontSize: '0.75rem' },
+  chipWrap: { display: 'flex', flexWrap: 'wrap', gap: '4px' },
+  amountCell: { textAlign: 'right', fontWeight: 800, color: T.success },
+  invoiceToolbarRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 8px' },
+  searchBox: { display: 'flex', alignItems: 'center', gap: '8px', background: T.surfaceOffset, padding: '6px 12px', borderRadius: '6px', width: '300px' },
+  searchInput: { border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.85rem' },
+  invoiceNumberText: { fontWeight: 800, color: T.blue },
+  totalAmountCell: { textAlign: 'right', fontWeight: 600 },
+  paidAmountCell: { textAlign: 'right', fontWeight: 600, color: T.success },
+  pendingAmountCell: { textAlign: 'right', fontWeight: 800, color: T.error },
+  actionsRow: { display: 'flex', justifyContent: 'flex-end', gap: '4px' },
+  modalHeaderTitle: { display: 'flex', alignItems: 'center', gap: '10px' },
+  summaryHeaderBox: { padding: '12px 16px', background: T.primaryLight, borderRadius: T.r.lg, border: `1px solid ${T.primary}22`, display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center' },
+  summaryLabel: { color: T.primary, fontSize: '0.65rem' },
+  summaryCompanyValue: { fontWeight: 800, fontSize: '0.9rem', color: T.primary },
+  summaryPeriodValue: { fontWeight: 700, fontSize: '0.8rem', color: T.text },
+  summaryTotalValue: { fontWeight: 800, fontSize: '1rem', color: T.text },
+  paymentEntryBox: { padding: '16px', background: 'white', borderRadius: T.r.lg, border: `1px solid ${T.divider}` },
+  paymentEntryLabel: { marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: T.text },
+  pendingBalanceBox: { padding: '12px', background: T.warningLight, borderRadius: T.r.md, display: 'flex', gap: '10px', alignItems: 'center', border: `1px solid ${T.warning}22` },
+  pendingBalanceText: { fontSize: '0.8rem', fontWeight: 800, color: T.warning },
+  marginTop4: { marginTop: '4px' },
+  historyLabel: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' },
+  historyListWrap: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', padding: '2px' },
+  historyItemBox: { padding: '10px 14px', background: 'white', borderRadius: T.r.md, border: `1px solid ${T.divider}`, fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  historyAmountText: { fontWeight: 800, color: T.text, fontSize: '0.8rem' },
+  historyMethodText: { fontWeight: 500, color: T.textMuted },
+  historyDateText: { color: T.textMuted, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' },
 };
 
 const shimmer = keyframes`
@@ -134,7 +178,7 @@ const TabItem = styled.div`
   align-items: center;
   gap: 8px;
   transition: color 0.2s;
-  
+
   &:after {
     content: '';
     position: absolute;
@@ -160,7 +204,7 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   ${props => props.flex && css`
-    flex: 1; 
+    flex: 1;
     min-height: 300px;
   `}
 `;
@@ -197,7 +241,7 @@ const StyledInput = styled.input`
   font-size: 0.875rem;
   outline: none;
   transition: all 0.2s;
-  
+
   &:focus {
     border-color: ${T.primary};
     box-shadow: 0 0 0 3px ${T.primary}15;
@@ -332,12 +376,12 @@ const Badge = styled.span`
   border-radius: ${T.r.full};
   font-size: 0.7rem;
   font-weight: 800;
-  
+
   ${props => props.type === 'Generated' && css` background: ${T.blueLight}; color: ${T.blue}; `}
   ${props => props.type === 'Partially Paid' && css` background: ${T.warningLight}; color: ${T.warning}; `}
   ${props => props.type === 'Paid' && css` background: ${T.successLight}; color: ${T.success}; `}
   ${props => props.type === 'Cancelled' && css` background: ${T.errorLight}; color: ${T.error}; `}
-  
+
   &:before {
     content: '';
     width: 6px;
@@ -518,11 +562,11 @@ const CorporateCreditBilling = () => {
         to_date: filters.to_date,
         total_amount: totalAmount,
         bill_items: selectedRecords.map(r => ({
-          bill_id: r._id, 
+          bill_id: r._id,
           employee_id: r.employee_id,
           patient_name: r.employee_name || r.patientname || 'N/A',
-          barcode: r.barcode, 
-          amount: r.netAmount, 
+          barcode: r.barcode,
+          amount: r.netAmount,
           date: r.date,
           package_id: r.chctestdetails?.[0]?.test_id || r.package_id || 'N/A',
           package_name: r.chctestdetails?.[0]?.test_name || r.package_name || 'N/A'
@@ -539,14 +583,14 @@ const CorporateCreditBilling = () => {
     finally { setLoading(false); }
   };
 
-  const handleEditClick = (invoice) => { 
-    setEditingInvoice({ 
-      ...invoice, 
+  const handleEditClick = (invoice) => {
+    setEditingInvoice({
+      ...invoice,
       new_payment: 0,
       payment_date: new Date().toISOString().split('T')[0],
       note: ''
-    }); 
-    setShowEditModal(true); 
+    });
+    setShowEditModal(true);
   };
 
   const handleUpdateInvoice = async () => {
@@ -646,7 +690,7 @@ const CorporateCreditBilling = () => {
           <KPICard>
             <KPILabel>Selected Total</KPILabel>
             <KPIValue>₹{formatAmount(selectedTotal)}</KPIValue>
-            <div style={{ fontSize: '0.7rem', color: T.textMuted, fontWeight: 600 }}>{selectedIds.length} records selected</div>
+            <div style={styles.kpiSelectedCount}>{selectedIds.length} records selected</div>
           </KPICard>
         )}
       </Header>
@@ -659,7 +703,7 @@ const CorporateCreditBilling = () => {
       {tabValue === 0 && (
         <>
           <Card>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: T.textMuted, textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={styles.filterSectionLabel}>
               <Filter size={14} /> Selection Filters
             </div>
             <Grid cols={5} align="flex-end">
@@ -684,15 +728,15 @@ const CorporateCreditBilling = () => {
                   {['Credit', 'Cash', 'UPI', 'Bank Transfer'].map(m => <option key={m} value={m}>{m}</option>)}
                 </StyledSelect>
               </InputGroup>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <Button variant="primary" onClick={applyFilters} disabled={loading} style={{ flex: 1 }}>Filter</Button>
+              <div style={styles.filterButtonRow}>
+                <Button variant="primary" onClick={applyFilters} disabled={loading} style={styles.flexOne}>Filter</Button>
                 <Button variant="outline" onClick={clearFilters} disabled={loading}><RotateCcw size={16} /></Button>
               </div>
             </Grid>
           </Card>
 
           <Toolbar>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: T.textMuted }}>
+            <span style={styles.recordsCountText}>
               Found {data.length} records · {selectedIds.length} selected
             </span>
             <Button variant="success" onClick={handleGenerateInvoice} disabled={selectedIds.length === 0}>
@@ -705,7 +749,7 @@ const CorporateCreditBilling = () => {
               <Table>
                 <thead>
                   <tr>
-                    <Th style={{ width: '40px' }}>
+                    <Th style={styles.checkboxColWidth}>
                       <Checkbox checked={data.length > 0 && selectedIds.length === data.length} onClick={handleSelectAll}>
                         {data.length > 0 && selectedIds.length === data.length && <Check size={12} />}
                       </Checkbox>
@@ -717,7 +761,7 @@ const CorporateCreditBilling = () => {
                     <Th>Barcode</Th>
                     <Th>Company</Th>
                     <Th>Tests</Th>
-                    <Th style={{ textAlign: 'right' }}>Amount (₹)</Th>
+                    <Th style={styles.textRight}>Amount (₹)</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -726,7 +770,7 @@ const CorporateCreditBilling = () => {
                         <tr key={i}><Td colSpan={9}><SkeletonBox /></Td></tr>
                       ))
                     ) : data.length === 0 ? (
-                      <tr><Td colSpan={9} style={{ textAlign: 'center', padding: '60px' }}>No records found</Td></tr>
+                      <tr><Td colSpan={9} style={styles.emptyStateCell}>No records found</Td></tr>
                   ) : data.map(row => (
                     <Tr key={row._id} selected={selectedIds.includes(row._id)}>
                       <Td>
@@ -734,18 +778,18 @@ const CorporateCreditBilling = () => {
                           {selectedIds.includes(row._id) && <Check size={12} />}
                         </Checkbox>
                       </Td>
-                      <Td style={{ color: T.textMuted }}>{formatDate(row.date)}</Td>
-                      <Td style={{ fontWeight: 600 }}>{row.employee_name || row.patientname || '—'}</Td>
-                      <Td style={{ fontWeight: 700 }}>{row.employee_id}</Td>
-                      <Td style={{ fontSize: '0.75rem' }}>{row.chctestdetails?.[0]?.test_id || row.package_id || '—'}</Td>
+                      <Td style={styles.mutedText}>{formatDate(row.date)}</Td>
+                      <Td style={styles.fw600}>{row.employee_name || row.patientname || '—'}</Td>
+                      <Td style={styles.fw700}>{row.employee_id}</Td>
+                      <Td style={styles.testIdText}>{row.chctestdetails?.[0]?.test_id || row.package_id || '—'}</Td>
                       <Td><code>{row.barcode}</code></Td>
-                      <Td style={{ fontWeight: 600 }}>{row.company_name}</Td>
+                      <Td style={styles.fw600}>{row.company_name}</Td>
                       <Td>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        <div style={styles.chipWrap}>
                           {row.testdetails?.map((t, i) => <Chip key={i}>{t.testname}</Chip>)}
                         </div>
                       </Td>
-                      <Td style={{ textAlign: 'right', fontWeight: 800, color: T.success }}>₹{formatAmount(row.netAmount)}</Td>
+                      <Td style={styles.amountCell}>₹{formatAmount(row.netAmount)}</Td>
                     </Tr>
                   ))}
                 </tbody>
@@ -757,15 +801,15 @@ const CorporateCreditBilling = () => {
 
       {tabValue === 1 && (
         <Card compact flex noMargin>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: T.surfaceOffset, padding: '6px 12px', borderRadius: '6px', width: '300px' }}>
+          <div style={styles.invoiceToolbarRow}>
+            <div style={styles.searchBox}>
               <Search size={16} color={T.textMuted} />
-              <input 
-                type="text" 
-                placeholder="Search by invoice #, company, status..." 
+              <input
+                type="text"
+                placeholder="Search by invoice #, company, status..."
                 value={invoiceSearchTerm}
                 onChange={(e) => setInvoiceSearchTerm(e.target.value)}
-                style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.85rem' }}
+                style={styles.searchInput}
               />
             </div>
             <Button variant="outline" onClick={handleExportInvoicesCSV} disabled={filteredInvoices.length === 0}>
@@ -780,11 +824,11 @@ const CorporateCreditBilling = () => {
                   <Th>Date</Th>
                   <Th>Company</Th>
                   <Th>Items</Th>
-                  <Th style={{ textAlign: 'right' }}>Total (₹)</Th>
-                  <Th style={{ textAlign: 'right' }}>Paid (₹)</Th>
-                  <Th style={{ textAlign: 'right' }}>Pending (₹)</Th>
+                  <Th style={styles.textRight}>Total (₹)</Th>
+                  <Th style={styles.textRight}>Paid (₹)</Th>
+                  <Th style={styles.textRight}>Pending (₹)</Th>
                   <Th>Status</Th>
-                  <Th style={{ textAlign: 'right' }}>Actions</Th>
+                  <Th style={styles.textRight}>Actions</Th>
                 </tr>
               </thead>
               <tbody>
@@ -793,19 +837,19 @@ const CorporateCreditBilling = () => {
                     <tr key={i}><Td colSpan={9}><SkeletonBox /></Td></tr>
                   ))
                 ) : filteredInvoices.length === 0 ? (
-                  <tr><Td colSpan={9} style={{ textAlign: 'center', padding: '60px' }}>No invoices found</Td></tr>
+                  <tr><Td colSpan={9} style={styles.emptyStateCell}>No invoices found</Td></tr>
                 ) : filteredInvoices.map(inv => (
                   <Tr key={inv.invoice_number}>
-                    <Td style={{ fontWeight: 800, color: T.blue }}>{inv.invoice_number}</Td>
-                    <Td style={{ color: T.textMuted }}>{formatDate(inv.created_at)}</Td>
-                    <Td style={{ fontWeight: 700 }}>{inv.company_name}</Td>
+                    <Td style={styles.invoiceNumberText}>{inv.invoice_number}</Td>
+                    <Td style={styles.mutedText}>{formatDate(inv.created_at)}</Td>
+                    <Td style={styles.fw700}>{inv.company_name}</Td>
                     <Td><Chip>{inv.bill_items?.length || 0}</Chip></Td>
-                    <Td style={{ textAlign: 'right', fontWeight: 600 }}>₹{formatAmount(inv.total_amount)}</Td>
-                    <Td style={{ textAlign: 'right', fontWeight: 600, color: T.success }}>₹{formatAmount(inv.paid_amount)}</Td>
-                    <Td style={{ textAlign: 'right', fontWeight: 800, color: T.error }}>₹{formatAmount(inv.remaining_amount)}</Td>
+                    <Td style={styles.totalAmountCell}>₹{formatAmount(inv.total_amount)}</Td>
+                    <Td style={styles.paidAmountCell}>₹{formatAmount(inv.paid_amount)}</Td>
+                    <Td style={styles.pendingAmountCell}>₹{formatAmount(inv.remaining_amount)}</Td>
                     <Td><Badge type={inv.status}>{inv.status}</Badge></Td>
-                    <Td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
+                    <Td style={styles.textRight}>
+                      <div style={styles.actionsRow}>
                         <Button variant="ghost" onClick={() => handleExportPDF(inv.invoice_number)} title="Print PDF"><Printer size={14} /></Button>
                         <Button variant="ghost" onClick={() => handleEditClick(inv)}><Edit2 size={14} /></Button>
                         {Number(inv.paid_amount || 0) <= 0 && (
@@ -825,7 +869,7 @@ const CorporateCreditBilling = () => {
         <ModalOverlay onClick={() => setShowEditModal(false)}>
           <ModalContent onClick={e => e.stopPropagation()}>
             <ModalHeader>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={styles.modalHeaderTitle}>
                 <Edit2 size={18} color={T.primary} /> Edit Invoice {editingInvoice?.invoice_number}
               </div>
               <Button variant="ghost" onClick={() => setShowEditModal(false)}><X size={20} /></Button>
@@ -833,28 +877,24 @@ const CorporateCreditBilling = () => {
             <ModalBody>
               <Grid gap="16px">
                 {/* Compact Summary Header */}
-                <div style={{ 
-                  padding: '12px 16px', background: T.primaryLight, borderRadius: T.r.lg, 
-                  border: `1px solid ${T.primary}22`, display: 'flex', flexWrap: 'wrap', gap: '16px',
-                  justifyContent: 'space-between', alignItems: 'center'
-                }}>
+                <div style={styles.summaryHeaderBox}>
                   <div>
-                    <Label style={{ color: T.primary, fontSize: '0.65rem' }}>Company</Label>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: T.primary }}>{editingInvoice.company_name}</div>
+                    <Label style={styles.summaryLabel}>Company</Label>
+                    <div style={styles.summaryCompanyValue}>{editingInvoice.company_name}</div>
                   </div>
                   <div>
-                    <Label style={{ color: T.primary, fontSize: '0.65rem' }}>Period</Label>
-                    <div style={{ fontWeight: 700, fontSize: '0.8rem', color: T.text }}>{editingInvoice.from_date || '—'} → {editingInvoice.to_date || '—'}</div>
+                    <Label style={styles.summaryLabel}>Period</Label>
+                    <div style={styles.summaryPeriodValue}>{editingInvoice.from_date || '—'} → {editingInvoice.to_date || '—'}</div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <Label style={{ color: T.primary, fontSize: '0.65rem' }}>Invoice Total</Label>
-                    <div style={{ fontWeight: 800, fontSize: '1rem', color: T.text }}>₹{formatAmount(editingInvoice.total_amount)}</div>
+                  <div style={styles.textRight}>
+                    <Label style={styles.summaryLabel}>Invoice Total</Label>
+                    <div style={styles.summaryTotalValue}>₹{formatAmount(editingInvoice.total_amount)}</div>
                   </div>
                 </div>
 
                 {/* Payment Entry Section */}
-                <div style={{ padding: '16px', background: 'white', borderRadius: T.r.lg, border: `1px solid ${T.divider}` }}>
-                  <Label style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: T.text }}>
+                <div style={styles.paymentEntryBox}>
+                  <Label style={styles.paymentEntryLabel}>
                     <Receipt size={14} /> New Payment Details
                   </Label>
                   <Grid cols={2} gap="12px">
@@ -880,29 +920,25 @@ const CorporateCreditBilling = () => {
                 </div>
 
                 {/* Pending Balance Indicator */}
-                <div style={{ padding: '12px', background: T.warningLight, borderRadius: T.r.md, display: 'flex', gap: '10px', alignItems: 'center', border: `1px solid ${T.warning}22` }}>
+                <div style={styles.pendingBalanceBox}>
                   <AlertCircle size={16} color={T.warning} />
-                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: T.warning }}>
+                  <div style={styles.pendingBalanceText}>
                     Pending Balance: ₹{formatAmount(editingInvoice.remaining_amount - editingInvoice.new_payment)}
                   </div>
                 </div>
 
                 {/* Payment History */}
                 {editingInvoice.payment_history?.length > 0 && (
-                  <div style={{ marginTop: '4px' }}>
-                    <Label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <div style={styles.marginTop4}>
+                    <Label style={styles.historyLabel}>
                       <History size={12} /> Previous Payment History
                     </Label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', padding: '2px' }}>
+                    <div style={styles.historyListWrap}>
                       {editingInvoice.payment_history.map((h, i) => (
-                        <div key={i} style={{ 
-                          padding: '10px 14px', background: 'white', borderRadius: T.r.md, 
-                          border: `1px solid ${T.divider}`, fontSize: '0.75rem',
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                        }}>
+                        <div key={i} style={styles.historyItemBox}>
                           <div>
-                            <div style={{ fontWeight: 800, color: T.text, fontSize: '0.8rem' }}>₹{formatAmount(h.amount)} <span style={{ fontWeight: 500, color: T.textMuted }}>via {h.method}</span></div>
-                            <div style={{ color: T.textMuted, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                            <div style={styles.historyAmountText}>₹{formatAmount(h.amount)} <span style={styles.historyMethodText}>via {h.method}</span></div>
+                            <div style={styles.historyDateText}>
                               <CalendarRange size={10} /> {formatDate(h.date)} {h.note && `· ${h.note}`}
                             </div>
                           </div>

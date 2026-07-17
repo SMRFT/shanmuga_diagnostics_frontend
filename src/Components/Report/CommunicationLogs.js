@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { format } from "date-fns";
 import apiRequest from "../Auth/apiRequest";
@@ -13,6 +13,7 @@ import {
   XCircle,
   Smartphone,
 } from "lucide-react";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { toast } from "react-toastify";
 
 // --- Styled Components ---
@@ -269,6 +270,20 @@ const EmptyState = styled.div`
   color: #a3aed0;
 `;
 
+const Pagination = styled.div`
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px; background: white; border-top: 1px solid #edf2f9;
+  .page-info { color: #64748b; font-size: 14px; }
+  .controls { display: flex; gap: 10px;
+    button { background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 5px; cursor: pointer; color: #334155; font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+`;
+
 const CommunicationLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -276,17 +291,35 @@ const CommunicationLogs = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [typeFilter, setTypeFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  const fetchLogs = async () => {
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timerId);
+  }, [searchQuery]);
+
+  const fetchLogs = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const formattedStartDate = startDate.toISOString().split("T")[0];
       const formattedEndDate = endDate.toISOString().split("T")[0];
 
+      let url = `${Labbaseurl}communication_logs/?page=${page}&limit=${limit}`;
+      if (debouncedSearchQuery) {
+        url += `&search=${encodeURIComponent(debouncedSearchQuery)}`;
+      }
+
       const response = await apiRequest(
-        `${Labbaseurl}communication_logs/`,
+        url,
         "POST",
         {
           from_date: formattedStartDate,
@@ -296,8 +329,12 @@ const CommunicationLogs = () => {
 
       if (response.success) {
         setLogs(response.data.data || []);
+        setTotalPages(response.data.total_pages || 1);
+        setTotalCount(response.data.total_count || 0);
       } else {
         setLogs([]);
+        setTotalPages(1);
+        setTotalCount(0);
       }
     } catch (error) {
       console.error("Error fetching logs:", error);
@@ -305,25 +342,20 @@ const CommunicationLogs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [Labbaseurl, limit, startDate, endDate, debouncedSearchQuery]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [startDate, endDate]);
+    fetchLogs(currentPage);
+  }, [currentPage, fetchLogs]);
 
   const filteredLogs = logs.filter((log) => {
     const matchesType = typeFilter === "All" || log.type === typeFilter;
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch =
-      log.patientName?.toLowerCase().includes(searchLower) ||
-      log.patientId?.toLowerCase().includes(searchLower) ||
-      log.recipient?.toLowerCase().includes(searchLower);
 
-    return matchesType && matchesSearch;
+    return matchesType;
   });
 
   // Calculate Counts
-  const totalCount = filteredLogs.length;
+  const filteredCount = filteredLogs.length;
   const whatsappCount = filteredLogs.filter(l => l.type === "WhatsApp").length;
   const emailCount = filteredLogs.filter(l => l.type === "Email").length;
 
@@ -346,7 +378,7 @@ const CommunicationLogs = () => {
                 <BarChart3 size={20} />
               </IconBox>
             </StatHeader>
-            <StatValue>{totalCount}</StatValue>
+            <StatValue>{filteredCount}</StatValue>
           </StatCard>
 
           <StatCard color="#00C48C">
@@ -377,7 +409,10 @@ const CommunicationLogs = () => {
               <Input
                 type="date"
                 value={startDate.toISOString().split("T")[0]}
-                onChange={(e) => setStartDate(new Date(e.target.value))}
+                onChange={(e) => {
+                  setStartDate(new Date(e.target.value));
+                  setCurrentPage(1);
+                }}
               />
             </FilterGroup>
 
@@ -386,7 +421,10 @@ const CommunicationLogs = () => {
               <Input
                 type="date"
                 value={endDate.toISOString().split("T")[0]}
-                onChange={(e) => setEndDate(new Date(e.target.value))}
+                onChange={(e) => {
+                  setEndDate(new Date(e.target.value));
+                  setCurrentPage(1);
+                }}
               />
             </FilterGroup>
 
@@ -413,7 +451,7 @@ const CommunicationLogs = () => {
               </div>
             </FilterGroup>
 
-            <RefreshBtn onClick={fetchLogs} title="Refresh Data">
+            <RefreshBtn onClick={() => fetchLogs(currentPage)} title="Refresh Data">
               <RefreshCw size={20} />
             </RefreshBtn>
           </FilterBar>
@@ -475,6 +513,28 @@ const CommunicationLogs = () => {
               </tbody>
             </StyledTable>
           </TableContainer>
+
+          {!loading && filteredLogs.length > 0 && (
+            <Pagination>
+              <div className="page-info">
+                Showing page {currentPage} of {totalPages} ({totalCount} total logs)
+              </div>
+              <div className="controls">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <FaChevronLeft /> Prev
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next <FaChevronRight />
+                </button>
+              </div>
+            </Pagination>
+          )}
         </MainCard>
       </Container>
     </PageWrapper>

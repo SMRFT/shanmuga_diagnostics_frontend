@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Tag,
 } from "lucide-react";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -805,6 +806,44 @@ const RemarkModalContent = styled(ModalContent)`
   max-width: 500px;
 `;
 
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #edf2f9;
+  .page-info {
+    color: #64748b;
+    font-size: 14px;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
 // ─── Locked close hint banner ───────────────────────────────────────────────
 const LockedBanner = styled.div`
   display: flex;
@@ -825,6 +864,7 @@ const FranchiseBatchApproval = () => {
   const [filteredBatches, setFilteredBatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [selectedBatch, setSelectedBatch] = useState(null);
@@ -845,6 +885,10 @@ const FranchiseBatchApproval = () => {
   const [bulkUpdateInProgress, setBulkUpdateInProgress] = useState(false);
   const [outsourceLabs, setOutsourceLabs] = useState([]);
   const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 50;
 
   const navigate = useNavigate();
   const storedName = localStorage.getItem("name");
@@ -939,6 +983,9 @@ const FranchiseBatchApproval = () => {
       const params = new URLSearchParams();
       if (fromDate) params.append("from_date", fromDate);
       if (toDate) params.append("to_date", toDate);
+      if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
+      params.append("page", currentPage);
+      params.append("limit", limit);
 
       const url = `${Labbaseurl}franchise-batches/?${params.toString()}`;
       const result = await apiRequest(url, "GET");
@@ -946,6 +993,8 @@ const FranchiseBatchApproval = () => {
       if (result.success) {
         setBatches(result.data.data || []);
         setFilteredBatches(result.data.data || []);
+        setTotalPages(result.data.total_pages || 1);
+        setTotalCount(result.data.total_count || 0);
       } else {
         setError(result.error || "Failed to fetch batches. Please try again.");
         toast.error(result.error || "Failed to fetch batches");
@@ -962,7 +1011,17 @@ const FranchiseBatchApproval = () => {
     if (fromDate && toDate) {
       fetchBatches();
     }
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, currentPage, debouncedSearchTerm]);
+
+  // ─── debounce search term ─────────────────────────────────────────────────
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timerId);
+  }, [searchTerm]);
 
   // ─── fetch sample details ─────────────────────────────────────────────────
 
@@ -1000,25 +1059,6 @@ const FranchiseBatchApproval = () => {
       setSampleLoading(false);
     }
   };
-
-  // ─── search filter ────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    const filtered = batches.filter((batch) => {
-      const searchFields = [
-        batch.batch_number,
-        batch.franchise_id,
-        batch.shipment_from,
-        batch.shipment_to,
-        batch.created_by,
-        ...(batch.batch_details || []).map((detail) => detail.barcode),
-      ];
-      return searchFields.some((field) =>
-        field?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-    });
-    setFilteredBatches(filtered);
-  }, [searchTerm, batches]);
 
   // ─── status / remark / outsource handlers ────────────────────────────────
 
@@ -1638,6 +1678,31 @@ const FranchiseBatchApproval = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {totalPages > 1 && (
+            <Pagination>
+              <div className="page-info">
+                Showing page {currentPage} of {totalPages} ({totalCount} total
+                batches)
+              </div>
+              <div className="controls">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <FaChevronLeft /> Prev
+                </button>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next <FaChevronRight />
+                </button>
+              </div>
+            </Pagination>
+          )}
 
           {/* ── Batch Details Modal ── */}
           {showDetails && selectedBatch && (

@@ -528,8 +528,6 @@ const LogisticsDashboard = () => {
         'GET'
       );
 
-      console.log('Raw collectors response:', response);
-
       let collectorsList = [];
 
       const collectorsData =
@@ -564,7 +562,6 @@ const LogisticsDashboard = () => {
       }
       collectorsList = uniqueCollectors;
 
-      console.log('Final collectors list:', collectorsList);
       setCollectors(collectorsList);
 
     } catch (err) {

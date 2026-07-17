@@ -3,7 +3,7 @@ import styled, { ThemeProvider } from 'styled-components';
 import { format } from 'date-fns';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import apiRequest from "../Auth/apiRequest";
+import { useCachedApi } from "../../hooks/useApiCache";
 import {
   Users, DollarSign, FlaskRound as Flask, TrendingUp, Calculator
 } from 'lucide-react';
@@ -243,70 +243,77 @@ function SalesDashboard() {
     dailyGrowth: { patients: 0, revenue: 0, tests: 0 }
   });
 
-  // ✅ Fetch Sales Executives using apiRequest
+  // ✅ Fetch Sales Executives - cached (list rarely changes, so a longer TTL
+  // avoids re-hitting the network every time this dashboard is revisited).
+  const salesExecUrl = Labbaseurl ? `${Labbaseurl}get_sales_executives/?limit=500` : null;
+  const { data: salesExecData, error: salesExecError } = useCachedApi(
+    salesExecUrl,
+    null,
+    { ttl: 5 * 60 * 1000, enabled: !!salesExecUrl }
+  );
+
   useEffect(() => {
-    const fetchSalesExecutives = async () => {
-      try {
-        const res = await apiRequest(`${Labbaseurl}get_sales_executives/`, "GET");
-        const data = res?.data || [];
+    if (salesExecError) {
+      console.error("Error fetching sales mappings:", salesExecError);
+      setSalesMappings([{ id: 0, name: "All" }]);
+      return;
+    }
+    const data = salesExecData?.data || salesExecData || [];
+    const mappings = [
+      { id: 0, name: "All" },
+      ...(Array.isArray(data) ? data.map((exec, index) => ({
+        id: index + 1,
+        name: exec.employeeName,
+        employeeId: exec.employeeId
+      })) : [])
+    ];
+    setSalesMappings(mappings);
+  }, [salesExecData, salesExecError]);
 
-        const mappings = [
-          { id: 0, name: "All" },
-          ...data.map((exec, index) => ({
-            id: index + 1,
-            name: exec.employeeName,
-            employeeId: exec.employeeId
-          }))
-        ];
-        setSalesMappings(mappings);
-      } catch (error) {
-        console.error("Error fetching sales mappings:", error.message || error);
-        setSalesMappings([{ id: 0, name: "All" }]);
-      }
-    };
+  // ✅ Fetch Dashboard Data - cached per filter combination (each distinct
+  // salesMapping/date/month combo gets its own cache entry & short TTL).
+  const dashboardUrl = (Labbaseurl && selectedSalesMapping)
+    ? `${Labbaseurl}salesdashboard/?salesMapping=${selectedSalesMapping}` +
+      (filterType === "date"
+        ? `&date=${format(selectedDate, 'yyyy-MM-dd')}`
+        : `&month=${format(selectedMonth, 'yyyy-MM')}`)
+    : null;
 
-    fetchSalesExecutives();
-  }, [Labbaseurl]);
+  const { data: fetchedDashboardData, error: dashboardError } = useCachedApi(
+    dashboardUrl,
+    null,
+    { ttl: 60 * 1000, enabled: !!dashboardUrl }
+  );
 
-  // ✅ Fetch Dashboard Data using apiRequest
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!selectedSalesMapping) return;
-      try {
-        let apiUrl = `${Labbaseurl}salesdashboard/?salesMapping=${selectedSalesMapping}`;
-        apiUrl += filterType === "date"
-          ? `&date=${format(selectedDate, 'yyyy-MM-dd')}`
-          : `&month=${format(selectedMonth, 'yyyy-MM')}`;
-
-        const res = await apiRequest(apiUrl, "GET");
-        setDashboardData(res?.data || {});
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error.message || error);
-        // fallback data
-        setDashboardData({
-          totalPatients: 150,
-          totalAmount: 25000,
-          totalTests: 300,
-          testCounts: {
-            'Blood Test': 50,
-            'X-Ray': 30,
-            'MRI': 20,
-            'CT Scan': 25,
-            'Ultrasound': 35
-          },
-          monthlyData: [
-            { month: 'Jan', revenue: 20000, tests: 280 },
-            { month: 'Feb', revenue: 25000, tests: 320 },
-            { month: 'Mar', revenue: 30000, tests: 350 },
-            { month: 'Apr', revenue: 27000, tests: 310 },
-            { month: 'May', revenue: 35000, tests: 400 }
-          ]
-        });
-      }
-    };
-
-    fetchDashboardData();
-  }, [selectedSalesMapping, selectedDate, selectedMonth, filterType]);
+    if (dashboardError) {
+      console.error("Error fetching dashboard data:", dashboardError);
+      // fallback data
+      setDashboardData({
+        totalPatients: 150,
+        totalAmount: 25000,
+        totalTests: 300,
+        testCounts: {
+          'Blood Test': 50,
+          'X-Ray': 30,
+          'MRI': 20,
+          'CT Scan': 25,
+          'Ultrasound': 35
+        },
+        monthlyData: [
+          { month: 'Jan', revenue: 20000, tests: 280 },
+          { month: 'Feb', revenue: 25000, tests: 320 },
+          { month: 'Mar', revenue: 30000, tests: 350 },
+          { month: 'Apr', revenue: 27000, tests: 310 },
+          { month: 'May', revenue: 35000, tests: 400 }
+        ]
+      });
+      return;
+    }
+    if (fetchedDashboardData) {
+      setDashboardData(fetchedDashboardData);
+    }
+  }, [fetchedDashboardData, dashboardError]);
 
   // ✅ Calculate Averages
   useEffect(() => {

@@ -416,8 +416,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
     const hdl = valuesByTestCode['15'] || 0;
     const ldlDirect = valuesByTestCode['18'] || 0;
 
-    console.log('LIPID PROFILE - Calculating with values:', { cholesterol, triglycerides, hdl, ldlDirect });
-
     // Calculate TESTCODE001: NON-HDL CHOLESTEROL (Cholesterol - HDL)
     const nonHdlParam = allParams.find(p => p.test_code === 'TESTCODE001');
     if (nonHdlParam && cholesterol && hdl) {
@@ -425,7 +423,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       if (!manuallyEdited[nonHdlKey]) {
         const nonHdl = cholesterol - hdl;
         newValues[nonHdlKey] = nonHdl.toFixed(2);
-        console.log(`NON-HDL: ${nonHdl.toFixed(2)}`);
       }
     }
 
@@ -436,7 +433,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       if (!manuallyEdited[ratioKey]) {
         const ratio = cholesterol / hdl;
         newValues[ratioKey] = ratio.toFixed(2);
-        console.log(`Cholesterol/HDL Ratio: ${ratio.toFixed(2)}`);
       }
     }
 
@@ -447,7 +443,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       if (!manuallyEdited[vldlKey]) {
         const vldl = triglycerides / 5;
         newValues[vldlKey] = vldl.toFixed(2);
-        console.log(`VLDL: ${vldl.toFixed(2)}`);
       }
     }
 
@@ -458,7 +453,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       if (!manuallyEdited[ldlRatioKey]) {
         const ldlHdlRatio = ldlDirect / hdl;
         newValues[ldlRatioKey] = ldlHdlRatio.toFixed(2);
-        console.log(`LDL/HDL Ratio: ${ldlHdlRatio.toFixed(2)}`);
       }
     }
   }
@@ -470,8 +464,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
     const bilirubinTotal = valuesByTestCode['07'] || 0; // Bilirubin - Total
     const bilirubinDirect = valuesByTestCode['LFT02'] || 0; // Bilirubin - Direct
 
-    console.log('LIVER FUNCTION TEST - Calculating with values:', { totalProtein, albumin, bilirubinTotal, bilirubinDirect });
-
     // Calculate LFT09: Globulin (Total Protein - Albumin)
     const globulinParam = allParams.find(p => p.test_code === 'LFT09');
     if (globulinParam && totalProtein && albumin) {
@@ -479,7 +471,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       if (!manuallyEdited[globulinKey]) {
         const globulin = totalProtein - albumin;
         newValues[globulinKey] = globulin.toFixed(2);
-        console.log(`Globulin: ${globulin.toFixed(2)}`);
       }
     }
 
@@ -492,7 +483,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
         if (globulin > 0) {
           const agRatio = albumin / globulin;
           newValues[agRatioKey] = agRatio.toFixed(2);
-          console.log(`A/G Ratio: ${agRatio.toFixed(2)}`);
         }
       }
     }
@@ -504,7 +494,6 @@ const calculateDerivedValues = (testname, currentValues, currentTest, manuallyEd
       if (!manuallyEdited[bilirubinIndirectKey]) {
         const bilirubinIndirect = bilirubinTotal - bilirubinDirect;
         newValues[bilirubinIndirectKey] = bilirubinIndirect.toFixed(2);
-        console.log(`Bilirubin - Indirect: ${bilirubinIndirect.toFixed(2)}`);
       }
     }
   }
@@ -556,8 +545,6 @@ function OSTestDetails() {
         queryParams += `&test_name=${encodeURIComponent(testName)}`;
       }
 
-      console.log(`DEBUG: Fetching test details with query: ${queryParams}`);
-
       const response = await apiRequest(
         `${Labbaseurl}os-compare_test_details/?${queryParams}`,
         "GET"
@@ -574,20 +561,12 @@ function OSTestDetails() {
         throw new Error(actualResponse.error || "Failed to fetch test details");
       }
 
-      if (actualResponse.filtered_by_test) {
-        console.log(`DEBUG: Results filtered by test: ${actualResponse.filtered_by_test}`);
-      }
-
       if (
         actualResponse.processed_records &&
         Array.isArray(actualResponse.processed_records)
       ) {
         setProcessedRecords(actualResponse.processed_records);
-        console.log(
-          `DEBUG: Stored ${actualResponse.processed_records.length} processed records`
-        );
       } else {
-        console.log("DEBUG: No processed records found in response");
         setProcessedRecords([]);
       }
 
@@ -696,13 +675,11 @@ function OSTestDetails() {
       setInitialValues(tempInitialValues);
       
       // Auto-calculate derived values for LIPID PROFILE tests after loading from API
-      console.log('Running auto-calculation for loaded data...');
       transformedTests.forEach((test) => {
         // Calculate for LIPID PROFILE (498) and LIVER FUNCTION TEST (196)
-        if ((test.test_id === 498 || test.test_id === 196) && 
-            test.parametersBySubtitle && 
+        if ((test.test_id === 498 || test.test_id === 196) &&
+            test.parametersBySubtitle &&
             Object.keys(test.parametersBySubtitle).length > 0) {
-          console.log(`Found test with calculations: ${test.testname} (ID: ${test.test_id})`);
           tempValues = calculateDerivedValues(test.testname, tempValues, test);
         }
       });
@@ -987,8 +964,6 @@ const isDisabled = !isCalculatedField && initialValues[uniqueKey] && initialValu
         testdetails: testDetailsData,
         processed_records: processedRecords,
       };
-
-      console.log("DEBUG: Sending POST request with payload:", payload);
 
       const postResult = await apiRequest(
         `${Labbaseurl}test-value/save/`,

@@ -548,7 +548,7 @@ const B2BPackage = () => {
     useEffect(() => {
         const fetchTestDetails = async () => {
             try {
-                const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET")
+                const response = await apiRequest(`${Labbaseurl}testdetails/?limit=500`, "GET")
                 if (response.success) {
                     setTestDetails(Array.isArray(response.data) ? response.data : (response.data?.data || []))
                 } else {

@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import apiRequest from "../Auth/apiRequest";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import * as XLSX from "xlsx";
+import { exportToExcel } from "../../utils/xlsxUtils";
 import {
   FaUser,
   FaSearch,
@@ -585,10 +585,9 @@ const PatientRecordView = () => {
         ...row,
         "Sample Collector": getCollectorName(row["Sample Collector"])
       }));
-      const ws = XLSX.utils.json_to_sheet(mappedData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Patient Records");
-      XLSX.writeFile(wb, `Patient_Records_${new Date().toISOString().split('T')[0]}.xlsx`);
+      exportToExcel(mappedData, `Patient_Records_${new Date().toISOString().split('T')[0]}.xlsx`, {
+        sheetName: "Patient Records",
+      });
     } else {
       toast.info("No records to export.");
     }

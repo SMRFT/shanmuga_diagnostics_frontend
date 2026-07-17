@@ -269,9 +269,9 @@ const PatientOverallReport = ({ patient_id, date }) => {
           "GET",
         );
         if (result.success) {
-          const patientRecord = result.data.find(
-            (item) => item.patient_id === patient_id,
-          );
+          const patientRecord = (
+            Array.isArray(result.data?.data) ? result.data.data : []
+          ).find((item) => item.patient_id === patient_id);
           if (patientRecord) {
             setPatientData(patientRecord);
             setCreditAmount(patientRecord.credit_amount || "0");

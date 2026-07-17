@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import styled, { createGlobalStyle } from "styled-components"
 import { Package, User, DollarSign, TestTube, Check, AlertCircle, X } from "lucide-react"
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 
 // Global styles
@@ -378,6 +379,20 @@ const ModalFooter = styled.div`
   gap: 0.75rem;
 `
 
+const Pagination = styled.div`
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px; background: white; border-top: 1px solid #edf2f9;
+  .page-info { color: #64748b; font-size: 14px; }
+  .controls { display: flex; gap: 10px;
+    button { background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 5px; cursor: pointer; color: #334155; font-weight: 500;
+      transition: all 0.2s;
+      &:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+`
+
 const B2BPackageApproval = () => {
   const [packages, setPackages] = useState([])
   const [testDetails, setTestDetails] = useState([])
@@ -385,6 +400,10 @@ const B2BPackageApproval = () => {
   const [approving, setApproving] = useState({})
   const [toast, setToast] = useState(null)
   const [rejectModal, setRejectModal] = useState({ isOpen: false, packageData: null, reason: "", loading: false })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const limit = 50
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
@@ -395,15 +414,17 @@ const B2BPackageApproval = () => {
   }
 
   // Fetch packages from API
-  const fetchPackages = async () => {
+  const fetchPackages = async (page = 1) => {
     try {
       setLoading(true)
-      const response = await apiRequest(`${Labbaseurl}b2b_packages/`, "GET")
+      const response = await apiRequest(`${Labbaseurl}b2b_packages/?page=${page}&limit=${limit}`, "GET")
       if (response.success) {
         const data = Array.isArray(response.data) ? response.data : (response.data?.data || [])
         // Filter out approved and rejected packages - only show pending packages
         const pendingPackages = data.filter((pkg) => pkg.status !== "Approved" && pkg.status !== "Rejected")
         setPackages(pendingPackages)
+        setTotalPages(response.data?.total_pages || 1)
+        setTotalCount(response.data?.total_count || pendingPackages.length)
       } else {
         showToast(response.error || "Failed to fetch packages", "error")
       }
@@ -417,7 +438,7 @@ const B2BPackageApproval = () => {
   // Fetch test details from API
   const fetchTestDetails = async () => {
     try {
-      const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET")
+      const response = await apiRequest(`${Labbaseurl}testdetails/?limit=500`, "GET")
       if (response.success) {
         setTestDetails(Array.isArray(response.data) ? response.data : (response.data?.data || []))
       }
@@ -428,7 +449,12 @@ const B2BPackageApproval = () => {
 
   useEffect(() => {
     if (Labbaseurl) {
-      fetchPackages()
+      fetchPackages(currentPage)
+    }
+  }, [Labbaseurl, currentPage])
+
+  useEffect(() => {
+    if (Labbaseurl) {
       fetchTestDetails()
     }
   }, [Labbaseurl])
@@ -702,6 +728,19 @@ const B2BPackageApproval = () => {
               </PackageGrid>
             )}
           </CardBody>
+          {!loading && packages.length > 0 && (
+            <Pagination>
+              <div className="page-info">Showing page {currentPage} of {totalPages} ({totalCount} total)</div>
+              <div className="controls">
+                <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                  <FaChevronLeft /> Prev
+                </button>
+                <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                  Next <FaChevronRight />
+                </button>
+              </div>
+            </Pagination>
+          )}
         </Card>
       </Container>
 

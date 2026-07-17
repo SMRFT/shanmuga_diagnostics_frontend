@@ -14,8 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import { exportToExcelBlob } from "../../utils/xlsxUtils";
 import apiRequest from "../Auth/apiRequest";
 
 const GlobalStyle = createGlobalStyle`
@@ -710,19 +709,10 @@ const ShanmugaMIS = () => {
         "Processing Time": formatDuration(row.total_processing_time),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(formattedData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "MIS Data");
-      const excelBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-      const dataBlob = new Blob([excelBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      saveAs(
-        dataBlob,
+      exportToExcelBlob(
+        formattedData,
         `MIS_Report_${formattedFromDate}_to_${formattedToDate}.xlsx`,
+        { sheetName: "MIS Data" },
       );
     } catch (error) {
       console.error("Error exporting Excel:", error);

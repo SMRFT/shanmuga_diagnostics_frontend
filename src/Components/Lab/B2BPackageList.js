@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import styled, { createGlobalStyle, keyframes, css } from "styled-components";
 import {
   Package, Search, RefreshCw, Eye, ChevronLeft, ChevronRight,
@@ -230,21 +230,29 @@ const B2BPackageList = () => {
   const [loading,     setLoading]     = useState(true);
   const [refreshing,  setRefreshing]  = useState(false);
   const [search,      setSearch]      = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFlt,   setStatusFlt]   = useState("all");
   const [viewPkg,     setViewPkg]     = useState(null);   // modal
   const [page,        setPage]        = useState(1);
   const [pageSize,    setPageSize]    = useState(10);
+  const [totalPages,  setTotalPages]  = useState(1);
+  const [totalCount,  setTotalCount]  = useState(0);
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   /* ── fetch ── */
-  const fetchPackages = async (isRefresh = false) => {
+  const fetchPackages = async (pageArg, isRefresh = false) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
-      const r = await apiRequest(`${Labbaseurl}b2b_packages/`, "GET");
+      let url = `${Labbaseurl}b2b_packages/?page=${pageArg}&limit=${pageSize}`;
+      if (debouncedSearch) url += `&search=${encodeURIComponent(debouncedSearch)}`;
+      if (statusFlt !== "all") url += `&status=${statusFlt}`;
+      const r = await apiRequest(url, "GET");
       if (r.success) {
         const data = Array.isArray(r.data) ? r.data : r.data?.data || [];
         setPackages(data);
+        setTotalPages(r.data?.total_pages || 1);
+        setTotalCount(r.data?.total_count ?? data.length);
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); setRefreshing(false); }
@@ -252,15 +260,27 @@ const B2BPackageList = () => {
 
   const fetchTestDetails = async () => {
     try {
-      const r = await apiRequest(`${Labbaseurl}testdetails/`, "GET");
+      const r = await apiRequest(`${Labbaseurl}testdetails/?limit=500`, "GET");
       if (r.success)
         setTestDetails(Array.isArray(r.data) ? r.data : r.data?.data || []);
     } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
-    if (Labbaseurl) { fetchPackages(); fetchTestDetails(); }
+    if (Labbaseurl) fetchTestDetails();
   }, [Labbaseurl]);
+
+  useEffect(() => {
+    if (Labbaseurl) fetchPackages(page);
+  }, [Labbaseurl, page, pageSize, debouncedSearch, statusFlt]);
+
+  /* debounce search input */
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timerId);
+  }, [search]);
 
   /* ── helpers ── */
   const getTestName = (item) => {
@@ -304,28 +324,15 @@ const B2BPackageList = () => {
     s === "Approved" ? <CheckCircle size={11}/> :
     s === "Rejected" ? <XCircle size={11}/> : <Clock size={11}/>;
 
-  /* ── filter & pagination ── */
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return packages.filter(p => {
-      const s = (p.status || "pending").toLowerCase();
-      const matchQ = !q ||
-        (p.packageName||"").toLowerCase().includes(q) ||
-        (p.referrerCode||"").toLowerCase().includes(q);
-      const matchS = statusFlt === "all" || s === statusFlt.toLowerCase();
-      return matchQ && matchS;
-    });
-  }, [packages, search, statusFlt]);
+  /* ── pagination ── */
+  const safeP    = Math.min(page, totalPages);
+  const pageData = packages; // already server-filtered + paginated for the current page
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safeP      = Math.min(page, totalPages);
-  const pageData   = filtered.slice((safeP - 1) * pageSize, safeP * pageSize);
-
-  /* reset page when filter changes */
-  useEffect(() => setPage(1), [search, statusFlt, pageSize]);
+  /* reset page when search/status/pageSize changes */
+  useEffect(() => setPage(1), [debouncedSearch, statusFlt, pageSize]);
 
   const stats = {
-    total:    packages.length,
+    total:    totalCount,
     pending:  packages.filter(p => (p.status||"pending") === "pending").length,
     approved: packages.filter(p => p.status === "Approved").length,
     rejected: packages.filter(p => p.status === "Rejected").length,
@@ -348,10 +355,10 @@ const B2BPackageList = () => {
             <TitleIcon><Package size={24}/></TitleIcon>
             <div>
               <Title>B2B Package List</Title>
-              <Sub>{packages.length} packages in total</Sub>
+              <Sub>{totalCount} packages in total</Sub>
             </div>
           </TitleRow>
-          <IconBtn onClick={() => fetchPackages(true)} disabled={refreshing}>
+          <IconBtn onClick={() => fetchPackages(page, true)} disabled={refreshing}>
             <SpinIcon active={refreshing}>
               <RefreshCw size={14}/>
             </SpinIcon>
@@ -454,10 +461,10 @@ const B2BPackageList = () => {
         </TableWrap>
 
         {/* Pagination */}
-        {!loading && filtered.length > 0 && (
+        {!loading && pageData.length > 0 && (
           <PaginationBar>
             <PgInfo>
-              Showing {Math.min((safeP-1)*pageSize+1, filtered.length)}–{Math.min(safeP*pageSize, filtered.length)} of {filtered.length} packages
+              Showing {Math.min((safeP-1)*pageSize+1, totalCount)}–{Math.min(safeP*pageSize, totalCount)} of {totalCount} packages
             </PgInfo>
             <PgBtns>
               <PgBtn onClick={() => setPage(p=>Math.max(1,p-1))} disabled={safeP===1}>

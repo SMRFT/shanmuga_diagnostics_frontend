@@ -177,19 +177,12 @@ function App() {
     const storedRole = localStorage.getItem("role");
     const token = localStorage.getItem("access_token");
 
-    console.log("App.js - User data loaded:", {
-      storedRole,
-      hasToken: !!token,
-      currentPath: location.pathname,
-    });
-
     if (storedRole && token) {
       setRole(storedRole);
 
       // Only navigate to role-specific page if we're on the root path
       // and haven't navigated yet
       if (location.pathname === "/" && !hasNavigatedToRole) {
-        console.log("Navigating based on role:", storedRole);
         navigateRole(storedRole);
         setHasNavigatedToRole(true);
       }

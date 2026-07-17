@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -368,13 +368,14 @@ const SummaryText = styled.p`
 const BarcodeGeneration = () => {
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
-  const [displayedPatients, setDisplayedPatients] = useState([]);
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [barcodeGenerated, setBarcodeGenerated] = useState(false);
   const [barcodeDateTime, setBarcodeDateTime] = useState(null);
@@ -382,45 +383,59 @@ const BarcodeGeneration = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
 
-  const fetchPatients = async () => {
-    setIsLoading(true);
-    try {
-      const response = await apiRequest(
-        `${Labbaseurl}patients_get_barcode/?from_date=${fromDate.toISOString().split("T")[0]
-        }&to_date=${toDate.toISOString().split("T")[0]}`,
-        "GET"
-      );
+  const fetchPatients = useCallback(
+    async (page = 1, searchOverride = debouncedSearchTerm, statusOverride = statusFilter) => {
+      setIsLoading(true);
+      try {
+        let url = `${Labbaseurl}patients_get_barcode/?from_date=${fromDate.toISOString().split("T")[0]
+          }&to_date=${toDate.toISOString().split("T")[0]}&page=${page}&limit=${patientsPerPage}`;
 
-      if (response.success) {
-        const data = response.data.data;
-        if (Array.isArray(data)) {
-          setAllPatients(data);
-          setFilteredPatients(data);
-          setTotalPages(Math.ceil(data.length / patientsPerPage));
+        if (searchOverride.trim() !== "") {
+          url += `&search=${encodeURIComponent(searchOverride.trim())}`;
+        }
+
+        if (statusOverride !== "All") {
+          url += `&status=${statusOverride}`;
+        }
+
+        const response = await apiRequest(url, "GET");
+
+        if (response.success) {
+          const data = response.data.data;
+          if (Array.isArray(data)) {
+            setAllPatients(data);
+            setFilteredPatients(data);
+            setTotalPages(response.data.total_pages || 1);
+            setTotalCount(response.data.total_count || data.length);
+          } else {
+            console.error("Invalid data format:", data);
+            setAllPatients([]);
+            setFilteredPatients([]);
+            setTotalPages(1);
+            setTotalCount(0);
+            toast.error("Invalid data format received from server");
+          }
         } else {
-          console.error("Invalid data format:", data);
+          console.error("Error fetching patients:", response.error);
           setAllPatients([]);
           setFilteredPatients([]);
           setTotalPages(1);
-          toast.error("Invalid data format received from server");
+          setTotalCount(0);
+          toast.error(response.error || "Failed to fetch patients");
         }
-      } else {
-        console.error("Error fetching patients:", response.error);
+      } catch (error) {
+        console.error("Unexpected error in fetchPatients:", error);
         setAllPatients([]);
         setFilteredPatients([]);
         setTotalPages(1);
-        toast.error(response.error || "Failed to fetch patients");
+        setTotalCount(0);
+        toast.error("An unexpected error occurred while fetching patients");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Unexpected error in fetchPatients:", error);
-      setAllPatients([]);
-      setFilteredPatients([]);
-      setTotalPages(1);
-      toast.error("An unexpected error occurred while fetching patients");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [Labbaseurl, fromDate, toDate, patientsPerPage, debouncedSearchTerm, statusFilter]
+  );
 
   const handleGenerateBarcode = (patient, e) => {
     e.stopPropagation();
@@ -448,57 +463,35 @@ const BarcodeGeneration = () => {
       toast.error("From date cannot be later than To date");
       return;
     }
-    fetchPatients();
     setSearchTerm("");
+    setDebouncedSearchTerm("");
     setStatusFilter("All");
     setCurrentPage(1);
+    fetchPatients(1, "", "All");
   };
 
-  // Filter patients based on search term and status
+  // Debounce the raw search input into debouncedSearchTerm, and reset back to
+  // page 1 so the next fetch starts from the beginning of the new result set.
   useEffect(() => {
-    let filtered = allPatients;
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timerId);
+  }, [searchTerm]);
 
-    // Apply search filter
-    if (searchTerm.trim() !== "") {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((patient) =>
-        patient.patientname?.toLowerCase().includes(searchLower) ||
-        patient.patient_id?.toLowerCase().includes(searchLower) ||
-        patient.bill_no?.toString().includes(searchLower) ||
-        patient.age?.toString().includes(searchLower) ||
-        patient.gender?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply status filter
-    if (statusFilter !== "All") {
-      filtered = filtered.filter((patient) => {
-        if (statusFilter === "Emergency") {
-          return patient.is_emergency === true;
-        } else if (statusFilter === "Normal") {
-          return patient.is_emergency === false;
-        }
-        return true;
-      });
-    }
-
-    setFilteredPatients(filtered);
+  // Reset to page 1 whenever the status filter changes, same as search.
+  useEffect(() => {
     setCurrentPage(1);
-    setTotalPages(Math.max(1, Math.ceil(filtered.length / patientsPerPage)));
-  }, [searchTerm, statusFilter, allPatients]);
+  }, [statusFilter]);
 
-  // Update displayed patients based on current page
+  // Re-fetch from the server whenever the current page, debounced search term,
+  // or status filter changes (covers the initial mount fetch too, since
+  // currentPage starts at 1).
   useEffect(() => {
-    const startIndex = (currentPage - 1) * patientsPerPage;
-    setDisplayedPatients(
-      filteredPatients.slice(startIndex, startIndex + patientsPerPage)
-    );
-  }, [currentPage, filteredPatients]);
-
-  // Initialize with today's date
-  useEffect(() => {
-    handleApplyDateRange();
-  }, []);
+    fetchPatients(currentPage);
+    // eslint-disable-next-line
+  }, [currentPage, debouncedSearchTerm, statusFilter]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -619,15 +612,15 @@ const BarcodeGeneration = () => {
       {allPatients.length > 0 && (
         <ResultsSummary>
           <SummaryText>
-            Found {allPatients.length} patient
-            {allPatients.length !== 1 ? "s" : ""} {formatDateRange()}
+            Found {totalCount} patient
+            {totalCount !== 1 ? "s" : ""} {formatDateRange()}
             {filteredPatients.length !== allPatients.length &&
-              ` (${filteredPatients.length} matching filters)`}
+              ` (${filteredPatients.length} matching filters on this page)`}
           </SummaryText>
         </ResultsSummary>
       )}
 
-      {displayedPatients.length > 0 ? (
+      {filteredPatients.length > 0 ? (
         <TableContainer>
           <StyledTable>
             <TableHeader>
@@ -643,7 +636,7 @@ const BarcodeGeneration = () => {
               </TableHeaderRow>
             </TableHeader>
             <TableBody>
-              {displayedPatients.map((patient, index) => {
+              {filteredPatients.map((patient, index) => {
                 const genderStyle = getGenderBadgeStyle(patient.gender);
                 const isEmergency = patient.is_emergency === true;
 

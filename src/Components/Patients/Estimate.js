@@ -355,8 +355,6 @@ const Estimate = () => {
 
         const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET");
 
-        console.log("API Response:", response.data); // Debug log
-
         // Handle the response structure: { success: true, data: [...], count: N }
         const tests = response.data?.data || [];
 
@@ -383,8 +381,6 @@ const Estimate = () => {
             specimen_type: test.specimen_type || "",
           };
         });
-
-        console.log("Normalized Data:", normalizedData); // Debug log
 
         setTestOptions(normalizedData);
         setFilteredOptions(normalizedData);
@@ -429,7 +425,6 @@ const Estimate = () => {
         );
       });
 
-      console.log("Filtered results:", filtered); // Debug log
       setFilteredOptions(filtered);
       setShowDropdown(filtered.length > 0);
     }
@@ -437,8 +432,6 @@ const Estimate = () => {
 
   // Handle test selection
   const handleTestSelect = (test) => {
-    console.log("Selecting test:", test);
-    console.log("Current selected tests:", selectedTests);
 
     // Check if test is already selected using uniqueId
     const isAlreadySelected = selectedTests.some(

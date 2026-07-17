@@ -7,18 +7,18 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, subDays } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import {
-  FaPlus,
-  FaSearch,
-  FaTimes,
-  FaCalendar,
-  FaUser,
-  FaBuilding,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaTag,
-  FaComments,
-  FaCamera,
-} from "react-icons/fa";
+  Plus,
+  Search,
+  X,
+  Calendar,
+  User,
+  Building2,
+  Phone,
+  MapPin,
+  Tag,
+  MessageCircle,
+  Camera,
+} from "lucide-react";
 import HospitalLabForm from "../Sales/HospitalLabForm";
 
 // Media queries
@@ -592,7 +592,7 @@ const SalesVisitLog = () => {
     const fetchClinicalNames = async () => {
       try {
         const res = await apiRequest(
-          `${Labbaseurl}get_all_clinicalnames/`,
+          `${Labbaseurl}get_all_clinicalnames/?limit=500`,
           "GET"
         );
         const data = res?.data?.data || res?.data;
@@ -784,14 +784,14 @@ const SalesVisitLog = () => {
         <Header>
           <Title>Sales Visit Log</Title>
           <SalespersonName>
-            <FaUser /> {username}
+            <User /> {username}
           </SalespersonName>
         </Header>
         {message.text && (
           <AlertContainer type={message.type} isClosing={isClosingAlert}>
             <AlertText>{message.text}</AlertText>
             <CloseButton onClick={handleCloseAlert}>
-              <FaTimes />
+              <X />
             </CloseButton>
           </AlertContainer>
         )}
@@ -799,7 +799,7 @@ const SalesVisitLog = () => {
           <FormSection>
             <FormGroup>
               <Label>
-                <FaCalendar /> Date
+                <Calendar /> Date
               </Label>
               <DatePickerWrapper>
                 <DatePicker
@@ -815,12 +815,12 @@ const SalesVisitLog = () => {
             </FormGroup>
             <FormGroup>
               <Label>
-                <FaBuilding /> Clinical Name
+                <Building2 /> Clinical Name
               </Label>
               <SearchWrapper>
                 <SearchContainer>
                   <SearchIcon>
-                    <FaSearch />
+                    <Search />
                   </SearchIcon>
                   <SearchInput
                     type="text"
@@ -834,7 +834,7 @@ const SalesVisitLog = () => {
                   />
                   {searchTerm && (
                     <ClearButton type="button" onClick={handleClearSearch}>
-                      <FaTimes />
+                      <X />
                     </ClearButton>
                   )}
                   {isSearchFocused && (
@@ -859,13 +859,13 @@ const SalesVisitLog = () => {
                   )}
                 </SearchContainer>
                 <AddButton type="button" onClick={handleShowModal}>
-                  <FaPlus />
+                  <Plus />
                 </AddButton>
               </SearchWrapper>
             </FormGroup>
             <FormGroup>
               <Label>
-                <FaUser /> Salesperson Name
+                <User /> Salesperson Name
               </Label>
               <Input
                 type="text"
@@ -878,7 +878,7 @@ const SalesVisitLog = () => {
           <FormSection>
             <FormGroup>
               <Label>
-                <FaTag /> Type
+                <Tag /> Type
               </Label>
               <Input
                 type="text"
@@ -890,7 +890,7 @@ const SalesVisitLog = () => {
             </FormGroup>
             <FormGroup>
               <Label>
-                <FaUser /> Person You Met
+                <User /> Person You Met
               </Label>
               <Input
                 type="text"
@@ -901,7 +901,7 @@ const SalesVisitLog = () => {
             </FormGroup>
             <FormGroup>
               <Label>
-                <FaUser /> Designation
+                <User /> Designation
               </Label>
               <Input
                 type="text"
@@ -914,7 +914,7 @@ const SalesVisitLog = () => {
           <FormSection>
             <FormGroup>
               <Label>
-                <FaMapMarkerAlt /> Location
+                <MapPin /> Location
               </Label>
               <Input
                 type="text"
@@ -925,7 +925,7 @@ const SalesVisitLog = () => {
             </FormGroup>
             <FormGroup>
               <Label>
-                <FaPhone /> Phone Number
+                <Phone /> Phone Number
               </Label>
               <Input
                 type="text"
@@ -947,7 +947,7 @@ const SalesVisitLog = () => {
           <FormSection>
             <FormGroup>
               <Label>
-                <FaComments /> Comments
+                <MessageCircle /> Comments
               </Label>
               <Input
                 type="text"
@@ -961,13 +961,13 @@ const SalesVisitLog = () => {
           <FormSection>
             <FormGroup>
               <Label>
-                <FaCamera /> Visit Image & Location
+                <Camera /> Visit Image & Location
               </Label>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                 {!isCameraOpen && !visitImage && (
                   <Button type="button" onClick={startCamera}>
-                    <FaCamera /> Open Camera to Capture
+                    <Camera /> Open Camera to Capture
                   </Button>
                 )}
 
@@ -1025,13 +1025,13 @@ const SalesVisitLog = () => {
 
                     {isLocating && (
                       <span style={{ color: theme.primary, display: "flex", alignItems: "center", gap: "6px" }}>
-                        <FaMapMarkerAlt /> Acquiring location...
+                        <MapPin /> Acquiring location...
                       </span>
                     )}
 
                     {location.latitude && (
                       <div style={{ color: theme.success, fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <FaMapMarkerAlt />
+                        <MapPin />
                         <strong>Location:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
                       </div>
                     )}
@@ -1041,7 +1041,7 @@ const SalesVisitLog = () => {
                       onClick={startCamera}
                       style={{ background: theme.primary, alignSelf: "flex-start" }}
                     >
-                      <FaCamera /> Retake Photo
+                      <Camera /> Retake Photo
                     </Button>
                   </div>
                 )}

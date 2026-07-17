@@ -682,7 +682,7 @@ function EditForm() {
       );
       if (!response.success)
         throw new Error(response.error || "Failed to fetch");
-      const processed = response.data.map((item) => ({
+      const processed = response.data.data.map((item) => ({
         ...item,
         testdetails:
           typeof item.testdetails === "string"

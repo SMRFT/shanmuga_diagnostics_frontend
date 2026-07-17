@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { X, Eye, Save, Loader } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
-import * as pdfjsLib from "pdfjs-dist";
+import { pdfjsLib } from "../../utils/pdfUtils";
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -484,6 +484,118 @@ const OphthalmologyTd = styled.td`
   font-size: 14px;
 `;
 
+// Static inline-style objects hoisted to module scope so they aren't
+// recreated on every render (they don't depend on props/state/loop vars).
+const styles = {
+  deptSectionMargin: { marginBottom: 16 },
+  boldCell600: { fontWeight: 600 },
+  pdfLoadButton: {
+    width: "100%",
+    padding: "12px",
+    backgroundColor: "#DB9BB9",
+    color: "white",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 600,
+  },
+  pdfConvertingBox: {
+    padding: 20,
+    textAlign: "center",
+    background: "#f8f4f7",
+    borderRadius: 6,
+    color: "#888",
+    fontSize: 14,
+  },
+  pdfErrorBox: {
+    padding: 16,
+    background: "#fff5f5",
+    border: "1px solid #feb2b2",
+    borderRadius: 6,
+    color: "#c53030",
+    fontSize: 13,
+  },
+  pdfRetryButton: {
+    marginLeft: 10,
+    padding: "4px 10px",
+    cursor: "pointer",
+    background: "#DB9BB9",
+    color: "white",
+    border: "none",
+    borderRadius: 4,
+  },
+  imagePageMargin: { marginBottom: 12 },
+  imagePageLabel: { fontSize: 11, color: "#888", marginBottom: 4 },
+  noFileDataText: { color: "#888", fontSize: 13 },
+  reportBox: {
+    background: "#f8f9ff",
+    border: "1px solid #dde3ff",
+    borderRadius: 8,
+    padding: "14px 16px",
+    marginBottom: 14,
+  },
+  reportLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#4361ee",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  },
+  reportText: {
+    fontSize: 14,
+    color: "#222",
+    lineHeight: 1.7,
+    whiteSpace: "pre-wrap",
+  },
+  notesBox: {
+    background: "#f6fff8",
+    border: "1px solid #c6f6d5",
+    borderRadius: 8,
+    padding: "14px 16px",
+    marginBottom: 14,
+  },
+  notesLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#276749",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  },
+  noImageFilesText: { fontSize: 13, color: "#888", fontStyle: "italic" },
+  fileCountLabel: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 6,
+    fontStyle: "italic",
+  },
+  dynamicFieldKeyCell: { fontWeight: 600, color: "#555" },
+  xrayReportText: { whiteSpace: "pre-line", lineHeight: "1.8" },
+  xrayImpressionBox: {
+    marginTop: "25px",
+    paddingTop: "15px",
+    borderTop: "1px solid #e0e0e0",
+  },
+  xrayImpressionLabel: {
+    display: "block",
+    marginBottom: "10px",
+    fontSize: "15px",
+  },
+  xrayImpressionValue: { fontSize: "14px" },
+  ophComplaintsMargin: { marginTop: "20px" },
+  ophInlineLabel: { display: "block", marginBottom: "8px" },
+  ophRemarksMargin: { marginTop: "15px" },
+  ophDisclaimer: {
+    marginTop: "15px",
+    fontSize: "12px",
+    fontStyle: "italic",
+    color: "#666",
+  },
+  noChcTestsLabel: { color: "#999", fontStyle: "italic" },
+};
+
 const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   // ── State ────────────────────────────────────────────────────────────────
   const [chcTests, setChcTests] = useState([]);
@@ -638,11 +750,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     return uniqueLines.join("\n");
   };
 
-  useEffect(() => {
-    // Dynamically resolve the worker URL from the installed pdfjs-dist version
-    // This avoids any CDN version mismatch
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-  }, []);
+  // Worker config now lives in src/utils/pdfUtils.js (set once on import).
 
   useEffect(() => {
     fetchInvestigationStatus();
@@ -703,8 +811,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
   const convertPdfToImages = async (base64Data, fileKey) => {
     try {
-      console.log("Starting PDF conversion for key:", fileKey);
-
       // Strip any data-URI prefix, keep raw base64
       const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "").trim();
 
@@ -714,7 +820,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      console.log("PDF bytes length:", bytes.length);
 
       const loadingTask = pdfjsLib.getDocument({
         data: bytes,
@@ -722,7 +827,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
       });
 
       const pdf = await loadingTask.promise;
-      console.log("PDF loaded, pages:", pdf.numPages);
 
       const images = [];
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -734,11 +838,9 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         canvas.width = viewport.width;
         await page.render({ canvasContext: context, viewport }).promise;
         images.push(canvas.toDataURL("image/png"));
-        console.log(`Rendered page ${pageNum}/${pdf.numPages}`);
       }
 
       setPdfImages((prev) => ({ ...prev, [fileKey]: images }));
-      console.log("PDF conversion done, images:", images.length);
       return images;
     } catch (error) {
       console.error("PDF conversion error for key", fileKey, ":", error);
@@ -760,8 +862,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         `${Labbaseurl}corporate_health_report/?barcode=${patient.barcode}`,
         "GET",
       );
-
-      console.log("corporate_health_report raw result:", result);
 
       if (!result.success) {
         console.error("Error fetching patient details:", result.error);
@@ -787,7 +887,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         details = raw;
       }
 
-      console.log("Resolved patientDetails:", details);
       setPatientDetails(details);
 
       // ── Step 2: get_investigation_status — merge vitals / history ────────
@@ -795,7 +894,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         `${Labbaseurl}get_investigation_status/?barcode=${patient.barcode}`,
         "GET",
       );
-      console.log("get_investigation_status result:", invResult);
 
       if (invResult.success && invResult.data) {
         const inv = invResult.data;
@@ -893,8 +991,6 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
       setInvestigationFiles(oldFiles); // legacy keyed files
       setChcInvestigationFiles(chcFilesMap); // new test-keyed files
-      console.log("CHC files fetched:", Object.keys(chcFilesMap));
-      console.log("Old files fetched:", Object.keys(oldFiles));
     } catch (error) {
       console.error("Error fetching patient details:", error);
       alert("Error loading preview: " + error.message);
@@ -1018,7 +1114,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
     return (
       <div>
         {Object.keys(testsByDepartment).map((department) => (
-          <div key={department} style={{ marginBottom: 16 }}>
+          <div key={department} style={styles.deptSectionMargin}>
             <DeptHeading>{department.toUpperCase()}</DeptHeading>
             <LabTable>
               <LabThead>
@@ -1042,7 +1138,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                       key={test.testname + (test.samplecollected_time || "")}
                     >
                       <tr>
-                        <LabTd style={{ fontWeight: 600 }}>
+                        <LabTd style={styles.boldCell600}>
                           {test.testname}
                         </LabTd>
                         <LabTd>{test.specimen_type || ""}</LabTd>
@@ -1166,46 +1262,18 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                   }));
                   convertPdfToImages(rawData, fileKey);
                 }}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  backgroundColor: "#DB9BB9",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
+                style={styles.pdfLoadButton}
               >
                 📄 Load PDF Preview
               </button>
             )}
             {isConverting && (
-              <div
-                style={{
-                  padding: 20,
-                  textAlign: "center",
-                  background: "#f8f4f7",
-                  borderRadius: 6,
-                  color: "#888",
-                  fontSize: 14,
-                }}
-              >
+              <div style={styles.pdfConvertingBox}>
                 ⏳ Converting PDF to images…
               </div>
             )}
             {hasError && !isConverting && (
-              <div
-                style={{
-                  padding: 16,
-                  background: "#fff5f5",
-                  border: "1px solid #feb2b2",
-                  borderRadius: 6,
-                  color: "#c53030",
-                  fontSize: 13,
-                }}
-              >
+              <div style={styles.pdfErrorBox}>
                 ⚠️ Failed to render PDF.
                 <button
                   onClick={() => {
@@ -1220,15 +1288,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     }));
                     convertPdfToImages(rawData, fileKey);
                   }}
-                  style={{
-                    marginLeft: 10,
-                    padding: "4px 10px",
-                    cursor: "pointer",
-                    background: "#DB9BB9",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 4,
-                  }}
+                  style={styles.pdfRetryButton}
                 >
                   Retry
                 </button>
@@ -1238,11 +1298,9 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
               images.length > 0 &&
               !isConverting &&
               images.map((img, idx) => (
-                <div key={idx} style={{ marginBottom: 12 }}>
+                <div key={idx} style={styles.imagePageMargin}>
                   {images.length > 1 && (
-                    <div
-                      style={{ fontSize: 11, color: "#888", marginBottom: 4 }}
-                    >
+                    <div style={styles.imagePageLabel}>
                       Page {idx + 1} / {images.length}
                     </div>
                   )}
@@ -1260,7 +1318,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
             alt={label}
           />
         ) : (
-          <div style={{ color: "#888", fontSize: 13 }}>
+          <div style={styles.noFileDataText}>
             No file data available
           </div>
         )}
@@ -1283,35 +1341,11 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
         {/* ── Report text (shown BEFORE images) ──────────────────────── */}
         {entry.report?.trim() && (
-          <div
-            style={{
-              background: "#f8f9ff",
-              border: "1px solid #dde3ff",
-              borderRadius: 8,
-              padding: "14px 16px",
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#4361ee",
-                marginBottom: 8,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
+          <div style={styles.reportBox}>
+            <div style={styles.reportLabel}>
               Report
             </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: "#222",
-                lineHeight: 1.7,
-                whiteSpace: "pre-wrap",
-              }}
-            >
+            <div style={styles.reportText}>
               {entry.report}
             </div>
           </div>
@@ -1319,35 +1353,11 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
         {/* ── Notes / Impression (shown BEFORE images) ───────────────── */}
         {entry.notes?.trim() && (
-          <div
-            style={{
-              background: "#f6fff8",
-              border: "1px solid #c6f6d5",
-              borderRadius: 8,
-              padding: "14px 16px",
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#276749",
-                marginBottom: 8,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
+          <div style={styles.notesBox}>
+            <div style={styles.notesLabel}>
               Impression / Notes
             </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: "#222",
-                lineHeight: 1.7,
-                whiteSpace: "pre-wrap",
-              }}
-            >
+            <div style={styles.reportText}>
               {entry.notes}
             </div>
           </div>
@@ -1355,7 +1365,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
         {/* ── No files message ───────────────────────────────────────── */}
         {(!entry.files || entry.files.length === 0) && (
-          <div style={{ fontSize: 13, color: "#888", fontStyle: "italic" }}>
+          <div style={styles.noImageFilesText}>
             No image files attached.
           </div>
         )}
@@ -1399,14 +1409,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                 }}
               >
                 {entry.files.length > 1 && (
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "#888",
-                      marginBottom: 6,
-                      fontStyle: "italic",
-                    }}
-                  >
+                  <div style={styles.fileCountLabel}>
                     File {fileIdx + 1} of {entry.files.length}
                     {file.filename ? ` — ${file.filename}` : ""}
                   </div>
@@ -1424,17 +1427,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                           }));
                           convertPdfToImages(rawData, fileKey);
                         }}
-                        style={{
-                          width: "100%",
-                          padding: "12px",
-                          backgroundColor: "#DB9BB9",
-                          color: "white",
-                          border: "none",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          fontSize: 14,
-                          fontWeight: 600,
-                        }}
+                        style={styles.pdfLoadButton}
                       >
                         📄 Load PDF Preview
                       </button>
@@ -1442,32 +1435,14 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
                     {/* Converting spinner */}
                     {isConverting && (
-                      <div
-                        style={{
-                          padding: 20,
-                          textAlign: "center",
-                          background: "#f8f4f7",
-                          borderRadius: 6,
-                          color: "#888",
-                          fontSize: 14,
-                        }}
-                      >
+                      <div style={styles.pdfConvertingBox}>
                         ⏳ Converting PDF to images…
                       </div>
                     )}
 
                     {/* Error state */}
                     {hasError && !isConverting && (
-                      <div
-                        style={{
-                          padding: 16,
-                          background: "#fff5f5",
-                          border: "1px solid #feb2b2",
-                          borderRadius: 6,
-                          color: "#c53030",
-                          fontSize: 13,
-                        }}
-                      >
+                      <div style={styles.pdfErrorBox}>
                         ⚠️ Failed to render PDF. Check console for details.
                         <button
                           onClick={() => {
@@ -1482,15 +1457,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                             }));
                             convertPdfToImages(rawData, fileKey);
                           }}
-                          style={{
-                            marginLeft: 10,
-                            padding: "4px 10px",
-                            cursor: "pointer",
-                            background: "#DB9BB9",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 4,
-                          }}
+                          style={styles.pdfRetryButton}
                         >
                           Retry
                         </button>
@@ -1501,15 +1468,9 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     {!hasError && pdfImgList.length > 0 && !isConverting && (
                       <div>
                         {pdfImgList.map((img, pgIdx) => (
-                          <div key={pgIdx} style={{ marginBottom: 12 }}>
+                          <div key={pgIdx} style={styles.imagePageMargin}>
                             {pdfImgList.length > 1 && (
-                              <div
-                                style={{
-                                  fontSize: 11,
-                                  color: "#888",
-                                  marginBottom: 4,
-                                }}
-                              >
+                              <div style={styles.imagePageLabel}>
                                 Page {pgIdx + 1} / {pdfImgList.length}
                               </div>
                             )}
@@ -1541,7 +1502,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     }}
                   />
                 ) : (
-                  <div style={{ color: "#888", fontSize: 13 }}>
+                  <div style={styles.noFileDataText}>
                     No file data available
                   </div>
                 )}
@@ -1704,7 +1665,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                           {field.field_values.map((fv, fvIdx) => (
                             <tr key={fvIdx}>
                               <DynamicFieldTd
-                                style={{ fontWeight: 600, color: "#555" }}
+                                style={styles.dynamicFieldKeyCell}
                               >
                                 {fv.key}
                               </DynamicFieldTd>
@@ -1777,7 +1738,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     <ReportSection>
                       <SectionTitle>X-Ray Chest PA View</SectionTitle>
                       <InfoValue
-                        style={{ whiteSpace: "pre-line", lineHeight: "1.8" }}
+                        style={styles.xrayReportText}
                       >
                         {(() => {
                           let text =
@@ -1790,23 +1751,11 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                             .join("\n");
                         })()}
                       </InfoValue>
-                      <div
-                        style={{
-                          marginTop: "25px",
-                          paddingTop: "15px",
-                          borderTop: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <InfoLabel
-                          style={{
-                            display: "block",
-                            marginBottom: "10px",
-                            fontSize: "15px",
-                          }}
-                        >
+                      <div style={styles.xrayImpressionBox}>
+                        <InfoLabel style={styles.xrayImpressionLabel}>
                           IMPRESSION:
                         </InfoLabel>
-                        <InfoValue style={{ fontSize: "14px" }}>
+                        <InfoValue style={styles.xrayImpressionValue}>
                           {patientDetails.investigation_notes.xray_notes ||
                             "No significant finding in the lungs or mediastinum."}
                         </InfoValue>
@@ -1931,7 +1880,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                           <tbody>
                             {rows.map((row) => (
                               <tr key={row.label}>
-                                <OphthalmologyTd style={{ fontWeight: 600 }}>
+                                <OphthalmologyTd style={styles.boldCell600}>
                                   {row.label}
                                 </OphthalmologyTd>
                                 <OphthalmologyTd>
@@ -1947,20 +1896,16 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                       )}
 
                       {complaints?.trim() && (
-                        <div style={{ marginTop: "20px" }}>
-                          <InfoLabel
-                            style={{ display: "block", marginBottom: "8px" }}
-                          >
+                        <div style={styles.ophComplaintsMargin}>
+                          <InfoLabel style={styles.ophInlineLabel}>
                             Patient Complaints:
                           </InfoLabel>
                           <InfoValue>{complaints}</InfoValue>
                         </div>
                       )}
 
-                      <div style={{ marginTop: "15px" }}>
-                        <InfoLabel
-                          style={{ display: "block", marginBottom: "8px" }}
-                        >
+                      <div style={styles.ophRemarksMargin}>
+                        <InfoLabel style={styles.ophInlineLabel}>
                           Remarks:
                         </InfoLabel>
                         <InfoValue>
@@ -1969,14 +1914,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                         </InfoValue>
                       </div>
 
-                      <div
-                        style={{
-                          marginTop: "15px",
-                          fontSize: "12px",
-                          fontStyle: "italic",
-                          color: "#666",
-                        }}
-                      >
+                      <div style={styles.ophDisclaimer}>
                         This spectacle prescription is valid for correction,
                         only for three months from the date of consultation.
                       </div>
@@ -2081,7 +2019,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
               ) : (
                 <StatusItem>
                   <StatusInfo>
-                    <StatusLabel style={{ color: "#999", fontStyle: "italic" }}>
+                    <StatusLabel style={styles.noChcTestsLabel}>
                       No CHC tests found
                     </StatusLabel>
                   </StatusInfo>
