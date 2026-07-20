@@ -52,7 +52,6 @@ import Hmssamplestatus from "./Components/HMS/Hmssamplestatus";
 import HmsSampleStatusUpdate from "./Components/HMS/HmsSampleStatusUpdate";
 import HMSBarcodeGeneration from "./Components/HMS/HMSBarcodeGeneration";
 import HMSBarcodeTestDetails from "./Components/HMS/HMSBarcodeTestDetails";
-import HmsTestDetails from "./Components/HMS/HmsTestDetails";
 import PrintBill from "./Components/Patients/PrintBill";
 import CHCReport from "./Components/Report/CHCReport";
 import CHCApproval from "./Components/Report/CHCApproval";
@@ -287,7 +286,6 @@ function App() {
       "/HmsSampleStatusUpdate": "HMS Sample Status Update",
       "/HMSBarcodeGeneration": "HMS Barcode Generation",
       "/HMSBarcodeTestDetails": "HMS Barcode Test Details",
-      "/HmsTestDetails": "HMS Test Details",
       "/HMSTestSorting": "HMS Test Sorting",
       "/HMSMBTestSorting": "HMS Microbiology Test Sorting",
       "/HMSPatientOverview": "HMS Patient Overview",
@@ -534,8 +532,6 @@ function App() {
               path="/HMSBarcodeTestDetails"
               element={<HMSBarcodeTestDetails />}
             />
-            <Route path="/HmsTestDetails" element={<HmsTestDetails />} />
-
             {/* HMS Report */}
             <Route path="/HMSTestSorting" element={<HMSTestSorting />} />
             <Route path="/HMSMBTestSorting" element={<HMSMBTestSorting />} />
@@ -560,7 +556,7 @@ function App() {
             />
 
 
-             <Route
+            <Route
               path="/Busfare"
               element={<Busfare />}
             />
@@ -568,13 +564,13 @@ function App() {
 
             <Route
               path="/CustomerComplaints"
-              element={<CustomerComplaints/>}
+              element={<CustomerComplaints />}
             />
 
 
             <Route
               path="/Salesplan"
-              element={<Salesplan/>}
+              element={<Salesplan />}
             />
 
           </Routes>

@@ -1387,6 +1387,11 @@ const TestSorting = ({ patient, onClose }) => {
                 testNameText,
                 testNameWidth,
               );
+              const specimenLines = wrapTextAndGetLines(
+                doc,
+                test.specimen_type || "",
+                colWidths[1] - 2,
+              );
               const valueLines = wrapTextAndGetLines(
                 doc,
                 valueText,
@@ -1400,6 +1405,7 @@ const TestSorting = ({ patient, onClose }) => {
               );
               const maxLines = Math.max(
                 testNameLines.length,
+                specimenLines.length,
                 valueLines.length,
                 refMethodLines.length,
               );
@@ -1421,7 +1427,14 @@ const TestSorting = ({ patient, onClose }) => {
               xPos += colWidths[0];
 
               doc.setFont("helvetica", "normal");
-              doc.text(test.specimen_type || "", xPos, yPos);
+              renderWrappedText(
+                doc,
+                test.specimen_type || "",
+                colWidths[1] - 2,
+                xPos,
+                yPos,
+                lineHeight,
+              );
               xPos += colWidths[1];
               xPos += colWidths[2];
 
@@ -1548,6 +1561,11 @@ const TestSorting = ({ patient, onClose }) => {
                     paramNameText,
                     colWidths[0] - 2,
                   );
+                  const paramSpecimenLines = wrapTextAndGetLines(
+                    doc,
+                    currentTest.specimen_type || "",
+                    colWidths[1] - 2,
+                  );
                   const paramValueLines = wrapTextAndGetLines(
                     doc,
                     paramValueText,
@@ -1561,6 +1579,7 @@ const TestSorting = ({ patient, onClose }) => {
                   );
                   const paramMaxLines = Math.max(
                     paramNameLines.length,
+                    paramSpecimenLines.length,
                     paramValueLines.length,
                     paramRefMethodLines.length,
                   );
@@ -1580,7 +1599,14 @@ const TestSorting = ({ patient, onClose }) => {
                     paramLineHeight,
                   );
                   xPos += colWidths[0];
-                  doc.text(currentTest.specimen_type || "", xPos, yPos);
+                  renderWrappedText(
+                    doc,
+                    currentTest.specimen_type || "",
+                    colWidths[1] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
                   xPos += colWidths[1];
                   xPos += colWidths[2];
 

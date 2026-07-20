@@ -250,26 +250,46 @@ const TableBody = styled.tbody`
     font-size: 0.825rem;
   }
 `;
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: white;
-  border-top: 1px solid var(--gray-light);
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-light);
 `;
-const PageButton = styled.button`
-  padding: 0.5rem 1rem;
-  margin: 0 0.25rem;
-  border: 1px solid var(--gray-light);
-  border-radius: 4px;
-  background: ${(props) => (props.active ? "var(--primary)" : "white")};
-  color: ${(props) => (props.active ? "white" : "var(--dark)")};
-  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
-  &:hover:not(:disabled) {
-    background: ${(props) => (props.active ? "var(--primary)" : "var(--gray-light)")};
-  }
 
+const StatCard = styled.div`
+  background-color: var(--light);
+  border-radius: var(--border-radius);
+  padding: 0.85rem 1.15rem;
+  border: 1px solid var(--gray-light);
+`;
+
+const StatLabel = styled.p`
+  font-size: 0.8rem;
+  color: var(--gray);
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+`;
+
+const StatDot = styled.span`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${(p) => p.color};
+  flex-shrink: 0;
+`;
+
+const StatValue = styled.p`
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: ${(p) => p.color || "var(--dark)"};
+  line-height: 1;
 `;
 const NoData = styled.div`
   text-align: center;
@@ -618,8 +638,7 @@ const PatientOverview = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("hms");
@@ -678,9 +697,17 @@ const PatientOverview = () => {
       const url = `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
       const result = await apiRequest(url, "GET");
       if (result.success) {
-        const patientData = result.data;
-        setPatients(patientData);
-        setFilteredPatients(patientData);
+        const patientData = result.data || [];
+        const sortedData = [...patientData].sort((a, b) => {
+          const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
+          const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+          if (dateA !== dateB) return dateB - dateA;
+          const idA = String(a.patient_id || a.barcode || a.id || "");
+          const idB = String(b.patient_id || b.barcode || b.id || "");
+          return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
+        });
+        setPatients(sortedData);
+        setFilteredPatients(sortedData);
         const statusMap = {};
         patientData.forEach((patient) => {
           statusMap[patient.patient_id] = {
@@ -859,7 +886,6 @@ const PatientOverview = () => {
   };
 
   useEffect(() => {
-    setCurrentPage(1);
     const startOfDay = new Date(startDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(endDate);
@@ -891,7 +917,15 @@ const PatientOverview = () => {
         matchesDepartment
       );
     });
-    setFilteredPatients(filtered);
+    const sortedFiltered = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
+      const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+      if (dateA !== dateB) return dateB - dateA;
+      const idA = String(a.patient_id || a.barcode || a.id || "");
+      const idB = String(b.patient_id || b.barcode || b.id || "");
+      return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
+    });
+    setFilteredPatients(sortedFiltered);
   }, [
     startDate,
     endDate,
@@ -2192,15 +2226,20 @@ const PatientOverview = () => {
       p.patient_id === activeDropdownPatientId,
   );
 
-  // Pagination calculations
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentPatients = filteredPatients.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
-
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
+  const currentPatients = filteredPatients;
+  const totalSamplesCount = filteredPatients.length;
+  const approvedCount = filteredPatients.filter(
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Approved"
+  ).length;
+  const partiallyApprovedCount = filteredPatients.filter(
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Partially Approved"
+  ).length;
+  const dispatchedCount = filteredPatients.filter(
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Dispatched"
+  ).length;
+  const partiallyDispatchedCount = filteredPatients.filter(
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Partially Dispatched"
+  ).length;
 
   return (
     <Container>
@@ -2390,6 +2429,44 @@ const PatientOverview = () => {
             </ClearButton>
           </ButtonContainer>
         </FiltersContainer>
+
+        <StatsGrid>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#4361ee" />
+              Total Samples
+            </StatLabel>
+            <StatValue color="#4361ee">{totalSamplesCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#f59e0b" />
+              Partially Approved
+            </StatLabel>
+            <StatValue color="#d97706">{partiallyApprovedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#2ec4b6" />
+              Approved
+            </StatLabel>
+            <StatValue color="#2ec4b6">{approvedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#0284c7" />
+              Partially Dispatched
+            </StatLabel>
+            <StatValue color="#0284c7">{partiallyDispatchedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#065f46" />
+              Dispatched
+            </StatLabel>
+            <StatValue color="#065f46">{dispatchedCount}</StatValue>
+          </StatCard>
+        </StatsGrid>
 
         <TableContainer>
           <Table>
@@ -2615,52 +2692,7 @@ const PatientOverview = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        {totalPages > 0 && (
-          <PaginationContainer>
-            <span style={{ fontSize: "0.875rem", color: "var(--gray)" }}>
-              Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPatients.length)} of {filteredPatients.length} entries
-            </span>
-            {totalPages > 1 && (
-              <div>
-                <PageButton
-                  disabled={currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
-                  Previous
-                </PageButton>
-                {Array.from({ length: totalPages }, (_, i) => {
-                  if (
-                    i === 0 ||
-                    i === totalPages - 1 ||
-                    (i >= currentPage - 2 && i <= currentPage)
-                  ) {
-                    return (
-                      <PageButton
-                        key={i + 1}
-                        active={currentPage === i + 1}
-                        onClick={() => handlePageChange(i + 1)}
-                      >
-                        {i + 1}
-                      </PageButton>
-                    );
-                  } else if (
-                    i === currentPage - 3 ||
-                    i === currentPage + 1
-                  ) {
-                    return <span key={i + 1}>...</span>;
-                  }
-                  return null;
-                })}
-                <PageButton
-                  disabled={currentPage === totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
-                  Next
-                </PageButton>
-              </div>
-            )}
-          </PaginationContainer>
-        )}
+
       </Card>
 
       {/* ── PORTAL DROPDOWN: renders at <body> level, escapes overflow:auto clipping ── */}

@@ -591,13 +591,13 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              
+
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
                 <SubLink
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Summary
+                  Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -850,6 +850,12 @@ const Sidebar = () => {
                 </SubLink>
                 <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
                   Work List
+                </SubLink>
+                <SubLink
+                  to="/ApprovedList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Report Edit
                 </SubLink>
               </DropdownContent>
 
@@ -1115,7 +1121,7 @@ const Sidebar = () => {
                 HMS Test Count
               </SidebarNavLink>
 
-               <SidebarNavLink
+              <SidebarNavLink
                 to="/CustomerComplaints"
                 onClick={() => setIsSidebarOpen(false)}
               >
@@ -1308,7 +1314,7 @@ const Sidebar = () => {
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Summary
+                  Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -1330,7 +1336,7 @@ const Sidebar = () => {
               </SidebarNavLink>
 
 
-               <SidebarNavLink
+              <SidebarNavLink
                 to="/CustomerComplaints"
                 onClick={() => setIsSidebarOpen(false)}
               >
@@ -2138,7 +2144,7 @@ const Sidebar = () => {
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Summary
+                  Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 

@@ -324,6 +324,11 @@ const StatusBadge = styled.span`
           background-color: ${props.theme.colors.success}20;
           color: ${props.theme.colors.success};
         `;
+      case "Dispatched":
+        return css`
+          background-color: #D1FAE5;
+          color: #065F46;
+        `;
       case "Rerun Initiated":
         return css`
           background-color: ${props.theme.colors.danger}20;
@@ -667,6 +672,7 @@ const PatientDetails = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case "Approved":
+      case "Dispatched":
         return <CheckCircle size={12} />;
       case "Rerun Initiated":
         return <RefreshCcw size={12} />;
@@ -676,6 +682,7 @@ const PatientDetails = () => {
   };
 
   const getTestStatus = (test) => {
+    if (test.dispatch) return "Dispatched";
     if (!test.test_value_exists) return "Waiting for Technician's Approval";
     return test.rerun
       ? "Rerun Initiated"
@@ -742,6 +749,7 @@ const PatientDetails = () => {
       if (statusFilter === "doctor")
         return testStatus === "Waiting for Doctor's Approval";
       if (statusFilter === "approved") return testStatus === "Approved";
+      if (statusFilter === "dispatched") return testStatus === "Dispatched";
       if (statusFilter === "rerun") return testStatus === "Rerun Initiated";
       return false;
     });
@@ -896,6 +904,7 @@ const PatientDetails = () => {
             <option value="technician">Waiting for Technician</option>
             <option value="doctor">Waiting for Doctor</option>
             <option value="approved">Approved</option>
+            <option value="dispatched">Dispatched</option>
             <option value="rerun">Rerun Initiated</option>
           </FilterSelect>
 
@@ -1155,6 +1164,18 @@ const PatientDetails = () => {
                                           <UserBadge>
                                             <Users size={10} />
                                             V/B: {test.verified_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.approve_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            A/B: {test.approve_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.dispatch_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            D/B: {test.dispatch_by}
                                           </UserBadge>
                                         )}
                                         {test.rerun_by && (

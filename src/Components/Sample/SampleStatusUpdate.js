@@ -204,9 +204,9 @@ const CalendarDay = styled.button`
 
   &:hover {
     background-color: ${(props) =>
-      props.selected
-        ? props.theme.colors.primaryHover
-        : props.theme.colors.backgroundAlt};
+    props.selected
+      ? props.theme.colors.primaryHover
+      : props.theme.colors.backgroundAlt};
   }
 `;
 
@@ -239,6 +239,45 @@ const SearchIcon = styled.div`
   top: 50%;
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.textLight};
+`;
+
+const BarcodeSearchWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 28rem;
+  min-width: 200px;
+  @media (max-width: ${(props) => props.theme.breakpoints?.md || "768px"}) {
+    max-width: 100%;
+  }
+`;
+
+const StepButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  background: ${(props) => props.theme.colors.backgroundAlt || props.theme.colors.background};
+  color: ${(props) => props.theme.colors.primary};
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: ${(props) => props.theme.transitions?.default || "all 0.2s ease-in-out"};
+  line-height: 1;
+  &:hover {
+    background: ${(props) => props.theme.colors.primary};
+    color: white;
+    border-color: ${(props) => props.theme.colors.primary};
+    box-shadow: 0 2px 8px ${(props) => props.theme.colors.primary}40;
+  }
+  &:active {
+    transform: scale(0.95);
+  }
 `;
 
 const Table = styled.table`
@@ -646,6 +685,20 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
 // Main component
 const SampleStatusUpdate = () => {
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleBarcodeStep = (delta) => {
+    setSearchQuery((prev) => {
+      const match = prev.match(/^(.*?)(\d+)$/);
+      if (match) {
+        const prefix = match[1];
+        const num = parseInt(match[2], 10);
+        const padLength = match[2].length;
+        const next = Math.max(0, num + delta);
+        return prefix + String(next).padStart(padLength, "0");
+      }
+      return delta > 0 ? prev + "1" : prev;
+    });
+  };
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [showFromDatePicker, setShowFromDatePicker] = useState(false);
@@ -888,22 +941,22 @@ const SampleStatusUpdate = () => {
           prevSamples.map((sample) =>
             sample.barcode === barcode
               ? {
-                  ...sample,
-                  testdetails: sample.testdetails.map((detail) => {
-                    const update = testsToUpdate.find(
-                      (t) => t.test_id === detail.test_id,
-                    );
-                    if (update) {
-                      return {
-                        ...detail,
-                        samplestatus: update.samplestatus,
-                        remarks: update.remarks,
-                        outsource_lab: update.outsource_lab,
-                      };
-                    }
-                    return detail;
-                  }),
-                }
+                ...sample,
+                testdetails: sample.testdetails.map((detail) => {
+                  const update = testsToUpdate.find(
+                    (t) => t.test_id === detail.test_id,
+                  );
+                  if (update) {
+                    return {
+                      ...detail,
+                      samplestatus: update.samplestatus,
+                      remarks: update.remarks,
+                      outsource_lab: update.outsource_lab,
+                    };
+                  }
+                  return detail;
+                }),
+              }
               : sample,
           ),
         );
@@ -1018,17 +1071,33 @@ const SampleStatusUpdate = () => {
           </Header>
 
           <FilterContainer>
-            <SearchContainer>
-              <SearchIcon>
-                <Search size={16} />
-              </SearchIcon>
-              <SearchInput
-                type="text"
-                placeholder="B2B Name, Barcode, Patient name, ID, or Segment..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </SearchContainer>
+            <BarcodeSearchWrapper>
+              <SearchContainer style={{ flex: 1, minWidth: 0, maxWidth: "none" }}>
+                <SearchIcon>
+                  <Search size={16} />
+                </SearchIcon>
+                <SearchInput
+                  type="text"
+                  placeholder="B2B Name, Barcode, Patient name, ID, or Segment..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </SearchContainer>
+              <StepButton
+                type="button"
+                title="Decrement barcode number"
+                onClick={() => handleBarcodeStep(-1)}
+              >
+                −
+              </StepButton>
+              <StepButton
+                type="button"
+                title="Increment barcode number"
+                onClick={() => handleBarcodeStep(1)}
+              >
+                +
+              </StepButton>
+            </BarcodeSearchWrapper>
 
             <div
               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
@@ -1269,7 +1338,7 @@ const SampleStatusUpdate = () => {
                           <Select
                             value={
                               statusChanges[selectedPatient.barcode]?.[
-                                testIndex
+                              testIndex
                               ] ?? detail.samplestatus
                             }
                             onChange={(e) =>
@@ -1291,59 +1360,59 @@ const SampleStatusUpdate = () => {
                           {statusChanges[selectedPatient.barcode]?.[
                             testIndex
                           ] === "Outsource" && (
-                            <Select
-                              value={
-                                selectedOutsourceLab[
+                              <Select
+                                value={
+                                  selectedOutsourceLab[
                                   `${selectedPatient.barcode}-${testIndex}`
-                                ] || ""
-                              }
-                              onChange={(e) =>
-                                handleOutsourceLabChange(
-                                  selectedPatient.barcode,
-                                  testIndex,
-                                  e.target.value,
-                                )
-                              }
-                            >
-                              <option value="">Select Outsource Lab</option>
-                              {Array.isArray(outsourceLabs) &&
-                              outsourceLabs.length > 0 ? (
-                                outsourceLabs.map((lab, index) => (
-                                  <option
-                                    key={lab.labID || index}
-                                    value={lab.labName}
-                                  >
-                                    {lab.labName}
+                                  ] || ""
+                                }
+                                onChange={(e) =>
+                                  handleOutsourceLabChange(
+                                    selectedPatient.barcode,
+                                    testIndex,
+                                    e.target.value,
+                                  )
+                                }
+                              >
+                                <option value="">Select Outsource Lab</option>
+                                {Array.isArray(outsourceLabs) &&
+                                  outsourceLabs.length > 0 ? (
+                                  outsourceLabs.map((lab, index) => (
+                                    <option
+                                      key={lab.labID || index}
+                                      value={lab.labName}
+                                    >
+                                      {lab.labName}
+                                    </option>
+                                  ))
+                                ) : (
+                                  <option value="" disabled>
+                                    No labs available
                                   </option>
-                                ))
-                              ) : (
-                                <option value="" disabled>
-                                  No labs available
-                                </option>
-                              )}
-                            </Select>
-                          )}
+                                )}
+                              </Select>
+                            )}
                         </Td>
                         <Td>
                           {statusChanges[selectedPatient.barcode]?.[
                             testIndex
                           ] === "Rejected" && (
-                            <Textarea
-                              value={
-                                remarks[
+                              <Textarea
+                                value={
+                                  remarks[
                                   `${selectedPatient.barcode}-${testIndex}`
-                                ] || ""
-                              }
-                              onChange={(e) =>
-                                handleRemarksChange(
-                                  selectedPatient.barcode,
-                                  testIndex,
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="Enter rejection reason"
-                            />
-                          )}
+                                  ] || ""
+                                }
+                                onChange={(e) =>
+                                  handleRemarksChange(
+                                    selectedPatient.barcode,
+                                    testIndex,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="Enter rejection reason"
+                              />
+                            )}
                         </Td>
                         <Td>
                           {/* ✅ toggleSelectTest uses barcode */}
