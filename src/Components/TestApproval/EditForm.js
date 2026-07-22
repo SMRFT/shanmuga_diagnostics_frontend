@@ -640,7 +640,6 @@ function EditForm() {
   // History panel toggle
   const [historyOpen, setHistoryOpen] = useState({});
 
-  const approved_by = localStorage.getItem("employeeId");
   const location = useLocation();
   const navigate = useNavigate();
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -700,11 +699,7 @@ function EditForm() {
     }
   };
 
-  const formatDateTime = (date) => {
-    const d = new Date(date);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  };
+
 
   // ── Key helpers ─────────────────────────────────────────────────────────────
   const makeKey = (ri, di, pi = null) =>
@@ -781,14 +776,11 @@ function EditForm() {
     } = pendingSave;
     const test = testValues[recordIndex];
     const detail = test?.testdetails[detailIndex];
-    const editedAt = formatDateTime(new Date());
 
     const histEntry = {
       old_value: String(oldVal ?? ""),
       new_value: newVal,
-      edited_by: approved_by,
       reason: editReason.trim(),
-      edited_at: editedAt,
     };
 
     const payload = {

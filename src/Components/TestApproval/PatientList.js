@@ -50,14 +50,15 @@ const GlobalStyle = createGlobalStyle`
   .react-datepicker-wrapper { width: auto; display: inline-block; }
   .react-datepicker__input-container { display: inline-block; }
   .react-datepicker__input-container input {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.5rem;
     border: 1px solid var(--gray-light);
     border-radius: var(--border-radius);
     font-size: 0.765rem;
     background-color: white;
     cursor: pointer;
     transition: var(--transition);
-    min-width: 140px;
+    min-width: 100px;
+    max-width: 110px;
     &:hover, &:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1); }
   }
   .react-datepicker { border: none; box-shadow: var(--box-shadow); font-family: inherit; z-index: 1000 !important; border: 1px solid var(--gray-light); }
@@ -93,13 +94,9 @@ const Header = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
 `;
 const Title = styled.h1`
   font-size: 1.5rem;
@@ -110,17 +107,10 @@ const Title = styled.h1`
 const FiltersContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-`;
-const DateRangeContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  width: 100%;
+  justify-content: flex-start;
 `;
 const DatePickerWrapper = styled.div`
   display: flex;
@@ -162,6 +152,43 @@ const SearchIconWrapper = styled.div`
   transform: translateY(-50%);
   color: var(--gray);
   pointer-events: none;
+`;
+
+const BarcodeSearchWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 350px;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
+const StepButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius);
+  background-color: var(--light);
+  color: var(--primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  line-height: 1;
+  &:hover {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.4);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
 `;
 const FilterButton = styled.button`
   display: inline-flex;
@@ -472,6 +499,20 @@ function PatientList() {
   const [locationFilter, setLocationFilter] = useState("all");
   const [patientList, setPatientList] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleBarcodeStep = (delta) => {
+    setSearchQuery((prev) => {
+      const match = prev.match(/^(.*?)(\d+)$/);
+      if (match) {
+        const prefix = match[1];
+        const num = parseInt(match[2], 10);
+        const padLength = match[2].length;
+        const next = Math.max(0, num + delta);
+        return prefix + String(next).padStart(padLength, "0");
+      }
+      return delta > 0 ? prev + "1" : prev;
+    });
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -712,15 +753,15 @@ function PatientList() {
 
       const verifiedOn = patient.created_date
         ? (() => {
-            try {
-              return format(
-                new Date(patient.created_date),
-                "dd MMM yy / HH:mm",
-              );
-            } catch {
-              return "N/A";
-            }
-          })()
+          try {
+            return format(
+              new Date(patient.created_date),
+              "dd MMM yy / HH:mm",
+            );
+          } catch {
+            return "N/A";
+          }
+        })()
         : "N/A";
 
       const rightDetails = [
@@ -1102,10 +1143,10 @@ function PatientList() {
                     const ch = renderWrapped(
                       `Note: ${param.comment}`,
                       colWidths[0] +
-                        colWidths[1] +
-                        colWidths[2] +
-                        colWidths[3] -
-                        2,
+                      colWidths[1] +
+                      colWidths[2] +
+                      colWidths[3] -
+                      2,
                       leftMargin,
                       yPos,
                       3.5,
@@ -1201,9 +1242,9 @@ function PatientList() {
         ...patient,
         testdetails: patient.testdetails
           ? patient.testdetails.map((test) => ({
-              ...test,
-              created_date: patient.created_date,
-            }))
+            ...test,
+            created_date: patient.created_date,
+          }))
           : [],
         is_emergency: patient.is_emergency || false,
         patient_history: patient.patient_history || "",
@@ -1215,9 +1256,9 @@ function PatientList() {
     } else {
       const testsWithCreatedDate = patient.testdetails
         ? patient.testdetails.map((test) => ({
-            ...test,
-            created_date: patient.created_date,
-          }))
+          ...test,
+          created_date: patient.created_date,
+        }))
         : [];
       acc[barcode].testdetails = [
         ...acc[barcode].testdetails,
@@ -1297,87 +1338,103 @@ function PatientList() {
         <Header>
           <Title>Patient List</Title>
           <FiltersContainer>
-            <DateRangeContainer>
-              <DatePickerWrapper>
-                <DatePickerLabel>
-                  <Calendar size={16} /> From:
-                </DatePickerLabel>
-                <DatePicker
-                  selected={fromDate}
-                  onChange={(date) => {
-                    setFromDate(date);
-                    if (date && toDate && toDate < date) setToDate(date);
-                  }}
-                  dateFormat="yyyy-MM-dd"
-                  placeholderText="Select from date"
-                  isClearable
-                  maxDate={today}
-                  showYearDropdown
-                  showMonthDropdown
-                  dropdownMode="select"
-                />
-              </DatePickerWrapper>
-              <DatePickerWrapper>
-                <DatePickerLabel>To:</DatePickerLabel>
-                <DatePicker
-                  selected={toDate}
-                  onChange={(date) => setToDate(date)}
-                  dateFormat="yyyy-MM-dd"
-                  placeholderText="Select to date"
-                  isClearable
-                  minDate={fromDate || undefined}
-                  maxDate={today}
-                  showYearDropdown
-                  showMonthDropdown
-                  dropdownMode="select"
-                />
-              </DatePickerWrapper>
-              <Select
-                value={emergencyFilter}
-                onChange={(e) => {
-                  setEmergencyFilter(e.target.value);
-                  setCurrentPage(1);
+            <DatePickerWrapper>
+              <DatePickerLabel>
+                <Calendar size={16} /> From:
+              </DatePickerLabel>
+              <DatePicker
+                selected={fromDate}
+                onChange={(date) => {
+                  setFromDate(date);
+                  if (date && toDate && toDate < date) setToDate(date);
                 }}
-              >
-                <option value="all">All Priority</option>
-                <option value="emergency">Emergency</option>
-                <option value="normal">Normal</option>
-              </Select>
-              <Select
-                value={locationFilter}
-                onChange={(e) => {
-                  setLocationFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Locations</option>
-                {uniqueLocations.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
-                  </option>
-                ))}
-              </Select>
-              <FilterButton onClick={handleFilter}>
-                <Filter size={16} /> Apply Filter
-              </FilterButton>
-              {showClear && (
-                <ClearButton onClick={handleClearFilter}>Clear All</ClearButton>
-              )}
-            </DateRangeContainer>
-            <SearchContainer>
-              <SearchIconWrapper>
-                <Search size={16} />
-              </SearchIconWrapper>
-              <SearchInput
-                type="text"
-                placeholder="Search by name, ID, or barcode"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
+                dateFormat="yyyy-MM-dd"
+                placeholderText="Select from date"
+                isClearable
+                maxDate={today}
+                showYearDropdown
+                showMonthDropdown
+                dropdownMode="select"
               />
-            </SearchContainer>
+            </DatePickerWrapper>
+            <DatePickerWrapper>
+              <DatePickerLabel>To:</DatePickerLabel>
+              <DatePicker
+                selected={toDate}
+                onChange={(date) => setToDate(date)}
+                dateFormat="yyyy-MM-dd"
+                placeholderText="Select to date"
+                isClearable
+                minDate={fromDate || undefined}
+                maxDate={today}
+                showYearDropdown
+                showMonthDropdown
+                dropdownMode="select"
+              />
+            </DatePickerWrapper>
+
+            <BarcodeSearchWrapper>
+              <SearchContainer style={{ flex: 1, minWidth: 0, width: "auto" }}>
+                <SearchIconWrapper>
+                  <Search size={16} />
+                </SearchIconWrapper>
+                <SearchInput
+                  type="text"
+                  placeholder="Search by name, ID, or barcode"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </SearchContainer>
+              <StepButton
+                type="button"
+                title="Decrement barcode number"
+                onClick={() => handleBarcodeStep(-1)}
+              >
+                −
+              </StepButton>
+              <StepButton
+                type="button"
+                title="Increment barcode number"
+                onClick={() => handleBarcodeStep(1)}
+              >
+                +
+              </StepButton>
+            </BarcodeSearchWrapper>
+
+            <Select
+              value={emergencyFilter}
+              onChange={(e) => {
+                setEmergencyFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="all">All Priority</option>
+              <option value="emergency">Emergency</option>
+              <option value="normal">Normal</option>
+            </Select>
+            <Select
+              value={locationFilter}
+              onChange={(e) => {
+                setLocationFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="all">All Locations</option>
+              {uniqueLocations.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </Select>
+            <FilterButton onClick={handleFilter}>
+              <Filter size={16} /> Apply Filter
+            </FilterButton>
+            {showClear && (
+              <ClearButton onClick={handleClearFilter}>Clear All</ClearButton>
+            )}
           </FiltersContainer>
         </Header>
 
@@ -1423,7 +1480,7 @@ function PatientList() {
                     <td>
                       <TestList>
                         {patient.testdetails &&
-                        patient.testdetails.length > 0 ? (
+                          patient.testdetails.length > 0 ? (
                           patient.testdetails.map((test, idx) => (
                             <TestItem key={idx}>
                               <span>

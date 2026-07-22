@@ -241,6 +241,48 @@ const ClearButton = styled(Button)`
   }
 `;
 
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-light);
+`;
+
+const StatCard = styled.div`
+  background-color: var(--light);
+  border-radius: var(--border-radius);
+  padding: 0.85rem 1.15rem;
+  border: 1px solid var(--gray-light);
+`;
+
+const StatLabel = styled.p`
+  font-size: 0.8rem;
+  color: var(--gray);
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+`;
+
+const StatDot = styled.span`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${(p) => p.color};
+  flex-shrink: 0;
+`;
+
+const StatValue = styled.p`
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: ${(p) => p.color || "var(--dark)"};
+  line-height: 1;
+`;
+
 const TableContainer = styled.div`
   overflow-x: auto;
   transform: rotateX(180deg);
@@ -732,15 +774,20 @@ const HMSPatientOverview = () => {
       const formattedEndDate = endDate.toISOString().split("T")[0];
 
       const url = `${Labbaseurl}hms_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
-
       const result = await apiRequest(url, "GET");
 
       if (result.success) {
-        const patientData = result.data;
-
-        // Set the full and filtered patient list
-        setPatients(patientData);
-        setFilteredPatients(patientData);
+        const patientData = result.data || [];
+        const sortedData = [...patientData].sort((a, b) => {
+          const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
+          const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+          if (dateA !== dateB) return dateB - dateA;
+          const idA = String(a.patient_id || a.barcode || a.id || "");
+          const idB = String(b.patient_id || b.barcode || b.id || "");
+          return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
+        });
+        setPatients(sortedData);
+        setFilteredPatients(sortedData);
 
         const statusMap = {};
         patientData.forEach((patient) => {
@@ -1009,7 +1056,15 @@ const HMSPatientOverview = () => {
         matchesDepartment // Add this line
       );
     });
-    setFilteredPatients(filtered);
+    const sortedFiltered = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
+      const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+      if (dateA !== dateB) return dateB - dateA;
+      const idA = String(a.patient_id || a.barcode || a.id || "");
+      const idB = String(b.patient_id || b.barcode || b.id || "");
+      return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
+    });
+    setFilteredPatients(sortedFiltered);
   }, [
     startDate,
     endDate,
@@ -2348,6 +2403,20 @@ const HMSPatientOverview = () => {
     });
   };
 
+  const totalSamplesCount = filteredPatients.length;
+  const approvedCount = filteredPatients.filter(
+    (p) => (statuses[p.barcode]?.status || p.status) === "Approved"
+  ).length;
+  const partiallyApprovedCount = filteredPatients.filter(
+    (p) => (statuses[p.barcode]?.status || p.status) === "Partially Approved"
+  ).length;
+  const dispatchedCount = filteredPatients.filter(
+    (p) => (statuses[p.barcode]?.status || p.status) === "Dispatched"
+  ).length;
+  const partiallyDispatchedCount = filteredPatients.filter(
+    (p) => (statuses[p.barcode]?.status || p.status) === "Partially Dispatched"
+  ).length;
+
   return (
     <Container>
       <GlobalStyle />
@@ -2497,6 +2566,44 @@ const HMSPatientOverview = () => {
             </ClearButton>
           </ButtonContainer>
         </FiltersContainer>
+
+        <StatsGrid>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#4361ee" />
+              Total Samples
+            </StatLabel>
+            <StatValue color="#4361ee">{totalSamplesCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#f59e0b" />
+              Partially Approved
+            </StatLabel>
+            <StatValue color="#d97706">{partiallyApprovedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#2ec4b6" />
+              Approved
+            </StatLabel>
+            <StatValue color="#2ec4b6">{approvedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#0284c7" />
+              Partially Dispatched
+            </StatLabel>
+            <StatValue color="#0284c7">{partiallyDispatchedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#065f46" />
+              Dispatched
+            </StatLabel>
+            <StatValue color="#065f46">{dispatchedCount}</StatValue>
+          </StatCard>
+        </StatsGrid>
 
         <TableContainer>
           <Table>
@@ -2683,16 +2790,6 @@ const HMSPatientOverview = () => {
                               </ActionButton>
                             </PrintDropdown>
                           )}
-                          {/* 
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleSendEmail(patient)
-                            }
-                            title="Send Email"
-                          >
-                            <Mail size={16} />
-                          </ActionButton> */}
                         </ActionContainer>
                       </td>
                     </tr>
@@ -2708,18 +2805,7 @@ const HMSPatientOverview = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: "var(--gray)",
-            fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
-          }}
-        >
-          Showing {filteredPatients.length}{" "}
-          {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+
         {activeDropdownPatientId &&
           ReactDOM.createPortal(
             (() => {

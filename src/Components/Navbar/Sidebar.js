@@ -851,6 +851,12 @@ const Sidebar = () => {
                 <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
                   Work List
                 </SubLink>
+                <SubLink
+                  to="/ApprovedList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Report Edit
+                </SubLink>
               </DropdownContent>
 
               <SidebarNavLink

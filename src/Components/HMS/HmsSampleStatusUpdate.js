@@ -165,6 +165,45 @@ const SearchIcon = styled.div`
   z-index: 1;
 `;
 
+const BarcodeSearchWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 28rem;
+  min-width: 200px;
+  @media (max-width: ${(props) => props.theme.breakpoints?.md || "768px"}) {
+    max-width: 100%;
+  }
+`;
+
+const StepButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  background: ${(props) => props.theme.colors.backgroundAlt || props.theme.colors.background};
+  color: ${(props) => props.theme.colors.primary};
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: ${(props) => props.theme.transitions?.default || "all 0.2s ease-in-out"};
+  line-height: 1;
+  &:hover {
+    background: ${(props) => props.theme.colors.primary};
+    color: white;
+    border-color: ${(props) => props.theme.colors.primary};
+    box-shadow: 0 2px 8px ${(props) => props.theme.colors.primary}40;
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
 const SearchInput = styled.input`
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
@@ -637,6 +676,20 @@ const SimpleDatePicker = ({ selectedDate, onChange, onClose }) => {
 // Main component
 const HmsSampleStatusUpdate = () => {
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleBarcodeStep = (delta) => {
+    setSearchQuery((prev) => {
+      const match = prev.match(/^(.*?)(\d+)$/);
+      if (match) {
+        const prefix = match[1];
+        const num = parseInt(match[2], 10);
+        const padLength = match[2].length;
+        const next = Math.max(0, num + delta);
+        return prefix + String(next).padStart(padLength, "0");
+      }
+      return delta > 0 ? prev + "1" : prev;
+    });
+  };
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [showFromDatePicker, setShowFromDatePicker] = useState(false);
@@ -1065,17 +1118,33 @@ const HmsSampleStatusUpdate = () => {
           </Header>
 
           <FilterContainer>
-            <SearchContainer>
-              <SearchIcon>
-                <Search size={16} />
-              </SearchIcon>
-              <SearchInput
-                type="text"
-                placeholder="Search by Barcode, Patient name, ID"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </SearchContainer>
+            <BarcodeSearchWrapper>
+              <SearchContainer style={{ flex: 1, minWidth: 0, maxWidth: "none" }}>
+                <SearchIcon>
+                  <Search size={16} />
+                </SearchIcon>
+                <SearchInput
+                  type="text"
+                  placeholder="Search by Barcode, Patient name, ID"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </SearchContainer>
+              <StepButton
+                type="button"
+                title="Decrement barcode number"
+                onClick={() => handleBarcodeStep(-1)}
+              >
+                −
+              </StepButton>
+              <StepButton
+                type="button"
+                title="Increment barcode number"
+                onClick={() => handleBarcodeStep(1)}
+              >
+                +
+              </StepButton>
+            </BarcodeSearchWrapper>
 
             <div
               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
