@@ -591,13 +591,13 @@ const Sidebar = () => {
                 </SubLink>
               </DropdownContent>
 
-              
+
               <DropdownContent isOpen={dropdowns.logisticsDetails}>
                 <SubLink
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Summary
+                  Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -1115,7 +1115,7 @@ const Sidebar = () => {
                 HMS Test Count
               </SidebarNavLink>
 
-               <SidebarNavLink
+              <SidebarNavLink
                 to="/CustomerComplaints"
                 onClick={() => setIsSidebarOpen(false)}
               >
@@ -1308,7 +1308,7 @@ const Sidebar = () => {
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Summary
+                  Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -1330,7 +1330,7 @@ const Sidebar = () => {
               </SidebarNavLink>
 
 
-               <SidebarNavLink
+              <SidebarNavLink
                 to="/CustomerComplaints"
                 onClick={() => setIsSidebarOpen(false)}
               >
@@ -2138,7 +2138,7 @@ const Sidebar = () => {
                   to="/Busfare"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                 Bus Sample Summary
+                  Bus Sample Summary
                 </SubLink>
               </DropdownContent>
 
@@ -2457,10 +2457,10 @@ const Sidebar = () => {
               </SidebarNavLink>
             </>
           )}
-          {role === "PH" && (
+          {role === "Clinical Reports" && (
             <>
               <SidebarNavLink
-                to="/PreethamDashboard"
+                to="/ClinicalDashboard"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
@@ -2479,7 +2479,7 @@ const Sidebar = () => {
                 Bill Estimate
               </SidebarNavLink>
               <SidebarNavLink
-                to="/PreethamPatientOverview"
+                to="/ClinicalPatientOverview"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
@@ -2489,7 +2489,7 @@ const Sidebar = () => {
               </SidebarNavLink>
 
               <SidebarNavLink
-                to="/PreethamHospitalLedger"
+                to="/ClinicalLedgerBalance"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
@@ -2520,3 +2520,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+

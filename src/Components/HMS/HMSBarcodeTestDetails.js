@@ -549,6 +549,12 @@ const HMSBarcodeTestDetails = () => {
           shortcut: "",
           isExtra: true,
         },
+        {
+          barcode: patientBarcode,
+          containerName: "",
+          shortcut: "",
+          isExtra: true,
+        },
       ];
 
       setBarcodeData(newBarcodeData);
@@ -647,6 +653,12 @@ const HMSBarcodeTestDetails = () => {
           shortcut: [...new Set(group.tests.map((t) => t.shortcut).filter(Boolean))].join(", "),
           isExtra: false,
         })),
+        {
+          barcode: patientBarcode,
+          containerName: "",
+          shortcut: "",
+          isExtra: true,
+        },
         {
           barcode: patientBarcode,
           containerName: "",
@@ -871,6 +883,12 @@ const HMSBarcodeTestDetails = () => {
               isExtra: false,
             }),
           ),
+          {
+            barcode: generatedBarcode,
+            containerName: "",
+            shortcut: "",
+            isExtra: true,
+          },
           {
             barcode: generatedBarcode,
             containerName: "",

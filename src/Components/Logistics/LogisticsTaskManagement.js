@@ -725,7 +725,7 @@ const LogisticsTaskManagement = () => {
           });
 
           // Save to backend
-          const userName = localStorage.getItem('name');
+          const userName = localStorage.getItem('employee_id') || localStorage.getItem('employeeId') || localStorage.getItem('name');
           try {
             await apiRequest(
               `${Labbaseurl}sample-collector-location/`,
@@ -837,7 +837,7 @@ const LogisticsTaskManagement = () => {
           }
 
           // Save to backend using PUT method
-          const userName = localStorage.getItem('name');
+          const userName = localStorage.getItem('employee_id') || localStorage.getItem('employeeId') || localStorage.getItem('name');
           try {
             const res = await apiRequest(
               `${Labbaseurl}sample-collector-location/`,
@@ -868,7 +868,7 @@ const LogisticsTaskManagement = () => {
           setError('Unable to get exact final location, strictly terminating the session via fallback...');
           
           // Fallback backend termination to ensure they aren't trapped if GPS fails
-          const userName = localStorage.getItem('name');
+          const userName = localStorage.getItem('employee_id') || localStorage.getItem('employeeId') || localStorage.getItem('name');
           const today = new Date().toISOString().split('T')[0];
           try {
             await apiRequest(
@@ -913,12 +913,13 @@ const LogisticsTaskManagement = () => {
   };
 
   useEffect(() => {
-    const storedName = localStorage.getItem("name");
+    const actualName = localStorage.getItem('name');
+    const storedId = localStorage.getItem('employee_id') || localStorage.getItem('employeeId') || actualName;
 
-    if (storedName) {
-      setUserInfo({ name: storedName });
-      fetchTasks(storedName);
-      checkActiveTracking(storedName);
+    if (actualName) {
+      setUserInfo({ name: actualName });
+      fetchTasks(storedId);
+      checkActiveTracking(storedId);
     } else {
       setError("User name not found in local storage");
     }
@@ -1102,7 +1103,7 @@ const LogisticsTaskManagement = () => {
       setSuccess('Task accepted successfully!');
 
       // Re-fetch username from localStorage
-      const storedName = localStorage.getItem("name");
+      const storedName = localStorage.getItem('employee_id') || localStorage.getItem('employeeId') || localStorage.getItem('name');
       if (storedName) {
         fetchTasks(storedName);
       }
@@ -1150,7 +1151,7 @@ const LogisticsTaskManagement = () => {
       closeRejectModal();
 
       // Re-fetch username from localStorage
-      const storedName = localStorage.getItem("name");
+      const storedName = localStorage.getItem('employee_id') || localStorage.getItem('employeeId') || localStorage.getItem('name');
       if (storedName) {
         fetchTasks(storedName);
       }
@@ -1180,7 +1181,7 @@ const LogisticsTaskManagement = () => {
       setSuccess('Sample picked up successfully!');
 
       // Re-fetch username from localStorage
-      const storedName = localStorage.getItem("name");
+      const storedName = localStorage.getItem('employee_id') || localStorage.getItem('employeeId') || localStorage.getItem('name');
       if (storedName) {
         fetchTasks(storedName);
       }
@@ -1527,3 +1528,4 @@ const LogisticsTaskManagement = () => {
 };
 
 export default LogisticsTaskManagement;
+

@@ -1,340 +1,332 @@
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
 import { toast } from "react-toastify";
 import apiRequest from "../Auth/apiRequest";
-import { Search, Trash2, Calculator, Info, CheckCircle, XCircle } from "lucide-react";
-import styled from "styled-components";
-import { useState, useEffect } from "react";
+import { Search, Trash2, Calculator, Info, RefreshCw } from "lucide-react";
 
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM — viewport-locked, no page scroll
+═══════════════════════════════════════════════ */
+const Shell = styled.div`
+  height: calc(100vh - 75px);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 1.25rem;
+  gap: 1rem;
+  border-radius: 24px;
 
-// Styled Components
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1.5rem 2rem;
-  font-family: 'Poppins', sans-serif;
+  @media (max-width: 768px) { padding: 0.75rem; gap: 0.75rem; border-radius: 12px; }
 `;
 
-const Header = styled.div`
-  background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
-  color: white;
-  padding: 3rem 2rem;
-  border-radius: 24px;
-  margin-bottom: 2.5rem;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(110, 142, 251, 0.15);
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%);
-  }
+const TopBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 `;
 
 const Title = styled.h1`
-  margin: 0;
-  font-size: 2.5rem;
+  font-size: 1.35rem;
+  color: #1e293b;
   font-weight: 700;
-  letter-spacing: -0.5px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  margin: 0;
+  letter-spacing: -0.4px;
+  @media (max-width: 768px) { font-size: 1.1rem; }
 `;
 
-const ControlsSection = styled.div`
+const Card = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   background: white;
-  padding: 2rem;
   border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
-  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  overflow: hidden;
+`;
+
+const FilterBar = styled.div`
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  flex-shrink: 0;
+  background: #fafbfd;
+
+  @media (max-width: 768px) { flex-direction: column; align-items: stretch; }
+`;
+
+const FGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: ${p => p.grow || "0 1 auto"};
+  min-width: ${p => p.minW || "150px"};
+`;
+
+const FLabel = styled.label`
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const FInput = styled.input`
+  padding: 0.55rem 0.75rem;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 0.85rem;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.15s;
+  background: white;
+
+  &:focus {
+    border-color: #a777e3;
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
+  }
+`;
+
+const IconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: ${p => p.pad || "0.55rem 0.85rem"};
+  border-radius: 14px;
+  border: none;
+  background: ${p => p.bg || "#a777e3"};
+  color: ${p => p.color || "white"};
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+
+  &:hover { filter: brightness(0.94); transform: translateY(-1px); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 `;
 
 const ToggleContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 16px;
-  width: fit-content;
-`;
-
-const ToggleLabel = styled.label`
+  gap: 10px;
+  background: rgba(167, 119, 227, 0.06);
+  padding: 0.4rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(167, 119, 227, 0.15);
+  font-size: 0.85rem;
   font-weight: 600;
   color: #475569;
-  font-size: 1rem;
 `;
 
 const ToggleSwitch = styled.div`
   position: relative;
-  width: 56px;
-  height: 32px;
+  width: 44px;
+  height: 24px;
   background: ${(props) => (props.isOn ? "#10b981" : "#cbd5e1")};
   border-radius: 20px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+  transition: all 0.2s;
 
   &::before {
     content: "";
     position: absolute;
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: white;
-    top: 4px;
-    left: ${(props) => (props.isOn ? "28px" : "4px")};
-    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    top: 3px;
+    left: ${(props) => (props.isOn ? "23px" : "3px")};
+    transition: all 0.2s;
   }
 `;
 
 const ToggleStatus = styled.span`
-  font-weight: 600;
   color: ${(props) => (props.isB2B ? "#10b981" : "#ef4444")};
-  font-size: 0.95rem;
-  min-width: 80px;
+  font-weight: 700;
 `;
 
 const SearchContainer = styled.div`
   position: relative;
-  margin-bottom: 1rem;
-`;
-
-const SearchInputWrapper = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-`;
-
-const SearchIconWrapper = styled.div`
-  position: absolute;
-  left: 16px;
-  color: #94a3b8;
-  pointer-events: none;
-`;
-
-const SearchInput = styled.input`
   width: 100%;
-  padding: 16px 16px 16px 48px;
-  border: 2px solid #e2e8f0;
-  border-radius: 16px;
-  font-size: 1rem;
-  outline: none;
-  transition: all 0.2s ease;
-  background: #f8fafc;
-  color: #1e293b;
-
-  &:focus {
-    border-color: #a777e3;
-    background: white;
-    box-shadow: 0 0 0 4px rgba(167, 119, 227, 0.1);
-  }
-
-  &::placeholder {
-    color: #94a3b8;
-  }
 `;
 
 const DropdownContainer = styled.div`
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
-  max-height: 320px;
+  max-height: 240px;
   overflow-y: auto;
   background: white;
-  border: 1px solid #f1f5f9;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   z-index: 1000;
-  padding: 8px;
+  padding: 6px;
 `;
 
 const DropdownItem = styled.div`
-  padding: 12px 16px;
+  padding: 10px 14px;
   cursor: pointer;
-  border-radius: 12px;
-  transition: all 0.2s ease;
-  margin-bottom: 4px;
-
-  &:hover {
-    background-color: #f8fafc;
-    transform: translateX(4px);
-  }
-`;
-
-const TestInfo = styled.div`
+  border-radius: 10px;
+  transition: all 0.15s;
+  margin-bottom: 2px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  &:hover {
+    background-color: #f8fafc;
+    transform: translateX(2px);
+  }
 `;
 
-const TestName = styled.span`
+const TestName = styled.div`
   font-weight: 600;
   color: #1e293b;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 `;
 
 const TestRate = styled.span`
-  background: ${(props) => (props.isB2B ? "#dcfce7" : "#fee2e2")};
-  color: ${(props) => (props.isB2B ? "#15803d" : "#b91c1c")};
-  padding: 6px 12px;
+  background: ${(props) => (props.isB2B ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)")};
+  color: ${(props) => (props.isB2B ? "#10b981" : "#ef4444")};
+  padding: 3px 8px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 `;
 
-const TableContainer = styled.div`
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(0,0,0,0.02);
+const TableWrap = styled.div`
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+
+  &::-webkit-scrollbar { width: 5px; height: 5px; }
+  &::-webkit-scrollbar-track { background: #f8fafc; }
+  &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
 `;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
 `;
 
-const TableHeader = styled.thead`
+const TableHead = styled.thead`
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
+
+  th {
+    text-align: left;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
 `;
 
-const TableRow = styled.tr`
-  transition: all 0.2s;
+const Tr = styled.tr`
   border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.12s;
 
-  &:last-child {
-    border-bottom: none;
+  &:hover { background-color: #f8faff; }
+
+  td {
+    padding: 0.7rem 1.25rem;
+    color: #334155;
+    font-size: 0.88rem;
+    vertical-align: middle;
   }
-
-  &:hover {
-    background-color: #f8fafc;
-  }
-`;
-
-const TableCell = styled.td`
-  padding: 1.25rem 1.5rem;
-  text-align: ${(props) => (props.center ? "center" : "left")};
-  font-size: 0.95rem;
-  color: #475569;
-  vertical-align: middle;
-`;
-
-const TableHeaderCell = styled.th`
-  padding: 1.25rem 1.5rem;
-  text-align: ${(props) => (props.center ? "center" : "left")};
-  font-weight: 600;
-  color: #64748b;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 `;
 
 const RemoveButton = styled.button`
   background: #fee2e2;
   color: #ef4444;
   border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
 
   &:hover {
     background: #ef4444;
     color: white;
-    transform: scale(1.05);
   }
 `;
 
-const TotalSection = styled.div`
-  background: linear-gradient(135deg, #6e8efb, #a777e3, #e56f8f);
-  color: white;
-  padding: 2.5rem;
-  border-radius: 24px;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(110, 142, 251, 0.2);
+const TotalFooter = styled.div`
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  position: relative;
-  overflow: hidden;
+  justify-content: space-between;
+  padding: 0.85rem 1.5rem;
+  background: #f8fafc;
+  border-top: 2px solid #e2e8f0;
+  flex-shrink: 0;
 `;
 
-const TotalLabel = styled.h2`
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 500;
-  opacity: 0.9;
-`;
-
-const TotalAmount = styled.div`
-  font-size: 3.5rem;
+const TotalLabelText = styled.span`
+  font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: -1px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const TotalAmountVal = styled.span`
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #a777e3;
 `;
 
 const EmptyState = styled.div`
+  padding: 3rem;
   text-align: center;
-  padding: 4rem 2rem;
   color: #94a3b8;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const LoadingSpinner = styled.div`
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
+  font-size: 0.9rem;
 `;
 
 const ErrorMessage = styled.div`
   background: #ffebee;
   color: #c62828;
   padding: 15px;
-  border-radius: 8px;
+  border-radius: 14px;
   margin-bottom: 20px;
   text-align: center;
 `;
 
+/* ═══════════════════════════════════════════════
+   COMPONENT
+═══════════════════════════════════════════════ */
 const Estimate = () => {
   // State Management
-  const [isB2B, setIsB2B] = useState(false);
+  const [isB2B, setIsB2B] = useState(localStorage.getItem("role") === "Clinical Reports");
   const [testOptions, setTestOptions] = useState([]);
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -347,60 +339,54 @@ const Estimate = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   // Fetch test details from API
-  useEffect(() => {
-    const fetchTestDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchTestDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET");
+      const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET");
 
-        console.log("API Response:", response.data); // Debug log
+      const tests = response.data?.data || response.data || [];
 
-        // Handle the response structure: { success: true, data: [...], count: N }
-        const tests = response.data?.data || [];
-
-        if (!Array.isArray(tests)) {
-          throw new Error("Invalid data format received from API");
-        }
-
-        // Normalize the data with proper validation
-        const normalizedData = tests.map((test) => {
-          // Ensure test_id exists and convert to string for uniqueId
-          const testId = test.test_id !== undefined && test.test_id !== null
-            ? String(test.test_id)
-            : `temp_${Math.random().toString(36).substr(2, 9)}`;
-
-          return {
-            ...test,
-            uniqueId: testId, // Use test_id as uniqueId
-            test_name: (test.test_name || "").trim(),
-            shortcut: (test.shortcut || "").trim(),
-            MRP: Number(test.MRP) || 0,
-            L2L_Rate_Card: Number(test.L2L_Rate_Card) || 0,
-            test_code: test.test_code || "",
-            department: test.department || "",
-            specimen_type: test.specimen_type || "",
-          };
-        });
-
-        console.log("Normalized Data:", normalizedData); // Debug log
-
-        setTestOptions(normalizedData);
-        setFilteredOptions(normalizedData);
-
-        if (normalizedData.length === 0) {
-          setError("No tests available in the system");
-        }
-      } catch (error) {
-        console.error("Error fetching test details:", error);
-        setError(error.message || "Failed to load test details");
-        toast.error("Failed to load test details");
-      } finally {
-        setLoading(false);
+      if (!Array.isArray(tests)) {
+        throw new Error("Invalid data format received from API");
       }
-    };
 
+      // Normalize the data with proper validation
+      const normalizedData = tests.map((test) => {
+        const testId = test.test_id !== undefined && test.test_id !== null
+          ? String(test.test_id)
+          : `temp_${Math.random().toString(36).substr(2, 9)}`;
+
+        return {
+          ...test,
+          uniqueId: testId,
+          test_name: (test.test_name || "").trim(),
+          shortcut: (test.shortcut || "").trim(),
+          MRP: Number(test.MRP) || 0,
+          L2L_Rate_Card: Number(test.L2L_Rate_Card) || 0,
+          test_code: test.test_code || "",
+          department: test.department || "",
+          specimen_type: test.specimen_type || "",
+        };
+      });
+
+      setTestOptions(normalizedData);
+      setFilteredOptions(normalizedData);
+
+      if (normalizedData.length === 0) {
+        setError("No tests available in the system");
+      }
+    } catch (err) {
+      console.error("Error fetching test details:", err);
+      setError(err.message || "Failed to load test details");
+      toast.error("Failed to load test details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTestDetails();
   }, [Labbaseurl]);
 
@@ -429,7 +415,6 @@ const Estimate = () => {
         );
       });
 
-      console.log("Filtered results:", filtered); // Debug log
       setFilteredOptions(filtered);
       setShowDropdown(filtered.length > 0);
     }
@@ -437,9 +422,6 @@ const Estimate = () => {
 
   // Handle test selection
   const handleTestSelect = (test) => {
-    console.log("Selecting test:", test);
-    console.log("Current selected tests:", selectedTests);
-
     // Check if test is already selected using uniqueId
     const isAlreadySelected = selectedTests.some(
       (selectedTest) => selectedTest.uniqueId === test.uniqueId
@@ -447,7 +429,6 @@ const Estimate = () => {
 
     if (!isAlreadySelected) {
       setSelectedTests((prevTests) => [...prevTests, test]);
-      toast.success(`${test.test_name} added to estimate`);
     } else {
       toast.info(`${test.test_name} is already selected`);
     }
@@ -463,7 +444,6 @@ const Estimate = () => {
     setSelectedTests((prevTests) =>
       prevTests.filter((test) => test.uniqueId !== testId)
     );
-    toast.success("Test removed from estimate");
   };
 
   // Calculate total amount
@@ -491,143 +471,153 @@ const Estimate = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const clearEstimate = () => {
+    setSelectedTests([]);
+    setSearchQuery("");
+    setShowDropdown(false);
+  };
+
   return (
-    <Container>
-      <Header>
-        <Title>
-          <Calculator size={32} />
-          Test Rate Estimator
-        </Title>
-      </Header>
+    <Shell>
+      {/* Top Bar */}
+      <TopBar>
+        <TitleGroup>
+          <Calculator size={22} color="#a777e3" />
+          <Title>Test Rate Estimator</Title>
+        </TitleGroup>
+        <IconBtn bg="#a777e3" color="#f1f5f9" onClick={fetchTestDetails} disabled={loading} title="Refresh">
+          <RefreshCw size={16} />
+        </IconBtn>
+      </TopBar>
 
-      <ControlsSection>
-        <ToggleContainer>
-          <ToggleLabel>Pricing Mode:</ToggleLabel>
-          <ToggleSwitch isOn={isB2B} onClick={() => setIsB2B(!isB2B)} />
-          <ToggleStatus isB2B={isB2B}>
-            {isB2B ? "B2B Rates" : "MRP Rates"}
-          </ToggleStatus>
-        </ToggleContainer>
-
-        <SearchContainer className="search-container">
-          <SearchInputWrapper>
-            <SearchIconWrapper>
-              <Search size={20} />
-            </SearchIconWrapper>
-            <SearchInput
-              type="text"
-              placeholder="Search by test name, shortcut, code, or department..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onFocus={() => {
-                if (searchQuery.trim() && filteredOptions.length > 0) {
-                  setShowDropdown(true);
-                }
-              }}
-              disabled={loading || error}
-            />
-          </SearchInputWrapper>
-
-          {showDropdown && filteredOptions.length > 0 && (
-            <DropdownContainer>
-              {filteredOptions.map((test) => (
-                <DropdownItem
-                  key={test.uniqueId}
-                  onClick={() => handleTestSelect(test)}
-                >
-                  <TestInfo>
-                    <div>
-                      <TestName>{test.test_name}</TestName>
-                      {test.shortcut && (
-                        <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '2px' }}>
-                          {test.shortcut} {test.test_code && `• ${test.test_code}`}
-                        </div>
-                      )}
-                    </div>
-                    <TestRate isB2B={isB2B}>₹{getRate(test)}</TestRate>
-                  </TestInfo>
-                </DropdownItem>
-              ))}
-            </DropdownContainer>
+      <Card>
+        {/* Controls / FilterBar styling */}
+        <FilterBar>
+          {localStorage.getItem("role") !== "Clinical Reports" && (
+            <FGroup minW="180px">
+              <FLabel>Pricing Mode</FLabel>
+              <ToggleContainer>
+                <ToggleSwitch isOn={isB2B} onClick={() => setIsB2B(!isB2B)} />
+                <ToggleStatus isB2B={isB2B}>
+                  {isB2B ? "B2B Rates" : "MRP Rates"}
+                </ToggleStatus>
+              </ToggleContainer>
+            </FGroup>
           )}
 
-          {showDropdown && searchQuery.trim() && filteredOptions.length === 0 && (
-            <DropdownContainer>
-              <DropdownItem style={{ cursor: 'default', textAlign: 'center', color: '#666' }}>
-                No tests found matching "{searchQuery}"
-              </DropdownItem>
-            </DropdownContainer>
-          )}
-        </SearchContainer>
-      </ControlsSection>
+          <FGroup grow="1" minW="260px" style={{ position: 'relative' }}>
+            <FLabel>Search Test</FLabel>
+            <SearchContainer className="search-container">
+              <div style={{ position: "relative" }}>
+                <Search size={15} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                <FInput
+                  type="text"
+                  placeholder="Search by name, shortcut, code..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={() => {
+                    if (searchQuery.trim() && filteredOptions.length > 0) {
+                      setShowDropdown(true);
+                    }
+                  }}
+                  disabled={loading || error}
+                  style={{ paddingLeft: "2.2rem", width: "100%", boxSizing: "border-box" }}
+                />
+              </div>
 
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <>
-          <TableContainer>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHeaderCell center>Sl.No</TableHeaderCell>
-                  <TableHeaderCell>Test Name</TableHeaderCell>
-                  <TableHeaderCell>Code</TableHeaderCell>
-                  <TableHeaderCell center>Rate (₹)</TableHeaderCell>
-                  <TableHeaderCell center>Action</TableHeaderCell>
-                </TableRow>
-              </TableHeader>
-              <tbody>
-                {selectedTests.length > 0 ? (
-                  selectedTests.map((test, index) => (
-                    <TableRow key={test.uniqueId}>
-                      <TableCell center>{index + 1}</TableCell>
-                      <TableCell>
-                        {test.test_name}
+              {showDropdown && filteredOptions.length > 0 && (
+                <DropdownContainer>
+                  {filteredOptions.map((test) => (
+                    <DropdownItem
+                      key={test.uniqueId}
+                      onClick={() => handleTestSelect(test)}
+                    >
+                      <div>
+                        <TestName>{test.test_name}</TestName>
                         {test.shortcut && (
-                          <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                            {test.shortcut}
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                            {test.shortcut} {test.test_code && `• ${test.test_code}`}
                           </div>
                         )}
-                      </TableCell>
-                      <TableCell>{test.test_code || '-'}</TableCell>
-                      <TableCell center>
-                        <TestRate isB2B={isB2B}>₹{getRate(test)}</TestRate>
-                      </TableCell>
-                      <TableCell center>
+                      </div>
+                      <TestRate isB2B={isB2B}>₹{getRate(test)}</TestRate>
+                    </DropdownItem>
+                  ))}
+                </DropdownContainer>
+              )}
+
+              {showDropdown && searchQuery.trim() && filteredOptions.length === 0 && (
+                <DropdownContainer>
+                  <DropdownItem style={{ cursor: 'default', textAlign: 'center', color: '#94a3b8' }}>
+                    No tests found matching "{searchQuery}"
+                  </DropdownItem>
+                </DropdownContainer>
+              )}
+            </SearchContainer>
+          </FGroup>
+          <IconBtn bg="#f1f5f9" color="#475569" onClick={clearEstimate} title="Clear">Clear</IconBtn>
+        </FilterBar>
+
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+
+        <TableWrap>
+          <Table>
+            <TableHead>
+              <tr>
+                <th style={{ width: '80px', textAlign: 'center' }}>Sl.No</th>
+                <th>Test Name</th>
+                <th style={{ textAlign: 'center' }}>Rate</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Action</th>
+              </tr>
+            </TableHead>
+            <tbody>
+              {loading ? (
+                <Tr><td colSpan={4} style={{ textAlign: "center", padding: "2.5rem", color: "#94a3b8" }}>Loading test details...</td></Tr>
+              ) : selectedTests.length > 0 ? (
+                selectedTests.map((test, index) => (
+                  <Tr key={test.uniqueId}>
+                    <td style={{ textAlign: 'center' }}>{index + 1}</td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{test.test_name}</div>
+                      {test.shortcut && (
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          {test.shortcut}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'center', fontWeight: 600 }}>₹{getRate(test)}</td>
+                    <td>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <RemoveButton
                           onClick={() => handleRemoveTest(test.uniqueId)}
                           title="Remove test"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} />
                         </RemoveButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan="5">
-                      <EmptyState>
-                        <Info size={48} style={{ opacity: 0.5 }} />
-                        <div>No tests selected. Use the search box above to add tests.</div>
-                      </EmptyState>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </tbody>
-            </Table>
-          </TableContainer>
+                      </div>
+                    </td>
+                  </Tr>
+                ))
+              ) : (
+                <Tr>
+                  <td colSpan="4">
+                    <EmptyState>
+                      <Info size={36} style={{ opacity: 0.25, marginBottom: '0.50rem' }} />
+                      <div>No tests selected. Use the search box above to add tests.</div>
+                    </EmptyState>
+                  </td>
+                </Tr>
+              )}
+            </tbody>
+          </Table>
+        </TableWrap>
 
-          {selectedTests.length > 0 && (
-            <TotalSection>
-              <TotalLabel>Total Estimate</TotalLabel>
-              <TotalAmount>₹{calculateTotal().toLocaleString('en-IN')}</TotalAmount>
-            </TotalSection>
-          )}
-        </>
-      )}
-    </Container>
+        <TotalFooter>
+          <TotalLabelText>Total Estimate</TotalLabelText>
+          <TotalAmountVal>₹{calculateTotal().toLocaleString('en-IN')}</TotalAmountVal>
+        </TotalFooter>
+      </Card>
+    </Shell>
   );
 };
 

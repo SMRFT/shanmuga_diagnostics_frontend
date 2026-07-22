@@ -1185,6 +1185,7 @@ const PatientForm = () => {
 
   const [isB2BEnabled, setIsB2BEnabled] = useState(false)
   const [isHomeCollectionEnabled, setIsHomeCollectionEnabled] = useState(false)
+  const [isHospitalBillEnabled, setIsHospitalBillEnabled] = useState(false)
   const [isEmergencyEnabled, setIsEmergencyEnabled] = useState(false)
   const [dropdownOptions, setDropdownOptions] = useState({
     clinicalNames: [],
@@ -1215,10 +1216,14 @@ const PatientForm = () => {
         formData.address.area.trim() !== "" &&
         formData.address.pincode.trim() !== "")
 
-    setIsFormValid(
-      basicFieldsValid && refByValid && sampleCollectorValid && branchValid && b2bFieldsValid && homeCollectionValid,
-    )
-  }, [formData, isB2BEnabled, isHomeCollectionEnabled])
+    if (
+      basicFieldsValid && refByValid && sampleCollectorValid && branchValid && b2bFieldsValid && homeCollectionValid
+    ) {
+      setIsFormValid(true)
+    } else {
+      setIsFormValid(false)
+    }
+  }, [formData, isB2BEnabled, isHomeCollectionEnabled, isHospitalBillEnabled])
 
   const loadDropdownOptions = async () => {
     try {
@@ -1253,7 +1258,7 @@ const PatientForm = () => {
         setFormData((prev) => ({ ...prev, patient_id: response.data.patient_id }))
       } else {
         console.error("Invalid patient ID response format:", response)
-        toast.error("Failed to generate patient ID - invalid response format")
+        toast.error("Failed to generate patient ID - Refresh and try again")
       }
     } catch (error) {
       console.error("Error generating patient ID:", error)
@@ -1314,8 +1319,8 @@ const PatientForm = () => {
   }
 
   const handleB2BToggle = () => {
-    if (isHomeCollectionEnabled) {
-      toast.error("Please disable Home Collection first before enabling B2B")
+    if (isHomeCollectionEnabled || isHospitalBillEnabled) {
+      toast.error("Please disable other segments first before enabling B2B")
       return
     }
 
@@ -1346,8 +1351,8 @@ const PatientForm = () => {
   }
 
   const handleHomeCollectionToggle = () => {
-    if (isB2BEnabled) {
-      toast.error("Please disable B2B first before enabling Home Collection")
+    if (isB2BEnabled || isHospitalBillEnabled) {
+      toast.error("Please disable other segments first before enabling Home Collection")
       return
     }
 
@@ -1356,6 +1361,20 @@ const PatientForm = () => {
     setFormData((prev) => ({
       ...prev,
       segment: newHomeCollectionState ? "Home Collection" : "Walk-in",
+    }))
+  }
+
+  const handleHospitalToggle = () => {
+    if (isB2BEnabled || isHomeCollectionEnabled) {
+      toast.error("Please disable other segments first before enabling Hospital Bill")
+      return
+    }
+
+    const newHospitalState = !isHospitalBillEnabled
+    setIsHospitalBillEnabled(newHospitalState)
+    setFormData((prev) => ({
+      ...prev,
+      segment: newHospitalState ? "Hospital" : "Walk-in",
     }))
   }
 
@@ -1696,6 +1715,7 @@ const PatientForm = () => {
       let segmentValue = "Walk-in"
       if (isB2BEnabled) segmentValue = "B2B"
       else if (isHomeCollectionEnabled) segmentValue = "Home Collection"
+      else if (isHospitalBillEnabled) segmentValue = "Hospital"
 
       const patientHistory = formData.patient_history.trim() || ""
 
@@ -1793,10 +1813,19 @@ const PatientForm = () => {
           const patientResult = await apiRequest(`${Labbaseurl}create_patient/`, "POST", baseData)
 
           if (patientResult && patientResult.success) {
+            const actualPatientId = patientResult.patient_id || patientResult.data?.patient_id || finalPatientId;
+
+            // Update bill payload with actual patient_id if backend generated a new one
+            if (billPayload instanceof FormData) {
+              billPayload.set("patient_id", actualPatientId);
+            } else {
+              billPayload.patient_id = actualPatientId;
+            }
+
             const billResult = await apiRequest(`${Labbaseurl}create_bill/`, "POST", billPayload, headers)
 
             if (billResult && billResult.success) {
-              toast.success(`Patient registered and bill created successfully!`)
+              toast.success(`Patient registered and bill created successfully! Patient ID: ${actualPatientId}`, { autoClose: 5000 })
               resetForm()
             } else {
               toast.error("Patient created but failed to create bill. Please create bill manually.")
@@ -1822,6 +1851,7 @@ const PatientForm = () => {
     setIsExistingPatient(false)
     setIsB2BEnabled(false)
     setIsHomeCollectionEnabled(false)
+    setIsHospitalBillEnabled(false)
     setIsEmergencyEnabled(false)
     setShowPatientModal(false)
     setMultiplePatients([])
@@ -1977,68 +2007,68 @@ const PatientForm = () => {
                   <CloseButton onClick={() => setShowPatientModal(false)}>
                     <FaTimes />
                   </CloseButton>
-                    <h3>
-                      Select Patient ({multiplePatients.length} found with phone {searchValue})
-                    </h3>
+                  <h3>
+                    Select Patient ({multiplePatients.length} found with phone {searchValue})
+                  </h3>
 
-                    {multiplePatients.map((patient, index) => (
-                      <PatientCard key={index} onClick={() => handlePatientSelect(patient)}>
-                        <div className="patient-header">
-                          {patient.patient_id && <span className="patient-id-badge">{patient.patient_id}</span>}
-                          {patient.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
+                  {multiplePatients.map((patient, index) => (
+                    <PatientCard key={index} onClick={() => handlePatientSelect(patient)}>
+                      <div className="patient-header">
+                        {patient.patient_id && <span className="patient-id-badge">{patient.patient_id}</span>}
+                        {patient.emergency && <span className="emergency-badge">🚨 EMERGENCY</span>}
+                      </div>
+
+                      <div className="patient-info">
+                        <div className="info-item">
+                          <span className="label">Name</span>
+                          <span className="value">{patient.patientname || "N/A"}</span>
                         </div>
-
-                        <div className="patient-info">
-                          <div className="info-item">
-                            <span className="label">Name</span>
-                            <span className="value">{patient.patientname || "N/A"}</span>
-                          </div>
-                          <div className="info-item">
-                            <span className="label">Age</span>
-                            <span className="value">
-                              {patient.age} {patient.age_type || "Years"}
-                            </span>
-                          </div>
-                          <div className="info-item">
-                            <span className="label">Gender</span>
-                            <span className="value">{patient.gender || "N/A"}</span>
-                          </div>
-                          <div className="info-item">
-                            <span className="label">Phone</span>
-                            <span className="value">{patient.phone || "N/A"}</span>
-                          </div>
-                          <div className="info-item">
-                            <span className="label">Email</span>
-                            <span className={`value ${!patient.email ? "empty" : ""}`}>
-                              {patient.email || "Not provided"}
-                            </span>
-                          </div>
-                          <div className="info-item">
-                            <span className="label">Address</span>
-                            <span className={`value ${formatAddress(patient.address) === "N/A" ? "empty" : ""}`}>
-                              {formatAddress(patient.address)}
-                            </span>
-                          </div>
-                          {patient.patient_history && (
-                            <div className="info-item" style={{ gridColumn: "1 / -1" }}>
-                              <span className="label">Medical History</span>
-                              <span className="value">{patient.patient_history}</span>
-                            </div>
-                          )}
+                        <div className="info-item">
+                          <span className="label">Age</span>
+                          <span className="value">
+                            {patient.age} {patient.age_type || "Years"}
+                          </span>
                         </div>
+                        <div className="info-item">
+                          <span className="label">Gender</span>
+                          <span className="value">{patient.gender || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Phone</span>
+                          <span className="value">{patient.phone || "N/A"}</span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Email</span>
+                          <span className={`value ${!patient.email ? "empty" : ""}`}>
+                            {patient.email || "Not provided"}
+                          </span>
+                        </div>
+                        <div className="info-item">
+                          <span className="label">Address</span>
+                          <span className={`value ${formatAddress(patient.address) === "N/A" ? "empty" : ""}`}>
+                            {formatAddress(patient.address)}
+                          </span>
+                        </div>
+                        {patient.patient_history && (
+                          <div className="info-item" style={{ gridColumn: "1 / -1" }}>
+                            <span className="label">Medical History</span>
+                            <span className="value">{patient.patient_history}</span>
+                          </div>
+                        )}
+                      </div>
 
-                        <button
-                          className="select-button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handlePatientSelect(patient)
-                          }}
-                        >
-                          Select This Patient
-                        </button>
-                      </PatientCard>
-                    ))}
-                  </ModalContent>
+                      <button
+                        className="select-button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePatientSelect(patient)
+                        }}
+                      >
+                        Select This Patient
+                      </button>
+                    </PatientCard>
+                  ))}
+                </ModalContent>
               </PatientSelectionModal>
             )}
 
@@ -2051,8 +2081,8 @@ const PatientForm = () => {
                   <h3>Today's Appointments ({appointmentPatients.length} found)</h3>
 
                   {appointmentPatients.map((appointment, index) => (
-                    <PatientCard 
-                      key={index} 
+                    <PatientCard
+                      key={index}
                       onClick={() => {
                         if (appointment.status !== "Registered") {
                           handleAppointmentSelect(appointment)
@@ -2077,9 +2107,9 @@ const PatientForm = () => {
                           <span className="value">
                             {appointment.appointment_date
                               ? new Date(appointment.appointment_date).toLocaleTimeString("en-IN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                               : "N/A"}
                           </span>
                         </div>
@@ -2236,8 +2266,8 @@ const PatientForm = () => {
 
             <Row className="row-4">
               <ToggleContainer>
-                <label>B2B</label>
-                <div onClick={handleB2BToggle} className={isHomeCollectionEnabled ? "disabled" : ""}>
+                <label>B2B Bill</label>
+                <div onClick={handleB2BToggle} className={(isHomeCollectionEnabled || isHospitalBillEnabled) ? "disabled" : ""}>
                   {isB2BEnabled ? (
                     <FaToggleOn style={{ fontSize: "40px", color: "green" }} />
                   ) : (
@@ -2303,7 +2333,7 @@ const PatientForm = () => {
             <Row className="row-4">
               <ToggleContainer>
                 <label>Home Collection</label>
-                <div onClick={handleHomeCollectionToggle} className={isB2BEnabled ? "disabled" : ""}>
+                <div onClick={handleHomeCollectionToggle} className={(isB2BEnabled || isHospitalBillEnabled) ? "disabled" : ""}>
                   {isHomeCollectionEnabled ? (
                     <FaToggleOn style={{ fontSize: "40px", color: "green" }} />
                   ) : (
@@ -2325,16 +2355,29 @@ const PatientForm = () => {
                   ))}
                 </select>
               </FormGroup>
+
+              <ToggleContainer>
+                <label>Hospital Bill</label>
+                <div onClick={handleHospitalToggle} className={(isB2BEnabled || isHomeCollectionEnabled) ? "disabled" : ""}>
+                  {isHospitalBillEnabled ? (
+                    <FaToggleOn style={{ fontSize: "40px", color: "blue" }} />
+                  ) : (
+                    <FaToggleOff style={{ fontSize: "40px", color: "grey" }} />
+                  )}
+                </div>
+              </ToggleContainer>
             </Row>
           </Fieldset>
 
           <Fieldset>
             <h4>Personal Details</h4>
             <Row className="row-5">
-              <FormGroup>
-                <label>Patient ID</label>
-                <input type="text" name="patient_id" value={formData.patient_id} readOnly />
-              </FormGroup>
+              {patientSelectionSource && (
+                <FormGroup>
+                  <label>Patient ID</label>
+                  <input type="text" name="patient_id" value={formData.patient_id} readOnly />
+                </FormGroup>
+              )}
               <FormGroup>
                 <label>Title</label>
                 <select name="Title" value={formData.Title} onChange={handleChange} disabled={shouldDisableField()}>

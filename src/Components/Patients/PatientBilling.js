@@ -781,7 +781,7 @@ const PatientBilling = () => {
 
   const handleTestSelect = (test) => {
     if (!selectedPatient) { toast.error("No patient selected."); return }
-    const amount = selectedPatient.segment === "B2B" ? Number(test.L2L_Rate_Card || 0) : Number(test.MRP || 0)
+    const amount = selectedPatient.segment === "B2B" ? Number(test.L2L_Rate_Card || 0) : (selectedPatient.segment === "Hospital" ? Number(test.SH_Rate || 0) : Number(test.MRP || 0))
     const newTest = {
       test_id: test.test_id, testname: test.test_name, suffix: test.suffix, collection_container: test.collection_container, amount, refund: false, cancellation: false, id: Date.now() + Math.random()
     }
@@ -878,7 +878,7 @@ const PatientBilling = () => {
   }
 
   /* ── PRINT ── */
-  const handlePrint = () => {
+  const handlePrint = (newBillNo = null) => {
     const fmtDT = (iso) => {
       if (!iso) return "NIL"
       return new Date(iso).toLocaleString("en-IN", {
@@ -985,7 +985,6 @@ const PatientBilling = () => {
     const inWords = billingData.netAmount ? nw(billingData.netAmount) + " rupees only" : "Zero only"
     const storedName = localStorage.getItem("name") || "Employee"
 
-    /* ── CHANGE 1: Emergency label in print ── */
     const emergencyLabel = selectedPatient?.is_emergency
       ? `<span style="color:#b91c1c;font-weight:bold;">🚨 EMERGENCY</span>`
       : `<span style="color:#166534;font-weight:bold;">✔ NORMAL</span>`
@@ -1014,7 +1013,7 @@ const PatientBilling = () => {
       <div class="details"><table>
         <tr>
           <td><strong>Bill Date:</strong> ${fmtDT(new Date().toISOString())}</td>
-          <td><strong>Bill No:</strong> ${selectedPatient.bill_no || "NIL"}</td>
+          <td><strong>Bill No:</strong> ${newBillNo || selectedPatient.bill_no || "NIL"}</td>
         </tr>
         <tr>
           <td><strong>Patient ID:</strong> ${selectedPatient.patient_id || "NIL"}</td>
@@ -1068,6 +1067,11 @@ const PatientBilling = () => {
       else toast.error("Please fill all required fields")
       return
     }
+    
+    if (selectedTests.some(test => Number(test.amount) === 0)) {
+      toast.error("One or more selected tests have an amount of 0. Cannot proceed with billing.")
+      return
+    }
     setLoading(true)
     try {
       let paymentMethodData = {}
@@ -1095,8 +1099,9 @@ const PatientBilling = () => {
       }
       const response = await apiRequest(`${Labbaseurl}update_bill/`, "PUT", updateData)
       if (response && response.success !== false) {
-        toast.success(`Bill updated! ${response.bill_no ? "Bill No: " + response.bill_no : ""}`)
-        setTimeout(() => handlePrint(), 1000)
+        const actualBillNo = response.data?.bill_no || response.bill_no
+        toast.success(`Bill updated! ${actualBillNo ? "Bill No: " + actualBillNo : ""}`)
+        setTimeout(() => handlePrint(actualBillNo), 1000)
         setTimeout(() => {
           setSelectedPatient(null); resetBillingData(); setSearchValue(""); setCurrentPage("list")
           if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate()
@@ -1144,6 +1149,7 @@ const PatientBilling = () => {
                   <select value={segmentFilter} onChange={(e) => setSegmentFilter(e.target.value)}>
                     <option value="all">All Segments</option>
                     <option value="B2B">B2B</option>
+                    <option value="Hospital">Hospital</option>
                     <option value="Walk-in">Walk-in</option>
                     <option value="Home Collection">Home Collection</option>
                   </select>

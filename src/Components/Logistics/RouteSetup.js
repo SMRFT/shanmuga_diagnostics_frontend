@@ -8,13 +8,17 @@ import apiRequest from "../Auth/apiRequest"
 import { format } from "date-fns"
 
 const PageContainer = styled.div`
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 20px;
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(135deg, rgba(240, 147, 251, 0.05), rgba(102, 126, 234, 0.05));
+  box-sizing: border-box;
 
   @media (max-width: 768px) {
-    padding: 12px;
+    padding: 10px;
   }
 `
 
@@ -22,21 +26,45 @@ const FormCard = styled.div`
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border-radius: 20px;
-  padding: 30px;
-  max-width: 800px;
-  margin: 0 auto 30px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto 20px;
+  flex-shrink: 0;
+  width: 100%;
 
   @media (max-width: 768px) {
-    padding: 20px;
-    border-radius: 15px;
+    padding: 15px;
+    border-radius: 12px;
   }
 `
 
 const ListCard = styled(FormCard)`
-  max-width: 1000px;
-  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 0;
+`
+
+const TableContainer = styled.div`
+  flex: 1;
+  overflow: auto;
+  margin-top: 15px;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f5f7ff;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 8px;
+  }
+
 `
 
 const Table = styled.table`
@@ -621,6 +649,7 @@ const RouteSetup = () => {
           <p style={{ textAlign: 'center', color: '#a0aec0' }}>Loading routes...</p>
         ) : routesList.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
+            <TableContainer>
             <Table>
               <thead>
                 <tr>
@@ -670,6 +699,7 @@ const RouteSetup = () => {
                 })}
               </tbody>
             </Table>
+            </TableContainer>
           </div>
         ) : (
           <p style={{ textAlign: 'center', color: '#a0aec0' }}>No routes found for this date.</p>

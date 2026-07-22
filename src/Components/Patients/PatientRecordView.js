@@ -436,6 +436,7 @@ const Pill = styled.span`
   
   &.B2B { background: #fef3c7; color: #d97706; border-color: #fde68a; }
   &.Walk-in { background: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+  &.Hospital { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
 `;
 
 const PrescriptionBtn = styled.button`
@@ -648,6 +649,7 @@ const PatientRecordView = () => {
           <select value={segment} onChange={(e) => setSegment(e.target.value)}>
             <option value="">All Segments</option>
             <option value="B2B">B2B</option>
+            <option value="Hospital">Hospital</option>
             <option value="Walk-in">Walk-in</option>
             <option value="Home Collection">Home Collection</option>
           </select>
