@@ -522,6 +522,7 @@ const PatientDashboard = () => {
               >
                 <option value="all">All</option>
                 <option value="B2B">B2B</option>
+                <option value="Hospital">Hospital</option>
                 <option value="Walk-in">Walk-in</option>
                 <option value="Home Collection">Home Collection</option>
               </DateInput>

@@ -350,6 +350,7 @@ const MDashboard = () => {
         return [
             { name: 'Home Coll.', value: data.samples.segments.home_collection, fill: '#6e8efb' },
             { name: 'B2B', value: data.samples.segments.b2b, fill: '#a777e3' },
+            { name: 'Hospital', value: data.samples.segments.hospital, fill: '#fdcb6e' },
             { name: 'Franchise', value: data.samples.segments.franchise, fill: '#e56f8f' },
             { name: 'Corp Health', value: data.samples.segments.company_health_check, fill: '#00b894' },
         ];
@@ -360,6 +361,7 @@ const MDashboard = () => {
         return [
             { name: 'Home Coll.', value: data.financials.gross.home_collection },
             { name: 'B2B', value: data.financials.gross.b2b },
+            { name: 'Hospital', value: data.financials.gross.hospital },
             { name: 'Franchise', value: data.financials.gross.franchise_share },
             { name: 'Corp Health', value: data.financials.gross.company_health_check },
         ].filter(item => item.value > 0);
@@ -542,6 +544,15 @@ const MDashboard = () => {
                                 </IconBox>
                             </CardHeader>
                             <CardValue style={{ color: '#333' }}>{data.samples.segments.company_health_check}</CardValue>
+                        </Card>
+                        <Card delay="0.8s" style={{ borderLeft: '5px solid #fdcb6e' }}>
+                            <CardHeader>
+                                <CardLabel style={{ color: '#555' }}>Hospital</CardLabel>
+                                <IconBox iconBg="rgba(253, 203, 110, 0.1)" iconColor="#fdcb6e">
+                                    <i className="bi bi-hospital"></i>
+                                </IconBox>
+                            </CardHeader>
+                            <CardValue style={{ color: '#333' }}>{data.samples.segments.hospital}</CardValue>
                         </Card>
                     </SegmentGrid>
 

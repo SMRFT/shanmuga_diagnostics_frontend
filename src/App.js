@@ -85,8 +85,8 @@ import MBPatientList from "./Components/Microbiology/MBPatientList";
 import MBDoctorForm from "./Components/Microbiology/MBDoctorForm";
 import MBTestSorting from "./Components/Report/MBTestSorting";
 import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
-import PreethamDashboard from "./Components/PreethamHospital/PreethamDashboard";
-import PreethamPatientOverview from "./Components/PreethamHospital/PreethamPatientOverview";
+import ClinicalDashboard from "./Components/ClinicalReports/ClinicalDashboard";
+import ClinicalPatientOverview from "./Components/ClinicalReports/ClinicalPatientOverview";
 import FranchiseMBTestSorting from "./Components/Franchise/FranchiseMBTestSorting";
 import LogisticsTaskAssign from "./Components/Logistics/LogisticsTaskAssign";
 import LogisticsTaskManagement from "./Components/Logistics/LogisticsTaskManagement";
@@ -94,7 +94,7 @@ import LogisticsDashboard from "./Components/Logistics/LogisticsDashboard";
 import LogisticsTAT from "./Components/Mis/LogisticsTAT";
 import LogisticsTracking from "./Components/Logistics/LogisticsTracking";
 import TrackingHistory from "./Components/Logistics/TrackingHistory";
-import PreethamHospitalLedger from "./Components/PreethamHospital/PreethamLedgerBalance";
+import ClinicalLedgerBalance from "./Components/ClinicalReports/ClinicalLedgerBalance";
 import WorkList from "./Components/Test/WorkList";
 import ApprovedList from "./Components/TestApproval/ApprovedList";
 import EditForm from "./Components/TestApproval/EditForm";
@@ -113,18 +113,15 @@ import Salesplan from "./Components/Sales/Salesplan";
 const ContentWrapper = styled.div`
   margin-top: 15px;
   padding: 20px;
-  margin-left: 260px;
+  margin-left: 300px;
 
   @media (max-width: 1024px) {
-    margin-left: 200px;
+    margin-left: 300px;
   }
 
   @media (max-width: 768px) {
-    margin-left: 100px;
-  }
-
-  @media (max-width: 480px) {
     margin-left: 20px;
+    padding: 10px;
   }
 `;
 
@@ -166,7 +163,7 @@ function App() {
         navigate("/Invoice");
         break;
       case "PH":
-        navigate("/PreethamPatientOverview");
+        navigate("/ClinicalPatientOverview");
         break;
       default:
         navigate("/PatientForm"); // Default fallback
@@ -292,8 +289,8 @@ function App() {
       "/HMSMBTestSorting": "HMS Microbiology Test Sorting",
       "/HMSPatientOverview": "HMS Patient Overview",
       "/PatientOverallReport": "Patient Overall Report",
-      "/PreethamDashboard": "Preetham Dashboard",
-      "/PreethamPatientOverview": "Preetham Patient Overview",
+      "/ClinicalDashboard": "Clinical Dashboard",
+      "/ClinicalPatientOverview": "Clinical Patient Overview",
     };
 
     const path = location.pathname;
@@ -549,14 +546,14 @@ function App() {
               element={<PatientOverallReport />}
             />
 
-            <Route path="/PreethamDashboard" element={<PreethamDashboard />} />
+            <Route path="/ClinicalDashboard" element={<ClinicalDashboard />} />
             <Route
-              path="/PreethamPatientOverview"
-              element={<PreethamPatientOverview />}
+              path="/ClinicalPatientOverview"
+              element={<ClinicalPatientOverview />}
             />
             <Route
-              path="/PreethamHospitalLedger"
-              element={<PreethamHospitalLedger />}
+              path="/ClinicalLedgerBalance"
+              element={<ClinicalLedgerBalance />}
             />
 
 
@@ -592,3 +589,5 @@ export default function AppWrapper() {
     </Router>
   );
 }
+
+

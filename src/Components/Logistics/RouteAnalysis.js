@@ -37,24 +37,37 @@ const spin = keyframes`
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 const PageContainer = styled.div`
-  min-height: 100vh;
-  padding: 24px 16px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px;
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(135deg, #f5f7ff 0%, #ede9fe 100%);
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
 `
 
 const Card = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   background: #fff;
   border-radius: 20px;
-  padding: 28px;
-  max-width: 820px;
-  margin: 0 auto 20px;
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
   box-shadow: 0 8px 32px rgba(102, 126, 234, 0.10);
   border: 1px solid rgba(102,126,234,0.08);
   animation: ${fadeIn} 0.4s ease;
+  overflow: hidden;
 
   @media (max-width: 600px) {
-    padding: 18px 14px;
+    padding: 15px;
   }
 `
 
@@ -221,6 +234,22 @@ const VisitList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f5f7ff;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 8px;
+  }
+
 `
 
 const VisitCard = styled.div`
