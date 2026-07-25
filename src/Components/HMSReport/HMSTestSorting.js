@@ -198,6 +198,38 @@ const DispatchButton = styled.button`
   }
 `;
 
+const PrintedButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  background-color: ${(props) => (props.printed ? "#6f42c1" : "#6f42c1")};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 6px;
+  margin-left: 8px;
+
+  &:hover {
+    background-color: #59359a;
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
 const ModalFooter = styled.div`
   display: flex;
   justify-content: space-between;
@@ -356,6 +388,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [dispatchedTests, setDispatchedTests] = useState(new Set());
+  const [printedTests, setPrintedTests] = useState(new Set());
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -385,20 +418,26 @@ const HMSTestSorting = ({ patient, onClose }) => {
               test_name: test.test_name,
               NABL: test.NABL || false,
               dispatched: test.dispatch || false,
+              printed: test.printed || false,
               created_date: test.created_date, // Changed from test.dispatched to test.dispatch
               department: test.department || "",
             }));
 
             setTests(testsWithDispatch);
 
-            // Initialize dispatched tests set
+            // Initialize dispatched and printed tests sets
             const dispatchedSet = new Set();
+            const printedSet = new Set();
             testsWithDispatch.forEach((test) => {
               if (test.dispatched) {
                 dispatchedSet.add(test.test_id);
               }
+              if (test.printed) {
+                printedSet.add(test.test_id);
+              }
             });
             setDispatchedTests(dispatchedSet);
+            setPrintedTests(printedSet);
           } else {
             console.log("No test data found for this barcode");
             setTests([]);
@@ -506,6 +545,90 @@ const HMSTestSorting = ({ patient, onClose }) => {
     setLoadingMessage("");
     toast.success(
       `${successCount} of ${undispatched.length} test(s) dispatched successfully!`,
+    );
+  };
+
+  const handlePrintTest = async (test, e) => {
+    e.stopPropagation();
+
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}update_printed_status/${patient.barcode}/`,
+        "PATCH",
+        {
+          test_id: test.test_id,
+          created_date: test.created_date,
+        },
+        {
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.success) {
+        toast.success(`Test "${test.test_name}" printed status updated successfully!`);
+
+        setPrintedTests((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(test.test_id);
+          return newSet;
+        });
+
+        setTests((prev) =>
+          prev.map((t) =>
+            t.test_id === test.test_id ? { ...t, printed: true } : t,
+          ),
+        );
+      } else {
+        toast.error(`Failed to update printed status: ${response.error}`);
+      }
+    } catch (error) {
+      console.error("Error updating printed status:", error);
+      toast.error("Failed to update printed status");
+    }
+  };
+
+  const handlePrintAll = async () => {
+    const unprinted = tests.filter((t) => dispatchedTests.has(t.test_id) && !printedTests.has(t.test_id));
+
+    if (!unprinted.length) {
+      toast.info("No dispatched tests available to print or all tests are already printed.");
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage(`Updating printed status for ${unprinted.length} test(s)...`);
+
+    let successCount = 0;
+    for (const test of unprinted) {
+      try {
+        const response = await apiRequest(
+          `${Labbaseurl}update_printed_status/${patient.barcode}/`,
+          "PATCH",
+          { test_id: test.test_id, created_date: test.created_date },
+          { "Content-Type": "application/json" },
+        );
+        if (response.success) {
+          successCount++;
+          setPrintedTests((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(test.test_id);
+            return newSet;
+          });
+          setTests((prev) =>
+            prev.map((t) =>
+              t.test_id === test.test_id ? { ...t, printed: true } : t,
+            ),
+          );
+        }
+      } catch (error) {
+        console.error(`Failed to update printed status for ${test.test_name}:`, error);
+      }
+    }
+
+    setIsLoading(false);
+    setLoadingMessage("");
+    toast.success(
+      `${successCount} of ${unprinted.length} test(s) updated to printed successfully!`,
     );
   };
 
@@ -2390,6 +2513,23 @@ const HMSTestSorting = ({ patient, onClose }) => {
               ? "All Dispatched"
               : "Dispatch All"}
           </DispatchButton>
+          <PrintedButton
+            printed={tests.length > 0 && tests.every((t) => printedTests.has(t.test_id))}
+            disabled={!tests.some((t) => dispatchedTests.has(t.test_id) && !printedTests.has(t.test_id))}
+            onClick={handlePrintAll}
+            title={
+              !tests.some((t) => dispatchedTests.has(t.test_id) && !printedTests.has(t.test_id))
+                ? tests.every((t) => printedTests.has(t.test_id)) && tests.length > 0
+                  ? "All Printed"
+                  : "Dispatch required before printing"
+                : "Print all dispatched tests"
+            }
+          >
+            <Printer size={14} />
+            {tests.length > 0 && tests.every((t) => printedTests.has(t.test_id))
+              ? "All Printed"
+              : "Print All"}
+          </PrintedButton>
         </SelectAllContainer>
 
         <TestList>
@@ -2405,6 +2545,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
                 (t) => t.test_id === test.test_id,
               );
               const isDispatched = dispatchedTests.has(test.test_id);
+              const isPrinted = printedTests.has(test.test_id);
 
               return (
                 <TestItem
@@ -2420,17 +2561,34 @@ const HMSTestSorting = ({ patient, onClose }) => {
                       {test.NABL && <span className="nabl-asterisk">*</span>}
                     </TestName>
                   </TestInfo>
-                  <DispatchButton
-                    dispatched={isDispatched}
-                    onClick={(e) => handleDispatchTest(test, e)}
-                    disabled={isDispatched}
-                    title={
-                      isDispatched ? "Already Dispatched" : "Dispatch Test"
-                    }
-                  >
-                    <Flag size={14} />
-                    {isDispatched ? "Dispatched" : "Dispatch"}
-                  </DispatchButton>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <DispatchButton
+                      dispatched={isDispatched}
+                      onClick={(e) => handleDispatchTest(test, e)}
+                      disabled={isDispatched}
+                      title={
+                        isDispatched ? "Already Dispatched" : "Dispatch Test"
+                      }
+                    >
+                      <Flag size={14} />
+                      {isDispatched ? "Dispatched" : "Dispatch"}
+                    </DispatchButton>
+                    <PrintedButton
+                      printed={isPrinted}
+                      onClick={(e) => handlePrintTest(test, e)}
+                      disabled={!isDispatched || isPrinted}
+                      title={
+                        !isDispatched
+                          ? "Dispatch required before printing"
+                          : isPrinted
+                          ? "Already Printed"
+                          : "Print Test"
+                      }
+                    >
+                      <Printer size={14} />
+                      {isPrinted ? "Printed" : "Print"}
+                    </PrintedButton>
+                  </div>
                 </TestItem>
               );
             })
