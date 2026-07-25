@@ -1225,6 +1225,7 @@ const SampleStatus = () => {
                     <Table>
                       <thead>
                         <tr>
+                          <Th>Sl.No</Th>
                           <Th>Test Name</Th>
                           <Th>Container Type</Th>
                           <Th>Department</Th>
@@ -1245,8 +1246,9 @@ const SampleStatus = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentPatientTests.map((test) => (
+                        {currentPatientTests.map((test, index) => (
                           <Tr key={test.test_id}>
+                            <Td>{index + 1}</Td>
                             <Td>{test.testname}</Td>
                             <Td>
                               {test.container ||

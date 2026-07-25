@@ -1189,6 +1189,7 @@ const HmsSampleStatus = () => {
                     <Table>
                       <thead>
                         <tr>
+                          <Th>Sl.No</Th>
                           <Th>Test Name</Th>
                           <Th>Container Type</Th>
                           <Th>Department</Th>
@@ -1209,8 +1210,9 @@ const HmsSampleStatus = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentPatientTests.map((test) => (
+                        {currentPatientTests.map((test, index) => (
                           <Tr key={test.test_id}>
+                            <Td>{index + 1}</Td>
                             <Td>{test.testname || test.test_name}</Td>
                             <Td>
                               {test.container ||

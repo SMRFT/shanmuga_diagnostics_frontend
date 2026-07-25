@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
@@ -728,6 +728,7 @@ const HMSPatientOverview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [printStatusFilter, setPrintStatusFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [opIpFilter, setopIpFilter] = useState("");
   const navigate = useNavigate();
@@ -766,50 +767,51 @@ const HMSPatientOverview = () => {
     }
   };
 
-  // Fetch patients when component mounts
+  // Fetch patients when component mounts or dates change
+  const fetchCombinedPatientData = useCallback(async () => {
+    setLoading(true);
+    const formattedStartDate = startDate.toISOString().split("T")[0];
+    const formattedEndDate = endDate.toISOString().split("T")[0];
+
+    const url = `${Labbaseurl}hms_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
+    const result = await apiRequest(url, "GET");
+
+    if (result.success) {
+      const patientData = result.data || [];
+      const sortedData = [...patientData].sort((a, b) => {
+        const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
+        const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+        if (dateA !== dateB) return dateB - dateA;
+        const idA = String(a.patient_id || a.barcode || a.id || "");
+        const idB = String(b.patient_id || b.barcode || b.id || "");
+        return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
+      });
+      setPatients(sortedData);
+      setFilteredPatients(sortedData);
+
+      const statusMap = {};
+      patientData.forEach((patient) => {
+        // Use barcode as the unique key since same patient can have multiple barcodes with different statuses
+        statusMap[patient.barcode] = {
+          status: patient.status,
+          printed_status: patient.printed_status || "Not Printed",
+          barcode: patient.barcode,
+        };
+      });
+      setStatuses(statusMap);
+    } else {
+      console.error("Error fetching combined patient data:", result.error);
+      setError("Failed to load patient data");
+    }
+
+    setLoading(false);
+  }, [startDate, endDate, Labbaseurl]);
+
   useEffect(() => {
-    const fetchCombinedPatientData = async () => {
-      setLoading(true);
-      const formattedStartDate = startDate.toISOString().split("T")[0];
-      const formattedEndDate = endDate.toISOString().split("T")[0];
-
-      const url = `${Labbaseurl}hms_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
-      const result = await apiRequest(url, "GET");
-
-      if (result.success) {
-        const patientData = result.data || [];
-        const sortedData = [...patientData].sort((a, b) => {
-          const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
-          const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
-          if (dateA !== dateB) return dateB - dateA;
-          const idA = String(a.patient_id || a.barcode || a.id || "");
-          const idB = String(b.patient_id || b.barcode || b.id || "");
-          return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
-        });
-        setPatients(sortedData);
-        setFilteredPatients(sortedData);
-
-        const statusMap = {};
-        patientData.forEach((patient) => {
-          // Use barcode as the unique key since same patient can have multiple barcodes with different statuses
-          statusMap[patient.barcode] = {
-            status: patient.status,
-            barcode: patient.barcode,
-          };
-        });
-        setStatuses(statusMap);
-      } else {
-        console.error("Error fetching combined patient data:", result.error);
-        setError("Failed to load patient data");
-      }
-
-      setLoading(false);
-    };
-
     if (startDate && endDate) {
       fetchCombinedPatientData();
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, fetchCombinedPatientData]);
 
   const TestStatusModal = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -956,9 +958,22 @@ const HMSPatientOverview = () => {
                         gap: "0.5rem",
                       }}
                     >
-                      <Badge color={getBadgeColor(test.status)}>
-                        {test.status}
-                      </Badge>
+                      <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+                        <Badge color={getBadgeColor(test.status)}>
+                          {test.status}
+                        </Badge>
+                        <Badge
+                          color={
+                            test.printed || test.printed_status === "Printed"
+                              ? "#6f42c1"
+                              : test.printed_status === "Partially Printed"
+                              ? "#DB9BB9"
+                              : "#6c757d"
+                          }
+                        >
+                          {test.printed ? "Printed" : (test.printed_status || "Not Printed")}
+                        </Badge>
+                      </div>
                       {tatDisplay && (
                         <TATIndicator secondsLeft={liveSecondsLeft}>
                           <div style={{ textAlign: "center" }}>
@@ -1032,6 +1047,8 @@ const HMSPatientOverview = () => {
       const patientDate = new Date(patient.date);
       // Use barcode to lookup status since it's the unique identifier
       const patientStatus = statuses[patient.barcode]?.status || "";
+      const patientPrintedStatus =
+        statuses[patient.barcode]?.printed_status || patient.printed_status || "Not Printed";
       // Department filter logic
       const matchesDepartment =
         !departmentFilter ||
@@ -1052,6 +1069,7 @@ const HMSPatientOverview = () => {
             ?.toLowerCase()
             .includes(patientName.toLowerCase())) &&
         (!statusFilter || patientStatus === statusFilter) &&
+        (!printStatusFilter || patientPrintedStatus === printStatusFilter) &&
         (!opIpFilter || patient.opiptype === opIpFilter) &&
         matchesDepartment // Add this line
       );
@@ -1075,6 +1093,7 @@ const HMSPatientOverview = () => {
     IPNumber,
     patientName,
     statusFilter,
+    printStatusFilter,
     departmentFilter,
     opIpFilter,
     statuses,
@@ -1089,6 +1108,7 @@ const HMSPatientOverview = () => {
     setIPNumber("");
     setPatientName("");
     setStatusFilter("");
+    setPrintStatusFilter("");
     setDepartmentFilter("");
     setopIpFilter("");
     setFilteredPatients(patients);
@@ -2416,6 +2436,12 @@ const HMSPatientOverview = () => {
   const partiallyDispatchedCount = filteredPatients.filter(
     (p) => (statuses[p.barcode]?.status || p.status) === "Partially Dispatched"
   ).length;
+  const printedCount = filteredPatients.filter(
+    (p) => (statuses[p.barcode]?.printed_status || p.printed_status) === "Printed"
+  ).length;
+  const partiallyPrintedCount = filteredPatients.filter(
+    (p) => (statuses[p.barcode]?.printed_status || p.printed_status) === "Partially Printed"
+  ).length;
 
   return (
     <Container>
@@ -2522,6 +2548,18 @@ const HMSPatientOverview = () => {
               </FilterSelect>
             </FilterGroup>
             <FilterGroup>
+              <FilterLabel>Print Status</FilterLabel>
+              <FilterSelect
+                value={printStatusFilter}
+                onChange={(e) => setPrintStatusFilter(e.target.value)}
+              >
+                <option value="">All Print Statuses</option>
+                <option value="Printed">Printed</option>
+                <option value="Partially Printed">Partially Printed</option>
+                <option value="Not Printed">Not Printed</option>
+              </FilterSelect>
+            </FilterGroup>
+            <FilterGroup>
               <FilterLabel>OP/IP Type</FilterLabel>
               <FilterSelect
                 value={opIpFilter}
@@ -2602,6 +2640,20 @@ const HMSPatientOverview = () => {
               Dispatched
             </StatLabel>
             <StatValue color="#065f46">{dispatchedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#DB9BB9" />
+              Partially Printed
+            </StatLabel>
+            <StatValue color="#DB9BB9">{partiallyPrintedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#6f42c1" />
+              Printed
+            </StatLabel>
+            <StatValue color="#6f42c1">{printedCount}</StatValue>
           </StatCard>
         </StatsGrid>
 
@@ -2723,6 +2775,18 @@ const HMSPatientOverview = () => {
                       <td>
                         <StatusBadgeContainer>
                           <Badge color={badgeColor}>{status}</Badge>
+                          <Badge
+                            color={
+                              (patientStatus.printed_status || patient.printed_status) === "Printed"
+                                ? "#6f42c1"
+                                : (patientStatus.printed_status || patient.printed_status) === "Partially Printed"
+                                ? "#DB9BB9"
+                                : "#6c757d"
+                            }
+                            style={{ marginLeft: "0.25rem" }}
+                          >
+                            {patientStatus.printed_status || patient.printed_status || "Not Printed"}
+                          </Badge>
                           <ActionButton
                             onClick={() => {
                               setSelectedPatientForStatus(patient);
@@ -2876,14 +2940,20 @@ const HMSPatientOverview = () => {
       {isTestModalOpen && (
         <HMSTestSorting
           patient={selectedPatient}
-          onClose={() => setIsTestModalOpen(false)}
+          onClose={() => {
+            setIsTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
         />
       )}
       {/* M/B Test Sorting Modal */}
       {isMBTestModalOpen && (
         <HMSMBTestSorting
           patient={selectedPatient}
-          onClose={() => setIsMBTestModalOpen(false)}
+          onClose={() => {
+            setIsMBTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
         />
       )}
       {/* Test Status Modal */}

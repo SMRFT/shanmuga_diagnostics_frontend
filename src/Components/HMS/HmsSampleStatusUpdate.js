@@ -1366,6 +1366,7 @@ const HmsSampleStatusUpdate = () => {
                   <Table>
                     <thead>
                       <tr>
+                        <Th>Sl.No</Th>
                         <Th>Test Name</Th>
                         <Th>Container Type</Th>
                         <Th>Department</Th>
@@ -1392,6 +1393,7 @@ const HmsSampleStatusUpdate = () => {
                     <tbody>
                       {selectedPatient.testdetails.map((detail, testIndex) => (
                         <Tr key={testIndex}>
+                          <Td>{testIndex + 1}</Td>
                           <Td>{detail.test_name}</Td>
                           <Td>{detail.container}</Td>
                           <Td>{detail.department}</Td>
