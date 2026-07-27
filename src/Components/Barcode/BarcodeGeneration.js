@@ -1,393 +1,394 @@
 import React, { useEffect, useState } from "react";
-import { Container, Row, Col } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import apiRequest from "../Auth/apiRequest";
-// Styled Components
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Calendar,
   User,
   ChevronRight,
   Search,
   ChevronLeft,
-  Filter,
+  ChevronRight as ChevronRightIcon,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
+  Minus,
+  RefreshCw
 } from "lucide-react";
 
-// Modern styled components
-const PageContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM — viewport-locked, no page scroll
+═══════════════════════════════════════════════ */
+const Shell = styled.div`
+  height: calc(100vh - 75px);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 1.25rem;
+  gap: 1rem;
+  border-radius: 24px;
+
+  @media (max-width: 768px) { padding: 0.75rem; gap: 0.75rem; border-radius: 12px; }
 `;
 
-const PageHeader = styled.div`
-  margin-bottom: 2.5rem;
+const TopBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 `;
 
 const Title = styled.h1`
-  font-size: 2.25rem;
-  font-weight: 800;
-  color: #1a1a2e;
-  margin-bottom: 0.5rem;
-  text-align: center;
+  font-size: 1.35rem;
+  color: #1e293b;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.4px;
+  @media (max-width: 768px) { font-size: 1.1rem; }
 `;
 
-const Subtitle = styled.p`
-  font-size: 1rem;
-  color: #64748b;
-  text-align: center;
-  max-width: 600px;
-  margin: 0 auto;
-`;
-
-const ControlsContainer = styled.div`
+const Card = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin: 2rem 0;
+  flex: 1;
+  min-height: 0;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  overflow: hidden;
+`;
 
-  @media (min-width: 768px) {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+const FilterBar = styled.div`
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  flex-shrink: 0;
+  background: #fafbfd;
+
+  @media (max-width: 768px) { flex-direction: column; align-items: stretch; }
+`;
+
+const FGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: ${p => p.grow || "0 1 auto"};
+  min-width: ${p => p.minW || "140px"};
+`;
+
+const FLabel = styled.label`
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const FInput = styled.input`
+  padding: 0.55rem 0.75rem;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 0.85rem;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.15s;
+  background: white;
+
+  &:focus {
+    border-color: #a777e3;
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
+  }
+`;
+
+const FSelect = styled.select`
+  padding: 0.55rem 0.75rem;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 0.85rem;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.15s;
+  background: white;
+
+  &:focus {
+    border-color: #a777e3;
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
 `;
 
 const SearchContainer = styled.div`
   position: relative;
   width: 100%;
-  max-width: 400px;
-`;
-
-const SearchInput = styled.input`
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-  font-size: 1rem;
-  width: 100%;
-  background-color: #f8fafc;
-  color: #334155;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #94a3b8;
-    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
-  }
 `;
 
 const SearchIcon = styled.div`
   position: absolute;
-  left: 0.75rem;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
-`;
-
-const DateRangeContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-
-  @media (max-width: 768px) {
-    justify-content: flex-start;
-  }
 `;
 
-const DateInputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const DateLabel = styled.label`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const StyledDatePicker = styled.input`
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  width: 150px;
-  background-color: #f8fafc;
-  color: #334155;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+const SearchInput = styled.input`
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+  font-size: 0.85rem;
+  width: 100%;
+  background-color: white;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.15s;
+  box-sizing: border-box;
 
   &:focus {
-    outline: none;
-    border-color: #94a3b8;
-    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
+    border-color: #a777e3;
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
 `;
 
-const StyledSelect = styled.select`
+const StepButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  min-width: 150px;
-  background-color: #f8fafc;
-  color: #334155;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border-color: #94a3b8;
-    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
-  }
-`;
-
-const ApplyButton = styled.button`
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  align-self: flex-end;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
-
-const FilterContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-`;
-
-const FilterLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
-`;
-
-// Table styled components
-const TableContainer = styled.div`
   background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  margin-top: 1.5rem;
+  color: #a777e3;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover {
+    background: #a777e3;
+    color: white;
+    border-color: #a777e3;
+  }
 `;
 
-const StyledTable = styled.table`
+const IconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: ${p => p.pad || "0.55rem 0.85rem"};
+  border-radius: 14px;
+  border: none;
+  background: ${p => p.bg || "#a777e3"};
+  color: ${p => p.color || "white"};
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+
+  &:hover { filter: brightness(0.94); transform: translateY(-1px); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+`;
+
+const TableWrap = styled.div`
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+
+  &::-webkit-scrollbar { width: 5px; height: 5px; }
+  &::-webkit-scrollbar-track { background: #f8fafc; }
+  &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+`;
+
+const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 900px;
 `;
 
-const TableHeader = styled.thead`
-  background: linear-gradient(135deg, #667eea, #764ba2);
-`;
+const TableHead = styled.thead`
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
 
-const TableHeaderRow = styled.tr``;
-
-const TableHeaderCell = styled.th`
-  padding: 1rem 1.5rem;
-  text-align: left;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: white;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const TableBody = styled.tbody``;
-
-const TableRow = styled.tr`
-  border-bottom: 1px solid #e2e8f0;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: #f8fafc;
-  }
-
-  &:last-child {
-    border-bottom: none;
+  th {
+    text-align: left;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
   }
 `;
 
-const TableCell = styled.td`
-  padding: 1rem 1.5rem;
-  font-size: 0.875rem;
-  color: #334155;
-  vertical-align: middle;
+const Tr = styled.tr`
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.12s;
+
+  &:hover { background-color: #f8faff; }
+
+  td {
+    padding: 0.7rem 1.25rem;
+    color: #334155;
+    font-size: 0.88rem;
+    vertical-align: middle;
+  }
 `;
 
 const Badge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   border-radius: 9999px;
-  background-color: #e0e7ff;
-  color: #4f46e5;
-`;
-
-const EmergencyBadge = styled(Badge)`
-  background-color: #fee2e2;
-  color: #dc2626;
-  animation: ${props => props.$blink ? 'blink 1.5s ease-in-out infinite' : 'none'};
-
-  @keyframes blink {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.4;
-    }
-  }
-`;
-
-const NormalBadge = styled(Badge)`
-  background-color: #d1fae5;
-  color: #059669;
 `;
 
 const ActionButton = styled.button`
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #a777e3;
   border: none;
   color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  transition: all 0.15s;
 
   &:hover {
+    background: #8b5cf6;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 3px 8px rgba(167, 119, 227, 0.25);
   }
+`;
+
+const PaginationBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.25rem;
+  border-top: 1px solid #f1f5f9;
+  background: #fafbfd;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  @media (max-width: 768px) { flex-direction: column; gap: 0.5rem; }
+`;
+
+const PageControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+`;
+
+const PageBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  border: 1px solid ${p => p.active ? "#a777e3" : "#e2e8f0"};
+  background: ${p => p.active ? "#a777e3" : "white"};
+  color: ${p => p.active ? "white" : "#475569"};
+  font-size: 0.78rem;
+  font-weight: ${p => p.active ? "700" : "500"};
+  cursor: pointer;
+  transition: all 0.12s;
+  &:hover:not(:disabled) { border-color: #a777e3; color: ${p => p.active ? "white" : "#a777e3"}; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
 const EmptyState = styled.div`
+  padding: 3rem;
   text-align: center;
-  padding: 3rem 1rem;
-  background-color: #f8fafc;
-  border-radius: 16px;
-  border: 1px dashed #cbd5e1;
+  color: #94a3b8;
+  font-size: 0.9rem;
 `;
 
-const EmptyStateText = styled.p`
-  color: #64748b;
-  font-size: 1rem;
-  margin: 0.5rem 0 0;
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 2rem;
-  gap: 0.5rem;
-`;
-
-const PageButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.5rem;
-  height: 2.5rem;
-  padding: 0 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  background-color: ${(props) => (props.active ? "#6366f1" : "#f8fafc")};
-  color: ${(props) => (props.active ? "white" : "#64748b")};
-  border: 1px solid ${(props) => (props.active ? "#6366f1" : "#e2e8f0")};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: ${(props) => (props.active ? "#4f46e5" : "#e2e8f0")};
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const PageInfo = styled.div`
-  font-size: 0.875rem;
-  color: #64748b;
-  padding: 0 1rem;
-`;
-
-const ResultsSummary = styled.div`
-  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid #e2e8f0;
-`;
-
-const SummaryText = styled.p`
-  margin: 0;
-  font-size: 0.875rem;
-  color: #64748b;
-  text-align: center;
-`;
-
+/* ═══════════════════════════════════════════════
+   COMPONENT
+═══════════════════════════════════════════════ */
 const BarcodeGeneration = () => {
+  const getTodayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+
+  const parseDateToYYYYMMDD = (d) => {
+    if (!d) return getTodayStr();
+    const parsed = new Date(d);
+    if (isNaN(parsed)) return getTodayStr();
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+
+  const location = useLocation();
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [displayedPatients, setDisplayedPatients] = useState([]);
-  const [fromDate, setFromDate] = useState(new Date());
-  const [toDate, setToDate] = useState(new Date());
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [fromDate, setFromDate] = useState(() => parseDateToYYYYMMDD(location?.state?.fromDate));
+  const [toDate, setToDate] = useState(() => parseDateToYYYYMMDD(location?.state?.toDate));
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return location?.state?.searchTerm || "";
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [barcodeGenerated, setBarcodeGenerated] = useState(false);
-  const [barcodeDateTime, setBarcodeDateTime] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
   const patientsPerPage = 15;
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
+
+  const handleBarcodeStep = (delta) => {
+    setSearchTerm((prev) => {
+      const match = prev.match(/^(.*?)(\d+)$/);
+      if (match) {
+        const prefix = match[1];
+        const num = parseInt(match[2], 10);
+        const padLength = match[2].length;
+        const next = Math.max(0, num + delta);
+        return prefix + String(next).padStart(padLength, "0");
+      }
+      return delta > 0 ? prev + "1" : prev;
+    });
+  };
 
   const fetchPatients = async () => {
     setIsLoading(true);
     try {
       const response = await apiRequest(
-        `${Labbaseurl}patients_get_barcode/?from_date=${fromDate.toISOString().split("T")[0]
-        }&to_date=${toDate.toISOString().split("T")[0]}`,
+        `${Labbaseurl}patients_get_barcode/?from_date=${fromDate}&to_date=${toDate}`,
         "GET"
       );
 
@@ -396,16 +397,13 @@ const BarcodeGeneration = () => {
         if (Array.isArray(data)) {
           setAllPatients(data);
           setFilteredPatients(data);
-          setTotalPages(Math.ceil(data.length / patientsPerPage));
+          setTotalPages(Math.max(1, Math.ceil(data.length / patientsPerPage)));
         } else {
-          console.error("Invalid data format:", data);
           setAllPatients([]);
           setFilteredPatients([]);
           setTotalPages(1);
-          toast.error("Invalid data format received from server");
         }
       } else {
-        console.error("Error fetching patients:", response.error);
         setAllPatients([]);
         setFilteredPatients([]);
         setTotalPages(1);
@@ -424,7 +422,15 @@ const BarcodeGeneration = () => {
 
   const handleGenerateBarcode = (patient, e) => {
     e.stopPropagation();
-    const patientDate = new Date(patient.date);
+
+    const d = new Date(patient.date);
+    const selectedDateStr = [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, "0"),
+      String(d.getDate()).padStart(2, "0"),
+    ].join("-");
+
+    const effectiveSearchTerm = searchTerm.trim() || patient.bill_no || "";
 
     navigate("/BarcodeTestDetails", {
       state: {
@@ -436,96 +442,17 @@ const BarcodeGeneration = () => {
         is_emergency: patient.is_emergency,
         patient_history: patient.patient_history,
         sample_collector: patient.sample_collector,
-        selectedDate: patientDate,
+        selectedDate: selectedDateStr,
         fromDate: fromDate,
         toDate: toDate,
+        searchTerm: effectiveSearchTerm,
       },
     });
   };
 
-  const handleApplyDateRange = () => {
-    if (fromDate > toDate) {
-      toast.error("From date cannot be later than To date");
-      return;
-    }
+  useEffect(() => {
     fetchPatients();
-    setSearchTerm("");
-    setStatusFilter("All");
-    setCurrentPage(1);
-  };
-
-  // Filter patients based on search term and status
-  useEffect(() => {
-    let filtered = allPatients;
-
-    // Apply search filter
-    if (searchTerm.trim() !== "") {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((patient) =>
-        patient.patientname?.toLowerCase().includes(searchLower) ||
-        patient.patient_id?.toLowerCase().includes(searchLower) ||
-        patient.bill_no?.toString().includes(searchLower) ||
-        patient.age?.toString().includes(searchLower) ||
-        patient.gender?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply status filter
-    if (statusFilter !== "All") {
-      filtered = filtered.filter((patient) => {
-        if (statusFilter === "Emergency") {
-          return patient.is_emergency === true;
-        } else if (statusFilter === "Normal") {
-          return patient.is_emergency === false;
-        }
-        return true;
-      });
-    }
-
-    setFilteredPatients(filtered);
-    setCurrentPage(1);
-    setTotalPages(Math.max(1, Math.ceil(filtered.length / patientsPerPage)));
-  }, [searchTerm, statusFilter, allPatients]);
-
-  // Update displayed patients based on current page
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * patientsPerPage;
-    setDisplayedPatients(
-      filteredPatients.slice(startIndex, startIndex + patientsPerPage)
-    );
-  }, [currentPage, filteredPatients]);
-
-  // Initialize with today's date
-  useEffect(() => {
-    handleApplyDateRange();
-  }, []);
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const year = date.getUTCFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const getGenderBadgeStyle = (gender) => {
-    if (gender.toLowerCase() === "male") {
-      return {
-        bg: "#dbeafe",
-        color: "#2563eb",
-      };
-    } else if (gender.toLowerCase() === "female") {
-      return {
-        bg: "#fce7f3",
-        color: "#70a82aff",
-      };
-    } else {
-      return {
-        bg: "#e0e7ff",
-        color: "#4f46e5",
-      };
-    }
-  };
+  }, [fromDate, toDate]);
 
   const goToPage = (page) => {
     setCurrentPage(page);
@@ -543,218 +470,276 @@ const BarcodeGeneration = () => {
     }
   };
 
-  const formatDateRange = () => {
-    const fromFormatted = formatDate(fromDate.toISOString());
-    const toFormatted = formatDate(toDate.toISOString());
+  useEffect(() => {
+    let filtered = allPatients;
 
-    if (fromFormatted === toFormatted) {
-      return `for ${fromFormatted}`;
+    if (searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter((patient) => {
+        const testBarcodes = (patient.testdetails || [])
+          .map((t) => (t.barcode || "").toLowerCase())
+          .join(" ");
+
+        return (
+          patient.patientname?.toLowerCase().includes(searchLower) ||
+          patient.patient_id?.toLowerCase().includes(searchLower) ||
+          patient.bill_no?.toString().toLowerCase().includes(searchLower) ||
+          patient.age?.toString().includes(searchLower) ||
+          patient.gender?.toLowerCase().includes(searchLower) ||
+          testBarcodes.includes(searchLower) ||
+          (patient.barcode && patient.barcode.toLowerCase().includes(searchLower))
+        );
+      });
     }
-    return `from ${fromFormatted} to ${toFormatted}`;
+
+    if (statusFilter !== "ALL") {
+      filtered = filtered.filter(
+        (patient) => (patient.barcode_status || "Pending") === statusFilter
+      );
+    }
+
+    setFilteredPatients(filtered);
+    setCurrentPage(1);
+    setTotalPages(Math.max(1, Math.ceil(filtered.length / patientsPerPage)));
+  }, [searchTerm, statusFilter, allPatients]);
+
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * patientsPerPage;
+    setDisplayedPatients(
+      filteredPatients.slice(startIndex, startIndex + patientsPerPage)
+    );
+  }, [currentPage, filteredPatients]);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const getGenderBadgeStyle = (gender) => {
+    if ((gender || "").toLowerCase() === "male") {
+      return { bg: "#dbeafe", color: "#2563eb" };
+    } else if ((gender || "").toLowerCase() === "female") {
+      return { bg: "#fce7f3", color: "#db2777" };
+    }
+    return { bg: "#e0e7ff", color: "#4f46e5" };
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+    const today = getTodayStr();
+    setFromDate(today);
+    setToDate(today);
   };
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <Title>Patient Barcode Generation</Title>
-        <Subtitle>
-          Select date range to view patients and generate barcodes for their lab
-          tests
-        </Subtitle>
-      </PageHeader>
+    <Shell>
+      {/* Top Bar */}
+      <TopBar>
+        <TitleGroup>
+          <Calendar size={22} color="#a777e3" />
+          <Title>Patient Barcode Generation</Title>
+        </TitleGroup>
+        <IconBtn bg="#f1f5f9" color="#a777e3" onClick={() => { setSearchTerm(""); fetchPatients(); }} disabled={isLoading} title="Refresh">
+          <RefreshCw size={16} />
+        </IconBtn>
+      </TopBar>
 
-      <ControlsContainer>
-        <SearchContainer>
-          <SearchIcon>
-            <Search size={16} />
-          </SearchIcon>
-          <SearchInput
-            type="text"
-            placeholder="Search by ID, Name, bill no, age..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </SearchContainer>
-
-        <DateRangeContainer>
-          <DateInputGroup>
-            <DateLabel>From Date</DateLabel>
-            <StyledDatePicker
+      <Card>
+        {/* Unified Responsive Filter Row */}
+        <FilterBar>
+          <FGroup minW="140px">
+            <FLabel>From Date</FLabel>
+            <FInput
               type="date"
-              value={fromDate.toISOString().split("T")[0]}
-              onChange={(e) => setFromDate(new Date(e.target.value))}
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setSearchTerm("");
+              }}
             />
-          </DateInputGroup>
+          </FGroup>
 
-          <DateInputGroup>
-            <DateLabel>To Date</DateLabel>
-            <StyledDatePicker
+          <FGroup minW="140px">
+            <FLabel>To Date</FLabel>
+            <FInput
               type="date"
-              value={toDate.toISOString().split("T")[0]}
-              onChange={(e) => setToDate(new Date(e.target.value))}
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setSearchTerm("");
+              }}
             />
-          </DateInputGroup>
+          </FGroup>
 
-          <ApplyButton onClick={handleApplyDateRange} disabled={isLoading}>
-            {isLoading ? "Loading..." : "Apply"}
-          </ApplyButton>
-        </DateRangeContainer>
-      </ControlsContainer>
+          <FGroup minW="130px">
+            <FLabel>Status</FLabel>
+            <FSelect
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setSearchTerm("");
+              }}
+            >
+              <option value="ALL">All Status</option>
+              <option value="Generated">Generated</option>
+              <option value="Pending">Pending</option>
+            </FSelect>
+          </FGroup>
 
-      <FilterContainer>
-        <FilterLabel>
-          <Filter size={16} />
-          Status Filter:
-        </FilterLabel>
-        <StyledSelect
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="All">All</option>
-          <option value="Emergency">Emergency</option>
-          <option value="Normal">Normal</option>
-        </StyledSelect>
-      </FilterContainer>
-
-      {allPatients.length > 0 && (
-        <ResultsSummary>
-          <SummaryText>
-            Found {allPatients.length} patient
-            {allPatients.length !== 1 ? "s" : ""} {formatDateRange()}
-            {filteredPatients.length !== allPatients.length &&
-              ` (${filteredPatients.length} matching filters)`}
-          </SummaryText>
-        </ResultsSummary>
-      )}
-
-      {displayedPatients.length > 0 ? (
-        <TableContainer>
-          <StyledTable>
-            <TableHeader>
-              <TableHeaderRow>
-                <TableHeaderCell>Date</TableHeaderCell>
-                <TableHeaderCell>Patient ID</TableHeaderCell>
-                <TableHeaderCell>Patient Name</TableHeaderCell>
-                <TableHeaderCell>Age</TableHeaderCell>
-                <TableHeaderCell>Gender</TableHeaderCell>
-                <TableHeaderCell>Status</TableHeaderCell>
-                <TableHeaderCell>Bill No</TableHeaderCell>
-                <TableHeaderCell>Action</TableHeaderCell>
-              </TableHeaderRow>
-            </TableHeader>
-            <TableBody>
-              {displayedPatients.map((patient, index) => {
-                const genderStyle = getGenderBadgeStyle(patient.gender);
-                const isEmergency = patient.is_emergency === true;
-
-                return (
-                  <TableRow key={index}>
-                    <TableCell>{formatDate(patient.date)}</TableCell>
-                    <TableCell>{patient.patient_id}</TableCell>
-                    <TableCell>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <User size={16} color="#64748b" />
-                        <span style={{ fontWeight: "600" }}>
-                          {patient.patientname}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{patient.age} years</TableCell>
-                    <TableCell>
-                      <Badge
-                        style={{
-                          backgroundColor: genderStyle.bg,
-                          color: genderStyle.color,
-                        }}
-                      >
-                        {patient.gender}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {isEmergency ? (
-                        <EmergencyBadge $blink={true}>
-                          Emergency
-                        </EmergencyBadge>
-                      ) : (
-                        <NormalBadge>Normal</NormalBadge>
-                      )}
-                    </TableCell>
-                    <TableCell>{patient.bill_no || "-"}</TableCell>
-                    <TableCell>
-                      <ActionButton
-                        onClick={(e) => handleGenerateBarcode(patient, e)}
-                      >
-                        Generate Barcode
-                        <ChevronRight size={16} />
-                      </ActionButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </StyledTable>
-        </TableContainer>
-      ) : (
-        <EmptyState>
-          <Calendar size={40} color="#94a3b8" />
-          <EmptyStateText>
-            {searchTerm || statusFilter !== "All"
-              ? "No matching patients found. Try adjusting your filters."
-              : isLoading
-                ? "Loading patients..."
-                : "No patients found for the selected date range."}
-          </EmptyStateText>
-        </EmptyState>
-      )}
-
-      {filteredPatients.length > 0 && (
-        <PaginationContainer>
-          <PageButton onClick={goToPreviousPage} disabled={currentPage === 1}>
-            <ChevronLeft size={16} />
-          </PageButton>
-
-          {[...Array(Math.min(totalPages, 5))].map((_, index) => {
-            let pageNumber;
-            if (totalPages <= 5) {
-              pageNumber = index + 1;
-            } else if (currentPage <= 3) {
-              pageNumber = index + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNumber = totalPages - 4 + index;
-            } else {
-              pageNumber = currentPage - 2 + index;
-            }
-
-            return (
-              <PageButton
-                key={pageNumber}
-                active={currentPage === pageNumber}
-                onClick={() => goToPage(pageNumber)}
+          <FGroup grow="1" minW="220px">
+            <FLabel>Search Barcode</FLabel>
+            <div style={{ display: "flex", gap: "0.35rem", flexWrap: "nowrap", alignItems: "center", width: "100%" }}>
+              <SearchContainer>
+                <SearchIcon>
+                  <Search size={15} />
+                </SearchIcon>
+                <SearchInput
+                  type="text"
+                  placeholder="ID, Name, Bill No..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </SearchContainer>
+              <StepButton
+                type="button"
+                title="Decrement barcode/bill number"
+                onClick={() => handleBarcodeStep(-1)}
               >
-                {pageNumber}
-              </PageButton>
-            );
-          })}
+                <Minus size={14} />
+              </StepButton>
+              <StepButton
+                type="button"
+                title="Increment barcode/bill number"
+                onClick={() => handleBarcodeStep(1)}
+              >
+                <Plus size={14} />
+              </StepButton>
+            </div>
+          </FGroup>
 
-          <PageButton
-            onClick={goToNextPage}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight size={16} />
-          </PageButton>
+          <IconBtn bg="#f1f5f9" color="#475569" onClick={clearFilters} title="Clear filters">Clear</IconBtn>
+        </FilterBar>
 
-          <PageInfo>
-            Page {currentPage} of {totalPages}
-          </PageInfo>
-        </PaginationContainer>
-      )}
-    </PageContainer>
+        {/* Scrollable Table Area */}
+        <TableWrap>
+          <Table>
+            <TableHead>
+              <tr>
+                <th style={{ width: "60px", textAlign: "center" }}>S.No</th>
+                <th>Date</th>
+                <th>Patient ID</th>
+                <th>Patient Name</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Bill No</th>
+                <th>Status</th>
+                <th style={{ width: "180px", textAlign: "center" }}>Action</th>
+              </tr>
+            </TableHead>
+            <tbody>
+              {isLoading ? (
+                <Tr><td colSpan={9} style={{ textAlign: "center", padding: "2.5rem", color: "#94a3b8" }}>Loading patients...</td></Tr>
+              ) : displayedPatients.length > 0 ? (
+                displayedPatients.map((patient, index) => {
+                  const genderStyle = getGenderBadgeStyle(patient.gender);
+                  return (
+                    <Tr key={index}>
+                      <td style={{ textAlign: "center" }}>
+                        {(currentPage - 1) * patientsPerPage + index + 1}
+                      </td>
+                      <td>{formatDate(patient.date)}</td>
+                      <td>{patient.patient_id}</td>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <User size={15} color="#64748b" />
+                          <span style={{ fontWeight: "600" }}>{patient.patientname}</span>
+                        </div>
+                      </td>
+                      <td>{patient.age} years</td>
+                      <td>
+                        <Badge style={{ backgroundColor: genderStyle.bg, color: genderStyle.color }}>
+                          {patient.gender}
+                        </Badge>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{patient.bill_no || "-"}</td>
+                      <td>
+                        <Badge
+                          style={{
+                            backgroundColor: patient.barcode_status === "Generated" ? "#dcfce7" : "#fef3c7",
+                            color: patient.barcode_status === "Generated" ? "#166534" : "#92400e",
+                          }}
+                        >
+                          {patient.barcode_status || "Pending"}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", justifyContent: "center" }}>
+                          <ActionButton
+                            onClick={(e) => handleGenerateBarcode(patient, e)}
+                            style={{
+                              background:
+                                patient.barcode_status === "Generated"
+                                  ? "#10b981"
+                                  : "#a777e3",
+                            }}
+                          >
+                            {patient.barcode_status === "Generated"
+                              ? "View Barcode"
+                              : "Generate Barcode"}
+                            <ChevronRight size={14} />
+                          </ActionButton>
+                        </div>
+                      </td>
+                    </Tr>
+                  );
+                })
+              ) : (
+                <Tr>
+                  <td colSpan={9}>
+                    <EmptyState>
+                      <Calendar size={36} style={{ opacity: 0.25, marginBottom: "0.50rem" }} />
+                      <div>No patients found. Select date range or refine search queries.</div>
+                    </EmptyState>
+                  </td>
+                </Tr>
+              )}
+            </tbody>
+          </Table>
+        </TableWrap>
+
+        {/* Unified Bottom Pagination */}
+        {filteredPatients.length > 0 && (
+          <PaginationBar>
+            <span>Showing {(currentPage - 1) * patientsPerPage + 1}–{Math.min(currentPage * patientsPerPage, filteredPatients.length)} of {filteredPatients.length}</span>
+            <PageControls>
+              <PageBtn disabled={currentPage === 1} onClick={() => goToPage(1)}><ChevronsLeft size={14} /></PageBtn>
+              <PageBtn disabled={currentPage === 1} onClick={goToPreviousPage}><ChevronLeft size={14} /></PageBtn>
+              {getPageNumbers().map(n => (
+                <PageBtn key={n} active={n === currentPage} onClick={() => goToPage(n)}>{n}</PageBtn>
+              ))}
+              <PageBtn disabled={currentPage === totalPages} onClick={goToNextPage}><ChevronRightIcon size={14} /></PageBtn>
+              <PageBtn disabled={currentPage === totalPages} onClick={() => goToPage(totalPages)}><ChevronsRight size={14} /></PageBtn>
+            </PageControls>
+          </PaginationBar>
+        )}
+      </Card>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
+    </Shell>
   );
 };
 

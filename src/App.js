@@ -161,7 +161,7 @@ function App() {
       case "Accounts":
         navigate("/Invoice");
         break;
-      case "PH":
+      case "Clinical Reports":
         navigate("/ClinicalPatientOverview");
         break;
       default:

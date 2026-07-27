@@ -406,6 +406,7 @@ const HMSBarcodeTestDetails = () => {
     bill_type,
     fromDate: fromDateParam,
     toDate: toDateParam,
+    searchTerm,
   } = location.state || {};
   const [testDetails, setTestDetails] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -811,6 +812,7 @@ const HMSBarcodeTestDetails = () => {
       state: {
         fromDate: fromDateParam || new Date().toISOString().split("T")[0],
         toDate: toDateParam || new Date().toISOString().split("T")[0],
+        searchTerm: searchTerm || "",
       },
     });
   };

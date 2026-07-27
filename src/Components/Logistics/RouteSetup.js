@@ -8,17 +8,16 @@ import apiRequest from "../Auth/apiRequest"
 import { format } from "date-fns"
 
 const PageContainer = styled.div`
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  min-height: 100vh;
+  width: 100%;
+  overflow-y: auto;
   padding: 20px;
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(135deg, rgba(240, 147, 251, 0.05), rgba(102, 126, 234, 0.05));
   box-sizing: border-box;
 
   @media (max-width: 768px) {
-    padding: 10px;
+    padding: 12px;
   }
 `
 
@@ -41,17 +40,15 @@ const FormCard = styled.div`
 `
 
 const ListCard = styled(FormCard)`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  margin-bottom: 0;
+  margin-bottom: 30px;
 `
 
 const TableContainer = styled.div`
-  flex: 1;
-  overflow: auto;
+  width: 100%;
+  overflow-x: auto;
   margin-top: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(102, 126, 234, 0.15);
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -64,13 +61,12 @@ const TableContainer = styled.div`
     background: #cbd5e1;
     border-radius: 8px;
   }
-
 `
 
 const Table = styled.table`
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
-  margin-top: 15px;
 
   th, td {
     padding: 12px 15px;
@@ -83,10 +79,18 @@ const Table = styled.table`
     background: rgba(102,126,234,0.05);
     color: #4c51bf;
     font-weight: 600;
+    white-space: nowrap;
   }
 
   tr:hover td {
     background: rgba(102,126,234,0.02);
+  }
+
+  @media (max-width: 768px) {
+    th, td {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
   }
 `
 
@@ -404,9 +408,10 @@ const RouteSetup = () => {
   const fetchDropdownOptions = async () => {
     setLoadingOptions(true)
     try {
-      const [collectorRes, clinicalRes] = await Promise.all([
+      const [collectorRes, clinicalRes, hospitalLabRes] = await Promise.all([
         apiRequest(`${Labbaseurl}sample-collector/`, "GET"),
         apiRequest(`${Labbaseurl}clinical_name/`, "GET"),
+        apiRequest(`${Labbaseurl}hospitallabform/`, "GET"),
       ])
 
       const collectorList = collectorRes?.data || collectorRes || []
@@ -417,15 +422,34 @@ const RouteSetup = () => {
         return { label, value }
       })
 
+      // 1. From core_clinicalname: store referrerCode as value, clinicalname as label
       const clinicalList = clinicalRes?.data || clinicalRes || []
-      // value = referrerCode (what gets stored), label = clinicalname (what's shown)
-      const clinicals = clinicalList.map((item) => ({
-        label: item.clinicalname,
-        value: item.referrerCode,
-      }))
+      const clinicals = clinicalList
+        .filter((item) => item.clinicalname)
+        .map((item) => ({
+          label: item.clinicalname,
+          value: item.referrerCode || item.clinicalname,
+        }))
+
+      // 2. From core_hospitallab: store clinicalname directly as value, clinicalname as label
+      const hospitalLabList = hospitalLabRes?.data || hospitalLabRes || []
+      const hospitalLabs = hospitalLabList
+        .filter((item) => item.clinicalname)
+        .map((item) => ({
+          label: item.clinicalname,
+          value: item.clinicalname,
+        }))
+
+      // Combine options without duplicate values
+      const combinedOptions = [...clinicals]
+      hospitalLabs.forEach((hLab) => {
+        if (!combinedOptions.some((opt) => opt.value === hLab.value || opt.label === hLab.label)) {
+          combinedOptions.push(hLab)
+        }
+      })
 
       setCollectorOptions(collectors)
-      setClinicalOptions(clinicals)
+      setClinicalOptions(combinedOptions)
     } catch (error) {
       console.error("Error fetching dropdown options:", error.message)
       toast.error("Error loading dropdown options. Please try again.")
@@ -595,7 +619,10 @@ const RouteSetup = () => {
                 isSearchable
                 placeholder="Search and select one or more clinical labs"
                 styles={selectStyles}
-                value={clinicalOptions.filter((opt) => formData.clinical_name.includes(opt.value))}
+                value={formData.clinical_name.map((val) => {
+                  const found = clinicalOptions.find((opt) => opt.value === val)
+                  return found || { label: val, value: val }
+                })}
                 onChange={(options) => handleMultiSelectChange(options, "clinical_name")}
                 inputValue={clinicalSearchInput}
                 onInputChange={handleClinicalInputChange}
@@ -689,6 +716,11 @@ const RouteSetup = () => {
                             {r.clinical_name_display?.map((c, i) => (
                               <div key={i} style={{ marginBottom: "4px" }}>
                                 • {c.clinicalname || c.referrerCode}
+                                {c.referrerCode && c.referrerCode !== c.clinicalname && (
+                                  <span style={{ color: "#a0aec0", fontSize: "11px", marginLeft: "4px" }}>
+                                    ({c.referrerCode})
+                                  </span>
+                                )}
                               </div>
                             ))}
                           </div>
