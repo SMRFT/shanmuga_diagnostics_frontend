@@ -334,7 +334,6 @@ const EmptyState = styled.div`
    COMPONENT
 ═══════════════════════════════════════════════ */
 const HMSBarcodeGeneration = () => {
-  const location = useLocation();
   const getTodayStr = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -343,16 +342,25 @@ const HMSBarcodeGeneration = () => {
     return `${y}-${m}-${dd}`;
   };
 
+  const parseDateToYYYYMMDD = (d) => {
+    if (!d) return getTodayStr();
+    const parsed = new Date(d);
+    if (isNaN(parsed)) return getTodayStr();
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+
+  const location = useLocation();
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [displayedPatients, setDisplayedPatients] = useState([]);
-  const [fromDate, setFromDate] = useState(() => {
-    return location?.state?.fromDate || getTodayStr();
+  const [fromDate, setFromDate] = useState(() => parseDateToYYYYMMDD(location?.state?.fromDate));
+  const [toDate, setToDate] = useState(() => parseDateToYYYYMMDD(location?.state?.toDate));
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return location?.state?.searchTerm || "";
   });
-  const [toDate, setToDate] = useState(() => {
-    return location?.state?.toDate || getTodayStr();
-  });
-  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -416,6 +424,17 @@ const HMSBarcodeGeneration = () => {
     }
   };
 
+  const extractBarcodeFromBillNo = (billNumber, billType) => {
+    if (!billNumber) return "";
+    const parts = String(billNumber).split("/");
+    if (parts.length !== 2) {
+      return String(billNumber).replace(/[^a-zA-Z0-9]/g, "");
+    }
+    const year = parts[0];
+    const number = parts[1];
+    return `${year}${billType || ""}${number}`;
+  };
+
   const handleGenerateBarcode = (patient, e) => {
     e.stopPropagation();
 
@@ -426,6 +445,9 @@ const HMSBarcodeGeneration = () => {
       String(d.getDate()).padStart(2, "0"),
     ].join("-");
 
+    const computedBarcode = extractBarcodeFromBillNo(patient.bill_no, patient.IPOPType || patient.BillType);
+    const effectiveSearchTerm = searchTerm.trim() || computedBarcode || patient.bill_no || "";
+
     navigate("/HMSBarcodeTestDetails", {
       state: {
         patientId: patient.patient_id,
@@ -433,9 +455,11 @@ const HMSBarcodeGeneration = () => {
         age: patient.age,
         gender: patient.gender,
         bill_no: patient.bill_no,
+        bill_type: patient.BillType || patient.IPOPType,
         selectedDate: selectedDateStr,
         fromDate: fromDate,
         toDate: toDate,
+        searchTerm: effectiveSearchTerm,
       },
     });
   };
@@ -460,20 +484,28 @@ const HMSBarcodeGeneration = () => {
     }
   };
 
-  // Filter patients based on search term
   useEffect(() => {
     let filtered = allPatients;
 
     if (searchTerm.trim() !== "") {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (patient) =>
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter((patient) => {
+        const computedBarcode = extractBarcodeFromBillNo(patient.bill_no, patient.IPOPType || patient.BillType)?.toLowerCase() || "";
+        const testBarcodes = (patient.testdetails || [])
+          .map((t) => (t.barcode || "").toLowerCase())
+          .join(" ");
+
+        return (
           patient.patientname?.toLowerCase().includes(searchLower) ||
           patient.patient_id?.toLowerCase().includes(searchLower) ||
-          patient.bill_no?.toString().includes(searchLower) ||
+          patient.bill_no?.toString().toLowerCase().includes(searchLower) ||
           patient.age?.toString().includes(searchLower) ||
-          patient.gender?.toLowerCase().includes(searchLower),
-      );
+          patient.gender?.toLowerCase().includes(searchLower) ||
+          computedBarcode.includes(searchLower) ||
+          testBarcodes.includes(searchLower) ||
+          (patient.barcode && patient.barcode.toLowerCase().includes(searchLower))
+        );
+      });
     }
 
     if (ipopFilter !== "ALL") {
@@ -546,7 +578,7 @@ const HMSBarcodeGeneration = () => {
           <Calendar size={22} color="#a777e3" />
           <Title>HMS Patient Barcode Generation</Title>
         </TitleGroup>
-        <IconBtn bg="#f1f5f9" color="#a777e3" onClick={fetchPatients} disabled={isLoading} title="Refresh">
+        <IconBtn bg="#f1f5f9" color="#a777e3" onClick={() => { setSearchTerm(""); fetchPatients(); }} disabled={isLoading} title="Refresh">
           <RefreshCw size={16} />
         </IconBtn>
       </TopBar>
@@ -559,7 +591,10 @@ const HMSBarcodeGeneration = () => {
             <FInput
               type="date"
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setSearchTerm("");
+              }}
             />
           </FGroup>
 
@@ -568,13 +603,19 @@ const HMSBarcodeGeneration = () => {
             <FInput
               type="date"
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setSearchTerm("");
+              }}
             />
           </FGroup>
 
           <FGroup minW="110px">
             <FLabel>IP/OP</FLabel>
-            <FSelect value={ipopFilter} onChange={(e) => setIpopFilter(e.target.value)}>
+            <FSelect value={ipopFilter} onChange={(e) => {
+                setIpopFilter(e.target.value);
+                setSearchTerm("");
+              }}>
               <option value="ALL">All IP/OP</option>
               <option value="IP">IP</option>
               <option value="OP">OP</option>
@@ -583,7 +624,10 @@ const HMSBarcodeGeneration = () => {
 
           <FGroup minW="120px">
             <FLabel>Status</FLabel>
-            <FSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <FSelect value={statusFilter} onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setSearchTerm("");
+              }}>
               <option value="ALL">All Status</option>
               <option value="Generated">Generated</option>
               <option value="Pending">Pending</option>

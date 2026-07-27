@@ -118,8 +118,8 @@ const selectStyles = {
     backgroundColor: state.isSelected
       ? "#667eea"
       : state.isFocused
-      ? "rgba(102,126,234,0.08)"
-      : "#fff",
+        ? "rgba(102,126,234,0.08)"
+        : "#fff",
     color: state.isSelected ? "#fff" : state.isDisabled ? "#a0aec0" : "#2d3748",
     cursor: state.isDisabled ? "not-allowed" : "pointer",
     fontFamily: "'Poppins', sans-serif",
@@ -134,8 +134,8 @@ const ActionButton = styled.button`
     disabled
       ? "linear-gradient(135deg, #e2e8f0, #cbd5e0)"
       : variant === "stop"
-      ? "linear-gradient(135deg, #fc8181, #e53e3e)"
-      : "linear-gradient(135deg, #f093fb, #667eea, #764ba2)"};
+        ? "linear-gradient(135deg, #fc8181, #e53e3e)"
+        : "linear-gradient(135deg, #f093fb, #667eea, #764ba2)"};
   color: ${({ disabled }) => (disabled ? "#718096" : "#fff")};
   font-size: 15px;
   font-weight: 700;
@@ -325,9 +325,9 @@ const PhotoIconButton = styled.button`
 
   svg {
     ${({ uploading }) =>
-      uploading
-        ? css`animation: ${spin} 0.8s linear infinite;`
-        : ""}
+    uploading
+      ? css`animation: ${spin} 0.8s linear infinite;`
+      : ""}
   }
 
   &:hover:not(:disabled) {
@@ -395,14 +395,14 @@ const StatusPill = styled.span`
     status === "completed"
       ? "rgba(56,161,105,0.15)"
       : status === "in_progress"
-      ? "rgba(237,137,54,0.15)"
-      : "transparent"};
+        ? "rgba(237,137,54,0.15)"
+        : "transparent"};
   color: ${({ status }) =>
     status === "completed"
       ? "#38a169"
       : status === "in_progress"
-      ? "#ed8936"
-      : "transparent"};
+        ? "#ed8936"
+        : "transparent"};
   margin-left: 6px;
 `
 
@@ -430,7 +430,7 @@ const RouteAnalysis = () => {
   const [activeUploadCode, setActiveUploadCode] = useState(null)
   // map of route_id -> { status, analysis_id } for today
   const [todayStatusMap, setTodayStatusMap] = useState({})
-  
+
   const todayDate = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(todayDate)
 
@@ -629,7 +629,7 @@ const RouteAnalysis = () => {
             <FaClock />
             Select Date
           </label>
-          <input 
+          <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
@@ -688,8 +688,12 @@ const RouteAnalysis = () => {
                   <FaHospital size={11} />
                   <span>
                     <strong>{c.clinicalname || c.referrerCode}</strong>
-                    &nbsp;
-                    <span style={{ color: "#a0aec0", fontSize: 11 }}>({c.referrerCode})</span>
+                    {c.referrerCode && c.referrerCode !== c.clinicalname && (
+                      <>
+                        &nbsp;
+                        <span style={{ color: "#a0aec0", fontSize: 11 }}>({c.referrerCode})</span>
+                      </>
+                    )}
                   </span>
                 </PreviewClinicItem>
               ))}
@@ -776,7 +780,9 @@ const RouteAnalysis = () => {
                     <VisitHeader>
                       <ClinicInfo>
                         <span className="name">{visit.clinicalname || visit.referrerCode}</span>
-                        <span className="code">{visit.referrerCode}</span>
+                        {visit.referrerCode && visit.referrerCode !== visit.clinicalname && (
+                          <span className="code">{visit.referrerCode}</span>
+                        )}
                       </ClinicInfo>
 
                       {visit.visited ? (

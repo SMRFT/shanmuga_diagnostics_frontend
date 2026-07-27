@@ -310,12 +310,23 @@ const BarcodeDate = styled.p`
   width: 100%;
 `;
 
+const ContainerRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 1px 0 0 0;
+`;
+
 const ContainerName = styled.div`
   font-size: 6px;
   font-weight: bold;
-  margin: 1px 0 0 0;
-  text-align: left;
-  width: 100%;
+  color: #333;
+`;
+
+const ShortcutName = styled.div`
+  font-size: 6px;
+  font-weight: bold;
   color: #333;
 `;
 
@@ -404,7 +415,18 @@ const BarcodeTestDetails = () => {
   const toast = useToast();
   const printSectionRef = useRef(null);
   const navigate = useNavigate();
-  const { patientId, selectedDate, gender, bill_no } = location.state || {};
+  const { patientId, selectedDate, gender, bill_no, searchTerm } = location.state || {};
+
+  const getDateString = (d) => {
+    if (!d) return new Date().toISOString().split("T")[0];
+    if (typeof d === "string") return d.split("T")[0];
+    if (d instanceof Date && !isNaN(d)) return d.toISOString().split("T")[0];
+    try {
+      return new Date(d).toISOString().split("T")[0];
+    } catch {
+      return new Date().toISOString().split("T")[0];
+    }
+  };
   const [testDetails, setTestDetails] = useState([]);
   const [barcodeCounter, setBarcodeCounter] = useState(0);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -469,7 +491,7 @@ const BarcodeTestDetails = () => {
       let existingBarcodeFound = false;
       let existingBarcodeResult = null;
 
-      const dateString = selectedDate.toISOString().split("T")[0];
+      const dateString = getDateString(selectedDate);
 
       // Build URL with proper encoding for checking existing barcode
       const params = {
@@ -538,12 +560,14 @@ const BarcodeTestDetails = () => {
             ([container, testdetails]) => ({
               barcode: existingBarcode,
               containerName: container,
+              shortcut: [...new Set(testdetails.map((t) => t.shortcut).filter(Boolean))].join(", "),
               isExtra: false,
             }),
           ),
           {
             barcode: extraBarcode,
             containerName: "",
+            shortcut: "",
             isExtra: true,
           },
         ];
@@ -589,11 +613,13 @@ const BarcodeTestDetails = () => {
         ...Object.values(containerGroups).map((group) => ({
           barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
           containerName: group.container,
+          shortcut: [...new Set(group.tests.map((t) => t.shortcut).filter(Boolean))].join(", "),
           isExtra: false,
         })),
         {
           barcode: patientBarcode,
           containerName: "",
+          shortcut: "",
           isExtra: true,
         },
       ];
@@ -660,7 +686,7 @@ const BarcodeTestDetails = () => {
       setIsGenerating(true);
 
       // Get existing barcode data with debugging
-      const dateString = selectedDate.toISOString().split("T")[0];
+      const dateString = getDateString(selectedDate);
 
       // Debug: Log the values we're trying to send
       console.log("DEBUG REGEN - Values to send:", {
@@ -727,11 +753,13 @@ const BarcodeTestDetails = () => {
           ...Object.values(containerGroups).map((group) => ({
             barcode: group.suffix ? `${patientBarcode}-${group.suffix}` : patientBarcode,
             containerName: group.container,
+            shortcut: [...new Set(group.tests.map((t) => t.shortcut).filter(Boolean))].join(", "),
             isExtra: false,
           })),
           {
             barcode: patientBarcode,
             containerName: "",
+            shortcut: "",
             isExtra: true,
           },
         ];
@@ -840,12 +868,21 @@ const BarcodeTestDetails = () => {
  text-align: left;
  width: 100%;
  }
+ .container-row {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ width: 100%;
+ margin: 1px 0 0 0;
+ }
  .container-name {
  font-size: 8px;
  font-weight: bold;
- margin: 1px 0 0 0;
- text-align: left;
- width: 100%;
+ color: #333;
+ }
+ .shortcut-name {
+ font-size: 8px;
+ font-weight: bold;
  color: #333;
  }
  .barcode-container {
@@ -880,12 +917,18 @@ const BarcodeTestDetails = () => {
   };
 
   const handleBack = () => {
-    navigate("/BarcodeGeneration");
+    navigate("/BarcodeGeneration", {
+      state: {
+        fromDate: location.state?.fromDate || new Date().toISOString().split("T")[0],
+        toDate: location.state?.toDate || new Date().toISOString().split("T")[0],
+        searchTerm: searchTerm || "",
+      },
+    });
   };
 
   useEffect(() => {
     const fetchTestDetails = async () => {
-      const dateString = selectedDate.toISOString().split("T")[0];
+      const dateString = getDateString(selectedDate);
 
       // First API call - get patient data
       const patientResult = await apiRequest(
@@ -1055,6 +1098,7 @@ const BarcodeTestDetails = () => {
               <Table>
                 <TableHead>
                   <tr>
+                    <th>S.No</th>
                     <th>Test Name</th>
                     <th>Collection Container</th>
                     <th>Barcode</th>
@@ -1063,6 +1107,7 @@ const BarcodeTestDetails = () => {
                 <TableBody>
                   {testDetails.map((test, index) => (
                     <tr key={index}>
+                      <td>{index + 1}</td>
                       <td>{test.testname}</td>
                       <td>{test.collection_container}</td>
                       <td>
@@ -1169,10 +1214,15 @@ const BarcodeTestDetails = () => {
                 }}
               />
             </BarcodeContainer>
-            {item.containerName && !item.isExtra && (
-              <ContainerName className="container-name">
-                {item.containerName}
-              </ContainerName>
+            {!item.isExtra && (
+              <ContainerRow className="container-row">
+                <ContainerName className="container-name">
+                  {item.containerName}
+                </ContainerName>
+                <ShortcutName className="shortcut-name">
+                  {item.shortcut}
+                </ShortcutName>
+              </ContainerRow>
             )}
           </BarcodeItem>
         ))}

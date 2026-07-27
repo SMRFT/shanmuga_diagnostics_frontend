@@ -488,8 +488,12 @@ const RouteAnalysisDashboard = () => {
                     {route.labs.map((lab, i) => (
                       <tr key={i}>
                         <td style={{ paddingLeft: "32px" }}>
-                          <span style={{ fontWeight: 600 }}>{lab.clinicalname}</span>
-                          <span style={{ color: "#a0aec0", fontSize: "11px", marginLeft: "6px" }}>{lab.referrerCode}</span>
+                          <span style={{ fontWeight: 600 }}>{lab.clinicalname || lab.referrerCode}</span>
+                          {lab.referrerCode && lab.referrerCode !== lab.clinicalname && (
+                            <span style={{ color: "#a0aec0", fontSize: "11px", marginLeft: "6px" }}>
+                              ({lab.referrerCode})
+                            </span>
+                          )}
                         </td>
                         
                         {dates.map(d => {
