@@ -312,7 +312,7 @@ const LoadingText = styled.div`
 const Salesplan = () => {
   const [salesMappings, setSalesMappings] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('B2B');
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1); // 1-indexed (Jan=1 ... Dec=12) to match backend
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [planData, setPlanData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -347,8 +347,11 @@ const Salesplan = () => {
   const patchQueueRef = useRef(Promise.resolve());
 
 
+  // month is 1-indexed (Jan=1...Dec=12). new Date(year, month, 0) uses JS's
+  // 0-indexed month param, so passing our 1-indexed month with day 0 lands
+  // on the last day of the *previous* (0-indexed) month, i.e. our target month.
   const getDaysInMonth = (month, year) => {
-    return new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, 0).getDate();
   };
 
   const daysInMonth = getDaysInMonth(currentMonth, currentYear);
@@ -560,7 +563,7 @@ const Salesplan = () => {
               onChange={(e) => setCurrentMonth(Number(e.target.value))}
             >
               {monthNames.map((month, index) => (
-                <option key={index} value={index}>{month}</option>
+                <option key={index} value={index + 1}>{month}</option>
               ))}
             </Select>
             <Select
