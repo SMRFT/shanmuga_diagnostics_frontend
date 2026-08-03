@@ -673,6 +673,7 @@ const B2BReport = () => {
   });
 
   const [formData, setFormData] = useState({});
+  const [salesExecutives, setSalesExecutives] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -681,11 +682,29 @@ const B2BReport = () => {
         setData(response.data);
       } else {
         console.error("Error fetching data:", response.error);
-        // Toast optional here since initial load failure might just be empty list
       }
     };
+
     fetchData();
+    fetchSalesExecutives();
   }, []);
+
+  const fetchSalesExecutives = async () => {
+    try {
+      const response = await apiRequest(`${Labbaseurl}get_sales_executives/`, "GET");
+      let list = [];
+      if (response && response.success !== false) {
+        list = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response)
+            ? response
+            : (response.data?.data || []);
+      }
+      setSalesExecutives(list);
+    } catch (error) {
+      console.error("Error fetching sales executives:", error);
+    }
+  };
 
   // Filter and pagination logic
   const filteredData = useMemo(() => {
@@ -916,24 +935,53 @@ const B2BReport = () => {
 
     setEditModal((prev) => ({ ...prev, loading: true }));
 
+    // Build payload with only updatable model fields
+    const payload = {
+      referrerCode: formData.referrerCode,
+      clinicalname: formData.clinicalname || "",
+      type: formData.type || "",
+      salesMapping: formData.salesMapping || "",
+      phone: formData.phone || "",
+      alternateNumber: formData.alternateNumber || "",
+      address: formData.address || "",
+      area: formData.area || "",
+      city: formData.city || "",
+      state: formData.state || "",
+      pincode: formData.pincode || "",
+      b2bType: formData.b2bType || "",
+      creditType: formData.creditType || "",
+      creditLimit: formData.creditLimit || "",
+      invoicePeriod: formData.invoicePeriod || "",
+      reportDelivery: formData.reportDelivery || "",
+      report: formData.report || "",
+    };
+
+    if (formData.email && formData.email.trim() !== "") {
+      payload.email = formData.email.trim();
+    }
+
     try {
       const response = await apiRequest(
         `${Labbaseurl}clinicalname_update/`,
         "PUT",
-        formData
+        payload
       );
 
-      if (response.success) {
+      if (response && response.success !== false && !response.error) {
         // Update local data
         setData((prevData) =>
           prevData.map((item) =>
-            item.referrerCode === formData.referrerCode ? { ...item, ...formData } : item
+            item.referrerCode === formData.referrerCode ? { ...item, ...payload } : item
           )
         );
         alert("Details updated successfully!");
         closeEditModal();
       } else {
-        alert(response.error || "Failed to update details.");
+        const errorMsg =
+          typeof response?.error === "object"
+            ? JSON.stringify(response.error)
+            : response?.error || response?.message || "Failed to update details.";
+        alert(errorMsg);
       }
     } catch (error) {
       console.error("Error updating details:", error);
@@ -1426,11 +1474,31 @@ const B2BReport = () => {
                 </div>
                 <div>
                   <FormLabel>Sales Mapping</FormLabel>
-                  <Input
+                  <Select
                     name="salesMapping"
                     value={formData.salesMapping || ""}
                     onChange={handleEditChange}
-                  />
+                    style={{ padding: "12px 14px", backgroundColor: "#f8fafc" }}
+                  >
+                    <option value="">-- Select Sales Person --</option>
+                    {formData.salesMapping &&
+                      !salesExecutives.some(
+                        (p) => (typeof p === "string" ? p : (p.employeeName || p.name)) === formData.salesMapping
+                      ) && (
+                        <option value={formData.salesMapping}>{formData.salesMapping}</option>
+                      )}
+                    {salesExecutives.map((person, index) => {
+                      const pName =
+                        typeof person === "string"
+                          ? person
+                          : person.employeeName || person.name || person.employeeId;
+                      return (
+                        <option key={index} value={pName}>
+                          {pName} {person.employeeId && person.employeeId !== pName ? `(${person.employeeId})` : ""}
+                        </option>
+                      );
+                    })}
+                  </Select>
                 </div>
                 <div>
                   <FormLabel>B2B Type</FormLabel>

@@ -23,99 +23,100 @@ const Container = styled.div`
 const PageHeader = styled.div`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 30px;
-  border-radius: 12px;
-  margin-bottom: 30px;
+  padding: 14px 22px;
+  border-radius: 10px;
+  margin-bottom: 12px;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.2);
 
   @media (max-width: 480px) {
-    padding: 18px 12px;
-    margin-bottom: 16px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
   }
 `;
 
 const TitleContainer = styled.div`
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 700;
   font-family: "Poppins", sans-serif;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 8px;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
 
   @media (max-width: 480px) {
-    font-size: 18px;
+    font-size: 16px;
     letter-spacing: 1px;
   }
 `;
 
 const Subtitle = styled.div`
-  font-size: 16px;
+  font-size: 12px;
   opacity: 0.9;
   font-weight: 300;
 
   @media (max-width: 480px) {
-    font-size: 13px;
+    font-size: 11px;
   }
 `;
 
 const FilterSection = styled.div`
   background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  margin-bottom: 25px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  margin-bottom: 12px;
   border: 1px solid #e2e8f0;
-  position: relative;   /* ✅ add this */
-  z-index: 10;          /* ✅ add this — keeps filter section above table */
+  position: relative;
+  z-index: 10;
 
   @media (max-width: 480px) {
-    padding: 14px;
-    margin-bottom: 14px;
+    padding: 10px;
+    margin-bottom: 10px;
   }
 `
 
 const FilterHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 10px;
   font-weight: 600;
   color: #475569;
-  font-size: 16px;
+  font-size: 13px;
 `;
 
 const FilterGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 12px;
+  @media (max-width: 640px) {
+    gap: 8px;
   }
 `;
 
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
-  min-width: 140px;
+  min-width: 130px;
 
-  label { font-size: 13px; font-weight: 500; color: #374151; }
+  label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #475569;
+  }
 
   select, input[type="date"], input[type="text"], input[type="number"] {
-    padding: 10px 13px;
-    border: 2px solid #e2e8f0;
+    height: 38px;
+    padding: 6px 10px;
+    border: 1.5px solid #cbd5e1;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 13px;
     background: white;
     box-sizing: border-box;
     transition: border-color 0.2s;

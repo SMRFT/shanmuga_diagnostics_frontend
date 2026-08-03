@@ -900,73 +900,70 @@ const B2BPatients = () => {
             6: { halign: "right" }, // Received column right aligned
             7: { halign: "right" }, // Due column right aligned
           },
-          margin: { top: 20, bottom: 20 },
+          margin: { top: 45, bottom: 45, left: 10, right: 10 },
           pageBreak: "auto",
           showHead: "everyPage",
           didDrawPage: function (data) {
-            const pageNumber = data.pageNumber;
-            const pageHeight = doc.internal.pageSize.height;
-            const pageWidth = doc.internal.pageSize.width;
-
-            // Add header only to first page
-            if (pageNumber === 1) {
-              // Header is already added above for first page
-              // No need to add again here
-            }
-
-            // Don't add page numbers here - they will be added later to avoid overlap
+            // Header is already handled
           },
         });
       }
 
-      // Summary
-      const finalY = doc.lastAutoTable.finalY + 10;
+      // Summary positioning with overlap protection
+      const pageHeight = doc.internal.pageSize.height;
+      const pageWidth = doc.internal.pageSize.width;
+      let summaryY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 105) + 10;
+
+      // Check if Summary exceeds available page space before footer boundary
+      if (summaryY + 35 > pageHeight - 45) {
+        doc.addPage();
+        summaryY = 20;
+      }
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.setTextColor(44, 62, 80); // Reset text color
-      doc.text("Summary", 14, finalY);
+      doc.text("Summary", 14, summaryY);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(`Total Patients: ${invoice.patients.length}`, 14, finalY + 7);
+      doc.text(`Total Patients: ${invoice.patients.length}`, 14, summaryY + 7);
       doc.text(
         `Total Original Credit Amount: ${invoice.totalCreditAmount}`,
         14,
-        finalY + 14
+        summaryY + 14
       );
-      doc.text(`Paid: ${invoice.paidAmount || "0.00"}`, 14, finalY + 21);
+      doc.text(`Paid: ${invoice.paidAmount || "0.00"}`, 14, summaryY + 21);
       doc.text(
         `Pending: ${invoice.pendingAmount || invoice.totalCreditAmount}`,
         14,
-        finalY + 28
+        summaryY + 28
       );
 
-      // Add footer only to the last page after all content is added
+      // Add footer image and page numbering safely
       const totalPages = doc.internal.getNumberOfPages();
-      const pageHeight = doc.internal.pageSize.height;
-      const pageWidth = doc.internal.pageSize.width;
 
-      // Go to the last page
-      doc.setPage(totalPages);
-
-      // Add footer image
-      doc.addImage(footerImgData, "PNG", 10, pageHeight - 40, 190, 25);
-
-      // Add footer text
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(8);
-      doc.setTextColor(0, 0, 0); // Reset to black
-      doc.text(
-        `Generated on: ${new Date().toLocaleString()} | Patient Details Report`,
-        14,
-        pageHeight - 10
-      );
-
-      // Update page numbers to show total pages
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
+
+        // Add footer image at safe offset (pageHeight - 38)
+        if (footerImgData) {
+          doc.addImage(footerImgData, "PNG", 10, pageHeight - 38, 190, 22);
+        }
+
+        // Add footer report metadata
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        doc.text(
+          `Generated on: ${new Date().toLocaleString()} | Patient Details Report`,
+          14,
+          pageHeight - 12
+        );
+
+        // Update page numbers at the very bottom
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
         doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, {
           align: "center",
         });

@@ -2463,6 +2463,7 @@ const Sidebar = () => {
               </SidebarNavLink>
             </>
           )}
+
           {role === "Clinical Reports" && (
             <>
               <SidebarNavLink
@@ -2516,6 +2517,21 @@ const Sidebar = () => {
               </SidebarNavLink>
             </>
           )}
+
+          {role === "Marketting AVP" && (
+            <>
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
+            </>
+          )}
+
         </SidebarContent>
         <SignOutWrapper>
           <SidebarNavLink
