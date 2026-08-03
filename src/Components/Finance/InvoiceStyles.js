@@ -1205,27 +1205,25 @@ export const PrintContainer = styled.div`
 
 export const PrintPage = styled.div`
   width: 210mm;
-  height: 297mm;
+  min-height: 297mm;
   margin: 0 auto;
-  padding: 5mm;
+  padding: 8mm 10mm 15mm 10mm;
   box-sizing: border-box;
   position: relative;
   background: white;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  page-break-after: avoid;
-  page-break-inside: avoid;
+  justify-content: space-between;
 
   @media print {
     margin: 0;
-    padding: 5mm;
+    padding: 8mm 10mm 15mm 10mm;
     box-shadow: none;
     width: 100%;
-    height: 100vh;
+    height: auto;
+    min-height: 100vh;
     max-width: none;
-    max-height: none;
-    overflow: hidden;
+    overflow: visible;
   }
 `;
 
@@ -1233,7 +1231,7 @@ export const PrintHeaderImage = styled.div`
   width: 100%;
   height: 60px;
   background-image: url(${headerImage});
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 8px;
@@ -1251,14 +1249,17 @@ export const PrintFooterImage = styled.div`
   width: 100%;
   height: 50px;
   background-image: url(${FooterImage});
-  background-size: cover;
-  background-position: center;
+  background-size: contain;
+  background-position: center bottom;
   background-repeat: no-repeat;
   border-radius: 8px;
-  margin-top: auto;
+  margin-top: 20px;
   flex-shrink: 0;
+  page-break-inside: avoid;
 
   @media print {
+    margin-top: 20px;
+    page-break-inside: avoid;
     -webkit-print-color-adjust: exact !important;
     color-adjust: exact !important;
     print-color-adjust: exact !important;

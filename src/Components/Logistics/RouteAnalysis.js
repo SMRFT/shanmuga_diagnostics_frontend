@@ -36,17 +36,20 @@ const spin = keyframes`
 `
 
 // ─── Styled Components ────────────────────────────────────────────────────────
+// ─── Styled Components ────────────────────────────────────────────────────────
 const PageContainer = styled.div`
-  height: 100vh;
+  min-height: calc(100vh - 55px);
+  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  padding: 20px;
+  overflow: auto;
+  padding: 16px 20px;
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(135deg, #f5f7ff 0%, #ede9fe 100%);
   box-sizing: border-box;
 
   @media (max-width: 768px) {
+    min-height: calc(100vh - 35px);
     padding: 10px;
   }
 `
@@ -55,9 +58,10 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   background: #fff;
   border-radius: 20px;
-  padding: 20px;
+  padding: 18px 22px;
   max-width: 1000px;
   margin: 0 auto;
   width: 100%;
@@ -65,9 +69,10 @@ const Card = styled.div`
   border: 1px solid rgba(102,126,234,0.08);
   animation: ${fadeIn} 0.4s ease;
   overflow: hidden;
+  box-sizing: border-box;
 
   @media (max-width: 600px) {
-    padding: 15px;
+    padding: 14px;
   }
 `
 
@@ -77,16 +82,35 @@ const PageTitle = styled.h2`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-align: center;
-  margin: 0 0 24px;
-  font-size: 2rem;
+  margin: 0 0 14px;
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.5px;
+  flex-shrink: 0;
 
-  @media (max-width: 480px) { font-size: 1.5rem; }
+  @media (max-width: 480px) { font-size: 1.3rem; }
+`
+
+const FormRow = styled.div`
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+
+  & > div {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 650px) {
+    flex-direction: column;
+    gap: 10px;
+  }
 `
 
 const FormGroup = styled.div`
-  margin-bottom: 18px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 
   label {
     display: flex;
@@ -95,7 +119,7 @@ const FormGroup = styled.div`
     font-weight: 600;
     color: #4c51bf;
     font-size: 13px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -104,7 +128,7 @@ const FormGroup = styled.div`
 const selectStyles = {
   control: (base, state) => ({
     ...base,
-    minHeight: 46,
+    minHeight: 44,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: state.isFocused ? "#667eea" : "#e1e8ff",
@@ -139,7 +163,7 @@ const ActionButton = styled.button`
   color: ${({ disabled }) => (disabled ? "#718096" : "#fff")};
   font-size: 15px;
   font-weight: 700;
-  padding: 13px 28px;
+  padding: 12px 24px;
   border: none;
   border-radius: 50px;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
@@ -149,6 +173,7 @@ const ActionButton = styled.button`
   justify-content: center;
   gap: 10px;
   width: 100%;
+  flex-shrink: 0;
   ${({ variant, disabled }) =>
     !disabled && variant !== "stop"
       ? css`animation: ${pulse} 2s infinite;`
@@ -160,18 +185,33 @@ const ActionButton = styled.button`
   }
 `
 
+const HeaderStatusRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`
+
 const StatusBar = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   background: linear-gradient(135deg, rgba(102,126,234,0.06), rgba(240,147,251,0.06));
   border: 1px solid rgba(102,126,234,0.12);
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 22px;
-  font-size: 13px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
   color: #4c51bf;
   font-weight: 600;
+  flex-shrink: 0;
 
   span {
     display: flex;
@@ -179,7 +219,7 @@ const StatusBar = styled.div`
     gap: 6px;
     background: #fff;
     border-radius: 30px;
-    padding: 5px 12px;
+    padding: 4px 10px;
     box-shadow: 0 2px 6px rgba(102,126,234,0.08);
   }
 `
@@ -192,9 +232,9 @@ const ProgressBadge = styled.div`
   color: #fff;
   font-size: 12px;
   font-weight: 700;
-  padding: 5px 14px;
+  padding: 6px 14px;
   border-radius: 30px;
-  margin-bottom: 16px;
+  flex-shrink: 0;
 `
 
 const SectionLabel = styled.p`
@@ -203,7 +243,8 @@ const SectionLabel = styled.p`
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: #a0aec0;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
+  flex-shrink: 0;
 `
 
 const PreviewClinics = styled.div`
@@ -211,8 +252,23 @@ const PreviewClinics = styled.div`
   border: 1.5px dashed rgba(102,126,234,0.25);
   border-radius: 14px;
   padding: 14px 16px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   animation: ${fadeIn} 0.3s ease;
+  flex: 1;
+  min-height: 200px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f5f7ff;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 8px;
+  }
 `
 
 const PreviewClinicItem = styled.div`
@@ -233,10 +289,12 @@ const PreviewClinicItem = styled.div`
 const VisitList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
+  min-height: 250px;
   overflow-y: auto;
-  padding-right: 8px;
+  padding-right: 6px;
+  margin-bottom: 12px;
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -449,20 +507,19 @@ const RouteAnalysis = () => {
   const fetchRoutesAndStatus = async () => {
     setLoadingRoutes(true)
     try {
-      let routeParams = `?date=${selectedDate}`
+      // 1. Fetch master routes assigned to collector (without filtering master routes by creation date)
+      let routeUrl = `${Labbaseurl}routesetup/`
       if (employeeId) {
-        routeParams += `&collector_id=${employeeId}`
+        routeUrl += `?collector_id=${employeeId}`
       }
 
-      // Fetch routes and analysis statuses in parallel for the selected date
+      // Fetch routes and analysis statuses in parallel
       const [routeRes, statusRes] = await Promise.all([
-        apiRequest(`${Labbaseurl}routesetup/${routeParams}`, "GET"),
+        apiRequest(routeUrl, "GET"),
         apiRequest(`${Labbaseurl}route-analysis/today-status/?date=${selectedDate}${employeeId ? `&collector_id=${employeeId}` : ""}`, "GET"),
       ])
 
       const list = routeRes?.data || routeRes || []
-
-      // Build a map: route_id -> { status, analysis_id }
       const statuses = statusRes?.data?.route_statuses || []
       const statusMap = {}
       statuses.forEach((s) => {
@@ -470,14 +527,44 @@ const RouteAnalysis = () => {
       })
       setTodayStatusMap(statusMap)
 
-      setRoutes(
-        list.map((r) => ({
-          label: r.route_name,
-          value: r.id,
-          _raw: r,
-          isDisabled: !!statusMap[r.id] && statusMap[r.id].status === "completed",
-        }))
-      )
+      const routeOpts = list.map((r) => ({
+        label: r.route_name,
+        value: r.id,
+        _raw: r,
+        isDisabled: !!statusMap[r.id] && statusMap[r.id].status === "completed",
+      }))
+      setRoutes(routeOpts)
+
+      // 2. Check if selectedRoute (or any route) has an active in_progress session
+      let activeRouteId = selectedRoute?.value
+      if (!activeRouteId) {
+        const activeEntry = Object.entries(statusMap).find(([_, val]) => val.status === "in_progress")
+        if (activeEntry) {
+          activeRouteId = Number(activeEntry[0])
+        }
+      }
+
+      if (activeRouteId) {
+        const matchedOpt = routeOpts.find((o) => Number(o.value) === Number(activeRouteId))
+        if (matchedOpt) {
+          if (!selectedRoute || selectedRoute.value !== matchedOpt.value) {
+            setSelectedRoute(matchedOpt)
+            setRouteDetails(matchedOpt._raw)
+          }
+          try {
+            const activeRes = await apiRequest(
+              `${Labbaseurl}route-analysis/active/${matchedOpt.value}/`,
+              "GET"
+            )
+            const activeData = activeRes?.data?.data || activeRes?.data || null
+            if (activeData) {
+              setAnalysis(activeData)
+            }
+          } catch (err) {
+            console.error("Error auto-loading active route session:", err)
+          }
+        }
+      }
     } catch (err) {
       console.error("Error fetching routes:", err.message)
       toast.error("Error loading routes")
@@ -493,35 +580,50 @@ const RouteAnalysis = () => {
 
     if (!option) return
 
-    // If this route already has an in_progress session today, load it automatically
-    const existing = todayStatusMap[option.value]
-    if (existing && existing.status === "in_progress") {
-      try {
-        const res = await apiRequest(
-          `${Labbaseurl}route-analysis/active/${option.value}/`,
-          "GET"
-        )
-        const data = res?.data?.data || null
-        if (data) {
-          setAnalysis(data)
-          toast.info("Resumed existing in-progress session")
-        }
-      } catch (err) {
-        console.error("Error resuming session:", err)
+    // Always check if this selected route has an active in_progress session
+    try {
+      const res = await apiRequest(
+        `${Labbaseurl}route-analysis/active/${option.value}/`,
+        "GET"
+      )
+      const data = res?.data?.data || res?.data || null
+      if (data) {
+        setAnalysis(data)
+        toast.info("Resumed active in-progress session")
       }
+    } catch (err) {
+      console.error("Error checking active session:", err)
     }
   }
 
   const handleStart = async () => {
     if (!selectedRoute) return toast.error("Please select a route first")
+
+    const existingStatus = todayStatusMap[selectedRoute.value]?.status
+    if (existingStatus === "in_progress" || analysis?.status === "in_progress") {
+      return toast.error("This route is already in progress! You can only end the route.")
+    }
+    if (existingStatus === "completed") {
+      return toast.error("This route was already completed today!")
+    }
+
     setStarting(true)
     try {
       const res = await apiRequest(`${Labbaseurl}route-analysis/start/`, "POST", {
         route_id: selectedRoute.value,
       })
+
+      if (res?.message === "Route is already in progress") {
+        const data = res?.data || res
+        setAnalysis(data)
+        toast.info("Route is already in progress!")
+        await fetchRoutesAndStatus()
+        return
+      }
+
       const data = res?.data?.data || res?.data || res
       setAnalysis(data)
-      // Refresh today's statuses so the dropdown reflects the new in_progress state
+      // Refresh statuses so dropdown reflects new in_progress state
       await fetchRoutesAndStatus()
       toast.success("Route started!")
     } catch (err) {
@@ -623,58 +725,60 @@ const RouteAnalysis = () => {
       <Card>
         <PageTitle>🗺️ Route Analysis</PageTitle>
 
-        {/* ── Date Selector ── */}
-        <FormGroup>
-          <label>
-            <FaClock />
-            Select Date
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            disabled={isActive}
-            style={{
-              width: "100%",
-              padding: "12px 14px",
-              borderRadius: "12px",
-              border: "2px solid #e1e8ff",
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "14px",
-              color: "#2d3748",
-              outline: "none"
-            }}
-          />
-        </FormGroup>
+        {/* ── Date & Route Selectors ── */}
+        <FormRow>
+          <FormGroup>
+            <label>
+              <FaClock />
+              Select Date
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              disabled={isActive}
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                borderRadius: "12px",
+                border: "2px solid #e1e8ff",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "14px",
+                color: "#2d3748",
+                outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+          </FormGroup>
 
-        {/* ── Route Selector ── */}
-        <FormGroup>
-          <label>
-            <FaRoute />
-            Select Route
-          </label>
-          <Select
-            options={routes}
-            isLoading={loadingRoutes}
-            isSearchable
-            isDisabled={isActive}
-            placeholder="Search and select a route…"
-            styles={selectStyles}
-            value={selectedRoute}
-            onChange={handleRouteChange}
-            formatOptionLabel={(opt) => (
-              <span>
-                {opt.label}
-                {todayStatusMap[opt.value]?.status === "completed" && (
-                  <StatusPill status="completed">✓ Done Today</StatusPill>
-                )}
-                {todayStatusMap[opt.value]?.status === "in_progress" && (
-                  <StatusPill status="in_progress">⚡ In Progress</StatusPill>
-                )}
-              </span>
-            )}
-          />
-        </FormGroup>
+          <FormGroup>
+            <label>
+              <FaRoute />
+              Select Route
+            </label>
+            <Select
+              options={routes}
+              isLoading={loadingRoutes}
+              isSearchable
+              isDisabled={isActive}
+              placeholder="Search and select a route…"
+              styles={selectStyles}
+              value={selectedRoute}
+              onChange={handleRouteChange}
+              formatOptionLabel={(opt) => (
+                <span>
+                  {opt.label}
+                  {todayStatusMap[opt.value]?.status === "completed" && (
+                    <StatusPill status="completed">✓ Done Today</StatusPill>
+                  )}
+                  {todayStatusMap[opt.value]?.status === "in_progress" && (
+                    <StatusPill status="in_progress">⚡ In Progress</StatusPill>
+                  )}
+                </span>
+              )}
+            />
+          </FormGroup>
+        </FormRow>
 
         {/* ── Clinical Names Preview (before Start) ── */}
         {selectedRoute && !analysis && previewClinics.length > 0 && (
@@ -708,26 +812,28 @@ const RouteAnalysis = () => {
             border: "1.5px solid #68d391",
             borderRadius: 12,
             padding: "12px 16px",
-            marginBottom: 18,
+            marginBottom: 14,
             display: "flex",
             alignItems: "center",
             gap: 8,
             fontSize: 13,
             color: "#276749",
             fontWeight: 600,
+            flexShrink: 0,
           }}>
             <FaLock /> This route was already completed today and cannot be restarted.
           </div>
         )}
 
         {/* ── Start Button ── */}
-        {!analysis && (
+        {!analysis && todayStatusMap[selectedRoute?.value]?.status !== "in_progress" && (
           <ActionButton
             onClick={handleStart}
             disabled={
               starting ||
               !selectedRoute ||
-              todayStatusMap[selectedRoute?.value]?.status === "completed"
+              todayStatusMap[selectedRoute?.value]?.status === "completed" ||
+              todayStatusMap[selectedRoute?.value]?.status === "in_progress"
             }
           >
             <FaPlay />
@@ -739,38 +845,39 @@ const RouteAnalysis = () => {
         {analysis && (
           <>
             {/* Status bar */}
-            <StatusBar>
-              <span>
-                <FaClock />
-                Started: {analysis.start_time ? new Date(analysis.start_time).toLocaleString() : "—"}
-              </span>
-              {analysis.logistics_mapping && (
+            <HeaderStatusRow>
+              <StatusBar style={{ margin: 0 }}>
                 <span>
-                  <FaTruck />
-                  {analysis.logistics_mapping}
+                  <FaClock />
+                  Started: {analysis.start_time ? new Date(analysis.start_time).toLocaleString() : "—"}
                 </span>
-              )}
-              <span>
-                <FaCheckCircle />
-                {analysis.status === "in_progress" ? "In Progress" : "Completed"}
-              </span>
-              {analysis.end_time && (
+                {analysis.logistics_mapping && (
+                  <span>
+                    <FaTruck />
+                    {analysis.logistics_mapping}
+                  </span>
+                )}
                 <span>
-                  <FaFlag />
-                  Ended: {new Date(analysis.end_time).toLocaleString()}
+                  <FaCheckCircle />
+                  {analysis.status === "in_progress" ? "In Progress" : "Completed"}
                 </span>
+                {analysis.end_time && (
+                  <span>
+                    <FaFlag />
+                    Ended: {new Date(analysis.end_time).toLocaleString()}
+                  </span>
+                )}
+              </StatusBar>
+
+              {totalCount > 0 && (
+                <ProgressBadge style={{ margin: 0 }}>
+                  <FaCheckCircle />
+                  {visitedCount} / {totalCount} labs visited
+                </ProgressBadge>
               )}
-            </StatusBar>
+            </HeaderStatusRow>
 
-            {/* Progress badge */}
-            {totalCount > 0 && (
-              <ProgressBadge>
-                <FaCheckCircle />
-                {visitedCount} / {totalCount} labs visited
-              </ProgressBadge>
-            )}
-
-            <SectionLabel>Labs</SectionLabel>
+            <SectionLabel style={{ marginTop: 4 }}>Labs</SectionLabel>
 
             {/* Visit cards */}
             <VisitList>
