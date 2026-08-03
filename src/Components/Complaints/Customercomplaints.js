@@ -18,7 +18,30 @@ const ACCENT_DARK = "#895697";
 // NOTE: swap this for however auth-user-id is actually sourced elsewhere in
 // the app (e.g. an Auth context/helper) — this is a placeholder that reads
 // the same key other screens in this codebase have used.
-const getAuthUserId = () => localStorage.getItem("auth-user-id") || "";
+
+
+// "allowed-actions" comes from the decoded JWT payload that index.js stores
+// under "user_payload" at login (same source getUserRole() there reads).
+const getAllowedActions = () => {
+  try {
+    const payload = JSON.parse(localStorage.getItem("user_payload") || "{}");
+    return Array.isArray(payload["allowed-actions"]) ? payload["allowed-actions"] : [];
+  } catch {
+    return [];
+  }
+};
+
+// "aud" in the decoded JWT payload (same "user_payload" localStorage key
+// getAllowedActions() reads above) is the logged-in lab's own labcode —
+// used to auto-fill labcode for SD-R-CL instead of showing the picker.
+const getPayloadLabCode = () => {
+  try {
+    const payload = JSON.parse(localStorage.getItem("user_payload") || "{}");
+    return payload?.aud || "";
+  } catch {
+    return "";
+  }
+};
 
 // Local YYYY-MM-DD for today, used as the default From/To date.
 const getTodayDate = () => {
@@ -659,6 +682,20 @@ const CustomerComplaints = () => {
   // Toasts — shown for save/update success and for backend error messages.
   const [toasts, setToasts] = useState([]);
 
+  // SD-R-CL (Clinical Reports) users don't get to pick who a complaint is
+  // assigned to — the Assigned By combobox is hidden for that role.
+  const isClinicalReports = useMemo(
+    () => getAllowedActions().includes("SD-R-CL"),
+    []
+  );
+
+  // SD-R-CL always files complaints against their own lab — labcode comes
+  // straight from the JWT's aud claim, never from the Lab Name picker.
+  const clinicalReportsLabCode = useMemo(
+    () => (isClinicalReports ? getPayloadLabCode() : ""),
+    [isClinicalReports]
+  );
+
   const showToast = useCallback((message, type = "success") => {
     const id = `${Date.now()}-${Math.random()}`;
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -740,9 +777,13 @@ const CustomerComplaints = () => {
       setEmployees(list);
     } catch (err) {
       console.error("Failed to load B2B lab employees:", err);
+      showToast(
+        getErrorMessage(err, "Failed to load employees for Assigned By."),
+        "error"
+      );
       setEmployees([]);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     loadClinicalNames();
@@ -773,10 +814,19 @@ const CustomerComplaints = () => {
     return map;
   }, [employees]);
 
+  // Row scoping (e.g. SD-R-CL seeing only their own complaints, or
+  // SD-R-GM/SD-R-MAVP seeing everything) is done by the backend based on
+  // auth-user-id — the table just renders whatever it gets back.
+  const visibleComplaints = complaints;
+
   // ── Add-complaint modal ─────────────────────────────────────────────
 
   const openModal = () => {
-    setFormData(initialFormData);
+    setFormData(
+      isClinicalReports
+        ? { ...initialFormData, labcode: clinicalReportsLabCode }
+        : initialFormData
+    );
     setErrors({});
     setLabSearchTerm("");
     setLabDropdownOpen(false);
@@ -834,7 +884,12 @@ const CustomerComplaints = () => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.labcode) newErrors.labcode = "Lab name is required";
+    if (isClinicalReports) {
+      if (!clinicalReportsLabCode)
+        newErrors.labcode = "Lab code missing from session — please re-login";
+    } else if (!formData.labcode) {
+      newErrors.labcode = "Lab name is required";
+    }
     if (formData.issuetype.length === 0)
       newErrors.issuetype = "Select at least one issue type";
     if (
@@ -844,7 +899,8 @@ const CustomerComplaints = () => {
       newErrors.otherIssueText = "Please describe the issue";
     }
     if (!formData.comments.trim()) newErrors.comments = "Comments are required";
-    if (!formData.assignedby) newErrors.assignedby = "Assigned by is required";
+    if (!isClinicalReports && !formData.assignedby)
+      newErrors.assignedby = "Assigned by is required";
 
     setErrors(newErrors);
     return newErrors;
@@ -873,8 +929,8 @@ const CustomerComplaints = () => {
         .join(", ");
 
       const payload = {
-        "auth-user-id": getAuthUserId(),
-        labcode: formData.labcode,
+       
+        labcode: isClinicalReports ? clinicalReportsLabCode : formData.labcode,
         patient_id: formData.patientId.trim() || null,
         issuetype: issuetypeString,
         comments: formData.comments.trim(),
@@ -920,7 +976,7 @@ const CustomerComplaints = () => {
     setCompleting(true);
     try {
       await apiRequest(`${Labbaseurl}customer_complaints/`, "PATCH", {
-        "auth-user-id": getAuthUserId(),
+       
         complaint_id: complaintId,
         completion_comments: completionText.trim(),
       });
@@ -947,20 +1003,23 @@ const CustomerComplaints = () => {
   // backend GET request applies those filters), so "export" always means
   // "export exactly what's on screen right now."
 
+  // SD-R-CL never assigns complaints and doesn't see Ageing on screen for
+  // that reason — mirror the same hiding in the exports so the columns
+  // aren't just blank there.
   const EXPORT_COLUMNS = [
     "ID",
     "Lab Name",
     "Patient ID",
     "Issue Type",
     "Comments",
-    "Assigned By",
+    ...(isClinicalReports ? [] : ["Assigned By"]),
     "Status",
-    "Ageing (Days)",
+    ...(isClinicalReports ? [] : ["Ageing (Days)"]),
     "Completion Comments",
   ];
 
   const buildExportRows = () =>
-    complaints.map((row) => {
+    visibleComplaints.map((row) => {
       const ageing =
         row.status === COMPLAINT_STATUS.PENDING
           ? getAgeingDays(row.created_date)
@@ -971,9 +1030,11 @@ const CustomerComplaints = () => {
         row.patient_id || "",
         row.issuetype || "",
         row.comments || "",
-        employeeIdToName[row.assignedby] || row.assignedby || "",
+        ...(isClinicalReports
+          ? []
+          : [employeeIdToName[row.assignedby] || row.assignedby || ""]),
         row.status || "",
-        ageing === null ? "—" : `${ageing}`,
+        ...(isClinicalReports ? [] : [ageing === null ? "—" : `${ageing}`]),
         row.completion_comments || "",
       ];
     });
@@ -984,7 +1045,7 @@ const CustomerComplaints = () => {
   };
 
   const handleExportCSV = () => {
-    if (complaints.length === 0) {
+    if (visibleComplaints.length === 0) {
       showToast("No data to export for the current filters.", "error");
       return;
     }
@@ -1018,7 +1079,7 @@ const CustomerComplaints = () => {
   };
 
   const handleExportPDF = () => {
-    if (complaints.length === 0) {
+    if (visibleComplaints.length === 0) {
       showToast("No data to export for the current filters.", "error");
       return;
     }
@@ -1110,26 +1171,28 @@ const CustomerComplaints = () => {
         <Table>
           <thead>
             <tr>
-              <Th>ID</Th>
+              {!isClinicalReports && <Th>ID</Th>}
               <Th>Lab Name</Th>
               <Th>Patient ID</Th>
               <Th>Issue Type</Th>
               <Th>Comments</Th>
-              <Th>Assigned By</Th>
+              {!isClinicalReports && <Th>Assigned By</Th>}
               <Th>Status</Th>
               <Th>Ageing (Days)</Th>
               <Th>Completion Comments</Th>
             </tr>
           </thead>
           <tbody>
-            {complaints.map((row) => (
+            {visibleComplaints.map((row) => (
               <tr key={row.complaint_id}>
-                <Td>{row.complaint_id}</Td>
+                {!isClinicalReports && <Td>{row.complaint_id}</Td>}
                 <Td>{labCodeToName[row.labcode] || row.labcode}</Td>
                 <Td>{row.patient_id || "—"}</Td>
                 <Td>{row.issuetype}</Td>
                 <Td>{row.comments}</Td>
-                <Td>{employeeIdToName[row.assignedby] || row.assignedby}</Td>
+                {!isClinicalReports && (
+                  <Td>{employeeIdToName[row.assignedby] || row.assignedby}</Td>
+                )}
                 <Td>
                   <StatusBadge $status={row.status}>{row.status}</StatusBadge>
                 </Td>
@@ -1150,6 +1213,8 @@ const CustomerComplaints = () => {
                 <Td>
                   {row.status === COMPLAINT_STATUS.COMPLETED ? (
                     row.completion_comments || "—"
+                  ) : isClinicalReports ? (
+                    "—"
                   ) : completingId === row.complaint_id ? (
                     <CompleteBox>
                       <CompleteInput
@@ -1186,7 +1251,7 @@ const CustomerComplaints = () => {
             ))}
           </tbody>
         </Table>
-        {!loading && complaints.length === 0 && (
+        {!loading && visibleComplaints.length === 0 && (
           <EmptyState>No customer complaints found.</EmptyState>
         )}
         {loading && <EmptyState>Loading...</EmptyState>}
@@ -1201,37 +1266,44 @@ const CustomerComplaints = () => {
               </CloseIconButton>
               <ModalTitle>Add Customer Complaint</ModalTitle>
 
-              <FormGroup>
-                <Label htmlFor="complaint-labname">Lab Name</Label>
-                <LabSearchWrapper>
-                  <TextInput
-                    id="complaint-labname"
-                    placeholder="Search and select a lab"
-                    autoComplete="off"
-                    value={labSearchTerm}
-                    onChange={handleLabSearchChange}
-                    onFocus={() => setLabDropdownOpen(true)}
-                    onBlur={() => setTimeout(() => setLabDropdownOpen(false), 150)}
-                  />
-                  {labDropdownOpen && (
-                    <LabDropdownList>
-                      {filteredClinicalNames.length === 0 ? (
-                        <LabDropdownEmpty>No labs found</LabDropdownEmpty>
-                      ) : (
-                        filteredClinicalNames.map((cn) => (
-                          <LabDropdownItem
-                            key={cn.referrerCode}
-                            onMouseDown={() => handleSelectLab(cn)}
-                          >
-                            {cn.clinicalname}
-                          </LabDropdownItem>
-                        ))
-                      )}
-                    </LabDropdownList>
-                  )}
-                </LabSearchWrapper>
-                {errors.labcode && <ErrorText>{errors.labcode}</ErrorText>}
-              </FormGroup>
+              {!isClinicalReports && (
+                <FormGroup>
+                  <Label htmlFor="complaint-labname">Lab Name</Label>
+                  <LabSearchWrapper>
+                    <TextInput
+                      id="complaint-labname"
+                      placeholder="Search and select a lab"
+                      autoComplete="off"
+                      value={labSearchTerm}
+                      onChange={handleLabSearchChange}
+                      onFocus={() => setLabDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setLabDropdownOpen(false), 150)}
+                    />
+                    {labDropdownOpen && (
+                      <LabDropdownList>
+                        {filteredClinicalNames.length === 0 ? (
+                          <LabDropdownEmpty>No labs found</LabDropdownEmpty>
+                        ) : (
+                          filteredClinicalNames.map((cn) => (
+                            <LabDropdownItem
+                              key={cn.referrerCode}
+                              onMouseDown={() => handleSelectLab(cn)}
+                            >
+                              {cn.clinicalname}
+                            </LabDropdownItem>
+                          ))
+                        )}
+                      </LabDropdownList>
+                    )}
+                  </LabSearchWrapper>
+                  {errors.labcode && <ErrorText>{errors.labcode}</ErrorText>}
+                </FormGroup>
+              )}
+              {isClinicalReports && errors.labcode && (
+                <FormGroup>
+                  <ErrorText>{errors.labcode}</ErrorText>
+                </FormGroup>
+              )}
 
               <FormGroup>
                 <Label htmlFor="complaint-patientid">Patient ID</Label>
@@ -1281,22 +1353,24 @@ const CustomerComplaints = () => {
                 {errors.comments && <ErrorText>{errors.comments}</ErrorText>}
               </FormGroup>
 
-              <FormGroup>
-                <Label htmlFor="complaint-assignedby">Assigned By</Label>
-                <Select
-                  id="complaint-assignedby"
-                  value={formData.assignedby}
-                  onChange={handleChange("assignedby")}
-                >
-                  <option value="">Select employee</option>
-                  {employees.map((emp, idx) => (
-                    <option key={`${emp.employeeId}-${idx}`} value={emp.employeeId}>
-                      {emp.employeeName}
-                    </option>
-                  ))}
-                </Select>
-                {errors.assignedby && <ErrorText>{errors.assignedby}</ErrorText>}
-              </FormGroup>
+              {!isClinicalReports && (
+                <FormGroup>
+                  <Label htmlFor="complaint-assignedby">Assigned By</Label>
+                  <Select
+                    id="complaint-assignedby"
+                    value={formData.assignedby}
+                    onChange={handleChange("assignedby")}
+                  >
+                    <option value="">Select employee</option>
+                    {employees.map((emp, idx) => (
+                      <option key={`${emp.employeeId}-${idx}`} value={emp.employeeId}>
+                        {emp.employeeName}
+                      </option>
+                    ))}
+                  </Select>
+                  {errors.assignedby && <ErrorText>{errors.assignedby}</ErrorText>}
+                </FormGroup>
+              )}
 
               <ModalActions>
                 <CancelButton onClick={closeModal}>Cancel</CancelButton>

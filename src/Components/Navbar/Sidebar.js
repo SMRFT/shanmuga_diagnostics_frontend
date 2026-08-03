@@ -2503,6 +2503,17 @@ const Sidebar = () => {
                 </IconWrapper>
                 Ledger Balance
               </SidebarNavLink>
+
+
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
             </>
           )}
         </SidebarContent>
