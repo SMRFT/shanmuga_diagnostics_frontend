@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import ReactDOM from "react-dom"; // NEW
 import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
@@ -611,6 +611,26 @@ const formatTimeRemaining = (seconds) => {
   return parts.join(":");
 };
 
+const parsePatientDate = (dateStr, registrationDate) => {
+  if (registrationDate) {
+    const regD = new Date(registrationDate);
+    if (!isNaN(regD.getTime())) return regD;
+  }
+  if (!dateStr) return new Date(0);
+  if (typeof dateStr === "string" && dateStr.includes("-")) {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        return new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
+      } else if (parts[2].length === 4) {
+        return new Date(parts[2], parseInt(parts[1], 10) - 1, parts[0]);
+      }
+    }
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? new Date(0) : d;
+};
+
 const PatientOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -651,6 +671,8 @@ const PatientOverview = () => {
     if (location.pathname === "/HMSPatientOverview") setActiveTab("hms");
     else if (location.pathname === "/PatientOverview")
       setActiveTab("reference");
+    else if (location.pathname === "/360Overview")
+      setActiveTab("shanmuga360");
     else if (location.pathname === "/FranchiseOverview")
       setActiveTab("franchise");
     else if (location.pathname === "/CorporateOverview")
@@ -661,6 +683,7 @@ const PatientOverview = () => {
     setActiveTab(tab);
     if (tab === "hms") navigate("/HMSPatientOverview");
     else if (tab === "reference") navigate("/PatientOverview");
+    else if (tab === "shanmuga360") navigate("/360Overview");
     else if (tab === "franchise") navigate("/FranchiseOverview");
     else if (tab === "corporate") navigate("/CorporateOverview");
   };
@@ -689,41 +712,42 @@ const PatientOverview = () => {
     fetchClinicalNames();
   }, []);
 
+  const fetchCombinedPatientData = useCallback(async () => {
+    setLoading(true);
+    const formattedStartDate = startDate.toISOString().split("T")[0];
+    const formattedEndDate = endDate.toISOString().split("T")[0];
+    const url = `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
+    const result = await apiRequest(url, "GET");
+    if (result.success) {
+      const patientData = result.data || [];
+      const sortedData = [...patientData].sort((a, b) => {
+        const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
+        const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+        if (dateA !== dateB) return dateB - dateA;
+        const idA = String(a.patient_id || a.barcode || a.id || "");
+        const idB = String(b.patient_id || b.barcode || b.id || "");
+        return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
+      });
+      setPatients(sortedData);
+      setFilteredPatients(sortedData);
+      const statusMap = {};
+      patientData.forEach((patient) => {
+        statusMap[patient.patient_id] = {
+          status: patient.status,
+          barcode: patient.barcode,
+        };
+      });
+      setStatuses(statusMap);
+    } else {
+      console.error("Error fetching combined patient data:", result.error);
+      setError("Failed to load patient data");
+    }
+    setLoading(false);
+  }, [startDate, endDate, Labbaseurl]);
+
   useEffect(() => {
-    const fetchCombinedPatientData = async () => {
-      setLoading(true);
-      const formattedStartDate = startDate.toISOString().split("T")[0];
-      const formattedEndDate = endDate.toISOString().split("T")[0];
-      const url = `${Labbaseurl}overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
-      const result = await apiRequest(url, "GET");
-      if (result.success) {
-        const patientData = result.data || [];
-        const sortedData = [...patientData].sort((a, b) => {
-          const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
-          const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
-          if (dateA !== dateB) return dateB - dateA;
-          const idA = String(a.patient_id || a.barcode || a.id || "");
-          const idB = String(b.patient_id || b.barcode || b.id || "");
-          return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
-        });
-        setPatients(sortedData);
-        setFilteredPatients(sortedData);
-        const statusMap = {};
-        patientData.forEach((patient) => {
-          statusMap[patient.patient_id] = {
-            status: patient.status,
-            barcode: patient.barcode,
-          };
-        });
-        setStatuses(statusMap);
-      } else {
-        console.error("Error fetching combined patient data:", result.error);
-        setError("Failed to load patient data");
-      }
-      setLoading(false);
-    };
     if (startDate && endDate) fetchCombinedPatientData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, fetchCombinedPatientData]);
 
   const isPrintAndMailEnabled = (status) =>
     ["Approved", "Dispatched"].includes(status);
@@ -891,7 +915,7 @@ const PatientOverview = () => {
     const endOfDay = new Date(endDate);
     endOfDay.setHours(23, 59, 59, 999);
     const filtered = patients.filter((patient) => {
-      const patientDate = new Date(patient.date);
+      const patientDate = parsePatientDate(patient.date, patient.registration_date);
       const patientStatus = statuses[patient.patient_id]?.status || "";
       const matchesDepartment =
         !departmentFilter ||
@@ -902,14 +926,14 @@ const PatientOverview = () => {
       return (
         patientDate >= startOfDay &&
         patientDate <= endOfDay &&
-        (!branch || patient.b2b === branch) &&
+        (!branch || patient.branch === branch || patient.b2b === branch) &&
         (!B2B || patient.b2b === B2B) &&
         (!refBy || patient.refby === refBy) &&
-        (!patientId || patient.patient_id.includes(patientId)) &&
+        (!patientId || patient.patient_id?.toLowerCase().includes(patientId.toLowerCase())) &&
         (!barcode ||
           patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
         (!patientName ||
-          patient.patient_name
+          (patient.patient_name || patient.patientname)
             ?.toLowerCase()
             .includes(patientName.toLowerCase())) &&
         (!statusFilter || patientStatus === statusFilter) &&
@@ -918,8 +942,8 @@ const PatientOverview = () => {
       );
     });
     const sortedFiltered = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
-      const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+      const dateA = parsePatientDate(a.date, a.registration_date).getTime();
+      const dateB = parsePatientDate(b.date, b.registration_date).getTime();
       if (dateA !== dateB) return dateB - dateA;
       const idA = String(a.patient_id || a.barcode || a.id || "");
       const idB = String(b.patient_id || b.barcode || b.id || "");
@@ -2260,6 +2284,12 @@ const PatientOverview = () => {
               Shanmuga Diagnostics
             </NavigationTab>
             <NavigationTab
+              active={activeTab === "shanmuga360"}
+              onClick={() => handleTabChange("shanmuga360")}
+            >
+              Shanmuga 360
+            </NavigationTab>
+            <NavigationTab
               active={activeTab === "franchise"}
               onClick={() => handleTabChange("franchise")}
             >
@@ -2776,13 +2806,19 @@ const PatientOverview = () => {
       {isTestModalOpen && (
         <TestSorting
           patient={selectedPatient}
-          onClose={() => setIsTestModalOpen(false)}
+          onClose={() => {
+            setIsTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
         />
       )}
       {isMBTestModalOpen && (
         <MBTestSorting
           patient={selectedPatient}
-          onClose={() => setIsMBTestModalOpen(false)}
+          onClose={() => {
+            setIsMBTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
         />
       )}
       <TestStatusModal />
