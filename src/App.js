@@ -109,6 +109,7 @@ import CustomerComplaints from "./Components/Complaints/Customercomplaints";
 import Salesplan from "./Components/Sales/Salesplan";
 import SalesReport from "./Components/Sales/Salesreport";
 import SalesSummary from "./Components/Sales/Salessummary";
+import OverallSummary from "./Components/Sales/OverallSummary";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -572,17 +573,19 @@ function App() {
               element={<Salesplan />}
             />
 
-              <Route
+            <Route
               path="/SalesSummary"
               element={<SalesSummary />}
             />
 
-
-
+            <Route
+              path="/OverallSummary"
+              element={<OverallSummary />}
+            />
 
             <Route
               path="/SalesReport"
-              element={<SalesReport/>}
+              element={<SalesReport />}
             />
 
           </Routes>

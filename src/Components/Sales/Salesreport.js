@@ -15,24 +15,6 @@ const getCurrentYearMonth = () => {
   return `${yyyy}-${mm}`;
 };
 
-// Local YYYY-MM-DD for the "Date wise" date picker, defaulting to today.
-const getCurrentDateISO = () => {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
-
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
-const formatAmount = (value) =>
-  value === null || value === undefined ? "—" : currencyFormatter.format(value);
-
 const getErrorMessage = (err, fallback) => {
   const data = err?.response?.data ?? err?.data;
   if (typeof data === "string" && data.trim()) return data;
@@ -69,12 +51,20 @@ const Title = styled.h2`
   }
 `;
 
+const SectionTitle = styled.h3`
+  margin: 20px 0 8px;
+  color: ${ACCENT_DARK};
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+`;
+
 const FilterBar = styled.div`
   display: flex;
   align-items: flex-end;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: 8px;
   padding: 14px 16px;
   background: #f2f9f9;
   border-radius: 8px;
@@ -143,22 +133,12 @@ const CategorySelect = styled.select`
   }
 `;
 
-const NoticeText = styled.div`
-  font-size: 12px;
-  color: #7a8a8a;
-  margin-left: auto;
-  align-self: center;
-
-  @media (max-width: 480px) {
-    margin-left: 0;
-  }
-`;
-
 const TableWrapper = styled.div`
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border: 1px solid #d5dede;
   border-radius: 8px;
+  margin-bottom: 24px;
 
   &::-webkit-scrollbar {
     height: 8px;
@@ -175,44 +155,73 @@ const TableWrapper = styled.div`
 `;
 
 const Table = styled.table`
-  width: 100%;
   border-collapse: collapse;
-  min-width: 480px;
+  min-width: 100%;
 `;
 
 const Th = styled.th`
-  text-align: ${(props) => (props.$align === "left" ? "left" : "right")};
-  padding: 12px 14px;
+  text-align: center;
+  padding: 8px 10px;
   background: #f2f7f7;
   color: ${ACCENT_DARK};
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   border-bottom: 1px solid #d5dede;
+  border-right: 1px solid #eef2f2;
   white-space: nowrap;
-
-  @media (max-width: 480px) {
-    padding: 10px;
-    font-size: 11px;
-  }
 `;
 
 const GroupTh = styled(Th)`
-  text-align: center;
   background: #e4f3f3;
+  font-size: 12px;
 `;
 
 const Td = styled.td`
-  padding: 12px 14px;
-  font-size: 14px;
-  text-align: ${(props) => (props.$align === "left" ? "left" : "right")};
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: center;
   border-bottom: 1px solid #eef2f2;
+  border-right: 1px solid #f5f8f8;
   white-space: nowrap;
+`;
 
-  @media (max-width: 480px) {
-    padding: 10px;
-    font-size: 13px;
-  }
+// Sticky first column ("Sales Executive" / "Total") so the employee
+// name stays visible while scrolling through a month's worth of day
+// columns.
+const StickyTh = styled(Th)`
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  text-align: left;
+  background: #f2f7f7;
+  min-width: 150px;
+`;
+
+const StickyTd = styled(Td)`
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  text-align: left;
+  background: #fff;
+  font-weight: 600;
+  min-width: 150px;
+`;
+
+// The per-week subtotal column at the end of each "Week NN" group —
+// visually separated with a heavier left border so it reads as a
+// boundary between weeks.
+const WeekTotalTh = styled(Th)`
+  font-weight: 700;
+  border-left: 2px solid #cfe0e0;
+`;
+
+const WeekTotalTd = styled(Td)`
+  font-weight: 700;
+  background: #d4f0f0;
+  color: #1a6b6b;
+  border-left: 2px solid #219C9C;
+  border-right: 2px solid #219C9C;
 `;
 
 const TotalsRow = styled.tr`
@@ -221,23 +230,12 @@ const TotalsRow = styled.tr`
 
   ${Td} {
     border-top: 2px solid #d5dede;
-    border-bottom: none;
   }
-`;
 
-const DiffBadge = styled.span`
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-  background: ${(props) => {
-    if (props.$value === null || props.$value === undefined) return "#9aa5a5";
-    // diff = plan - actual: positive means behind target (shortfall),
-    // zero or negative means target met or exceeded.
-    return props.$value > 0 ? "#d64545" : "#2e9e5b";
-  }};
+  ${StickyTd} {
+    background: #f7fbfb;
+    border-top: 2px solid #d5dede;
+  }
 `;
 
 const EmptyState = styled.div`
@@ -250,34 +248,23 @@ const EmptyState = styled.div`
 
 const SalesReport = () => {
   const [yearMonth, setYearMonth] = useState(getCurrentYearMonth());
-  // Only used when view === "date" — the exact date the user picked.
-  const [selectedDate, setSelectedDate] = useState(getCurrentDateISO());
   const [category, setCategory] = useState("all");
   const [categories, setCategories] = useState([]);
-  // "date" (Date wise, pick any specific day), "wtd" (Week to Date), or
-  // "mtd" (Month to Date) — controls which single set of columns is
-  // displayed and which picker (date vs month) is shown. Defaults to
-  // "date" so the report opens showing today's plan vs actual.
-  const [view, setView] = useState("date");
 
   const [employees, setEmployees] = useState([]);
-  const [results, setResults] = useState([]);
-  const [weekToDateApplicable, setWeekToDateApplicable] = useState(true);
+  // Day column metadata from the backend: [{ day, week, weekday, label }, ...]
+  const [days, setDays] = useState([]);
+  // One row per sales executive: { employee_id, employee_name, plan: {"1": n, ...}, actual: {"1": n, ...} }
+  const [rows, setRows] = useState([]);
 
   const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState("");
 
-  // "Date wise" derives month/year/day from the date picker; Week/Month
-  // to Date derive month/year from the month picker and have no day.
-  const [year, month, day] = useMemo(() => {
-    if (view === "date") {
-      const [y, m, d] = selectedDate.split("-").map((v) => parseInt(v, 10));
-      return [y, m, d];
-    }
-    const [y, m] = yearMonth.split("-").map((v) => parseInt(v, 10));
-    return [y, m, null];
-  }, [view, yearMonth, selectedDate]);
+  const [year, month] = useMemo(
+    () => yearMonth.split("-").map((v) => parseInt(v, 10)),
+    [yearMonth]
+  );
 
   // ── Load sales executives once ──────────────────────────────────────
 
@@ -305,7 +292,7 @@ const SalesReport = () => {
     loadEmployees();
   }, [loadEmployees]);
 
-  // ── Load the Actual vs Plan report ──────────────────────────────────
+  // ── Load the week-grid Plan vs Actual report ────────────────────────
 
   const loadReport = useCallback(async () => {
     if (employees.length === 0) return;
@@ -321,21 +308,21 @@ const SalesReport = () => {
           employeeId: e.employeeId,
           employeeName: e.employeeName,
         })),
-        ...(day !== null ? { day } : {}),
       };
       const res = await apiRequest(`${Labbaseurl}salesplanreport/`, "POST", payload);
       const data = res?.data ?? res;
-      setResults(Array.isArray(data?.results) ? data.results : []);
+      setDays(Array.isArray(data?.days) ? data.days : []);
+      setRows(Array.isArray(data?.results) ? data.results : []);
       setCategories(Array.isArray(data?.categories) ? data.categories : []);
-      setWeekToDateApplicable(Boolean(data?.week_to_date_applicable));
     } catch (err) {
       console.error("Failed to load sales plan report:", err);
       setError(getErrorMessage(err, "Failed to load the report. Please try again."));
-      setResults([]);
+      setDays([]);
+      setRows([]);
     } finally {
       setLoadingReport(false);
     }
-  }, [employees, month, year, day, category]);
+  }, [employees, month, year, category]);
 
   useEffect(() => {
     loadReport();
@@ -350,37 +337,140 @@ const SalesReport = () => {
     }
   }, [categories, category]);
 
-  // Week to Date only means something for the month currently in
-  // progress (Date wise works for any date, so it needs no fallback).
-  // If the selected month isn't the current one and the user still has
-  // "Week to Date" selected, fall back to "Month to Date" rather than
-  // showing an empty/null view.
-  useEffect(() => {
-    if (view === "wtd" && !weekToDateApplicable) {
-      setView("mtd");
-    }
-  }, [weekToDateApplicable, view]);
+  // Group consecutive days that fall in the same ISO week into one
+  // merged "Week NN" header cell spanning that week's day columns.
+  const weekGroups = useMemo(() => {
+    const groups = [];
+    days.forEach((d) => {
+      const last = groups[groups.length - 1];
+      if (last && last.week === d.week) {
+        last.days.push(d);
+      } else {
+        groups.push({ week: d.week, days: [d] });
+      }
+    });
+    return groups;
+  }, [days]);
 
-  const KEY_MAP = {
-    date: { plan: "plan_day", actual: "actual_day", diff: "diff_day", label: "Date wise" },
-    wtd: { plan: "plan_wtd", actual: "actual_wtd", diff: "diff_wtd", label: "Week to Date" },
-    mtd: { plan: "plan_mtd", actual: "actual_mtd", diff: "diff_mtd", label: "Month to Date" },
+  // Per-day column totals across all employees, for the Total row.
+  const buildTotals = useCallback(
+    (metric) => {
+      const totals = {};
+      days.forEach((d) => {
+        totals[d.day] = rows.reduce(
+          (sum, row) => sum + (row[metric]?.[String(d.day)] || 0),
+          0
+        );
+      });
+      return totals;
+    },
+    [days, rows]
+  );
+
+  const planTotals = useMemo(() => buildTotals("plan_by_day"), [buildTotals]);
+  const actualTotals = useMemo(() => buildTotals("actual_by_day"), [buildTotals]);
+
+  // Format a number as Indian Rupee — e.g. 1234.5 → "₹1,234.50"
+  const fmtAmt = (val) => {
+    const n = Number(val) || 0;
+    if (n === 0) return "";
+    return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   };
-  const { plan: planKey, actual: actualKey, diff: diffKey, label: viewLabel } = KEY_MAP[view];
 
-  const totals = useMemo(() => {
-    return results.reduce(
-      (acc, row) => {
-        acc.plan += row[planKey] || 0;
-        acc.actual += row[actualKey] || 0;
-        acc.diff += row[diffKey] || 0;
-        return acc;
-      },
-      { plan: 0, actual: 0, diff: 0 }
+  // Always sum from daily values for the displayed week group.
+  // (Do NOT use SalesPlan.weekly_totals — those are pre-computed with
+  //  different week boundaries and will show the wrong number here.)
+  const weekSum = (valuesByDay, group) =>
+    group.days.reduce(
+      (sum, d) => sum + (Number(valuesByDay?.[String(d.day)]) || Number(valuesByDay?.[d.day]) || 0),
+      0
     );
-  }, [results, planKey, actualKey, diffKey]);
+
+  // Grand-total week sum across all employees — sum daily column totals
+  const grandWeekSum = (totalsObj, group) =>
+    group.days.reduce(
+      (sum, d) => sum + (Number(totalsObj?.[d.day]) || 0),
+      0
+    );
 
   const loading = loadingEmployees || loadingReport;
+
+  const renderGrid = (metric, totals) => (
+    <TableWrapper>
+      <Table>
+        <thead>
+          <tr>
+            <StickyTh rowSpan={2}>Sales Executive</StickyTh>
+            {weekGroups.map((g, i) => (
+              <GroupTh key={`${g.week}-${i}`} colSpan={g.days.length + 1}>
+                Week {g.week}
+              </GroupTh>
+            ))}
+            <GroupTh>Monthly Total</GroupTh>
+          </tr>
+          <tr>
+            {weekGroups.map((g, i) => (
+              <React.Fragment key={`${g.week}-${i}`}>
+                {g.days.map((d) => (
+                  <Th key={d.day}>
+                    {d.weekday}
+                    <br />
+                    {d.label}
+                  </Th>
+                ))}
+                <WeekTotalTh>Wk {g.week} Total</WeekTotalTh>
+              </React.Fragment>
+            ))}
+            <WeekTotalTh>Total (₹)</WeekTotalTh>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const monthTotal = Object.values(row[metric] || {}).reduce(
+              (s, v) => s + (Number(v) || 0), 0
+            );
+            return (
+              <tr key={row.employee_id}>
+                <StickyTd>{row.employee_name}</StickyTd>
+                {weekGroups.map((g, i) => (
+                  <React.Fragment key={`${g.week}-${i}`}>
+                    {g.days.map((d) => {
+                      const value = row[metric]?.[String(d.day)];
+                      return <Td key={d.day}>{value ? fmtAmt(value) : ""}</Td>;
+                    })}
+                    <WeekTotalTd>{fmtAmt(weekSum(row[metric], g))}</WeekTotalTd>
+                  </React.Fragment>
+                ))}
+                <WeekTotalTd>{fmtAmt(monthTotal)}</WeekTotalTd>
+              </tr>
+            );
+          })}
+        </tbody>
+        {rows.length > 0 && (
+          <tfoot>
+            <TotalsRow>
+              <StickyTd>Total</StickyTd>
+              {weekGroups.map((g, i) => (
+                <React.Fragment key={`${g.week}-${i}`}>
+                  {g.days.map((d) => (
+                    <Td key={d.day}>{fmtAmt(totals[d.day] ?? 0)}</Td>
+                  ))}
+                  <WeekTotalTd>{fmtAmt(grandWeekSum(totals, g))}</WeekTotalTd>
+                </React.Fragment>
+              ))}
+              <WeekTotalTd>
+                {fmtAmt(Object.values(totals).reduce((s, v) => s + (Number(v) || 0), 0))}
+              </WeekTotalTd>
+            </TotalsRow>
+          </tfoot>
+        )}
+      </Table>
+      {!loading && rows.length === 0 && (
+        <EmptyState>No sales executives to report on.</EmptyState>
+      )}
+      {loading && <EmptyState>Loading...</EmptyState>}
+    </TableWrapper>
+  );
 
   return (
     <Container>
@@ -390,41 +480,14 @@ const SalesReport = () => {
 
       <FilterBar>
         <FilterField>
-          <FilterLabel htmlFor="sales-report-view">Period</FilterLabel>
-          <CategorySelect
-            id="sales-report-view"
-            value={view}
-            onChange={(e) => setView(e.target.value)}
-          >
-            <option value="date">Date wise</option>
-            <option value="wtd" disabled={!weekToDateApplicable}>
-              Week to Date
-            </option>
-            <option value="mtd">Month to Date</option>
-          </CategorySelect>
+          <FilterLabel htmlFor="sales-report-month">Month</FilterLabel>
+          <MonthInput
+            id="sales-report-month"
+            type="month"
+            value={yearMonth}
+            onChange={(e) => setYearMonth(e.target.value)}
+          />
         </FilterField>
-
-        {view === "date" ? (
-          <FilterField>
-            <FilterLabel htmlFor="sales-report-date">Date</FilterLabel>
-            <MonthInput
-              id="sales-report-date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-          </FilterField>
-        ) : (
-          <FilterField>
-            <FilterLabel htmlFor="sales-report-month">Month</FilterLabel>
-            <MonthInput
-              id="sales-report-month"
-              type="month"
-              value={yearMonth}
-              onChange={(e) => setYearMonth(e.target.value)}
-            />
-          </FilterField>
-        )}
 
         <FilterField>
           <FilterLabel htmlFor="sales-report-category">Category</FilterLabel>
@@ -441,77 +504,18 @@ const SalesReport = () => {
             ))}
           </CategorySelect>
         </FilterField>
-
-        {!weekToDateApplicable && (
-          <NoticeText>
-            Week to Date only applies to the current month — showing Month to Date.
-          </NoticeText>
-        )}
       </FilterBar>
 
       {error && <EmptyState>{error}</EmptyState>}
 
       {!error && (
-        <TableWrapper>
-          <Table>
-            <thead>
-              <tr>
-                <Th $align="left" rowSpan={2}>
-                  Sales Executive
-                </Th>
-                <GroupTh colSpan={3}>{viewLabel}</GroupTh>
-              </tr>
-              <tr>
-                <Th>Plan</Th>
-                <Th>Actual</Th>
-                <Th>Difference</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((row) => {
-                const plan = row[planKey];
-                const actual = row[actualKey];
-                const diff = row[diffKey];
-                return (
-                  <tr key={row.employee_id}>
-                    <Td $align="left">{row.employee_name}</Td>
-                    <Td>{formatAmount(plan)}</Td>
-                    <Td>{formatAmount(actual)}</Td>
-                    <Td>
-                      {diff === null || diff === undefined ? (
-                        "—"
-                      ) : (
-                        <DiffBadge $value={diff}>
-                          {diff > 0 ? "-" : diff < 0 ? "+" : ""}
-                          {formatAmount(Math.abs(diff))}
-                        </DiffBadge>
-                      )}
-                    </Td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {results.length > 0 && (
-              <tfoot>
-                <TotalsRow>
-                  <Td $align="left">Total</Td>
-                  <Td>{formatAmount(totals.plan)}</Td>
-                  <Td>{formatAmount(totals.actual)}</Td>
-                  <Td>
-                    <DiffBadge $value={totals.diff}>
-                      {totals.diff > 0 ? "-" : totals.diff < 0 ? "+" : ""}
-                      {formatAmount(Math.abs(totals.diff))}
-                    </DiffBadge>
-                  </Td>
-                </TotalsRow>
-              </tfoot>
-            )}
-          </Table>
-          {!loading && results.length === 0 && (
-            <EmptyState>No sales executives to report on.</EmptyState>
-          )}
-          {loading && <EmptyState>Loading...</EmptyState>}
-        </TableWrapper>
+        <>
+          <SectionTitle>Plan Amount (₹) — from Sales Plan</SectionTitle>
+          {renderGrid("plan_by_day", planTotals)}
+
+          <SectionTitle>Actual Amount (₹) — from Billing</SectionTitle>
+          {renderGrid("actual_by_day", actualTotals)}
+        </>
       )}
     </Container>
   );
