@@ -14,7 +14,7 @@ console.log("=== LAB INDEX.JS DEBUG ===");
 
 // --- Function to set token for local development ---
 function setforlocaldev() {
-  const dev_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiI2MDE2NiIsImVtYWlsIjoic3Jpbml2YXNhbmdheWF0aHJpODkyMkBnbWFpbC5jb20iLCJuYW1lIjoiUiBTcmluaXZhc2FuIiwiYWxsb3dlZC1hY3Rpb25zIjpbIlNELVAtUEctUlciLCJTRC1QLUxSQy1SIiwiU1QtUC1DTVQtUiIsIlNELVAtTFBJLVIiLCJTRC1QLVBGLVJXIiwiU1QtUC1ERVMtUiIsIlNULVItRU1QIiwiU1QtUC1CUkQtUiIsIlNULVAtU05PLVJXIiwiR1AtUC1HQ04tUiIsIlNELVAtTENDLVJXIiwiU0QtUC1MQk4tUiIsIlNULVAtVERMLVIiLCJTRC1BUEktUkItUlciLCJTRC1QLUxCQy1SVyIsIlNELVAtR1BELVIiLCJTRC1QLVNTVS1SVyIsIlNULUFQSS1CUkQtUlciLCJTRC1SLVNNQyIsIlNELVAtR1BCLVIiLCJTRC1BUEktVE0tUlciLCJTRC1QLUJBLVJXIiwiU0QtUC1TUy1SVyIsIlNELVAtQlRELVJXIiwiU0QtUC1TUy1SIiwiU0QtUC1MVE0tUlciLCJTRC1QLUxCTC1SVyIsIlNELVAtR1NQLVIiLCJTRC1QLUxCRi1SVyIsIlNULUFQSS1DUkQtUlciLCJTRC1BUEktU1MtUlciLCJTRC1BUEktVEQtUiIsIlNELVAtU0MtUiIsIlNELUFQSS1DTi1SVyIsIlNULVAtQ01ULVJXIiwiU0QtUC1TUC1SIiwiU1QtUC1OVEYtUlciLCJTRC1QLUJHLVJXIiwiU0QtUC1VUEItUlciLCJTRC1QLVJCLVJXIiwiU0QtUC1MR0UtUlciLCJTRC1QLVBCLVJXIiwiU0QtUC1QT1YtUlciLCJTVC1QLU5URi1SIiwiU1QtQVBJLUNSRC1SIiwiU1QtQVBJLUFNQy1SIl0sImFsbG93ZWQtZGF0YSI6WyJTSEIwMDEiXSwiaG9zcGl0YWxfY29kZSI6IlNIMDAxIiwiaG1zX3BhZ2VzIjpbXSwiYWxsb3dlZC1vdXRsZXRzIjpbXSwiaXNzIjoiaHR0cHM6Ly9sYWIuc2hpbm92YS5pbi8iLCJpYXQiOjE3ODU3NDAzNDksImV4cCI6MTc4NTgyNzM0OX0.Z53HqoQkFaZ61MQsmYVHoMNaV0ho9lH6HpMyzJf3kejMa-BbJOYDEKqsFdLhFzJ3tapyoqIFZaSL1oHFKd0oFzJ8umGeRAU8hkkHTxFRsX2yjFDzVyPBIamtLTfsA4Pyx2AZtsV4SuGIo3gPrJEnFCvZS8Jw41JxW_lmFuo3uTqmFOP3eqGRTtZF8ZGr_nyAtHAvzLeRVO5F0ogyhb_yNkCSuhKW--hoFyV0Mobt3X1rlvxNIP6UdsOx8wcZ-9BvOG2s0mzxR5Bq-wpmx3EQoXGhjeRDeCt445Xk6hyfRdiYDMwkj8RAN09-VIYGWD0KKiL3lhwVZMKY8l1PQRt9WQ";
+  const dev_token = "";
   console.log("🔧 Development token is empty - will redirect to login");
   const selectedBranch = "SHB001";
   localStorage.setItem("selected_branch", selectedBranch);
@@ -88,6 +88,8 @@ function getUserRole(allowedActions) {
 
 // --- Main execution ---
 (function main() {
+  const isEstimatePath = window.location.pathname.toLowerCase().includes("estimate");
+
   try {
     console.log("Starting token validation...");
 
@@ -103,9 +105,19 @@ function getUserRole(allowedActions) {
       accessToken = setforlocaldev();
     }
 
-    // If still no token (development token is empty), redirect to login
+    // If still no token (development token is empty), redirect to login unless on public route
     if (!accessToken || accessToken.trim() === "") {
-      console.log("❌ No valid token available, redirecting to login");
+      console.log("❌ No valid token available");
+      if (isEstimatePath) {
+        console.log("Public estimate route detected, rendering App without token...");
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(
+          <React.StrictMode>
+            <App />
+          </React.StrictMode>,
+        );
+        return;
+      }
       localStorage.removeItem("access_token"); // Clean up
       redirectToLogin();
       return; // Stop execution here
@@ -183,6 +195,17 @@ function getUserRole(allowedActions) {
 
     // Clean up invalid token
     localStorage.removeItem("access_token");
+
+    if (isEstimatePath) {
+      console.log("Public estimate route detected, rendering App despite token validation failure...");
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>,
+      );
+      return;
+    }
 
     // If validation fails, redirect to login instead of showing debug page
     console.log("❌ Redirecting to login due to validation failure");

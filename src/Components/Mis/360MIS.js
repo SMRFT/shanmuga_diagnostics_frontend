@@ -436,7 +436,7 @@ const FilterSelect = styled.select`
 
 const ITEMS_PER_PAGE = 25;
 
-const MIS = () => {
+const Shanmuga360MIS = () => {
   const [data, setData] = useState([]);
   const [fromDate, setFromDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -450,7 +450,7 @@ const MIS = () => {
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState("mis");
+  const [activeTab, setActiveTab] = useState("shanmuga360");
 
   useEffect(() => {
     if (location.pathname === "/ShanmugaMIS") setActiveTab("hms");
@@ -478,7 +478,7 @@ const MIS = () => {
   const fetchConsolidatedData = async (selectedFromDate, selectedToDate) => {
     setLoading(true);
     try {
-      const url = `${Labbaseurl}consolidated-data/?from_date=${encodeURIComponent(selectedFromDate)}&to_date=${encodeURIComponent(selectedToDate)}`;
+      const url = `${Labbaseurl}shanmuga360-consolidated-data/?from_date=${encodeURIComponent(selectedFromDate)}&to_date=${encodeURIComponent(selectedToDate)}`;
       const result = await apiRequest(url, "GET");
       if (result.success) {
         const responseData = result.data.data || result.data;
@@ -675,7 +675,7 @@ const MIS = () => {
         new Blob([excelBuffer], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         }),
-        `MIS_Report_${formattedFromDate}_to_${formattedToDate}.xlsx`,
+        `Shanmuga360_MIS_Report_${formattedFromDate}_to_${formattedToDate}.xlsx`,
       );
     } catch (error) {
       console.error("Error exporting Excel:", error);
@@ -713,7 +713,7 @@ const MIS = () => {
             Franchise
           </NavigationTab>
         </NavigationContainer>
-        <Title>Diagnostics Overall TAT Report</Title>
+        <Title>Shanmuga 360 Overall TAT Report</Title>
       </CardHeader>
 
       <Controls>
@@ -990,4 +990,4 @@ const MIS = () => {
   );
 };
 
-export default MIS;
+export default Shanmuga360MIS;
