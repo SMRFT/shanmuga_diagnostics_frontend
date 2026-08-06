@@ -8,12 +8,11 @@ import { Search, Trash2, Calculator, Info, RefreshCw } from "lucide-react";
    DESIGN SYSTEM — viewport-locked, no page scroll
 ═══════════════════════════════════════════════ */
 const Shell = styled.div`
-  height: calc(100vh - 75px);
+  min-height: calc(100vh - 40px);
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
   font-family: 'Inter', 'Segoe UI', sans-serif;
-  overflow: hidden;
   box-sizing: border-box;
   padding: 1.25rem;
   gap: 1rem;
@@ -344,9 +343,23 @@ const Estimate = () => {
       setLoading(true);
       setError(null);
 
-      const response = await apiRequest(`${Labbaseurl}testdetails/`, "GET");
+      let rawData = null;
+      try {
+        const response = await apiRequest(`${Labbaseurl}get_test_details_estimate/`, "GET");
+        if (response && response.success && response.data) {
+          rawData = response.data?.data || response.data;
+        }
+      } catch (e) {
+        console.warn("apiRequest failed, attempting fallback fetch:", e);
+      }
 
-      const tests = response.data?.data || response.data || [];
+      if (!rawData) {
+        const res = await fetch(`${Labbaseurl}get_test_details_estimate/`);
+        const json = await res.json();
+        rawData = json.data || json;
+      }
+
+      const tests = Array.isArray(rawData) ? rawData : [];
 
       if (!Array.isArray(tests)) {
         throw new Error("Invalid data format received from API");

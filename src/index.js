@@ -14,7 +14,7 @@ console.log("=== LAB INDEX.JS DEBUG ===");
 
 // --- Function to set token for local development ---
 function setforlocaldev() {
-  const dev_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiI2MDE1NyIsImVtYWlsIjoibWFuaWJhbGFuc21yZnRAZ21haWwuY29tIiwibmFtZSI6IlN1bmRhciBNIiwiYWxsb3dlZC1hY3Rpb25zIjpbIlNELUFQSS1WUC1SVyIsIlNULVAtQ01ULVJXIiwiU0QtUC1QTC1SIiwiU0QtUC1CQS1SVyIsIlNULVItSE9EIiwiU0QtUC1TVkYtUiIsIlNELVAtTUJQRC1SIiwiU0QtUC1VUEItUiIsIkZFLVItRkEtUlciLCJTRC1BUEktR0QtUiIsIlNELVAtTEdFLVJXIiwiU0QtUC1URC1SIiwiU0QtUC1QRy1SIiwiU0QtUC1HU1AtUiIsIkZFLVAtRlItUlciLCJTVC1QLURFUy1SVyIsIlNELVAtU1AtUiIsIlNELVAtU1ZGLVJXIiwiU1QtUC1OVEYtUiIsIlNULVAtU05PLVJXIiwiU0QtUC1MUkMtUiIsIlNELVAtUEQtUiIsIlNELVAtTFRNLVJXIiwiU0QtQVBJLVRNLVJXIiwiU0QtQVBJLUdDLVJXIiwiU0QtUC1MUEktUiIsIkZFLVItRkEiLCJTRC1QLVVQQi1SVyIsIlNELVItR00iLCJTRC1QLUxELVJXIiwiU0QtUC1MU0wtUlciLCJTRC1QLUNMLVJXIiwiU0QtQVBJLVRNLVIiLCJTRC1QLVJELVJXIiwiU0QtQVBJLUlWTS1SIiwiU1QtQVBJLUNSRC1SVyIsIlNELVAtQ0hDLVIiLCJTRC1BUEktTUJURC1SVyIsIkZFLVAtRlMtUlciLCJTRC1QLUxUUi1SVyIsIlNELVAtTFNSLVJXIiwiU0QtUC1TVkQtUlciLCJGRS1QLUZBTC1SVyIsIlNELVAtU1NVLVJXIiwiRkUtUC1GR0wtUiIsIkZFLVAtRkctUlciLCJGRS1QLUZGLVJXIiwiU0QtUC1CVEQtUiIsIlNELVAtTUlTLVIiLCJTRC1QLVNTVS1SIiwiU0QtUC1URC1SVyIsIlNULVAtQ01ULVIiLCJTVC1QLURFUy1SIiwiU0QtUC1DSEMtUlciLCJTRC1QLVNIRi1SVyIsIlNELUFQSS1URC1SIiwiU0QtUC1QRi1SVyIsIlNELVAtU0NVLVJXIiwiR1AtUC1HQ04tUiIsIlNELVAtQkJBLVJXIiwiU0QtUC1TR0UtUiIsIkZFLVAtRkdGLVIiLCJTRC1BUEktTUlTLVJXIiwiU0QtUC1TUy1SVyIsIlNELVAtTUJERi1SVyIsIlNELVAtTEJGLVJXIiwiU0QtQVBJLUlWTS1SVyIsIlNELVAtVEUtUlciLCJTRC1QLVNPUi1SVyIsIlNELVAtQlRELVJXIiwiU0QtUC1TSVItUlciLCJGRS1QLUZVUy1SVyIsIlNULVAtVERMLVJXIiwiU0QtUC1QQi1SIiwiU0QtUC1TQy1SIiwiU0QtUC1QRy1SVyIsIlNELUFQSS1WQy1SVyIsIlNELUFQSS1HUi1SVyIsIlNELVAtTFRBLVJXIiwiU0QtUC1MR0QtUlciLCJTRC1QLUJHLVIiLCJTRC1QLUdQVC1SVyIsIlNELUFQSS1HT0MtUlciLCJTRC1QLVNHQUMtUiIsIlNELVAtTENDLVJXIiwiU0QtQVBJLUdPUi1SVyIsIlNELVAtR1BELVIiLCJGRS1QLUZVQi1SVyIsIlNELUFQSS1QUi1SIiwiU0QtUC1ERi1SIiwiU0QtUC1HUEQtUlciLCJTRC1QLVBPVi1SVyIsIlNELUFQSS1SQi1SVyIsIlNELVAtR1BCLVJXIiwiU0QtUC1MQk4tUiIsIlNULUFQSS1BTUMtUlciLCJTRC1QLVRFLVIiLCJTRC1QLVBGLVIiLCJTRC1QLVNIRi1SIiwiU0QtQVBJLVRWLVIiLCJGRS1QLUZTQi1SVyIsIlNELVAtVFMtUlciLCJTVC1BUEktQlJELVJXIiwiU0QtUC1MU1AtUlciLCJTRC1QLVNTLVIiLCJTRC1QLUxCTC1SVyIsIlNELUFQSS1DTi1SVyIsIlNELVAtTEJDLVJXIiwiU0QtUC1NQlRWLVIiLCJTRC1QLURGLVJXIiwiU0QtUC1PRC1SIiwiU0QtQVBJLVJDTC1SVyIsIlNULVAtQlJELVIiLCJTVC1QLVRETC1SIiwiU1QtUC1OVEYtUlciLCJTRC1QLVBCLVJXIiwiU1QtQVBJLUVNUC1SIiwiU0QtUC1TR0FDLVJXIl0sImFsbG93ZWQtZGF0YSI6WyJTSEIwMDEiXSwiaG9zcGl0YWxfY29kZSI6IlNIMDAxIiwiaG1zX3BhZ2VzIjpbXSwiYWxsb3dlZC1vdXRsZXRzIjpbXSwiaXNzIjoiaHR0cHM6Ly9sYWIuc2hpbm92YS5pbi8iLCJpYXQiOjE3ODU5OTE0NDQsImV4cCI6MTc4NjA3ODQ0NH0.TflAudLqbAP_1HKNHoUA_oP6BFfKBL_w7amwIpJjEy0QuEqc_tSJDPGCR4Wba3MmDFx9S0bGqtt4uMTs1EZNny5fudoff7omm7gzGwbOEPRMt21nWk-ZpK_bBe5UFRlKTfClgF9TECwiG1dnErv_5w6ciqrAOGSXQMO3m1CHoIiNmvrenhssLDGMGlqMf045jskABgNHR5a5tWz9oumA20ddTMSAMu_iDmotBken7wJSnqQ80hCScv-uyb4Uv9jFLjEFcSKNPXef3gAM5EMSlSTqOvuD7WPJY9eO0jYlZCZNxL2muzAdt2HlHjo0bvTe5gv2vjUxp_YgcBROcHbeDQ";
+  const dev_token = "";
   console.log("🔧 Development token is empty - will redirect to login");
   const selectedBranch = "SHB001";
   localStorage.setItem("selected_branch", selectedBranch);
@@ -88,6 +88,8 @@ function getUserRole(allowedActions) {
 
 // --- Main execution ---
 (function main() {
+  const isEstimatePath = window.location.pathname.toLowerCase().includes("estimate");
+
   try {
     console.log("Starting token validation...");
 
@@ -103,9 +105,19 @@ function getUserRole(allowedActions) {
       accessToken = setforlocaldev();
     }
 
-    // If still no token (development token is empty), redirect to login
+    // If still no token (development token is empty), redirect to login unless on public route
     if (!accessToken || accessToken.trim() === "") {
-      console.log("❌ No valid token available, redirecting to login");
+      console.log("❌ No valid token available");
+      if (isEstimatePath) {
+        console.log("Public estimate route detected, rendering App without token...");
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(
+          <React.StrictMode>
+            <App />
+          </React.StrictMode>,
+        );
+        return;
+      }
       localStorage.removeItem("access_token"); // Clean up
       redirectToLogin();
       return; // Stop execution here
@@ -183,6 +195,17 @@ function getUserRole(allowedActions) {
 
     // Clean up invalid token
     localStorage.removeItem("access_token");
+
+    if (isEstimatePath) {
+      console.log("Public estimate route detected, rendering App despite token validation failure...");
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>,
+      );
+      return;
+    }
 
     // If validation fails, redirect to login instead of showing debug page
     console.log("❌ Redirecting to login due to validation failure");

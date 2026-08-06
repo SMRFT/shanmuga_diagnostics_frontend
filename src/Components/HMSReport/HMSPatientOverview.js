@@ -746,6 +746,8 @@ const HMSPatientOverview = () => {
       setActiveTab("hms");
     } else if (location.pathname === "/PatientOverview") {
       setActiveTab("reference");
+    } else if (location.pathname === "/360Overview") {
+      setActiveTab("shanmuga360");
     } else if (location.pathname === "/FranchiseOverview") {
       setActiveTab("franchise");
     } else if (location.pathname === "/CorporateOverview") {
@@ -760,6 +762,8 @@ const HMSPatientOverview = () => {
       navigate("/HMSPatientOverview");
     } else if (tab === "reference") {
       navigate("/PatientOverview");
+    } else if (tab === "shanmuga360") {
+      navigate("/360Overview");
     } else if (tab === "franchise") {
       navigate("/FranchiseOverview");
     } else if (tab === "corporate") {
@@ -2460,6 +2464,12 @@ const HMSPatientOverview = () => {
               onClick={() => handleTabChange("reference")}
             >
               Shanmuga Diagnostics
+            </NavigationTab>
+            <NavigationTab
+              active={activeTab === "shanmuga360"}
+              onClick={() => handleTabChange("shanmuga360")}
+            >
+              Shanmuga 360
             </NavigationTab>
             <NavigationTab
               active={activeTab === "franchise"}
