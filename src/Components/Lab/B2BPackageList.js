@@ -234,6 +234,8 @@ const B2BPackageList = () => {
   const [viewPkg,     setViewPkg]     = useState(null);   // modal
   const [page,        setPage]        = useState(1);
   const [pageSize,    setPageSize]    = useState(10);
+  const [clinicalMap, setClinicalMap] = useState({});
+  const [userMap,     setUserMap]     = useState({});
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -258,11 +260,85 @@ const B2BPackageList = () => {
     } catch (e) { console.error(e); }
   };
 
+  const fetchMetadata = async () => {
+    try {
+      const [clinicalRes, collectorRes, salesRes] = await Promise.all([
+        apiRequest(`${Labbaseurl}clinical_name/`, "GET"),
+        apiRequest(`${Labbaseurl}sample-collector/`, "GET"),
+        apiRequest(`${Labbaseurl}get_sales_executives/`, "GET"),
+      ]);
+
+      const cMap = {};
+      if (clinicalRes?.success && Array.isArray(clinicalRes.data)) {
+        clinicalRes.data.forEach((c) => {
+          const code = c.referrerCode || c.referrer_code || c.code;
+          const name = c.clinicalname || c.clinical_name || c.name;
+          if (code && name) cMap[String(code).trim()] = name;
+        });
+      }
+      setClinicalMap(cMap);
+
+      const uMap = {};
+      if (collectorRes?.success && Array.isArray(collectorRes.data)) {
+        collectorRes.data.forEach((emp) => {
+          const id = emp.employeeId || emp.employee_id || emp.id;
+          const name = emp.employeeName || emp.name;
+          if (id && name) uMap[String(id).trim()] = name;
+        });
+      }
+      if (salesRes?.success && Array.isArray(salesRes.data)) {
+        salesRes.data.forEach((s) => {
+          const id = s.employeeId || s.id || s.user_id;
+          const name = s.employeeName || s.name || s.username;
+          if (id && name) uMap[String(id).trim()] = name;
+        });
+      }
+      const curId = localStorage.getItem("employeeId") || localStorage.getItem("auth-user-id");
+      const curName = localStorage.getItem("name") || localStorage.getItem("username");
+      if (curId && curName) {
+        uMap[String(curId).trim()] = curName;
+      }
+      setUserMap(uMap);
+    } catch (err) {
+      console.error("Error loading metadata maps:", err);
+    }
+  };
+
   useEffect(() => {
-    if (Labbaseurl) { fetchPackages(); fetchTestDetails(); }
+    if (Labbaseurl) {
+      fetchPackages();
+      fetchTestDetails();
+      fetchMetadata();
+    }
   }, [Labbaseurl]);
 
   /* ── helpers ── */
+  const getLabName = (pkg) => {
+    if (!pkg) return "—";
+    if (pkg.clinicalname && pkg.clinicalname !== pkg.referrerCode) {
+      return pkg.clinicalname;
+    }
+    const code = pkg.referrerCode ? String(pkg.referrerCode).trim() : "";
+    if (code && clinicalMap[code]) {
+      return clinicalMap[code];
+    }
+    return pkg.clinicalname || pkg.referrerCode || "—";
+  };
+
+  const getUserName = (val) => {
+    if (!val || val === "System") return val || "—";
+    const strVal = String(val).trim();
+    if (userMap[strVal]) {
+      return userMap[strVal];
+    }
+    const curId = localStorage.getItem("employeeId");
+    const curName = localStorage.getItem("name");
+    if (curId && strVal === String(curId).trim() && curName) {
+      return curName;
+    }
+    return val;
+  };
+
   const getTestName = (item) => {
     try {
       const id = typeof item === "object" && item ? item.test_id ?? item.testId : item;
@@ -309,13 +385,15 @@ const B2BPackageList = () => {
     const q = search.toLowerCase();
     return packages.filter(p => {
       const s = (p.status || "pending").toLowerCase();
+      const labName = getLabName(p).toLowerCase();
       const matchQ = !q ||
         (p.packageName||"").toLowerCase().includes(q) ||
-        (p.referrerCode||"").toLowerCase().includes(q);
+        (p.referrerCode||"").toLowerCase().includes(q) ||
+        labName.includes(q);
       const matchS = statusFlt === "all" || s === statusFlt.toLowerCase();
       return matchQ && matchS;
     });
-  }, [packages, search, statusFlt]);
+  }, [packages, search, statusFlt, clinicalMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safeP      = Math.min(page, totalPages);
@@ -395,7 +473,7 @@ const B2BPackageList = () => {
               <tr>
                 <TH>#</TH>
                 <TH>Package Name</TH>
-                <TH>Referrer Code</TH>
+                <TH>Lab Name</TH>
                 <TH>Tests</TH>
                 <TH>Rate (₹)</TH>
                 <TH>Status</TH>
@@ -425,7 +503,7 @@ const B2BPackageList = () => {
                         <div style={{fontWeight:600, color:"var(--dark)"}}>{pkg.packageName}</div>
                         <div style={{fontSize:".74rem", color:"var(--gray)"}}>#{pkg.package_id}</div>
                       </TD>
-                      <TD style={{fontFamily:"monospace", fontSize:".85rem"}}>{pkg.referrerCode || "—"}</TD>
+                      <TD style={{fontWeight:600, color:"var(--dark)", fontSize:".85rem"}}>{getLabName(pkg)}</TD>
                       <TD>
                         <span style={{
                           display:"inline-block", background:"rgba(67,97,238,.08)",
@@ -507,11 +585,11 @@ const B2BPackageList = () => {
                     </InfoCell>
                     <InfoCell>
                       <InfoCellLabel>Lab / Clinical Name</InfoCellLabel>
-                      <InfoCellValue>{viewPkg.clinicalname || viewPkg.referrerCode || "N/A"}</InfoCellValue>
+                      <InfoCellValue>{getLabName(viewPkg)}</InfoCellValue>
                     </InfoCell>
                     <InfoCell>
                       <InfoCellLabel>Created By</InfoCellLabel>
-                      <InfoCellValue>{viewPkg.created_by || "N/A"}</InfoCellValue>
+                      <InfoCellValue>{getUserName(viewPkg.created_by)}</InfoCellValue>
                     </InfoCell>
                     <InfoCell>
                       <InfoCellLabel>Created Date</InfoCellLabel>
@@ -550,14 +628,14 @@ const B2BPackageList = () => {
                 {status === "Approved" && (
                   <AuditBanner v="Approved">
                     <strong>✓ Approved</strong>
-                    {viewPkg.approved_by && ` by ${viewPkg.approved_by}`}
+                    {viewPkg.approved_by && ` by ${getUserName(viewPkg.approved_by)}`}
                     {viewPkg.approved_date && ` on ${fmtDate(viewPkg.approved_date, true)}`}
                   </AuditBanner>
                 )}
                 {status === "Rejected" && (
                   <AuditBanner v="Rejected">
                     <strong>✗ Rejected</strong>
-                    {viewPkg.rejected_by && ` by ${viewPkg.rejected_by}`}
+                    {viewPkg.rejected_by && ` by ${getUserName(viewPkg.rejected_by)}`}
                     {viewPkg.rejected_date && ` on ${fmtDate(viewPkg.rejected_date, true)}`}
                     {viewPkg.rejected_Reason && (
                       <div style={{marginTop:".4rem", fontStyle:"italic"}}>"{viewPkg.rejected_Reason}"</div>

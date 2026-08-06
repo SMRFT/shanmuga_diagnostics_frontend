@@ -979,7 +979,7 @@ const B2BPackage = () => {
                             </DisplayItem>
                             <DisplayItem>
                                 <DisplayLabel>Clinical Name:</DisplayLabel>
-                                <DisplayValue>{formData.clinicalname}</DisplayValue>
+                                <DisplayValue>{formData.clinicalnameDisplay || clinicalSearch || formData.clinicalname || "N/A"}</DisplayValue>
                             </DisplayItem>
                             <DisplayItem>
                                 <DisplayLabel>Rate:</DisplayLabel>

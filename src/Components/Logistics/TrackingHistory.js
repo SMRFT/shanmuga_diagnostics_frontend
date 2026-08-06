@@ -210,101 +210,201 @@ const EmptyState = styled.div`
   font-size: 14px;
 `;
 
+// --- Curated Vibrant Person Colors Palette ---
+const ROUTE_COLORS = [
+  '#4F46E5', // Indigo
+  '#059669', // Emerald Green
+  '#DC2626', // Bright Red
+  '#D97706', // Amber / Orange
+  '#7C3AED', // Royal Purple
+  '#0891B2', // Cyan
+  '#BE185D', // Pink / Rose
+  '#EA580C', // Deep Orange
+  '#2563EB', // Blue
+  '#16A34A', // Forest Green
+  '#9333EA', // Purple
+  '#0284C7', // Sky Blue
+];
+
+const getRouteColor = (index, name = '') => {
+  if (typeof index === 'number' && index >= 0) {
+    return ROUTE_COLORS[index % ROUTE_COLORS.length];
+  }
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return ROUTE_COLORS[Math.abs(hash) % ROUTE_COLORS.length];
+};
+
+// --- SVG Icons for Zomato/Swiggy style Start & End/Live Markers ---
+const START_MARKER_ICON = {
+  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
+      <circle cx="17" cy="17" r="13" fill="#10B981" stroke="#FFFFFF" stroke-width="2.5"/>
+      <text x="17" y="21" font-size="11" font-family="Arial, sans-serif" font-weight="bold" fill="#FFFFFF" text-anchor="middle">S</text>
+    </svg>
+  `),
+};
+
+const END_MARKER_ICON = {
+  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
+      <circle cx="17" cy="17" r="13" fill="#EF4444" stroke="#FFFFFF" stroke-width="2.5"/>
+      <text x="17" y="21" font-size="11" font-family="Arial, sans-serif" font-weight="bold" fill="#FFFFFF" text-anchor="middle">E</text>
+    </svg>
+  `),
+};
+
+const getLiveMarkerIcon = (color = '#2563EB') => ({
+  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
+      <circle cx="19" cy="19" r="16" fill="${color}" stroke="#FFFFFF" stroke-width="2.5"/>
+      <circle cx="19" cy="19" r="6" fill="#FFFFFF"/>
+    </svg>
+  `),
+});
+
 // =============================================
-// POLYLINE COMPONENT
+// THIN LINE POLYLINE COMPONENT (3px Line)
 // =============================================
 const TrackedPath = ({ collectorId, points, color = '#4F46E5', onDistanceCalculated }) => {
   const map = useMap();
+  const polylineRef = useRef(null);
+  const shadowPolylineRef = useRef(null);
   const directionsRendererRef = useRef(null);
   const lastPathStrRef = useRef('');
 
-  const pathCoordinates = useMemo(() =>
-    points.map(p => ({ lat: parseFloat(p.latitude || p.lat), lng: parseFloat(p.longitude || p.lng) })),
-    [points]
-  );
+  const pathCoordinates = useMemo(() => {
+    if (!points || !Array.isArray(points)) return [];
+    return points
+      .map(p => ({
+        lat: parseFloat(p.latitude || p.lat),
+        lng: parseFloat(p.longitude || p.lng)
+      }))
+      .filter(p => !isNaN(p.lat) && !isNaN(p.lng) && p.lat !== 0 && p.lng !== 0);
+  }, [points]);
 
   useEffect(() => {
     if (!map || pathCoordinates.length < 2) return;
-
-    if (!directionsRendererRef.current) {
-      directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
-        map,
-        suppressMarkers: true,
-        polylineOptions: {
-          strokeColor: color,
-          strokeOpacity: 0.85,
-          strokeWeight: 4
-        }
-      });
-    } else {
-      directionsRendererRef.current.setOptions({
-        polylineOptions: { strokeColor: color, strokeOpacity: 0.85, strokeWeight: 4 }
-      });
-    }
 
     const pathStr = JSON.stringify(pathCoordinates);
     if (lastPathStrRef.current === pathStr) return;
     lastPathStrRef.current = pathStr;
 
-    const directionsService = new window.google.maps.DirectionsService();
-    
-    const origin = pathCoordinates[0];
-    const destination = pathCoordinates[pathCoordinates.length - 1];
-    
-    let waypoints = [];
-    if (pathCoordinates.length > 2) {
-      const intermediatePoints = pathCoordinates.slice(1, -1);
-      if (intermediatePoints.length > 23) {
-        const step = intermediatePoints.length / 23;
-        for (let i = 0; i < 23; i++) {
+    // Clean up previous polylines & directions
+    if (directionsRendererRef.current) {
+      directionsRendererRef.current.setMap(null);
+      directionsRendererRef.current = null;
+    }
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+    if (shadowPolylineRef.current) {
+      shadowPolylineRef.current.setMap(null);
+      shadowPolylineRef.current = null;
+    }
+
+    // 1. Thin Line (3px main line + 4px casing)
+    shadowPolylineRef.current = new window.google.maps.Polyline({
+      path: pathCoordinates,
+      geodesic: true,
+      strokeColor: '#FFFFFF',
+      strokeOpacity: 0.8,
+      strokeWeight: 4,
+      map: map,
+      zIndex: 1
+    });
+
+    polylineRef.current = new window.google.maps.Polyline({
+      path: pathCoordinates,
+      geodesic: true,
+      strokeColor: color,
+      strokeOpacity: 0.9,
+      strokeWeight: 3,
+      map: map,
+      zIndex: 2
+    });
+
+    // Compute distance
+    if (onDistanceCalculated && collectorId) {
+      let totalMeters = 0;
+      for (let i = 0; i < pathCoordinates.length - 1; i++) {
+        const p1 = new window.google.maps.LatLng(pathCoordinates[i].lat, pathCoordinates[i].lng);
+        const p2 = new window.google.maps.LatLng(pathCoordinates[i + 1].lat, pathCoordinates[i + 1].lng);
+        if (window.google.maps.geometry && window.google.maps.geometry.spherical) {
+          totalMeters += window.google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
+        } else {
+          const R = 6371e3;
+          const dLat = (p2.lat() - p1.lat()) * Math.PI / 180;
+          const dLng = (p2.lng() - p1.lng()) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(p1.lat() * Math.PI / 180) * Math.cos(p2.lat() * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          totalMeters += R * c;
+        }
+      }
+      onDistanceCalculated(collectorId, (totalMeters / 1000).toFixed(2));
+    }
+
+    // Attempt road route via DirectionsService
+    if (window.google.maps.DirectionsService) {
+      const directionsService = new window.google.maps.DirectionsService();
+      const origin = pathCoordinates[0];
+      const destination = pathCoordinates[pathCoordinates.length - 1];
+
+      let waypoints = [];
+      if (pathCoordinates.length > 2) {
+        const intermediate = pathCoordinates.slice(1, -1);
+        const step = intermediate.length > 23 ? intermediate.length / 23 : 1;
+        const count = Math.min(intermediate.length, 23);
+        for (let i = 0; i < count; i++) {
           waypoints.push({
-            location: intermediatePoints[Math.floor(i * step)],
+            location: intermediate[Math.floor(i * step)],
             stopover: false
           });
         }
-      } else {
-        waypoints = intermediatePoints.map(p => ({ location: p, stopover: false }));
       }
+
+      directionsService.route({
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      }, (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK && result) {
+          if (polylineRef.current) polylineRef.current.setMap(null);
+          if (shadowPolylineRef.current) shadowPolylineRef.current.setMap(null);
+
+          directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+            map,
+            suppressMarkers: true,
+            directions: result,
+            polylineOptions: {
+              strokeColor: color,
+              strokeOpacity: 0.9,
+              strokeWeight: 3,
+              zIndex: 3
+            }
+          });
+
+          if (onDistanceCalculated && collectorId && result.routes[0]) {
+            let totalM = 0;
+            result.routes[0].legs.forEach(leg => {
+              totalM += leg.distance.value;
+            });
+            onDistanceCalculated(collectorId, (totalM / 1000).toFixed(2));
+          }
+        }
+      });
     }
 
-    directionsService.route({
-      origin: origin,
-      destination: destination,
-      waypoints: waypoints,
-      travelMode: window.google.maps.TravelMode.DRIVING,
-    }, (result, status) => {
-      if (status === window.google.maps.DirectionsStatus.OK) {
-        if (directionsRendererRef.current) {
-           directionsRendererRef.current.setDirections(result);
-        }
-        
-        if (onDistanceCalculated && collectorId) {
-          let totalDistance = 0;
-          const route = result.routes[0];
-          for (let i = 0; i < route.legs.length; i++) {
-            totalDistance += route.legs[i].distance.value;
-          }
-          onDistanceCalculated(collectorId, (totalDistance / 1000).toFixed(2));
-        }
-      } else {
-        console.warn("Directions request failed due to " + status);
-        const polyline = new window.google.maps.Polyline({
-          path: pathCoordinates,
-          geodesic: true,
-          strokeColor: color,
-          strokeOpacity: 0.85,
-          strokeWeight: 4,
-          map: map
-        });
-        if (directionsRendererRef.current) {
-          directionsRendererRef.current.setMap(null);
-          directionsRendererRef.current = polyline;
-        }
-      }
-    });
-
-    return () => { 
-      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null); 
+    return () => {
+      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null);
+      if (polylineRef.current) polylineRef.current.setMap(null);
+      if (shadowPolylineRef.current) shadowPolylineRef.current.setMap(null);
     };
   }, [map, pathCoordinates, color, collectorId, onDistanceCalculated]);
 
@@ -337,17 +437,21 @@ const formatDate = (dateStr) => {
 };
 
 const formatDistance = (dist) => {
-  if (!dist) return '0.00';
-  const val = parseFloat(dist);
-  if (isNaN(val)) return '0.00';
-  // If the stored value is very large (e.g., > 500), it was likely stored in meters from the old system.
-  if (val > 500) {
-    return (val / 1000).toFixed(2);
-  }
-  return val.toFixed(2);
-};
+  if (dist === null || dist === undefined || dist === '') return '0 m';
+  let val = parseFloat(dist);
+  if (isNaN(val) || val <= 0) return '0 m';
 
-const ROUTE_COLORS = ['#4F46E5', '#059669', '#dc2626', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#ea580c'];
+  if (val > 500) {
+    val = val / 1000;
+  }
+
+  if (val < 1.0) {
+    const meters = Math.round(val * 1000);
+    return `${meters} m`;
+  }
+
+  return `${val.toFixed(2)} km`;
+};
 
 // Reverse geocode cache to avoid repeated API calls
 const geocodeCache = {};
@@ -362,7 +466,6 @@ const reverseGeocode = async (lat, lng, apiKey) => {
     );
     const data = await res.json();
     if (data.status === 'OK' && data.results.length > 0) {
-      // Use the most relevant short component: sublocality > locality > route
       const components = data.results[0].address_components;
       const subloc = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
       const locality = components.find(c => c.types.includes('locality'))?.long_name;
@@ -396,7 +499,7 @@ const TrackingHistory = () => {
   const [tableLoading, setTableLoading] = useState(false);
   const [allCollectors, setAllCollectors] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [locationNames, setLocationNames] = useState({}); // { rowId: { start, end } }
+  const [locationNames, setLocationNames] = useState({});
 
   const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
   const BASE_URL = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -407,7 +510,7 @@ const TrackingHistory = () => {
       setMapLoading(true);
       const res = await apiRequest(`${BASE_URL}sample-collector-location/?date=${mapDate}`, 'GET');
       const dataArray = Array.isArray(res) ? res : (res?.data || res?.results || []);
-      const validData = dataArray.filter(item => item.sampleCollector && item.routePoints && item.routePoints.length > 0);
+      const validData = dataArray.filter(item => item.sampleCollector && ((item.routePoints && item.routePoints.length > 0) || item.latitudeStart));
       setMapData(validData);
     } catch (err) {
       console.error("Map data error:", err);
@@ -507,7 +610,6 @@ const TrackingHistory = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tracking History');
 
-    // Auto-fit column widths
     const colWidths = Object.keys(rows[0] || {}).map(key => ({
       wch: Math.max(key.length, ...rows.map(r => String(r[key] || '').length)) + 2
     }));
@@ -519,11 +621,18 @@ const TrackingHistory = () => {
   // --- Row click -> show on map ---
   const handleRowClick = (row) => {
     setSelectedRow(row.id);
-    if (row.routePoints && row.routePoints.length > 0) {
+
+    const history = (row.routePoints && row.routePoints.length > 0)
+      ? row.routePoints
+      : [
+          { lat: row.latitudeStart, lng: row.longitudeStart },
+          { lat: row.currentLatitude || row.latitudeEnd, lng: row.currentLongitude || row.longitudeEnd }
+        ].filter(p => p.lat && p.lng);
+
+    if (history.length > 0) {
       setMapDate(row.date);
-      // Set mapData to only this row temporarily for focus
-      setMapData([row]);
-      setSelectedMapCollector(row);
+      setMapData([{ ...row, routePoints: history }]);
+      setSelectedMapCollector({ ...row, routePoints: history });
     }
   };
 
@@ -562,45 +671,68 @@ const TrackingHistory = () => {
             disableDefaultUI={false}
           >
             {mapData.map((collector, index) => {
-              const history = collector.routePoints || [];
+              const history = (collector.routePoints && collector.routePoints.length > 0)
+                ? collector.routePoints
+                : [
+                    { lat: collector.latitudeStart, lng: collector.longitudeStart },
+                    { lat: collector.currentLatitude || collector.latitudeEnd, lng: collector.currentLongitude || collector.longitudeEnd }
+                  ].filter(p => p.lat && p.lng);
+
               if (!history.length) return null;
               const startPos = history[0];
               const endPos = history[history.length - 1];
-              const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+              const personColor = getRouteColor(index, collector.sampleCollector);
+
+              const startLat = parseFloat(startPos.latitude || startPos.lat);
+              const startLng = parseFloat(startPos.longitude || startPos.lng);
+              const endLat = parseFloat(endPos.latitude || endPos.lat);
+              const endLng = parseFloat(endPos.longitude || endPos.lng);
 
               return (
                 <React.Fragment key={collector.id || index}>
                   <TrackedPath 
                     collectorId={collector.id}
                     points={history} 
-                    color={color} 
+                    color={personColor} 
                     onDistanceCalculated={(id, dist) => setAccurateDistances(prev => ({...prev, [id]: dist}))}
                   />
                   
-                  {/* Start marker */}
-                  <Marker
-                    position={{ lat: parseFloat(startPos.lat || startPos.latitude), lng: parseFloat(startPos.lng || startPos.longitude) }}
-                    onClick={() => setSelectedMapCollector(collector)}
-                    title={`${collector.sampleCollector} - Start`}
-                  />
-                  
-                  {/* End marker (only if ended) */}
-                  {collector.endTime && endPos && (
+                  {/* Start Location Marker */}
+                  {!isNaN(startLat) && !isNaN(startLng) && (
                     <Marker
-                      position={{ lat: parseFloat(endPos.lat || endPos.latitude), lng: parseFloat(endPos.lng || endPos.longitude) }}
+                      position={{ lat: startLat, lng: startLng }}
+                      icon={START_MARKER_ICON}
                       onClick={() => setSelectedMapCollector(collector)}
-                      title={`${collector.sampleCollector} - End`}
+                      title={`Start Location - ${collector.sampleCollector}`}
+                    />
+                  )}
+                  
+                  {/* End / Live Location Marker */}
+                  {!isNaN(endLat) && !isNaN(endLng) && (
+                    <Marker
+                      position={{ lat: endLat, lng: endLng }}
+                      icon={collector.isActive ? getLiveMarkerIcon(personColor) : END_MARKER_ICON}
+                      onClick={() => setSelectedMapCollector(collector)}
+                      title={`${collector.isActive ? 'Live Location' : 'End Location'} - ${collector.sampleCollector}`}
                     />
                   )}
                 </React.Fragment>
               );
             })}
 
-            {selectedMapCollector && selectedMapCollector.routePoints?.length > 0 && (
+            {selectedMapCollector && (
               <InfoWindow
                 position={{
-                  lat: parseFloat(selectedMapCollector.routePoints.slice(-1)[0].lat || selectedMapCollector.routePoints.slice(-1)[0].latitude),
-                  lng: parseFloat(selectedMapCollector.routePoints.slice(-1)[0].lng || selectedMapCollector.routePoints.slice(-1)[0].longitude)
+                  lat: parseFloat(
+                    (selectedMapCollector.routePoints && selectedMapCollector.routePoints.length > 0)
+                      ? selectedMapCollector.routePoints.slice(-1)[0].latitude || selectedMapCollector.routePoints.slice(-1)[0].lat
+                      : selectedMapCollector.currentLatitude || selectedMapCollector.latitudeEnd || selectedMapCollector.latitudeStart
+                  ),
+                  lng: parseFloat(
+                    (selectedMapCollector.routePoints && selectedMapCollector.routePoints.length > 0)
+                      ? selectedMapCollector.routePoints.slice(-1)[0].longitude || selectedMapCollector.routePoints.slice(-1)[0].lng
+                      : selectedMapCollector.currentLongitude || selectedMapCollector.longitudeEnd || selectedMapCollector.longitudeStart
+                  )
                 }}
                 onCloseClick={() => setSelectedMapCollector(null)}
               >
@@ -610,7 +742,7 @@ const TrackingHistory = () => {
                     <b>Status:</b> {selectedMapCollector.isActive ? '🔴 Active' : '✅ Completed'}
                   </p>
                   <p style={{ fontSize: '12px', margin: '3px 0' }}>
-                    <b>Distance:</b> {accurateDistances[selectedMapCollector.id] || formatDistance(selectedMapCollector.distance_travelled)} km
+                    <b>Distance:</b> {formatDistance(accurateDistances[selectedMapCollector.id] || selectedMapCollector.distance_travelled)}
                   </p>
                   <p style={{ fontSize: '12px', margin: '3px 0' }}>
                     <b>Duration:</b> {formatDuration(selectedMapCollector.totalDuration)}
@@ -700,7 +832,7 @@ const TrackingHistory = () => {
                 <Th>Start Location</Th>
                 <Th>End Time</Th>
                 <Th>End Location</Th>
-                <Th>Distance (km)</Th>
+                <Th>Distance</Th>
                 <Th>Duration</Th>
                 <Th>Status</Th>
               </tr>
@@ -716,35 +848,54 @@ const TrackingHistory = () => {
                   </Td>
                 </tr>
               ) : (
-                tableData.map((row, idx) => (
-                  <Tr
-                    key={row.id || idx}
-                    className={selectedRow === row.id ? 'selected' : ''}
-                    onClick={() => handleRowClick(row)}
-                  >
-                    <Td>{formatDate(row.date)}</Td>
-                    <Td style={{ fontWeight: '600' }}>{row.sampleCollector}</Td>
-                    <Td>{formatTime(row.startTime)}</Td>
-                    <Td style={{ fontSize: '12px', color: '#334155' }}>
-                      {locationNames[row.id]?.start 
-                        ? locationNames[row.id].start 
-                        : row.latitudeStart ? '⏳ Loading...' : '-'}
-                    </Td>
-                    <Td>{formatTime(row.endTime)}</Td>
-                    <Td style={{ fontSize: '12px', color: '#334155' }}>
-                      {locationNames[row.id]?.end && locationNames[row.id].end !== '-'
-                        ? locationNames[row.id].end
-                        : row.latitudeEnd ? '⏳ Loading...' : '-'}
-                    </Td>
-                    <Td style={{ fontWeight: '600' }}>{accurateDistances[row.id] || formatDistance(row.distance_travelled)}</Td>
-                    <Td>{formatDuration(row.totalDuration)}</Td>
-                    <Td>
-                      <StatusBadge active={row.isActive}>
-                        {row.isActive ? '● Active' : '✓ Done'}
-                      </StatusBadge>
-                    </Td>
-                  </Tr>
-                ))
+                tableData.map((row, idx) => {
+                  const personColor = getRouteColor(idx, row.sampleCollector);
+                  return (
+                    <Tr
+                      key={row.id || idx}
+                      className={selectedRow === row.id ? 'selected' : ''}
+                      onClick={() => handleRowClick(row)}
+                    >
+                      <Td>{formatDate(row.date)}</Td>
+                      <Td style={{ fontWeight: '600' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span 
+                            style={{ 
+                              width: '10px', 
+                              height: '10px', 
+                              borderRadius: '50%', 
+                              backgroundColor: personColor, 
+                              display: 'inline-block',
+                              boxShadow: `0 0 5px ${personColor}`,
+                              flexShrink: 0 
+                            }} 
+                            title={`Route Color: ${personColor}`}
+                          />
+                          {row.sampleCollector}
+                        </div>
+                      </Td>
+                      <Td>{formatTime(row.startTime)}</Td>
+                      <Td style={{ fontSize: '12px', color: '#334155' }}>
+                        {locationNames[row.id]?.start 
+                          ? locationNames[row.id].start 
+                          : row.latitudeStart ? '⏳ Loading...' : '-'}
+                      </Td>
+                      <Td>{formatTime(row.endTime)}</Td>
+                      <Td style={{ fontSize: '12px', color: '#334155' }}>
+                        {locationNames[row.id]?.end && locationNames[row.id].end !== '-'
+                          ? locationNames[row.id].end
+                          : row.latitudeEnd ? '⏳ Loading...' : '-'}
+                      </Td>
+                      <Td style={{ fontWeight: '600' }}>{formatDistance(accurateDistances[row.id] || row.distance_travelled)}</Td>
+                      <Td>{formatDuration(row.totalDuration)}</Td>
+                      <Td>
+                        <StatusBadge active={row.isActive}>
+                          {row.isActive ? '● Active' : '✓ Done'}
+                        </StatusBadge>
+                      </Td>
+                    </Tr>
+                  );
+                })
               )}
             </tbody>
           </Table>

@@ -383,18 +383,19 @@ const B2BPackageApproval = () => {
   const [testDetails, setTestDetails] = useState([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState({})
-  const [toast, setToast] = useState(null)
+  const [toast, setToast] = useState({ show: false, message: "", type: "" })
   const [rejectModal, setRejectModal] = useState({ isOpen: false, packageData: null, reason: "", loading: false })
+  const [clinicalMap, setClinicalMap] = useState({})
+  const [userMap, setUserMap] = useState({})
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
-  // Show toast message
   const showToast = (message, type = "success") => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 4000)
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast({ show: false, message: "", type: "" }), 4000)
   }
 
-  // Fetch packages from API
+  // Fetch pending B2B packages
   const fetchPackages = async () => {
     try {
       setLoading(true)
@@ -426,12 +427,83 @@ const B2BPackageApproval = () => {
     }
   }
 
+  const fetchMetadata = async () => {
+    try {
+      const [clinicalRes, collectorRes, salesRes] = await Promise.all([
+        apiRequest(`${Labbaseurl}clinical_name/`, "GET"),
+        apiRequest(`${Labbaseurl}sample-collector/`, "GET"),
+        apiRequest(`${Labbaseurl}get_sales_executives/`, "GET"),
+      ]);
+
+      const cMap = {};
+      if (clinicalRes?.success && Array.isArray(clinicalRes.data)) {
+        clinicalRes.data.forEach((c) => {
+          const code = c.referrerCode || c.referrer_code || c.code;
+          const name = c.clinicalname || c.clinical_name || c.name;
+          if (code && name) cMap[String(code).trim()] = name;
+        });
+      }
+      setClinicalMap(cMap);
+
+      const uMap = {};
+      if (collectorRes?.success && Array.isArray(collectorRes.data)) {
+        collectorRes.data.forEach((emp) => {
+          const id = emp.employeeId || emp.employee_id || emp.id;
+          const name = emp.employeeName || emp.name;
+          if (id && name) uMap[String(id).trim()] = name;
+        });
+      }
+      if (salesRes?.success && Array.isArray(salesRes.data)) {
+        salesRes.data.forEach((s) => {
+          const id = s.employeeId || s.id || s.user_id;
+          const name = s.employeeName || s.name || s.username;
+          if (id && name) uMap[String(id).trim()] = name;
+        });
+      }
+      const curId = localStorage.getItem("employeeId") || localStorage.getItem("auth-user-id");
+      const curName = localStorage.getItem("name") || localStorage.getItem("username");
+      if (curId && curName) {
+        uMap[String(curId).trim()] = curName;
+      }
+      setUserMap(uMap);
+    } catch (err) {
+      console.error("Error loading metadata maps:", err);
+    }
+  };
+
   useEffect(() => {
     if (Labbaseurl) {
       fetchPackages()
       fetchTestDetails()
+      fetchMetadata()
     }
   }, [Labbaseurl])
+
+  const getLabName = (pkg) => {
+    if (!pkg) return "—";
+    if (pkg.clinicalname && pkg.clinicalname !== pkg.referrerCode) {
+      return pkg.clinicalname;
+    }
+    const code = pkg.referrerCode ? String(pkg.referrerCode).trim() : "";
+    if (code && clinicalMap[code]) {
+      return clinicalMap[code];
+    }
+    return pkg.clinicalname || pkg.referrerCode || "—";
+  };
+
+  const getUserName = (val) => {
+    if (!val || val === "System") return val || "—";
+    const strVal = String(val).trim();
+    if (userMap[strVal]) {
+      return userMap[strVal];
+    }
+    const curId = localStorage.getItem("employeeId");
+    const curName = localStorage.getItem("name");
+    if (curId && strVal === String(curId).trim() && curName) {
+      return curName;
+    }
+    return val;
+  };
 
   // Complete handleApprove function with success toast
   const handleApprove = async (packageId) => {
@@ -631,8 +703,9 @@ const B2BPackageApproval = () => {
                               <User size={16} />
                             </InfoIcon>
                             <InfoContent>
-                              <InfoLabel>Referrer Code</InfoLabel>
-                              <InfoValue>{pkg.referrerCode}</InfoValue>
+                              <InfoLabel>Lab / Clinical Name</InfoLabel>
+                              <InfoValue>{getLabName(pkg)}</InfoValue>
+                              <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>Code: {pkg.referrerCode}</div>
                             </InfoContent>
                           </InfoItem>
 
@@ -676,7 +749,7 @@ const B2BPackageApproval = () => {
                       </PackageBody>
 
                       <PackageFooter>
-                        <DateInfo>Created: {formatDate(getDateValue(pkg.created_date))}</DateInfo>
+                        <DateInfo>Created by {getUserName(pkg.created_by)} on {formatDate(getDateValue(pkg.created_date))}</DateInfo>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <Button 
                             danger 

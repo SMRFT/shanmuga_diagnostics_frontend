@@ -441,6 +441,55 @@ const PatientDashboard = () => {
     currentPage * itemsPerPage
   )
 
+  const getNumericDiscount = (p) => {
+    const discount = p?.discount;
+    if (!discount) return 0;
+    const strDisc = String(discount).trim();
+    const tot = parseFloat(p.totalAmount || 0);
+    if (strDisc.endsWith("%")) {
+      const pct = parseFloat(strDisc);
+      return isNaN(pct) ? 0 : (tot * pct) / 100;
+    }
+    const val = parseFloat(strDisc);
+    return isNaN(val) ? 0 : val;
+  };
+
+  const formatDiscountDisplay = (p) => {
+    const discount = p?.discount;
+    if (!discount || discount === "0" || discount === 0 || discount === "0.0" || discount === "0.00") {
+      return "₹0.00";
+    }
+    const strDisc = String(discount).trim();
+    const tot = parseFloat(p.totalAmount || 0);
+
+    if (strDisc.endsWith("%")) {
+      const pct = parseFloat(strDisc);
+      if (!isNaN(pct) && tot > 0) {
+        const amt = (tot * pct) / 100;
+        return `${strDisc} (₹${amt.toFixed(2)})`;
+      }
+      return strDisc;
+    }
+
+    const val = parseFloat(strDisc);
+    if (!isNaN(val) && val > 0) {
+      if (tot > 0 && val <= tot) {
+        const pct = ((val / tot) * 100).toFixed(1);
+        return `₹${val.toFixed(2)} (${pct}%)`;
+      }
+      return `₹${val.toFixed(2)}`;
+    }
+
+    return strDisc;
+  };
+
+  const getNetBillAmount = (p) => {
+    if (p.netAmount) return parseFloat(p.netAmount) || 0;
+    const tot = parseFloat(p.totalAmount || 0);
+    const disc = getNumericDiscount(p);
+    return Math.max(0, tot - disc);
+  };
+
   const totalPatients = filteredPatients.length
 
   const totalTests = filteredPatients.reduce(
@@ -452,6 +501,14 @@ const PatientDashboard = () => {
     .reduce((sum, p) => sum + (parseFloat(p.totalAmount) || 0), 0)
     .toFixed(2)
 
+  const totalDiscountVal = filteredPatients
+    .reduce((sum, p) => sum + getNumericDiscount(p), 0)
+    .toFixed(2)
+
+  const totalNetAmountVal = filteredPatients
+    .reduce((sum, p) => sum + getNetBillAmount(p), 0)
+    .toFixed(2)
+
   const billedPatients = filteredPatients.filter(
     (p) => parseFloat(p.totalAmount || 0) > 0
   ).length
@@ -459,7 +516,7 @@ const PatientDashboard = () => {
   const exportToCSV = () => {
     if (filteredPatients.length === 0) return
 
-    const headers = ["Bill No", "Patient Name", "Phone", "Age", "Gender", "Ref By", "Test Count", "Billing Status", "Total Amount"]
+    const headers = ["Bill No", "Patient Name", "Phone", "Age", "Gender", "Ref By", "Test Count", "Billing Status", "Gross Amount", "Discount", "Net Amount"]
 
     const data = filteredPatients.map((p) => [
       p.bill_no || "",
@@ -471,9 +528,11 @@ const PatientDashboard = () => {
       p.testdetails?.length || 0,
       parseFloat(p.totalAmount || 0) > 0 ? "Billed" : "Not Billed",
       parseFloat(p.totalAmount || 0).toFixed(2),
+      formatDiscountDisplay(p),
+      getNetBillAmount(p).toFixed(2),
     ])
 
-    data.push(["", "Grand Total", "", "", "", "", totalTests.toString(), "", totalAmount])
+    data.push(["", "Grand Total", "", "", "", "", totalTests.toString(), "", totalAmount, totalDiscountVal, totalNetAmountVal])
 
     const csvContent = [headers.join(","), ...data.map((row) => row.join(","))].join("\n")
 
@@ -525,6 +584,7 @@ const PatientDashboard = () => {
                 <option value="Hospital">Hospital</option>
                 <option value="Walk-in">Walk-in</option>
                 <option value="Home Collection">Home Collection</option>
+                <option value="Shanmuga 360">Shanmuga 360</option>
               </DateInput>
             </DateInputGroup>
 
@@ -606,7 +666,9 @@ const PatientDashboard = () => {
                     <Th>Ref By</Th>
                     <Th>Test Count</Th>
                     <Th>Status</Th>
-                    <Th>Amount</Th>
+                    <Th>Gross Amt</Th>
+                    <Th>Discount</Th>
+                    <Th>Net Amt</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -625,6 +687,8 @@ const PatientDashboard = () => {
                         </StatusBadge>
                       </Td>
                       <Td>₹{parseFloat(p.totalAmount || 0).toFixed(2)}</Td>
+                      <Td style={{ color: "#e11d48", fontWeight: 600 }}>{formatDiscountDisplay(p)}</Td>
+                      <Td style={{ color: "#10b981", fontWeight: 700 }}>₹{getNetBillAmount(p).toFixed(2)}</Td>
                     </tr>
                   ))}
                   <TotalRow>
@@ -632,6 +696,8 @@ const PatientDashboard = () => {
                     <Td>{totalTests}</Td>
                     <Td></Td>
                     <Td>₹{totalAmount}</Td>
+                    <Td style={{ color: "#e11d48" }}>₹{totalDiscountVal}</Td>
+                    <Td style={{ color: "#10b981" }}>₹{totalNetAmountVal}</Td>
                   </TotalRow>
                 </tbody>
               </Table>

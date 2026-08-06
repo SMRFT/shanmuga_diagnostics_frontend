@@ -7,6 +7,7 @@ import "react-toastify/dist/ReactToastify.css"
 import { FaSearch, FaToggleOn, FaToggleOff, FaPlus, FaTimes, FaUpload, FaFileAlt, FaCalendar, FaCamera } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 import RefBy from "../Forms/RefBy"
+import CameraModal from "../Common/CameraModal"
 
 // ============================================================================
 // STYLED COMPONENTS - All styling with styled-components
@@ -1131,6 +1132,7 @@ const PatientForm = () => {
   const [showPatientModal, setShowPatientModal] = useState(false)
   const [multiplePatients, setMultiplePatients] = useState([])
   const [prescriptionFile, setPrescriptionFile] = useState(null)
+  const [showCameraModal, setShowCameraModal] = useState(false)
   const [showAppointmentModal, setShowAppointmentModal] = useState(false)
   const [appointmentPatients, setAppointmentPatients] = useState([])
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false)
@@ -1181,11 +1183,13 @@ const PatientForm = () => {
     MultiplePayment: [],
     emergency: false,
     patient_history: "",
+    order_id: "",
   })
 
   const [isB2BEnabled, setIsB2BEnabled] = useState(false)
   const [isHomeCollectionEnabled, setIsHomeCollectionEnabled] = useState(false)
   const [isHospitalBillEnabled, setIsHospitalBillEnabled] = useState(false)
+  const [isShanmuga360Enabled, setIsShanmuga360Enabled] = useState(false)
   const [isEmergencyEnabled, setIsEmergencyEnabled] = useState(false)
   const [dropdownOptions, setDropdownOptions] = useState({
     clinicalNames: [],
@@ -1208,6 +1212,7 @@ const PatientForm = () => {
     const sampleCollectorValid = formData.sample_collector.trim() !== ""
     const branchValid = formData.branch.trim() !== ""
     const b2bFieldsValid = !isB2BEnabled || formData.B2B.trim() !== ""
+    const shanmuga360Valid = !isShanmuga360Enabled || (formData.order_id && formData.order_id.trim() !== "")
 
     const homeCollectionValid =
       !isHomeCollectionEnabled ||
@@ -1217,13 +1222,13 @@ const PatientForm = () => {
         formData.address.pincode.trim() !== "")
 
     if (
-      basicFieldsValid && refByValid && sampleCollectorValid && branchValid && b2bFieldsValid && homeCollectionValid
+      basicFieldsValid && refByValid && sampleCollectorValid && branchValid && b2bFieldsValid && homeCollectionValid && shanmuga360Valid
     ) {
       setIsFormValid(true)
     } else {
       setIsFormValid(false)
     }
-  }, [formData, isB2BEnabled, isHomeCollectionEnabled, isHospitalBillEnabled])
+  }, [formData, isB2BEnabled, isHomeCollectionEnabled, isHospitalBillEnabled, isShanmuga360Enabled])
 
   const loadDropdownOptions = async () => {
     try {
@@ -1319,7 +1324,7 @@ const PatientForm = () => {
   }
 
   const handleB2BToggle = () => {
-    if (isHomeCollectionEnabled || isHospitalBillEnabled) {
+    if (isHomeCollectionEnabled || isHospitalBillEnabled || isShanmuga360Enabled) {
       toast.error("Please disable other segments first before enabling B2B")
       return
     }
@@ -1351,7 +1356,7 @@ const PatientForm = () => {
   }
 
   const handleHomeCollectionToggle = () => {
-    if (isB2BEnabled || isHospitalBillEnabled) {
+    if (isB2BEnabled || isHospitalBillEnabled || isShanmuga360Enabled) {
       toast.error("Please disable other segments first before enabling Home Collection")
       return
     }
@@ -1365,7 +1370,7 @@ const PatientForm = () => {
   }
 
   const handleHospitalToggle = () => {
-    if (isB2BEnabled || isHomeCollectionEnabled) {
+    if (isB2BEnabled || isHomeCollectionEnabled || isShanmuga360Enabled) {
       toast.error("Please disable other segments first before enabling Hospital Bill")
       return
     }
@@ -1375,6 +1380,21 @@ const PatientForm = () => {
     setFormData((prev) => ({
       ...prev,
       segment: newHospitalState ? "Hospital" : "Walk-in",
+    }))
+  }
+
+  const handleShanmuga360Toggle = () => {
+    if (isB2BEnabled || isHomeCollectionEnabled || isHospitalBillEnabled) {
+      toast.error("Please disable other segments first before enabling Shanmuga 360")
+      return
+    }
+
+    const newShanmuga360State = !isShanmuga360Enabled
+    setIsShanmuga360Enabled(newShanmuga360State)
+    setFormData((prev) => ({
+      ...prev,
+      segment: newShanmuga360State ? "Shanmuga 360" : "Walk-in",
+      order_id: newShanmuga360State ? prev.order_id : "",
     }))
   }
 
@@ -1670,6 +1690,10 @@ const PatientForm = () => {
       if (!formData.address.pincode.trim()) errors.push("Pin Code is required for Home Collection")
     }
 
+    if (isShanmuga360Enabled && (!formData.order_id || !formData.order_id.trim())) {
+      errors.push("Order ID is required when Shanmuga 360 is enabled")
+    }
+
     return errors
   }
 
@@ -1716,6 +1740,7 @@ const PatientForm = () => {
       if (isB2BEnabled) segmentValue = "B2B"
       else if (isHomeCollectionEnabled) segmentValue = "Home Collection"
       else if (isHospitalBillEnabled) segmentValue = "Hospital"
+      else if (isShanmuga360Enabled) segmentValue = "Shanmuga 360"
 
       const patientHistory = formData.patient_history.trim() || ""
 
@@ -1764,6 +1789,7 @@ const PatientForm = () => {
         branch: formData.branch,
         B2B: isB2BEnabled ? formData.B2B : "",
         segment: segmentValue,
+        order_id: isShanmuga360Enabled ? formData.order_id.trim() : "",
         salesMapping: formData.salesMapping,
         sample_collector: formData.sample_collector,
         testdetails: formData.testdetails,
@@ -1852,6 +1878,7 @@ const PatientForm = () => {
     setIsB2BEnabled(false)
     setIsHomeCollectionEnabled(false)
     setIsHospitalBillEnabled(false)
+    setIsShanmuga360Enabled(false)
     setIsEmergencyEnabled(false)
     setShowPatientModal(false)
     setMultiplePatients([])
@@ -1895,6 +1922,7 @@ const PatientForm = () => {
       emergency: false,
       patient_history: "",
       appointment_id: "",
+      order_id: "",
     })
 
     generateNewPatientId()
@@ -2333,7 +2361,7 @@ const PatientForm = () => {
             <Row className="row-4">
               <ToggleContainer>
                 <label>Home Collection</label>
-                <div onClick={handleHomeCollectionToggle} className={(isB2BEnabled || isHospitalBillEnabled) ? "disabled" : ""}>
+                <div onClick={handleHomeCollectionToggle} className={(isB2BEnabled || isHospitalBillEnabled || isShanmuga360Enabled) ? "disabled" : ""}>
                   {isHomeCollectionEnabled ? (
                     <FaToggleOn style={{ fontSize: "40px", color: "green" }} />
                   ) : (
@@ -2358,7 +2386,7 @@ const PatientForm = () => {
 
               <ToggleContainer>
                 <label>Hospital Bill</label>
-                <div onClick={handleHospitalToggle} className={(isB2BEnabled || isHomeCollectionEnabled) ? "disabled" : ""}>
+                <div onClick={handleHospitalToggle} className={(isB2BEnabled || isHomeCollectionEnabled || isShanmuga360Enabled) ? "disabled" : ""}>
                   {isHospitalBillEnabled ? (
                     <FaToggleOn style={{ fontSize: "40px", color: "blue" }} />
                   ) : (
@@ -2366,6 +2394,32 @@ const PatientForm = () => {
                   )}
                 </div>
               </ToggleContainer>
+            </Row>
+
+            <Row className="row-4">
+              <ToggleContainer>
+                <label>Shanmuga 360</label>
+                <div onClick={handleShanmuga360Toggle} className={(isB2BEnabled || isHomeCollectionEnabled || isHospitalBillEnabled) ? "disabled" : ""}>
+                  {isShanmuga360Enabled ? (
+                    <FaToggleOn style={{ fontSize: "40px", color: "#8b5cf6" }} />
+                  ) : (
+                    <FaToggleOff style={{ fontSize: "40px", color: "grey" }} />
+                  )}
+                </div>
+              </ToggleContainer>
+
+              <FormGroup>
+                <label>Order ID{isShanmuga360Enabled && <RequiredIndicator>*</RequiredIndicator>}</label>
+                <input
+                  type="text"
+                  name="order_id"
+                  value={formData.order_id || ""}
+                  onChange={handleChange}
+                  placeholder="Enter Shanmuga 360 Order ID"
+                  disabled={!isShanmuga360Enabled}
+                  required={isShanmuga360Enabled}
+                />
+              </FormGroup>
             </Row>
           </Fieldset>
 
@@ -2545,8 +2599,8 @@ const PatientForm = () => {
             {!isExistingPatient && (
               <Row>
                 <FormGroup>
-                  <label>Upload Prescription (Optional)</label>
-                  <FileUploadWrapper>
+                  <label>Prescription Photo / File (Optional)</label>
+                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginTop: "6px" }}>
                     <input
                       type="file"
                       id="prescription-upload"
@@ -2554,20 +2608,83 @@ const PatientForm = () => {
                       onChange={handleFileChange}
                       style={{ display: "none" }}
                     />
-                    <label htmlFor="prescription-upload" className="file-upload-button" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FaCamera />
-                      <FaUpload />
-                      {prescriptionFile ? "Change Photo / File" : "Take Photo / Upload"}
+
+                    <button
+                      type="button"
+                      onClick={() => setShowCameraModal(true)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "10px 18px",
+                        borderRadius: "10px",
+                        background: "linear-gradient(135deg, #10b981, #059669)",
+                        color: "white",
+                        border: "none",
+                        fontWeight: "600",
+                        fontSize: "14px",
+                        cursor: "pointer",
+                        boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)",
+                      }}
+                    >
+                      <FaCamera /> Take Photo
+                    </button>
+
+                    <label
+                      htmlFor="prescription-upload"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "10px 18px",
+                        borderRadius: "10px",
+                        background: "linear-gradient(135deg, #667eea, #764ba2)",
+                        color: "white",
+                        fontWeight: "600",
+                        fontSize: "14px",
+                        cursor: "pointer",
+                        boxShadow: "0 4px 12px rgba(102, 126, 234, 0.25)",
+                      }}
+                    >
+                      <FaUpload /> Upload File / Image
                     </label>
 
                     {prescriptionFile && (
-                      <div className="file-name" style={{ marginTop: "10px" }}>
-                        <FaFileAlt />
-                        {prescriptionFile.name}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          background: "#f1f5f9",
+                          padding: "8px 14px",
+                          borderRadius: "8px",
+                          border: "1px solid #cbd5e1",
+                        }}
+                      >
+                        <FaFileAlt color="#4F46E5" />
+                        <span style={{ fontSize: "13px", fontWeight: "500", color: "#1e293b" }}>
+                          {prescriptionFile.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPrescriptionFile(null)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#ef4444",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            padding: "2px",
+                          }}
+                          title="Remove file"
+                        >
+                          <FaTimes />
+                        </button>
                       </div>
                     )}
-                  </FileUploadWrapper>
-                  <small style={{ color: "#666", marginTop: "5px", display: "block" }}>
+                  </div>
+                  <small style={{ color: "#666", marginTop: "6px", display: "block" }}>
                     Accepted formats: PDF, JPG, JPEG, PNG (Max 5MB)
                   </small>
                 </FormGroup>
@@ -2593,6 +2710,12 @@ const PatientForm = () => {
         </form>
       </FormCard>
 
+      <CameraModal
+        isOpen={showCameraModal}
+        onClose={() => setShowCameraModal(false)}
+        onCapture={(file) => setPrescriptionFile(file)}
+        title="Capture Prescription Photo"
+      />
       <RefBy show={showRefByForm} setShow={setShowRefByFormForm} />
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
     </FormContainer>

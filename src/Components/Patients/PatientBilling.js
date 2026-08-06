@@ -1174,6 +1174,7 @@ const PatientBilling = () => {
                     <option value="Hospital">Hospital</option>
                     <option value="Walk-in">Walk-in</option>
                     <option value="Home Collection">Home Collection</option>
+                    <option value="Shanmuga 360">Shanmuga 360</option>
                   </select>
                 </FormGroup>
 
