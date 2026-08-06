@@ -1133,7 +1133,7 @@ const Sidebar = () => {
             </>
           )}
 
-          {role === "Sales Executive" && (
+          {(role === "Sales Executive" || role === "Sales Person") && (
             <>
               <DropdownHeader
                 isOpen={dropdowns.patientDetails}
@@ -1293,6 +1293,28 @@ const Sidebar = () => {
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Sales Report
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader
+                isOpen={dropdowns.routeDetails}
+                onClick={() => toggleDropdown("routeDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaRoute />
+                  </IconWrapper>
+                  Route Master
+                </div>
+                <ChevronIcon isOpen={dropdowns.routeDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.routeDetails}>
+                <SubLink
+                  to="/RouteSetup"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Route Setup
                 </SubLink>
               </DropdownContent>
 
@@ -1905,7 +1927,7 @@ const Sidebar = () => {
             </>
           )}
 
-          {role === "Diagnostics General Manager" && (
+          {(role === "Diagnostics General Manager" || role === "General Manager" || role === "GM") && (
             <>
               <SidebarNavLink
                 to="/MDashboard"
@@ -2190,6 +2212,12 @@ const Sidebar = () => {
               </DropdownHeader>
 
               <DropdownContent isOpen={dropdowns.salesDetails}>
+                <SubLink
+                  to="/SalesVisit"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Sales Visit Form
+                </SubLink>
                 <SubLink
                   to="/SalesVisitLogReport"
                   onClick={() => setIsSidebarOpen(false)}

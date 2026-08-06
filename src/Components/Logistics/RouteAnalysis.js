@@ -15,9 +15,12 @@ import {
   FaFlag,
   FaImage,
   FaLock,
+  FaCamera,
+  FaUpload,
 } from "react-icons/fa"
 import { MdAddAPhoto } from "react-icons/md"
 import apiRequest from "../Auth/apiRequest"
+import CameraModal from "../Common/CameraModal"
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 const fadeIn = keyframes`
@@ -486,6 +489,8 @@ const RouteAnalysis = () => {
   const [ending, setEnding] = useState(false)
   const [uploadingCode, setUploadingCode] = useState(null)
   const [activeUploadCode, setActiveUploadCode] = useState(null)
+  const [showCameraModal, setShowCameraModal] = useState(false)
+  const [uploadTargetCode, setUploadTargetCode] = useState(null)
   // map of route_id -> { status, analysis_id } for today
   const [todayStatusMap, setTodayStatusMap] = useState({})
 
@@ -556,14 +561,19 @@ const RouteAnalysis = () => {
               `${Labbaseurl}route-analysis/active/${matchedOpt.value}/`,
               "GET"
             )
-            const activeData = activeRes?.data?.data || activeRes?.data || null
-            if (activeData) {
+            const activeData = activeRes?.data?.data || (activeRes?.data && activeRes?.data.id ? activeRes.data : null)
+            if (activeData && activeData.id && activeData.status === "in_progress") {
               setAnalysis(activeData)
+            } else {
+              setAnalysis(null)
             }
           } catch (err) {
             console.error("Error auto-loading active route session:", err)
+            setAnalysis(null)
           }
         }
+      } else {
+        setAnalysis(null)
       }
     } catch (err) {
       console.error("Error fetching routes:", err.message)
@@ -586,46 +596,49 @@ const RouteAnalysis = () => {
         `${Labbaseurl}route-analysis/active/${option.value}/`,
         "GET"
       )
-      const data = res?.data?.data || res?.data || null
-      if (data) {
-        setAnalysis(data)
+      const activeData = res?.data?.data || (res?.data && res?.data.id ? res.data : null)
+      if (activeData && activeData.id && activeData.status === "in_progress") {
+        setAnalysis(activeData)
         toast.info("Resumed active in-progress session")
+      } else {
+        setAnalysis(null)
       }
     } catch (err) {
       console.error("Error checking active session:", err)
+      setAnalysis(null)
     }
   }
 
   const handleStart = async () => {
     if (!selectedRoute) return toast.error("Please select a route first")
 
-    const existingStatus = todayStatusMap[selectedRoute.value]?.status
-    if (existingStatus === "in_progress" || analysis?.status === "in_progress") {
-      return toast.error("This route is already in progress! You can only end the route.")
-    }
-    if (existingStatus === "completed") {
-      return toast.error("This route was already completed today!")
-    }
-
     setStarting(true)
     try {
-      const res = await apiRequest(`${Labbaseurl}route-analysis/start/`, "POST", {
-        route_id: selectedRoute.value,
-      })
+      const { latitude, longitude } = await getCurrentLocation()
 
-      if (res?.message === "Route is already in progress") {
-        const data = res?.data || res
-        setAnalysis(data)
-        toast.info("Route is already in progress!")
-        await fetchRoutesAndStatus()
-        return
+      const payload = {
+        route_id: selectedRoute.value,
+        logistics_mapping: employeeId || "system",
       }
 
-      const data = res?.data?.data || res?.data || res
-      setAnalysis(data)
-      // Refresh statuses so dropdown reflects new in_progress state
-      await fetchRoutesAndStatus()
-      toast.success("Route started!")
+      if (latitude !== null) payload.latitudeStart = latitude
+      if (longitude !== null) payload.longitudeStart = longitude
+
+      const res = await apiRequest(`${Labbaseurl}route-analysis/start/`, "POST", payload)
+      if (!res.success) {
+        throw new Error(res.error || "Failed to start route")
+      }
+
+      const created = res?.data || res
+      setAnalysis(created)
+
+      // Refresh today status map
+      setTodayStatusMap((prev) => ({
+        ...prev,
+        [selectedRoute.value]: { status: "in_progress", analysis_id: created.id },
+      }))
+
+      toast.success("Route session started! Tap Photo & Visit for each lab.")
     } catch (err) {
       console.error("Error starting route:", err.message)
       toast.error(err.message || "Failed to start route")
@@ -636,16 +649,32 @@ const RouteAnalysis = () => {
 
   const handleEnd = async () => {
     if (!analysis) return
+
     setEnding(true)
     try {
-      const res = await apiRequest(`${Labbaseurl}route-analysis/end/`, "POST", {
-        analysis_id: analysis.id,
-      })
-      const data = res?.data || res
-      setAnalysis(data)
-      // Refresh today's statuses so the route is now marked completed/disabled
-      await fetchRoutesAndStatus()
-      toast.success("Route marked as completed!")
+      const { latitude, longitude } = await getCurrentLocation()
+
+      const payload = { analysis_id: analysis.id }
+      if (latitude !== null) payload.latitudeEnd = latitude
+      if (longitude !== null) payload.longitudeEnd = longitude
+
+      const res = await apiRequest(`${Labbaseurl}route-analysis/end/`, "POST", payload)
+      if (!res.success) {
+        throw new Error(res.error || "Failed to end route")
+      }
+
+      const updated = res?.data || res
+      setAnalysis(updated)
+
+      // Refresh today status map
+      if (selectedRoute) {
+        setTodayStatusMap((prev) => ({
+          ...prev,
+          [selectedRoute.value]: { status: "completed", analysis_id: updated.id },
+        }))
+      }
+
+      toast.success("Route completed & ended successfully!")
     } catch (err) {
       console.error("Error ending route:", err.message)
       toast.error(err.message || "Failed to end route")
@@ -662,13 +691,23 @@ const RouteAnalysis = () => {
     }
   }
 
-  // Upload image + mark visited — uses FormData with axios auto-detecting multipart
-  const handleFileSelected = async (e) => {
+  const handleCameraPhotoCaptured = (file) => {
+    if (file && uploadTargetCode) {
+      processPhotoUpload(file, uploadTargetCode)
+    }
+  }
+
+  const handleFileSelected = (e) => {
     const file = e.target.files[0]
     e.target.value = ""
     if (!file || !activeUploadCode) return
+    processPhotoUpload(file, activeUploadCode)
+  }
 
-    const codeToUpload = activeUploadCode
+  // Upload image + mark visited — uses FormData with axios auto-detecting multipart
+  const processPhotoUpload = async (file, codeToUpload) => {
+    if (!file || !codeToUpload || !analysis) return
+
     setUploadingCode(codeToUpload)
     try {
       const { latitude, longitude } = await getCurrentLocation()
@@ -702,6 +741,7 @@ const RouteAnalysis = () => {
     } finally {
       setUploadingCode(null)
       setActiveUploadCode(null)
+      setUploadTargetCode(null)
     }
   }
 
@@ -897,15 +937,32 @@ const RouteAnalysis = () => {
                           <FaCheckCircle /> Visited
                         </VisitedBadge>
                       ) : isActive ? (
-                        <PhotoIconButton
-                          uploading={uploadingCode === visit.referrerCode ? 1 : 0}
-                          disabled={uploadingCode === visit.referrerCode}
-                          onClick={() => triggerPhotoInput(visit.referrerCode)}
-                          title="Take photo or upload image to mark as visited"
-                        >
-                          <MdAddAPhoto size={17} />
-                          {uploadingCode === visit.referrerCode ? "Uploading…" : "Photo & Visit"}
-                        </PhotoIconButton>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          <PhotoIconButton
+                            uploading={uploadingCode === visit.referrerCode ? 1 : 0}
+                            disabled={uploadingCode === visit.referrerCode}
+                            onClick={() => {
+                              setUploadTargetCode(visit.referrerCode)
+                              setShowCameraModal(true)
+                            }}
+                            title="Take live photo using camera"
+                            style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}
+                          >
+                            <FaCamera size={14} />
+                            {uploadingCode === visit.referrerCode ? "Uploading…" : "Camera"}
+                          </PhotoIconButton>
+
+                          <PhotoIconButton
+                            uploading={uploadingCode === visit.referrerCode ? 1 : 0}
+                            disabled={uploadingCode === visit.referrerCode}
+                            onClick={() => triggerPhotoInput(visit.referrerCode)}
+                            title="Upload image from device"
+                            style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}
+                          >
+                            <FaUpload size={13} />
+                            Upload
+                          </PhotoIconButton>
+                        </div>
                       ) : null}
                     </VisitHeader>
 
@@ -970,6 +1027,13 @@ const RouteAnalysis = () => {
           onChange={handleFileSelected}
         />
       </Card>
+
+      <CameraModal
+        isOpen={showCameraModal}
+        onClose={() => setShowCameraModal(false)}
+        onCapture={handleCameraPhotoCaptured}
+        title="Capture Lab Visit Photo"
+      />
 
       <ToastContainer
         position="top-right"

@@ -271,11 +271,13 @@ const ModalOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 99999;
+  padding: 1rem;
 `
 const ReportDownloadButton = styled(DownloadButton)`
   margin-left: auto;
@@ -284,12 +286,19 @@ const ReportDownloadButton = styled(DownloadButton)`
 `;
 const ModalContent = styled.div`
   background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  margin: auto;
+  position: relative;
+  
+  @media (max-width: 768px) {
+    width: 95%;
+    max-height: 90vh;
+  }
 `
 
 const ModalHeader = styled.div`
@@ -467,6 +476,25 @@ const MyDocument = ({ reportData }) => {
             </View>
           </View>
         </View>
+        {reportData.segment_gross && (
+          <View style={styles.section}>
+            <Text style={styles.subtitle}>Segment Wise Breakdown</Text>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.header]}>
+                <Text style={styles.tableCell}>Segment</Text>
+                <Text style={styles.tableCell}>Patients Count</Text>
+                <Text style={styles.tableCellLast}>Revenue Amount</Text>
+              </View>
+              {['B2B', 'Walk-in', 'Home Collection', 'Hospital', 'Shanmuga 360'].map((seg) => (
+                <View style={styles.tableRow} key={seg}>
+                  <Text style={styles.tableCell}>{seg}</Text>
+                  <Text style={styles.tableCell}>{reportData.segment_totals?.[seg] || 0}</Text>
+                  <Text style={styles.tableCellLast}>₹ {reportData.segment_gross?.[seg] || 0}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
         {reportData.payment_totals && Object.keys(reportData.payment_totals).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.subtitle}>Payment Method Totals</Text>
@@ -493,11 +521,22 @@ const MyDocument = ({ reportData }) => {
 
 // Payment Details Modal Component
 const PaymentDetailsModal = ({ isOpen, onClose, reportData }) => {
+  const [activeTab, setActiveTab] = useState("segment")
+
   if (!isOpen || !reportData) return null
 
   const paymentMethods = reportData.payment_totals || {}
+  const segmentGross = reportData.segment_gross || {}
+  const segmentTotals = reportData.segment_totals || {}
 
-  // Get payment method icon
+  const segmentList = [
+    { name: "B2B", label: "B2B", color: "#8b5cf6" },
+    { name: "Walk-in", label: "Walk-in", color: "#10b981" },
+    { name: "Home Collection", label: "Home Collection", color: "#3b82f6" },
+    { name: "Hospital", label: "Hospital", color: "#f59e0b" },
+    { name: "Shanmuga 360", label: "Shanmuga 360", color: "#ec4899" },
+  ]
+
   const getPaymentIcon = (method) => {
     switch (method.toLowerCase()) {
       case "cash":
@@ -513,35 +552,98 @@ const PaymentDetailsModal = ({ isOpen, onClose, reportData }) => {
 
   return (
     <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
+      <ModalContent style={{ maxWidth: "620px" }} onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalTitle>
             <CreditCard size={20} />
-            Payment Details - {reportData.date}
+            Daily Breakdown - {reportData.date}
           </ModalTitle>
           <ModalCloseButton onClick={onClose}>
             <X size={20} />
           </ModalCloseButton>
         </ModalHeader>
-        <ModalBody>
-          <PaymentMethodList>
-            {Object.entries(paymentMethods).map(([method, amount]) => (
-              <PaymentMethodCard key={method}>
-                <PaymentMethodName>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    {getPaymentIcon(method)}
-                    {method}
-                  </div>
-                </PaymentMethodName>
-                <PaymentMethodAmount>₹ {amount}</PaymentMethodAmount>
-              </PaymentMethodCard>
-            ))}
-          </PaymentMethodList>
 
-          <PaymentSummary>
-            <PaymentSummaryLabel>Total Collection</PaymentSummaryLabel>
-            <PaymentSummaryAmount>₹ {reportData.total_collection}</PaymentSummaryAmount>
-          </PaymentSummary>
+        <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("segment")}
+            style={{
+              flex: 1,
+              padding: "12px",
+              border: "none",
+              borderBottom: activeTab === "segment" ? "3px solid #6366f1" : "none",
+              fontWeight: activeTab === "segment" ? "600" : "500",
+              color: activeTab === "segment" ? "#6366f1" : "#6b7280",
+              background: activeTab === "segment" ? "#ffffff" : "transparent",
+              cursor: "pointer",
+            }}
+          >
+            Segment Wise Breakdown
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("payment")}
+            style={{
+              flex: 1,
+              padding: "12px",
+              border: "none",
+              borderBottom: activeTab === "payment" ? "3px solid #6366f1" : "none",
+              fontWeight: activeTab === "payment" ? "600" : "500",
+              color: activeTab === "payment" ? "#6366f1" : "#6b7280",
+              background: activeTab === "payment" ? "#ffffff" : "transparent",
+              cursor: "pointer",
+            }}
+          >
+            Payment Methods
+          </button>
+        </div>
+
+        <ModalBody>
+          {activeTab === "segment" ? (
+            <div>
+              <PaymentMethodList>
+                {segmentList.map((seg) => {
+                  const gross = segmentGross[seg.name] || 0
+                  const count = segmentTotals[seg.name] || 0
+                  return (
+                    <PaymentMethodCard key={seg.name} style={{ borderLeft: `4px solid ${seg.color}` }}>
+                      <PaymentMethodName style={{ color: seg.color, fontWeight: "600" }}>
+                        {seg.label}
+                      </PaymentMethodName>
+                      <PaymentMethodAmount>₹ {gross}</PaymentMethodAmount>
+                      <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>{count} Patient(s)</div>
+                    </PaymentMethodCard>
+                  )
+                })}
+              </PaymentMethodList>
+
+              <PaymentSummary>
+                <PaymentSummaryLabel>Gross Revenue</PaymentSummaryLabel>
+                <PaymentSummaryAmount>₹ {reportData.gross_amount}</PaymentSummaryAmount>
+              </PaymentSummary>
+            </div>
+          ) : (
+            <div>
+              <PaymentMethodList>
+                {Object.entries(paymentMethods).map(([method, amount]) => (
+                  <PaymentMethodCard key={method}>
+                    <PaymentMethodName>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        {getPaymentIcon(method)}
+                        {method}
+                      </div>
+                    </PaymentMethodName>
+                    <PaymentMethodAmount>₹ {amount}</PaymentMethodAmount>
+                  </PaymentMethodCard>
+                ))}
+              </PaymentMethodList>
+
+              <PaymentSummary>
+                <PaymentSummaryLabel>Total Collection</PaymentSummaryLabel>
+                <PaymentSummaryAmount>₹ {reportData.total_collection}</PaymentSummaryAmount>
+              </PaymentSummary>
+            </div>
+          )}
         </ModalBody>
       </ModalContent>
     </ModalOverlay>
@@ -688,14 +790,28 @@ const fetchReportData = async (start, end) => {
                 {reportData.map((item, index) => (
                   <tr key={index}>
                     <td>{item.date}</td>
-                    <td>₹ {item.gross_amount}</td>
-                    <td>₹ {item.discount}</td>
-                    <td>₹ {item.due_amount}</td>
-                    <td>₹ {item.credit_payment_received}</td>
-                    <td>₹ {item.corporate_collection}</td>
-                    <td>₹ {item.refund_amount}</td>
+                    <td style={{ cursor: "pointer", color: "#6366f1", fontWeight: "600" }} onClick={() => openModal(item)} title="Click to view segment breakdown">
+                      ₹ {item.gross_amount}
+                    </td>
+                    <td style={{ cursor: "pointer" }} onClick={() => openModal(item)} title="Click to view details">
+                      ₹ {item.discount}
+                    </td>
+                    <td style={{ cursor: "pointer" }} onClick={() => openModal(item)} title="Click to view details">
+                      ₹ {item.due_amount}
+                    </td>
+                    <td style={{ cursor: "pointer" }} onClick={() => openModal(item)} title="Click to view details">
+                      ₹ {item.credit_payment_received}
+                    </td>
+                    <td style={{ cursor: "pointer" }} onClick={() => openModal(item)} title="Click to view details">
+                      ₹ {item.corporate_collection}
+                    </td>
+                    <td style={{ cursor: "pointer" }} onClick={() => openModal(item)} title="Click to view details">
+                      ₹ {item.refund_amount}
+                    </td>
                     {/* <td>₹ {item.net_amount}</td> */}
-                    <td>₹ {item.total_collection}</td>
+                    <td style={{ cursor: "pointer", color: "#10b981", fontWeight: "700" }} onClick={() => openModal(item)} title="Click to view segment breakdown">
+                      ₹ {item.total_collection}
+                    </td>
                     <td>
                       <ViewDetailsButton onClick={() => openModal(item)}>
                         <Eye size={14} />
