@@ -2230,6 +2230,30 @@ const Sidebar = () => {
                 >
                   Sales Visit Dashboard
                 </SubLink>
+
+                <SubLink
+                  to="/salesplan"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  salesplan
+                </SubLink>
+
+                <SubLink
+                  to="/Salesreport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Salesreport
+                </SubLink>
+
+
+                <SubLink
+                  to="/Salessummary"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Salessummary
+                </SubLink>
+
+
               </DropdownContent>
 
               <DropdownHeader

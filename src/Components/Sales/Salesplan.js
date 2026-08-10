@@ -798,7 +798,7 @@ const Salesplan = () => {
       </ToastWrapper>
       <ContentWrapper>
         <Header>
-          <Title>Sales Plan Management</Title>
+          <Title>Sales Management System</Title>
 
           <Controls>
             <Select
@@ -915,7 +915,7 @@ const Salesplan = () => {
                         <Td />
                       </Tr>
                       <Tr>
-                        <Td sticky $left="150px">Planned (Volume × Avg Revenue/Prescription)</Td>
+                        <Td sticky $left="150px">Revenue</Td>
                         {daysArray.map(day => (
                           <Td key={day}>
                             <RevenueDisplay>₹{getRevenue(exec.employeeId, day).toLocaleString()}</RevenueDisplay>
