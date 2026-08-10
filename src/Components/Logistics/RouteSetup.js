@@ -3,9 +3,88 @@ import Select from "react-select"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { FaRoute, FaTruck, FaClock, FaFlask, FaHospital, FaSave } from "react-icons/fa"
+import { FaRoute, FaTruck, FaClock, FaFlask, FaHospital, FaSave, FaEdit, FaTrash, FaEye, FaTimes } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 import { format } from "date-fns"
+
+const ActionButton = styled.button`
+  background: ${(props) =>
+    props.variant === "delete"
+      ? "linear-gradient(135deg, #ef4444, #dc2626)"
+      : props.variant === "edit"
+      ? "linear-gradient(135deg, #3b82f6, #2563eb)"
+      : "linear-gradient(135deg, #667eea, #764ba2)"};
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+`
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 20px;
+`
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 550px;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+`
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #312e81;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #6b7280;
+    cursor: pointer;
+    &:hover { color: #ef4444; }
+  }
+`
+
+const ModalBody = styled.div`
+  .detail-row {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #374151;
+  }
+`
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -484,6 +563,9 @@ const RouteSetup = () => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const [editingRouteId, setEditingRouteId] = useState(null)
+  const [viewingRoute, setViewingRoute] = useState(null)
+
   const resetForm = () => {
     setFormData({
       route_name: "",
@@ -493,6 +575,52 @@ const RouteSetup = () => {
       processing_lab: DEFAULT_PROCESSING_LAB,
       clinical_name: [],
     })
+    setEditingRouteId(null)
+  }
+
+  const handleEditRoute = (route) => {
+    setEditingRouteId(route.id)
+
+    let selectedCodes = []
+    if (Array.isArray(route.clinical_name)) {
+      selectedCodes = route.clinical_name
+    } else if (typeof route.clinical_name === 'string') {
+      try {
+        selectedCodes = JSON.parse(route.clinical_name)
+      } catch (e) {
+        selectedCodes = [route.clinical_name]
+      }
+    }
+
+    setFormData({
+      route_name: route.route_name || "",
+      logistics_mapping: route.logistics_mapping || "",
+      start_time: route.start_time || "",
+      end_time: route.end_time || "",
+      processing_lab: route.processing_lab || DEFAULT_PROCESSING_LAB,
+      clinical_name: selectedCodes,
+    })
+
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleCancelEdit = () => {
+    resetForm()
+  }
+
+  const handleDeleteRoute = async (routeId) => {
+    if (!window.confirm("Are you sure you want to delete this route setup?")) return
+    try {
+      await apiRequest(`${Labbaseurl}routesetup/${routeId}/`, "DELETE")
+      toast.success("Route deleted successfully!")
+      if (editingRouteId === routeId) {
+        resetForm()
+      }
+      fetchRoutes()
+    } catch (error) {
+      console.error("Error deleting route:", error.message)
+      toast.error(error.message || "Failed to delete route")
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -511,10 +639,16 @@ const RouteSetup = () => {
 
     setIsSubmitting(true)
     try {
-      // formData.clinical_name is sent as a real array of referrerCode
-      // strings (e.g. ["SD0243", "SD0245"]), not a JSON-stringified value.
-      await apiRequest(`${Labbaseurl}routesetup/`, "POST", formData)
-      toast.success("Route Setup saved successfully!")
+      if (editingRouteId) {
+        await apiRequest(`${Labbaseurl}routesetup/${editingRouteId}/`, "PUT", {
+          ...formData,
+          id: editingRouteId,
+        })
+        toast.success("Route Setup updated successfully!")
+      } else {
+        await apiRequest(`${Labbaseurl}routesetup/`, "POST", formData)
+        toast.success("Route Setup saved successfully!")
+      }
       resetForm()
       fetchRoutes()
     } catch (error) {
@@ -528,7 +662,7 @@ const RouteSetup = () => {
   return (
     <PageContainer>
       <FormCard>
-        <StyledTitle>Route Setup</StyledTitle>
+        <StyledTitle>{editingRouteId ? `Edit Route Setup (#${editingRouteId})` : "Route Setup"}</StyledTitle>
 
         <form onSubmit={handleSubmit}>
           <Row>
@@ -630,20 +764,31 @@ const RouteSetup = () => {
             </FormGroup>
           </Row>
 
-          <ButtonContainer>
+          <ButtonContainer style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <SubmitButton type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <SpinnerIcon />
-                  Saving...
+                  {editingRouteId ? "Updating..." : "Saving..."}
                 </>
               ) : (
                 <>
                   <FaSave />
-                  Save Route Setup
+                  {editingRouteId ? "Update Route Setup" : "Save Route Setup"}
                 </>
               )}
             </SubmitButton>
+
+            {editingRouteId && (
+              <ActionButton
+                type="button"
+                variant="delete"
+                onClick={handleCancelEdit}
+                style={{ padding: "12px 24px", fontSize: "14px", borderRadius: "10px" }}
+              >
+                <FaTimes /> Cancel Edit
+              </ActionButton>
+            )}
           </ButtonContainer>
 
           <InfoText>
@@ -684,6 +829,7 @@ const RouteSetup = () => {
                   <th>Sample Collector</th>
                   <th>Time Window</th>
                   <th>Clinical/Lab Names</th>
+                  <th style={{ textAlign: "center" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -691,7 +837,7 @@ const RouteSetup = () => {
                   const collectorName = collectorOptions.find(opt => opt.value === r.logistics_mapping)?.label || r.logistics_mapping;
                   return (
                     <tr key={r.id}>
-                      <td>{r.route_name}</td>
+                      <td><strong>{r.route_name}</strong></td>
                       <td>{collectorName}</td>
                       <td>{r.start_time} - {r.end_time}</td>
                       <td>
@@ -708,7 +854,7 @@ const RouteSetup = () => {
                             textDecoration: "underline"
                           }}
                         >
-                          {expandedRoutes[r.id] ? "Hide Labs" : "View Labs"}
+                          {expandedRoutes[r.id] ? "Hide Labs" : `${r.clinical_name_display?.length || 0} Labs`}
                         </button>
                         
                         {expandedRoutes[r.id] && (
@@ -726,6 +872,21 @@ const RouteSetup = () => {
                           </div>
                         )}
                       </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "8px", justifyContent: "center", alignItems: "center" }}>
+                          <ActionButton variant="view" onClick={() => setViewingRoute(r)} title="View route details">
+                            <FaEye /> View
+                          </ActionButton>
+
+                          <ActionButton variant="edit" onClick={() => handleEditRoute(r)} title="Edit route setup">
+                            <FaEdit /> Edit
+                          </ActionButton>
+
+                          <ActionButton variant="delete" onClick={() => handleDeleteRoute(r.id)} title="Delete route setup">
+                            <FaTrash /> Delete
+                          </ActionButton>
+                        </div>
+                      </td>
                     </tr>
                   )
                 })}
@@ -737,6 +898,46 @@ const RouteSetup = () => {
           <p style={{ textAlign: 'center', color: '#a0aec0' }}>No routes found for this date.</p>
         )}
       </ListCard>
+
+      {/* View Route Details Modal */}
+      {viewingRoute && (
+        <ModalOverlay onClick={() => setViewingRoute(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <h3>Route Details - {viewingRoute.route_name}</h3>
+              <button className="close-btn" onClick={() => setViewingRoute(null)}>
+                <FaTimes />
+              </button>
+            </ModalHeader>
+            <ModalBody>
+              <div className="detail-row"><strong>Route ID:</strong> #{viewingRoute.id}</div>
+              <div className="detail-row"><strong>Route Name:</strong> {viewingRoute.route_name}</div>
+              <div className="detail-row">
+                <strong>Sample Collector:</strong>{" "}
+                {collectorOptions.find((opt) => opt.value === viewingRoute.logistics_mapping)?.label || viewingRoute.logistics_mapping}
+              </div>
+              <div className="detail-row"><strong>Time Window:</strong> {viewingRoute.start_time} - {viewingRoute.end_time}</div>
+              <div className="detail-row"><strong>Processing Lab:</strong> {viewingRoute.processing_lab || "Main Lab"}</div>
+              <div className="detail-row"><strong>Assigned Labs Count:</strong> {viewingRoute.clinical_name_display?.length || 0}</div>
+              
+              <hr style={{ margin: "14px 0", border: "0", borderTop: "1px solid #e2e8f0" }} />
+              
+              <h4 style={{ margin: "0 0 10px 0", color: "#4c51bf", fontSize: "14px" }}>Assigned Clinical / Lab Names:</h4>
+              <div style={{ maxHeight: "220px", overflowY: "auto", background: "#f8fafc", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                {viewingRoute.clinical_name_display?.length > 0 ? (
+                  viewingRoute.clinical_name_display.map((c, i) => (
+                    <div key={i} style={{ padding: "6px 0", borderBottom: i < viewingRoute.clinical_name_display.length - 1 ? "1px solid #e2e8f0" : "none", fontSize: "13px" }}>
+                      {i + 1}. <strong>{c.clinicalname}</strong> {c.referrerCode && c.referrerCode !== c.clinicalname ? <span style={{ color: "#718096", fontSize: "12px" }}>({c.referrerCode})</span> : ""}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: "#a0aec0", fontSize: "13px" }}>No labs assigned</div>
+                )}
+              </div>
+            </ModalBody>
+          </ModalContent>
+        </ModalOverlay>
+      )}
 
       <ToastContainer
         position="top-right"

@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { 
   Calendar, Filter, Users, DollarSign, CreditCard, 
-  Briefcase 
+  Briefcase, Percent 
 } from 'lucide-react';
 
 // Styled Components
@@ -75,7 +75,7 @@ const FilterButton = styled.button`
 
 const GridContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 24px;
   margin-bottom: 24px;
 `;
@@ -408,6 +408,16 @@ const PaymentDashboard = () => {
             </CardIcon>
           </CardHeader>
           <CardValue>₹{paymentStats.amount.toLocaleString()}</CardValue>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Discount</CardTitle>
+            <CardIcon backgroundColor="#9b59b6">
+              <Percent size={20} />
+            </CardIcon>
+          </CardHeader>
+          <CardValue>₹{(dashboardData?.total_discount || 0).toLocaleString()}</CardValue>
         </Card>
         
         <Card>

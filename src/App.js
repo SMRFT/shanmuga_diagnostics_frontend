@@ -31,6 +31,7 @@ import PatientOverview from "./Components/Report/PatientOverview";
 import CommunicationLogs from "./Components/Report/CommunicationLogs";
 import PatientOverallReport from "./Components/Finance/PatientOverallReport";
 import FranchiseOverview from "./Components/Franchise/FranchiseOverview";
+import Overview360 from "./Components/360Report/360overview";
 import FranchiseBatchApproval from "./Components/Sample/FranchiseBatchApproval";
 import FranchiseTestSorting from "./Components/Franchise/FranchiseTestSorting";
 import HMSTestSorting from "./Components/HMSReport/HMSTestSorting";
@@ -42,6 +43,7 @@ import LedgerBalance from "./Components/Finance/LedgerBalance";
 import SalesVisitLog from "./Components/Sales/Salesvisitlog";
 import ShanmugaMIS from "./Components/Mis/ShanmugaMIS";
 import MIS from "./Components/Mis/MIS";
+import Shanmuga360MIS from "./Components/Mis/360MIS";
 import FranchiseMIS from "./Components/Mis/FranchiseMIS";
 import CorporateOverview from "./Components/Corparate/CorporatePatientOverview";
 import CorporateTestSorting from "./Components/Corparate/CorporateTestSorting";
@@ -262,6 +264,7 @@ function App() {
       "/FranchiseBatchApproval": "Franchise Batch Approval",
       "/CorporateBatchApproval": "Corporate Batch Approval",
       "/FranchiseOverview": "Franchise Overview",
+      "/360Overview": "Shanmuga 360 Overview",
       "/FranchiseTestSorting": "Franchise Test Sorting",
       "/FranchiseMBTestSorting": "Franchise MB Test Sorting",
       "/CorporateOverview": "Corporate Overview",
@@ -319,8 +322,23 @@ function App() {
     );
   }
 
-  // If no role is set, something went wrong
+  // Allow public access without login for /Estimate
+  const isEstimatePath =
+    location.pathname === "/Estimate" ||
+    location.pathname === "/LIS/Estimate" ||
+    location.pathname.endsWith("/Estimate") ||
+    window.location.pathname.endsWith("/Estimate") ||
+    window.location.pathname.toLowerCase().includes("estimate");
+
   if (!role) {
+    if (isEstimatePath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <Estimate />
+        </div>
+      );
+    }
     return (
       <div
         style={{
@@ -374,6 +392,7 @@ function App() {
             <Route path="/RegisterDashboard" element={<RegisterDashboard />} />
             <Route path="/PrintBill" element={<PrintBill />} />
             <Route path="/Estimate" element={<Estimate />} />
+            <Route path="/LIS/Estimate" element={<Estimate />} />
 
             {/* Barcode */}
             <Route path="/BarcodeGeneration" element={<BarcodeGeneration />} />
@@ -467,6 +486,7 @@ function App() {
               element={<CorporateBatchApproval />}
             />
             <Route path="/FranchiseOverview" element={<FranchiseOverview />} />
+            <Route path="/360Overview" element={<Overview360 />} />
             <Route
               path="/FranchiseTestSorting"
               element={<FranchiseTestSorting />}
@@ -494,6 +514,7 @@ function App() {
             <Route path="/MIS" element={<MIS />} />
             <Route path="/PatientTAT" element={<PatientDataTable />} />
             <Route path="/ShanmugaMIS" element={<ShanmugaMIS />} />
+            <Route path="/360MIS" element={<Shanmuga360MIS />} />
             <Route path="/FranchiseMIS" element={<FranchiseMIS />} />
 
             {/* Logistics */}

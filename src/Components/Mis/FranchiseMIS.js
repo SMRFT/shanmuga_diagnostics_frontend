@@ -455,6 +455,7 @@ const FranchiseMIS = () => {
   useEffect(() => {
     if (location.pathname === "/ShanmugaMIS") setActiveTab("hms");
     else if (location.pathname === "/MIS") setActiveTab("mis");
+    else if (location.pathname === "/360MIS") setActiveTab("shanmuga360");
     else if (location.pathname === "/FranchiseMIS") setActiveTab("franchise");
   }, [location.pathname]);
 
@@ -462,6 +463,7 @@ const FranchiseMIS = () => {
     setActiveTab(tab);
     if (tab === "hms") navigate("/ShanmugaMIS");
     else if (tab === "mis") navigate("/MIS");
+    else if (tab === "shanmuga360") navigate("/360MIS");
     else if (tab === "franchise") navigate("/FranchiseMIS");
   };
 
@@ -696,6 +698,12 @@ const FranchiseMIS = () => {
             onClick={() => handleTabChange("mis")}
           >
             Shanmuga Diagnostics
+          </NavigationTab>
+          <NavigationTab
+            active={activeTab === "shanmuga360"}
+            onClick={() => handleTabChange("shanmuga360")}
+          >
+            Shanmuga 360
           </NavigationTab>
           <NavigationTab
             active={activeTab === "franchise"}

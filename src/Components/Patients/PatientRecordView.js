@@ -315,7 +315,7 @@ const ModalOverlay = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 99999;
 `;
 
 const ModalContent = styled.div`
@@ -603,7 +603,8 @@ const PatientRecordView = () => {
     try {
       const response = await apiRequest(`${Labbaseurl}patient_full_record/${patient_id}/`, "GET");
       if (response && response.success) {
-        setFullRecord(response);
+        const record = response.data?.patient ? response.data : (response.patient ? response : response.data || null);
+        setFullRecord(record);
       } else {
         toast.error("Failed to fetch patient record");
         setIsModalOpen(false);
@@ -626,6 +627,47 @@ const PatientRecordView = () => {
     try {
       return typeof testDetailsStr === 'string' ? JSON.parse(testDetailsStr) : (testDetailsStr || []);
     } catch (e) { return []; }
+  };
+
+  const formatDiscountDisplay = (bill) => {
+    const discount = bill?.discount;
+    if (!discount || discount === "0" || discount === 0 || discount === "0.0" || discount === "0.00") {
+      return "₹0.00";
+    }
+    const strDisc = String(discount).trim();
+    const tot = parseFloat(bill.totalAmount || 0);
+
+    if (strDisc.endsWith("%")) {
+      const pct = parseFloat(strDisc);
+      if (!isNaN(pct) && tot > 0) {
+        const amt = (tot * pct) / 100;
+        return `${strDisc} (₹${amt.toFixed(2)})`;
+      }
+      return strDisc;
+    }
+
+    const val = parseFloat(strDisc);
+    if (!isNaN(val) && val > 0) {
+      if (tot > 0 && val <= tot) {
+        const pct = ((val / tot) * 100).toFixed(1);
+        return `₹${val.toFixed(2)} (${pct}%)`;
+      }
+      return `₹${val.toFixed(2)}`;
+    }
+
+    return strDisc;
+  };
+
+  const getNetBillAmount = (bill) => {
+    if (bill.netAmount) return parseFloat(bill.netAmount) || 0;
+    const tot = parseFloat(bill.totalAmount || 0);
+    const disc = bill.discount ? String(bill.discount).trim() : "0";
+    if (disc.endsWith("%")) {
+      const pct = parseFloat(disc);
+      return isNaN(pct) ? tot : tot - (tot * pct) / 100;
+    }
+    const val = parseFloat(disc);
+    return isNaN(val) ? tot : Math.max(0, tot - val);
   };
 
   const pageTotal = bills.reduce((acc, bill) => acc + (parseFloat(bill.totalAmount) || 0), 0);
@@ -652,6 +694,7 @@ const PatientRecordView = () => {
             <option value="Hospital">Hospital</option>
             <option value="Walk-in">Walk-in</option>
             <option value="Home Collection">Home Collection</option>
+            <option value="Shanmuga 360">Shanmuga 360</option>
           </select>
         </FormGroup>
         <FormGroup>
@@ -680,9 +723,9 @@ const PatientRecordView = () => {
       <TableContainer>
         <TableScrollWrapper>
           <StyledTable>
-            <thead><tr><th>Bill Date</th><th>Patient ID</th><th>Name</th><th>Sample Collector</th><th>Sales Mapping</th><th>Amount</th><th>Action</th></tr></thead>
+            <thead><tr><th>Bill Date</th><th>Patient ID</th><th>Name</th><th>Sample Collector</th><th>Sales Mapping</th><th>Gross Amount</th><th>Discount</th><th>Net Amount</th><th>Action</th></tr></thead>
             <tbody>
-              {loading ? <tr><td colSpan="7" style={{ textAlign: "center", padding: "30px" }}>Loading...</td></tr> : bills.length === 0 ? <tr><td colSpan="7" style={{ textAlign: "center", padding: "30px" }}>No records found.</td></tr> : (
+              {loading ? <tr><td colSpan="9" style={{ textAlign: "center", padding: "30px" }}>Loading...</td></tr> : bills.length === 0 ? <tr><td colSpan="9" style={{ textAlign: "center", padding: "30px" }}>No records found.</td></tr> : (
                 <>
                   {bills.map((bill, index) => (
                     <tr key={`${bill.bill_no}-${index}`}>
@@ -691,11 +734,13 @@ const PatientRecordView = () => {
                       <td>{bill.patient_details?.patientname || "-"}</td>
                       <td>{getCollectorName(bill.sample_collector)}</td>
                       <td>{bill.salesMapping || "-"}</td>
-                      <td style={{ color: "#10b981", fontWeight: "600" }}>{formatCurrency(bill.totalAmount)}</td>
+                      <td style={{ fontWeight: "600" }}>{formatCurrency(bill.totalAmount)}</td>
+                      <td style={{ color: "#e11d48", fontWeight: "600" }}>{formatDiscountDisplay(bill)}</td>
+                      <td style={{ color: "#10b981", fontWeight: "700" }}>{formatCurrency(getNetBillAmount(bill))}</td>
                       <td><ActionButton onClick={() => handleViewClick(bill.patient_id)}><FaEye /> View</ActionButton></td>
                     </tr>
                   ))}
-                  <TotalRow><td colSpan="5" style={{ textAlign: "right", paddingRight: "20px" }}>Page Total:</td><td colSpan="2" style={{ color: "#10b981" }}>{formatCurrency(pageTotal)}</td></TotalRow>
+                  <TotalRow><td colSpan="5" style={{ textAlign: "right", paddingRight: "20px" }}>Page Total:</td><td colSpan="4" style={{ color: "#10b981" }}>{formatCurrency(pageTotal)}</td></TotalRow>
                 </>
               )}
             </tbody>
@@ -734,6 +779,12 @@ const PatientRecordView = () => {
                         <label>Email</label>
                         <span>{fullRecord.patient.email || "N/A"}</span>
                       </InfoItem>
+                      {fullRecord.patient.patient_history && (
+                        <InfoItem style={{ gridColumn: "1 / -1" }}>
+                          <label>Medical / Patient History</label>
+                          <span style={{ color: "#4f46e5", fontWeight: "600" }}>{fullRecord.patient.patient_history}</span>
+                        </InfoItem>
+                      )}
                     </GridInfo>
                   </InfoCard>
 
@@ -766,8 +817,16 @@ const PatientRecordView = () => {
                             <span>{bill.refby || "Self"}</span>
                           </div>
                           <div className="bill-stat">
-                            <span>Total Amount</span>
-                            <span style={{ color: "#10b981", fontWeight: "700" }}>₹{bill.totalAmount}</span>
+                            <span>Gross Amount</span>
+                            <span style={{ fontWeight: "600" }}>₹{bill.totalAmount}</span>
+                          </div>
+                          <div className="bill-stat">
+                            <span>Discount</span>
+                            <span style={{ color: "#e11d48", fontWeight: "600" }}>{formatDiscountDisplay(bill)}</span>
+                          </div>
+                          <div className="bill-stat">
+                            <span>Net Amount</span>
+                            <span style={{ color: "#10b981", fontWeight: "700" }}>₹{getNetBillAmount(bill).toFixed(2)}</span>
                           </div>
                           <div className="bill-stat">
                             <span>Status</span>

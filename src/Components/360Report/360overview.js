@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
-import ReactDOM from "react-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import ReactDOM from "react-dom"; // NEW
 import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
 import { format } from "date-fns";
@@ -8,8 +8,9 @@ import JsBarcode from "jsbarcode";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
-import FranchiseTestSorting from "./FranchiseTestSorting";
-import FranchiseMBTestSorting from "./FranchiseMBTestSorting";
+import TestSorting from "./360testsorting";
+import MBTestSorting from "./360mbtestsorting";
+import PatientOverallReport from "../Finance/PatientOverallReport";
 import {
   Calendar,
   Search,
@@ -27,61 +28,40 @@ import {
   Eye,
 } from "lucide-react";
 import { IoIosFemale, IoIosMale, IoMdClose } from "react-icons/io";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-// Import images
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
 import NABLImage from "../Images/NABL.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 
+
 // Global styles
 const GlobalStyle = createGlobalStyle`
   :root {
-    --primary: #4361ee;
-    --primary-light: #4895ef;
-    --primary-dark: #3a0ca3;
-    --secondary: #3f37c9;
-    --success: #4cc9f0;
-    --danger: #f72585;
-    --warning: #f8961e;
-    --info: #90e0ef;
-    --light: #f8f9fa;
-    --dark: #212529;
-    --gray: #6c757d;
-    --gray-light: #e9ecef;
-    --border-radius: 8px;
-    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --transition: all 0.3s ease;
+    --primary: #4361ee; --primary-light: #4895ef; --primary-dark: #3a0ca3;
+    --secondary: #3f37c9; --success: #4cc9f0; --danger: #f72585;
+    --warning: #f8961e; --info: #90e0ef; --light: #f8f9fa; --dark: #212529;
+    --gray: #6c757d; --gray-light: #e9ecef;
+    --border-radius: 8px; --box-shadow: 0 4px 6px rgba(0,0,0,0.1); --transition: all 0.3s ease;
   }
-  
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: #f5f7fb;
-    color: var(--dark);
-    line-height: 1.5;
+    background-color: #f5f7fb; color: var(--dark); line-height: 1.5;
   }
 `;
 
-// Container for the main content
 const Container = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
-
   @media (max-width: 768px) {
     padding: 1rem;
   }
 `;
-
 const Card = styled.div`
   background-color: white;
   border-radius: var(--border-radius);
@@ -89,14 +69,12 @@ const Card = styled.div`
   overflow: hidden;
   margin-bottom: 2rem;
 `;
-
 const CardHeader = styled.div`
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 `;
-
 const Title = styled.h1`
   font-size: 1.5rem;
   color: var(--primary-dark);
@@ -105,29 +83,24 @@ const Title = styled.h1`
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--gray-light);
 `;
-
 const FiltersContainer = styled.div`
   padding: 0.4rem 1rem;
   border-bottom: 1px solid var(--gray-light);
 `;
-
 const FilterRow = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 0.35rem;
   margin-bottom: 0.25rem;
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
-
 const FilterGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
 `;
-
 const FilterLabel = styled.label`
   font-size: 0.7rem;
   color: var(--gray);
@@ -135,14 +108,12 @@ const FilterLabel = styled.label`
   text-transform: uppercase;
   letter-spacing: 0.03em;
 `;
-
 const FilterInput = styled.input`
   padding: 0.25rem 0.4rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   font-size: 0.775rem;
   transition: var(--transition);
-
   &:focus {
     outline: none;
     border-color: var(--primary);
@@ -182,7 +153,6 @@ const StepButton = styled.button`
     transform: scale(0.95);
   }
 `;
-
 const FilterSelect = styled.select`
   padding: 0.25rem 0.4rem;
   border: 1px solid var(--gray-light);
@@ -190,27 +160,24 @@ const FilterSelect = styled.select`
   font-size: 0.775rem;
   transition: var(--transition);
   background-color: white;
-
   &:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
   }
 `;
-
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.4rem;
 `;
-
 const Button = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   background-color: var(--primary);
   color: white;
   border: none;
@@ -219,26 +186,70 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
-
   &:hover {
     background-color: var(--primary-dark);
   }
-
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
   }
 `;
-
 const ClearButton = styled(Button)`
   background-color: var(--light);
   color: var(--dark);
-
   &:hover {
     background-color: var(--gray-light);
   }
 `;
-
+const TableContainer = styled.div`
+  overflow-x: auto;
+  transform: rotateX(180deg);
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: var(--gray-light);
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--gray);
+    border-radius: 20px;
+  }
+`;
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  transform: rotateX(180deg);
+`;
+const TableHead = styled.thead`
+  background-color: var(--gray-light);
+  th {
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--gray);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+`;
+const TableBody = styled.tbody`
+  tr {
+    border-bottom: 1px solid var(--gray-light);
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background-color: rgba(67, 97, 238, 0.05);
+    }
+  }
+  td {
+    padding: 0.5rem 0.6rem;
+    vertical-align: middle;
+    font-size: 0.825rem;
+  }
+`;
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -280,74 +291,12 @@ const StatValue = styled.p`
   color: ${(p) => p.color || "var(--dark)"};
   line-height: 1;
 `;
-
-const TableContainer = styled.div`
-  overflow-x: auto;
-  transform: rotateX(180deg);
-
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--gray-light);
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--gray);
-    border-radius: 20px;
-  }
-`;
-
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  transform: rotateX(180deg);
-`;
-
-const TableHead = styled.thead`
-  background-color: var(--gray-light);
-
-  th {
-    padding: 0.5rem 0.6rem;
-    text-align: left;
-    font-weight: 600;
-    color: var(--gray);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-`;
-
-const TableBody = styled.tbody`
-  tr {
-    border-bottom: 1px solid var(--gray-light);
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &:hover {
-      background-color: rgba(67, 97, 238, 0.05);
-    }
-  }
-
-  td {
-    padding: 0.5rem 0.6rem;
-    vertical-align: middle;
-    font-size: 0.825rem;
-  }
-`;
-
 const NoData = styled.div`
   text-align: center;
   padding: 2rem;
   color: var(--gray);
   font-style: italic;
 `;
-
 const Badge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -359,13 +308,11 @@ const Badge = styled.span`
   background-color: ${(props) => props.color || "var(--gray)"};
   color: white;
 `;
-
 const ActionContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
 `;
-
 const ActionButton = styled.button`
   display: flex;
   align-items: center;
@@ -380,26 +327,22 @@ const ActionButton = styled.button`
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: var(--transition);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
   &:hover {
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
     box-shadow: ${(props) =>
     props.disabled
-      ? "0 2px 4px rgba(0, 0, 0, 0.1)"
-      : "0 4px 8px rgba(0, 0, 0, 0.1)"};
+      ? "0 2px 4px rgba(0,0,0,0.1)"
+      : "0 4px 8px rgba(0,0,0,0.1)"};
   }
 `;
-
 const CreditAmount = styled.span`
   font-weight: 600;
   color: var(--primary);
   cursor: pointer;
-
   &:hover {
     text-decoration: underline;
   }
 `;
-
 const GenderIcon = styled.div`
   display: inline-flex;
   align-items: center;
@@ -409,12 +352,11 @@ const GenderIcon = styled.div`
   border-radius: 50%;
   margin-right: 0.5rem;
   background-color: ${(props) =>
-    props.gender === "Female"
-      ? "rgba(232, 62, 140, 0.1)"
-      : "rgba(0, 123, 255, 0.1)"};
+    props.gender === "Female" ? "rgba(232,62,140,0.1)" : "rgba(0,123,255,0.1)"};
   color: ${(props) => (props.gender === "Female" ? "#E83E8C" : "#007BFF")};
 `;
 
+// ── PrintDropdown: just a relative wrapper for the trigger button ─────────────
 const PrintDropdown = styled.div`
   position: relative;
   &::after {
@@ -453,7 +395,6 @@ const DropdownItem = styled.button`
   font-size: 0.875rem;
   cursor: pointer;
   transition: var(--transition);
-
   &:hover {
     background-color: var(--gray-light);
   }
@@ -464,7 +405,6 @@ const NavigationContainer = styled.div`
   width: 100%;
   border-bottom: 2px solid #f0f0f0;
 `;
-
 const NavigationTab = styled.button`
   padding: 12px 24px;
   border: none;
@@ -478,12 +418,10 @@ const NavigationTab = styled.button`
   margin-right: 4px;
   transition: all 0.3s ease;
   position: relative;
-
   &:hover {
     background: ${(props) => (props.active ? "#0056b3" : "#f8f9fa")};
     color: ${(props) => (props.active ? "white" : "#333")};
   }
-
   &::after {
     content: "";
     position: absolute;
@@ -494,7 +432,6 @@ const NavigationTab = styled.button`
     background: ${(props) => (props.active ? "#ccc" : "transparent")};
   }
 `;
-
 const DepartmentBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -508,7 +445,6 @@ const DepartmentBadge = styled.span`
   color: ${(props) => (props.isPending ? "#dc3545" : "white")};
   border: ${(props) => (props.isPending ? "2px solid #dc3545" : "none")};
   animation: ${(props) => (props.isPending ? "blink 1s infinite" : "none")};
-
   @keyframes blink {
     0%,
     100% {
@@ -519,21 +455,18 @@ const DepartmentBadge = styled.span`
     }
   }
 `;
-
 const DepartmentCell = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
   max-width: 320px;
 `;
-
 const DepartmentRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
 `;
-
 const DepartmentPill = styled.span`
   display: inline-flex;
   align-items: center;
@@ -553,7 +486,6 @@ const DepartmentPill = styled.span`
     50% { opacity: 0.5; }
   }
 `;
-
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -566,18 +498,16 @@ const ModalOverlay = styled.div`
   justify-content: center;
   z-index: 1000;
 `;
-
 const ModalContent = styled.div`
   background: white;
   border-radius: var(--border-radius);
   padding: 2rem;
-  max-width: 600px;
+  max-width: 900px;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   position: relative;
 `;
-
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -586,13 +516,11 @@ const ModalHeader = styled.div`
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--gray-light);
 `;
-
 const ModalTitle = styled.h2`
   font-size: 1.5rem;
   color: var(--primary-dark);
   margin: 0;
 `;
-
 const CloseButton = styled.button`
   background: none;
   border: none;
@@ -605,19 +533,16 @@ const CloseButton = styled.button`
   justify-content: center;
   border-radius: 50%;
   transition: var(--transition);
-
   &:hover {
     background-color: var(--gray-light);
     color: var(--dark);
   }
 `;
-
 const TestStatusList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 `;
-
 const TestStatusItem = styled.div`
   display: flex;
   justify-content: space-between;
@@ -626,27 +551,23 @@ const TestStatusItem = styled.div`
   border: 1px solid var(--gray-light);
   border-radius: var(--border-radius);
   background-color: ${(props) =>
-    props.highlight ? "rgba(67, 97, 238, 0.05)" : "white"};
+    props.highlight ? "rgba(67,97,238,0.05)" : "white"};
   transition: var(--transition);
-
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 `;
-
 const TestNameText = styled.span`
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--dark);
   flex: 1;
 `;
-
 const StatusBadgeContainer = styled.div`
   display: flex;
-  align-items: center;s
+  align-items: center;
   gap: 0.5rem;
 `;
-
 const TATIndicator = styled.div`
   display: flex;
   align-items: center;
@@ -690,19 +611,55 @@ const formatTimeRemaining = (seconds) => {
   return parts.join(":");
 };
 
-const FranchiseOverview = () => {
+const parsePatientDate = (dateStr, registrationDate) => {
+  if (registrationDate) {
+    const regD = new Date(registrationDate);
+    if (!isNaN(regD.getTime())) return regD;
+  }
+  if (!dateStr) return new Date(0);
+  if (typeof dateStr === "string") {
+    const str = dateStr.trim();
+    if (str.includes("-")) {
+      const parts = str.split(" ")[0].split("-");
+      if (parts.length === 3) {
+        let year, month, day;
+        if (parts[0].length === 4) {
+          year = parseInt(parts[0], 10);
+          month = parseInt(parts[1], 10) - 1;
+          day = parseInt(parts[2], 10);
+        } else if (parts[2].length === 4) {
+          year = parseInt(parts[2], 10);
+          month = parseInt(parts[1], 10) - 1;
+          day = parseInt(parts[0], 10);
+        }
+        if (year && month !== undefined && day) {
+          return new Date(year, month, day);
+        }
+      }
+    }
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? new Date(0) : d;
+};
+
+const PatientOverview = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
+  const [activeDropdownType, setActiveDropdownType] = useState(null);
+  // NEW: position state for the portal dropdown menu
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const [refByOptions, setRefByOptions] = useState([]);
+  const [clinicalNames, setClinicalNames] = useState([]);
   const [branch, setBranch] = useState("");
   const [barcode, setBarcode] = useState("");
+  const [B2B, setB2B] = useState("");
   const [refBy, setRefBy] = useState("");
   const [patientId, setPatientId] = useState("");
-  const [IPNumber, setIPNumber] = useState("");
+  const [orderId, setOrderId] = useState("");
   const [patientName, setPatientName] = useState("");
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -712,92 +669,133 @@ const FranchiseOverview = () => {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
-  const [opIpFilter, setopIpFilter] = useState("");
+  const [segmentFilter, setSegmentFilter] = useState("");
+
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState("hms");
+  const [activeTab, setActiveTab] = useState("shanmuga360");
   const [isTestStatusModalOpen, setIsTestStatusModalOpen] = useState(false);
   const [selectedPatientForStatus, setSelectedPatientForStatus] =
     useState(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
-  // Set active tab based on current route
   useEffect(() => {
-    if (location.pathname === "/HMSPatientOverview") {
-      setActiveTab("hms");
-    } else if (location.pathname === "/PatientOverview") {
+    if (location.pathname === "/HMSPatientOverview") setActiveTab("hms");
+    else if (location.pathname === "/PatientOverview")
       setActiveTab("reference");
-    } else if (location.pathname === "/360Overview") {
+    else if (location.pathname === "/360Overview")
       setActiveTab("shanmuga360");
-    } else if (location.pathname === "/FranchiseOverview") {
+    else if (location.pathname === "/FranchiseOverview")
       setActiveTab("franchise");
-    } else if (location.pathname === "/CorporateOverview") {
+    else if (location.pathname === "/CorporateOverview")
       setActiveTab("corporate");
-    }
   }, [location.pathname]);
 
-  // Handle tab navigation
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === "hms") {
-      navigate("/HMSPatientOverview");
-    } else if (tab === "reference") {
-      navigate("/PatientOverview");
-    } else if (tab === "shanmuga360") {
-      navigate("/360Overview");
-    } else if (tab === "franchise") {
-      navigate("/FranchiseOverview");
-    } else if (tab === "corporate") {
-      navigate("/CorporateOverview");
-    }
+    if (tab === "hms") navigate("/HMSPatientOverview");
+    else if (tab === "reference") navigate("/PatientOverview");
+    else if (tab === "shanmuga360") navigate("/360Overview");
+    else if (tab === "franchise") navigate("/FranchiseOverview");
+    else if (tab === "corporate") navigate("/CorporateOverview");
   };
 
-  // Fetch patients when component mounts
   useEffect(() => {
-    const fetchCombinedPatientData = async () => {
-      setLoading(true);
-      const formattedStartDate = startDate.toISOString().split("T")[0];
-      const formattedEndDate = endDate.toISOString().split("T")[0];
-
-      const url = `${Labbaseurl}franchise_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
-
-      const result = await apiRequest(url, "GET");
-
-      if (result.success) {
-        const patientData = result.data || [];
-        const sortedData = [...patientData].sort((a, b) => {
-          const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
-          const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
-          if (dateA !== dateB) return dateB - dateA;
-          const idA = String(a.patient_id || a.barcode || a.id || "");
-          const idB = String(b.patient_id || b.barcode || b.id || "");
-          return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
-        });
-        setPatients(sortedData);
-        setFilteredPatients(sortedData);
-
-        const statusMap = {};
-        patientData.forEach((patient) => {
-          // Use barcode as the unique key since same patient can have multiple barcodes with different statuses
-          statusMap[patient.barcode] = {
-            status: patient.status,
-            barcode: patient.barcode,
-          };
-        });
-        setStatuses(statusMap);
-      } else {
-        console.error("Error fetching combined patient data:", result.error);
-        setError("Failed to load patient data");
+    const fetchRefby = async () => {
+      const result = await apiRequest(`${Labbaseurl}refby/`, "GET");
+      if (result.success) setRefByOptions(result.data);
+      else {
+        setError("Failed to load referral options");
+        toast.error(result.error || "Failed to load referral options");
       }
-
-      setLoading(false);
     };
+    fetchRefby();
+  }, []);
 
-    if (startDate && endDate) {
-      fetchCombinedPatientData();
+  useEffect(() => {
+    const fetchClinicalNames = async () => {
+      const result = await apiRequest(`${Labbaseurl}clinical_name/`, "GET");
+      if (result.success) setClinicalNames(result.data);
+      else {
+        setError("Failed to load clinical names");
+        toast.error(result.error || "Failed to load clinical names");
+      }
+    };
+    fetchClinicalNames();
+  }, []);
+
+  const fetchCombinedPatientData = useCallback(async () => {
+    setLoading(true);
+    const formattedStartDate = startDate.toISOString().split("T")[0];
+    const formattedEndDate = endDate.toISOString().split("T")[0];
+    const url = `${Labbaseurl}shanmuga360_overall_report/?from_date=${formattedStartDate}&to_date=${formattedEndDate}`;
+    const result = await apiRequest(url, "GET");
+    if (result.success) {
+      const patientData = result.data || [];
+      const sortedData = [...patientData].sort((a, b) => {
+        const dateA = parsePatientDate(a.date, a.registration_date).getTime();
+        const dateB = parsePatientDate(b.date, b.registration_date).getTime();
+        if (dateA !== dateB) return dateB - dateA;
+        const idA = String(a.patient_id || a.barcode || a.id || "");
+        const idB = String(b.patient_id || b.barcode || b.id || "");
+        return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
+      });
+      setPatients(sortedData);
+      setFilteredPatients(sortedData);
+      const statusMap = {};
+      patientData.forEach((patient) => {
+        statusMap[patient.patient_id] = {
+          status: patient.status,
+          barcode: patient.barcode,
+        };
+      });
+      setStatuses(statusMap);
+    } else {
+      console.error("Error fetching combined patient data:", result.error);
+      setError("Failed to load patient data");
     }
-  }, [startDate, endDate]);
+    setLoading(false);
+  }, [startDate, endDate, Labbaseurl]);
+
+  useEffect(() => {
+    if (startDate && endDate) fetchCombinedPatientData();
+  }, [startDate, endDate, fetchCombinedPatientData]);
+
+  const isPrintAndMailEnabled = (status) =>
+    ["Approved", "Dispatched"].includes(status);
+  const isSortingEnabled = (status) =>
+    [
+      "Approved",
+      "Partially Approved",
+      "Partially Dispatched",
+      "Dispatched",
+    ].includes(status);
+  const isMBTestSortingEnabled = (patient) => {
+    if (!patient.department_statuses) return false;
+    const microbiologyStatus = patient.department_statuses["Microbiology"];
+    return (
+      microbiologyStatus === "Approved" || microbiologyStatus === "Dispatched"
+    );
+  };
+  const isOnlyMicrobiology = (patient) => {
+    if (!patient.department) return false;
+    const departments = patient.department
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+    return departments.length === 1 && departments[0] === "Microbiology";
+  };
+  const isOnlyMolecularBiology = (patient) => {
+    if (!patient.department) return false;
+    const departments = patient.department
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+    return (
+      departments.length > 0 &&
+      departments.every((d) => d === "Molecular Biology")
+    );
+  };
 
   const TestStatusModal = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -871,9 +869,12 @@ const FranchiseOverview = () => {
                         >
                           Collected:{" "}
                           {format(
-                            new Date(test.sample_collected_time),
-                            "dd MMM yy, HH:mm:ss",
+                            parsePatientDate(test.sample_collected_time),
+                            "dd MMM yy",
                           )}
+                          {typeof test.sample_collected_time === "string" && test.sample_collected_time.includes(" ")
+                            ? `, ${test.sample_collected_time.split(" ").slice(1).join(" ")}`
+                            : ""}
                         </div>
                       )}
                       {test.approve_time && (
@@ -886,9 +887,12 @@ const FranchiseOverview = () => {
                         >
                           Approved:{" "}
                           {format(
-                            new Date(test.approve_time),
-                            "dd MMM yy, HH:mm:ss",
+                            parsePatientDate(test.approve_time),
+                            "dd MMM yy",
                           )}
+                          {typeof test.approve_time === "string" && test.approve_time.includes(" ")
+                            ? `, ${test.approve_time.split(" ").slice(1).join(" ")}`
+                            : ""}
                         </div>
                       )}
                     </div>
@@ -923,56 +927,14 @@ const FranchiseOverview = () => {
     );
   };
 
-  // Determine icon state based on patient status
-  const isPrintAndMailEnabled = (status) =>
-    status === "Approved" || status === "Dispatched";
-  const isSortingEnabled = (status) =>
-    status === "Approved" ||
-    status === "Partially Approved" ||
-    status === "Partially Dispatched" ||
-    status === "Dispatched";
-
-  // Add this helper function after the `isSortingEnabled` function (around line 665):
-  const isMBTestSortingEnabled = (patient) => {
-    // Check if patient has Microbiology department and its status is Approved
-    if (!patient.department_statuses) return false;
-
-    const microbiologyStatus = patient.department_statuses["Microbiology"];
-    return (
-      microbiologyStatus === "Approved" || microbiologyStatus === "Dispatched"
-    );
-  };
-  // Returns true if the patient has ONLY Microbiology as their department
-  const isOnlyMicrobiology = (patient) => {
-    if (!patient.department) return false;
-    const departments = patient.department
-      .split(",")
-      .map((d) => d.trim())
-      .filter(Boolean);
-    return departments.length === 1 && departments[0] === "Microbiology";
-  };
-  const isOnlyMolecularBiology = (patient) => {
-    if (!patient.department) return false;
-    const departments = patient.department
-      .split(",")
-      .map((d) => d.trim())
-      .filter(Boolean);
-    return (
-      departments.length > 0 &&
-      departments.every((d) => d === "Molecular Biology")
-    );
-  };
-
   useEffect(() => {
     const startOfDay = new Date(startDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(endDate);
     endOfDay.setHours(23, 59, 59, 999);
     const filtered = patients.filter((patient) => {
-      const patientDate = new Date(patient.date);
-      // Use barcode to lookup status since it's the unique identifier
-      const patientStatus = statuses[patient.barcode]?.status || "";
-      // Department filter logic
+      const patientDate = parsePatientDate(patient.date, patient.registration_date);
+      const patientStatus = statuses[patient.patient_id]?.status || "";
       const matchesDepartment =
         !departmentFilter ||
         (patient.department &&
@@ -982,22 +944,25 @@ const FranchiseOverview = () => {
       return (
         patientDate >= startOfDay &&
         patientDate <= endOfDay &&
-        (!patientId || patient.patient_id.includes(patientId)) &&
-        (!IPNumber || patient.ipnumber?.includes(IPNumber)) &&
+        (!branch || patient.branch === branch || patient.b2b === branch) &&
+        (!B2B || patient.b2b === B2B) &&
+        (!refBy || patient.refby === refBy) &&
+        (!patientId || patient.patient_id?.toLowerCase().includes(patientId.toLowerCase())) &&
+        (!orderId || (patient.order_id || "")?.toLowerCase().includes(orderId.toLowerCase())) &&
         (!barcode ||
           patient.barcode?.toLowerCase().includes(barcode.toLowerCase())) &&
         (!patientName ||
-          patient.patient_name
+          (patient.patient_name || patient.patientname)
             ?.toLowerCase()
             .includes(patientName.toLowerCase())) &&
         (!statusFilter || patientStatus === statusFilter) &&
-        (!opIpFilter || patient.opiptype === opIpFilter) &&
-        matchesDepartment // Add this line
+        (!segmentFilter || patient.segment === segmentFilter) &&
+        matchesDepartment
       );
     });
     const sortedFiltered = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.date || a.created_at || a.created_date || 0).getTime();
-      const dateB = new Date(b.date || b.created_at || b.created_date || 0).getTime();
+      const dateA = parsePatientDate(a.date, a.registration_date).getTime();
+      const dateB = parsePatientDate(b.date, b.registration_date).getTime();
       if (dateA !== dateB) return dateB - dateA;
       const idA = String(a.patient_id || a.barcode || a.id || "");
       const idB = String(b.patient_id || b.barcode || b.id || "");
@@ -1008,28 +973,32 @@ const FranchiseOverview = () => {
     startDate,
     endDate,
     patients,
+    branch,
+    B2B,
     refBy,
     patientId,
+    orderId,
     barcode,
-    IPNumber,
     patientName,
     statusFilter,
+    segmentFilter,
     departmentFilter,
-    opIpFilter,
     statuses,
   ]);
-  // Update the clearFilters function to reset the status filter
+
   const clearFilters = () => {
     setStartDate(new Date());
     setEndDate(new Date());
+    setBranch("");
     setBarcode("");
+    setB2B("");
     setRefBy("");
     setPatientId("");
-    setIPNumber("");
+    setOrderId("");
     setPatientName("");
     setStatusFilter("");
+    setSegmentFilter("");
     setDepartmentFilter("");
-    setopIpFilter("");
     setFilteredPatients(patients);
   };
   const handleBarcodeStep = (delta) => {
@@ -1045,116 +1014,99 @@ const FranchiseOverview = () => {
       return delta > 0 ? prev + "1" : prev;
     });
   };
+  const handleWhatsAppShare = async (patient, withLetterpad = true) => {
+    if (!patient || !patient.phone) {
+      toast.error("Patient phone number is missing");
+      return;
+    }
+    const phoneNumber = patient.phone.startsWith("+91")
+      ? patient.phone.replace("+", "")
+      : `91${patient.phone}`;
+    try {
+      const pdfBlob = await handlePrint(patient, withLetterpad, false);
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF");
+        return;
+      }
+      const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+      const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+      const formData = new FormData();
+      formData.append("file", pdfFile);
+      const uploadResponse = await axios.post(
+        `${Labbaseurl}upload-pdf/`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      const fileUrl = uploadResponse.data.file_url;
+      if (!fileUrl) {
+        toast.error("File upload failed");
+        return;
+      }
+      const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+        patient_name: patient.patient_name || "Valued Patient",
+        phone: phoneNumber,
+        collection_time: patient.collection_time || "N/A",
+        collected_date: patient.collected_date || "N/A",
+        file_url: fileUrl,
+        pdf_name: pdfName,
+        patient_id: patient.patient_id,
+      });
+      if (res.data.success)
+        toast.success("WhatsApp PDF message sent successfully!");
+      else {
+        toast.error("Failed to send WhatsApp template message.");
+        console.error("Backend error:", res.data.error);
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp message:", error);
+      toast.error("Error sending WhatsApp message.");
+    }
+  };
 
-  // const handleWhatsAppShare = async (patient) => {
-  //   if (!patient || !patient.phone) {
-  //     toast.error("Patient phone number is missing");
-  //     return;
-  //   }
-
-  //   const phoneNumber = patient.phone.startsWith("+91")
-  //     ? patient.phone.replace("+", "")
-  //     : `91${patient.phone}`;
-
-  //   try {
-  //     const pdfBlob = await handlePrint(patient, true);
-  //     if (!pdfBlob) {
-  //       toast.error("Failed to generate the PDF");
-  //       return;
-  //     }
-
-  //     const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
-  //     const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
-
-  //     // Upload PDF to server
-  //     const formData = new FormData();
-  //     formData.append("file", pdfFile);
-
-  //     const uploadResponse = await axios.post(`${Labbaseurl}upload-pdf/`, formData, {
-  //       headers: { "Content-Type": "multipart/form-data" },
-  //     });
-
-  //     const fileUrl = uploadResponse.data.file_url;
-  //     if (!fileUrl) {
-  //       toast.error("File upload failed");
-  //       return;
-  //     }
-
-  //     // Call Django proxy instead of Botify directly
-  //     const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
-  //       patient_name: patient.patient_name || "Valued Patient",
-  //       phone: phoneNumber,
-  //       collection_time: patient.collection_time || "N/A",
-  //       collected_date: patient.collected_date || "N/A",
-  //       file_url: fileUrl,
-  //       pdf_name: pdfName,
-  //     });
-
-  //     if (res.data.success) {
-  //       toast.success("WhatsApp PDF message sent successfully!");
-  //     } else {
-  //       toast.error("Failed to send WhatsApp template message.");
-  //       console.error("Backend error:", res.data.error);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error sending WhatsApp message:", error);
-  //     toast.error("Error sending WhatsApp message.");
-  //   }
-  // };
-
-  //  const handleSendEmail = async (patient) => {
-  //   try {
-  //     const pdfBlob = await handlePrint(patient, true); // Generate PDF with letterpad
-  //     if (!pdfBlob) {
-  //       toast.error("Failed to generate the PDF.");
-  //       return;
-  //     }
-
-  //     if (!patient.email) {
-  //       toast.warning("Patient email is missing.");
-  //       return;
-  //     }
-
-  //     const formData = new FormData();
-  //     formData.append("subject", `Test Details for ${patient.patient_name}`);
-  //     formData.append(
-  //       "message",
-  //       `Dear ${
-  //         patient.patient_name || "Recipient"
-  //       },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
-  //         patient.patient_name || "the patient"
-  //       }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
-  //     );
-  //     formData.append("recipients", patient.email);
-  //     formData.append(
-  //       "attachments",
-  //       new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
-  //         type: "application/pdf",
-  //       })
-  //     );
-
-  //     const emailResponse = await apiRequest(
-  //       `${Labbaseurl}send-email/`,
-  //       "POST",
-  //       formData,
-  //       { "Content-Type": "multipart/form-data" }
-  //     );
-
-  //     if (emailResponse.success) {
-  //       toast.success("Email sent successfully!");
-  //     } else {
-  //       toast.error(`Failed to send email: ${emailResponse.error}`);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error sending email:", error);
-  //     toast.error("Failed to send email.");
-  //   }
-  // };
+  const handleSendEmail = async (patient, withLetterpad = true) => {
+    try {
+      const pdfBlob = await handlePrint(patient, withLetterpad, false);
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF.");
+        return;
+      }
+      if (!patient.email) {
+        toast.warning("Patient email is missing.");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("subject", `Test Details for ${patient.patient_name}`);
+      formData.append(
+        "message",
+        `Dear ${patient.patient_name || "Recipient"},\n\nWe hope this message finds you well. Please find attached the lab test results for ${patient.patient_name || "the patient"}. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`,
+      );
+      formData.append("recipients", patient.email);
+      formData.append("patient_id", patient.patient_id);
+      formData.append("patient_name", patient.patient_name);
+      formData.append(
+        "attachments",
+        new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
+          type: "application/pdf",
+        }),
+      );
+      const emailResponse = await apiRequest(
+        `${Labbaseurl}send-email/`,
+        "POST",
+        formData,
+        { "Content-Type": "multipart/form-data" },
+      );
+      if (emailResponse.success) toast.success("Email sent successfully!");
+      else toast.error(`Failed to send email: ${emailResponse.error}`);
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast.error("Failed to send email.");
+    }
+  };
 
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
       const response = await apiRequest(
-        `${Labbaseurl}franchise_patient_test_details/?barcode=${patient.barcode}`,
+        `${Labbaseurl}get_patient_test_details/?barcode=${patient.barcode}`,
         "GET",
       );
       if (!response.success) {
@@ -1330,7 +1282,7 @@ const FranchiseOverview = () => {
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Branch", value: patientDetails.branch || "N/A" },
-        { label: "Source", value: patientDetails.B2B || "N/A" },
+        { label: "Order ID", value: patientDetails.order_id || selectedPatient?.order_id || patientDetails.bill_no || "N/A" },
       ];
       const rightDetails = [
         {
@@ -1452,7 +1404,7 @@ const FranchiseOverview = () => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 15,
+                rightValueX + doc.getTextWidth(right.value) - 10,
                 barcodeY,
                 25,
                 10,
@@ -2179,7 +2131,7 @@ const FranchiseOverview = () => {
 
       // ── Page numbering ────────────────────────────────────────────────────
       const finalPageCount = pageCount;
-      const barcodeX = rightValueX + doc.getTextWidth(patientRefNoNumber) - 15;
+      const barcodeX = rightValueX + doc.getTextWidth(patientRefNoNumber) - 10;
       const pageNumberX = barcodeX + 12.5; // Centered under the barcode
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
@@ -2210,13 +2162,10 @@ const FranchiseOverview = () => {
     setSelectedPatient(patient);
     setModalIsOpen(true);
   };
-
-  // Close modal
   const closeModal = () => {
     setModalIsOpen(false);
     setSelectedPatient(null);
   };
-
   const openTestModal = (patient) => {
     setSelectedPatient(patient);
     setIsTestModalOpen(true);
@@ -2226,61 +2175,60 @@ const FranchiseOverview = () => {
     setIsMBTestModalOpen(true);
   };
 
-  const showDropdown = (barcode, e) => {
-    // Calculate where to place the portal menu based on the trigger button position
+  // NEW: showDropdown captures the button's screen position for the portal menu
+  const showDropdown = (id, type, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setDropdownPos({
-      top: rect.bottom + 4, // 4px gap below the button
-      left: rect.right - 190, // align right edge of menu with button right edge
+      top: rect.bottom + 4, // 4px below the button
+      left: rect.right - 200, // right-align to button
     });
-    setActiveDropdownPatientId(barcode);
+    setActiveDropdownPatientId(id);
+    setActiveDropdownType(type);
   };
 
   const hideDropdown = () => {
     setActiveDropdownPatientId(null);
+    setActiveDropdownType(null);
   };
 
   const getBadgeColor = (status) => {
     switch (status) {
       case "Registered":
-        return "#6c757d"; // Gray
+        return "#6c757d";
       case "Collected":
-        return "#0d6efd"; // Bright Blue
+        return "#0d6efd";
       case "Partially Collected":
-        return "#6610f2"; // Indigo/Purple
+        return "#6610f2";
       case "Received":
-        return "#17a2b8"; // Cyan/Turquoise (distinctly different)
+        return "#17a2b8";
       case "Partially Received":
-        return "#20c997"; // Teal/Mint Green
+        return "#20c997";
       case "Tested":
-        return "#d63384"; // Pink/Magenta
+        return "#d63384";
       case "Partially Tested":
-        return "#fd7e14"; // Orange
+        return "#fd7e14";
       case "Approved":
-        return "#28a745"; // Success Green
+        return "#28a745";
       case "Partially Approved":
-        return "#ffc107"; // Yellow/Amber
+        return "#ffc107";
       case "Dispatched":
-        return "#155724"; // Dark Forest Green
+        return "#155724";
       case "Partially Dispatched":
         return "#617c68";
       default:
-        return "#dc3545"; // Red for unknown/error
+        return "#dc3545";
     }
   };
 
   const getDepartmentStatus = (patient) => {
     if (!patient.department) return [];
-
     const departments = patient.department.split(",").map((d) => d.trim());
     const departmentStatuses = patient.department_statuses || {};
-
     return departments.map((dept) => {
       const backendStatus = departmentStatuses[dept] || "Pending";
       let status = backendStatus;
       let color = "#dc3545";
       let isPending = true;
-
       switch (backendStatus) {
         case "Dispatched":
           color = "#155724";
@@ -2312,30 +2260,37 @@ const FranchiseOverview = () => {
           isPending = true;
           status = "Pending";
       }
-
       return { department: dept, status, color, isPending };
     });
   };
 
+  // Identify which patient is currently active in the portal dropdown
+  const activePatient = filteredPatients.find(
+    (p) =>
+      p.barcode === activeDropdownPatientId ||
+      p.patient_id === activeDropdownPatientId,
+  );
+
+  const currentPatients = filteredPatients;
   const totalSamplesCount = filteredPatients.length;
   const approvedCount = filteredPatients.filter(
-    (p) => (statuses[p.barcode]?.status || p.status) === "Approved"
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Approved"
   ).length;
   const partiallyApprovedCount = filteredPatients.filter(
-    (p) => (statuses[p.barcode]?.status || p.status) === "Partially Approved"
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Partially Approved"
   ).length;
   const dispatchedCount = filteredPatients.filter(
-    (p) => (statuses[p.barcode]?.status || p.status) === "Dispatched"
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Dispatched"
   ).length;
   const partiallyDispatchedCount = filteredPatients.filter(
-    (p) => (statuses[p.barcode]?.status || p.status) === "Partially Dispatched"
+    (p) => (statuses[p.patient_id]?.status || p.status) === "Partially Dispatched"
   ).length;
 
   return (
     <Container>
       <GlobalStyle />
       <Card>
-        <CardHeader style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+        <CardHeader>
           <NavigationContainer>
             <NavigationTab
               active={activeTab === "hms"}
@@ -2368,7 +2323,7 @@ const FranchiseOverview = () => {
               Corporate Health Checkup
             </NavigationTab>
           </NavigationContainer>
-          <Title>Franchise Patient Status</Title>
+          <Title>Shanmuga 360 Patient Status</Title>
         </CardHeader>
 
         <FiltersContainer>
@@ -2381,7 +2336,6 @@ const FranchiseOverview = () => {
                 onChange={(e) => setStartDate(new Date(e.target.value))}
               />
             </FilterGroup>
-
             <FilterGroup>
               <FilterLabel>End Date</FilterLabel>
               <FilterInput
@@ -2394,9 +2348,18 @@ const FranchiseOverview = () => {
               <FilterLabel>Patient ID</FilterLabel>
               <FilterInput
                 type="text"
-                placeholder="Enter Patient ID"
+                placeholder="Enter patient ID"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
+              />
+            </FilterGroup>
+            <FilterGroup>
+              <FilterLabel>Order ID</FilterLabel>
+              <FilterInput
+                type="text"
+                placeholder="Enter Order ID"
+                value={orderId}
+                onChange={(e) => setOrderId(e.target.value)}
               />
             </FilterGroup>
             <FilterGroup>
@@ -2425,7 +2388,6 @@ const FranchiseOverview = () => {
                 </StepButton>
               </BarcodeSearchWrapper>
             </FilterGroup>
-
             <FilterGroup>
               <FilterLabel>Patient Name</FilterLabel>
               <FilterInput
@@ -2480,7 +2442,6 @@ const FranchiseOverview = () => {
               </FilterSelect>
             </FilterGroup>
           </FilterRow>
-
           <ButtonContainer>
             <ClearButton onClick={clearFilters}>
               <X size={16} />
@@ -2511,6 +2472,20 @@ const FranchiseOverview = () => {
             </StatLabel>
             <StatValue color="#2ec4b6">{approvedCount}</StatValue>
           </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#0284c7" />
+              Partially Dispatched
+            </StatLabel>
+            <StatValue color="#0284c7">{partiallyDispatchedCount}</StatValue>
+          </StatCard>
+          <StatCard>
+            <StatLabel>
+              <StatDot color="#065f46" />
+              Dispatched
+            </StatLabel>
+            <StatValue color="#065f46">{dispatchedCount}</StatValue>
+          </StatCard>
         </StatsGrid>
 
         <TableContainer>
@@ -2521,9 +2496,12 @@ const FranchiseOverview = () => {
                 <th>Patient ID</th>
                 <th>Barcode</th>
                 <th>Patient Name</th>
+                <th>Branch</th>
                 <th>Referral</th>
+                <th>Order ID</th>
                 <th>Department</th>
                 <th>Status</th>
+                <th>Credit</th>
                 <th>Actions</th>
               </tr>
             </TableHead>
@@ -2531,7 +2509,7 @@ const FranchiseOverview = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={11}
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Loading patient data...
@@ -2540,7 +2518,7 @@ const FranchiseOverview = () => {
               ) : error ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={11}
                     style={{
                       textAlign: "center",
                       padding: "2rem",
@@ -2550,13 +2528,11 @@ const FranchiseOverview = () => {
                     {error}
                   </td>
                 </tr>
-              ) : filteredPatients.length > 0 ? (
-                filteredPatients.map((patient) => {
-                  // Use barcode to look up status since it's unique per test registration
-                  const patientStatus = statuses[patient.barcode] || {};
-                  const status = patientStatus.status || "Loading...";
-                  const barcode =
-                    patientStatus.barcode || patient.barcode || "N/A";
+              ) : currentPatients.length > 0 ? (
+                currentPatients.map((patient) => {
+                  const patientStatus = statuses[patient.patient_id] || {};
+                  const status = patientStatus.status || patient.status || "Registered";
+                  const barcodeVal = patient.barcode || patientStatus.barcode || "N/A";
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
                   const onlyMB = isOnlyMicrobiology(patient);
@@ -2565,19 +2541,21 @@ const FranchiseOverview = () => {
                     !onlyMB && !onlyMolBio && isPrintAndMailEnabled(status);
                   const isSortingEnabledFlag =
                     !onlyMB && isSortingEnabled(status);
+                  const isWhatsAppEmailEnabled =
+                    !onlyMB && !onlyMolBio && isPrintAndMailEnabled(status);
                   const badgeColor = getBadgeColor(status);
 
                   return (
-                    <tr key={`${patient.patient_id}-${patient.barcode}`}>
+                    <tr key={patient.patient_id}>
                       <td>
                         {patient.date
-                          ? format(new Date(patient.date), "yyyy-MM-dd")
+                          ? format(parsePatientDate(patient.date, patient.registration_date), "yyyy-MM-dd")
                           : "N/A"}
                       </td>
                       <td>{patient.patient_id}</td>
-                      <td>{barcode}</td>
+                      <td>{barcodeVal}</td>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", fontWeight: 500 }}>
                           <GenderIcon gender={patient.gender}>
                             {patient.gender === "Female" ? (
                               <IoIosFemale size={14} />
@@ -2585,10 +2563,17 @@ const FranchiseOverview = () => {
                               <IoIosMale size={14} />
                             )}
                           </GenderIcon>
-                          {patient.patient_name}
+                          {patient.patient_name || patient.patientname}
                         </div>
+                        {patient.phone && (
+                          <div style={{ fontSize: "0.7rem", color: "var(--gray)", marginLeft: "2rem", marginTop: "0.15rem" }}>
+                            Mob: {patient.phone}
+                          </div>
+                        )}
                       </td>
+                      <td>{patient.branch || "N/A"}</td>
                       <td>{patient.refby || "N/A"}</td>
+                      <td>{patient.order_id || "N/A"}</td>
                       <td>
                         <DepartmentCell>
                           {getDepartmentStatus(patient).map((deptInfo, idx) => (
@@ -2622,6 +2607,11 @@ const FranchiseOverview = () => {
                         </StatusBadgeContainer>
                       </td>
                       <td>
+                        <CreditAmount onClick={() => openModal(patient)}>
+                          {patient.credit_amount || "0"}
+                        </CreditAmount>
+                      </td>
+                      <td>
                         <ActionContainer>
                           <ActionButton
                             onClick={() => openMBTestModal(patient)}
@@ -2642,10 +2632,11 @@ const FranchiseOverview = () => {
                             <List size={16} />
                           </ActionButton>
 
+                          {/* PRINT dropdown trigger — no menu inside, portal renders it outside the table */}
                           <PrintDropdown
                             onMouseEnter={(e) =>
                               isPrintMailEnabled &&
-                              showDropdown(patient.barcode, e)
+                              showDropdown(patient.barcode, "print", e)
                             }
                             onMouseLeave={hideDropdown}
                           >
@@ -2656,25 +2647,56 @@ const FranchiseOverview = () => {
                               <Printer size={16} />
                             </ActionButton>
                           </PrintDropdown>
-                          {/* 
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleWhatsAppShare(patient)
+
+                          {/* WHATSAPP dropdown trigger */}
+                          <PrintDropdown
+                            onMouseEnter={(e) =>
+                              isWhatsAppEmailEnabled && // ← changed
+                              showDropdown(patient.patient_id, "whatsapp", e)
                             }
-                            title="Share via WhatsApp"
+                            onMouseLeave={hideDropdown}
                           >
-                            <MessageCircle size={16} />
-                          </ActionButton>
-                          <ActionButton
-                            disabled={!isPrintMailEnabled}
-                            onClick={() =>
-                              isPrintMailEnabled && handleSendEmail(patient)
+                            <ActionButton
+                              disabled={!isWhatsAppEmailEnabled} // ← changed
+                              title="Share via WhatsApp"
+                            >
+                              <MessageCircle size={16} />
+                            </ActionButton>
+                          </PrintDropdown>
+
+                          {/* EMAIL dropdown trigger */}
+                          <PrintDropdown
+                            onMouseEnter={(e) =>
+                              isWhatsAppEmailEnabled && // ← changed
+                              patient.email &&
+                              showDropdown(patient.patient_id, "email", e)
                             }
-                            title="Send Email"
+                            onMouseLeave={hideDropdown}
                           >
-                            <Mail size={16} />
-                          </ActionButton> */}
+                            <ActionButton
+                              disabled={
+                                !isWhatsAppEmailEnabled || !patient.email
+                              } // ← changed
+                              title={
+                                patient.email
+                                  ? "Send Email"
+                                  : "Email not available"
+                              }
+                              style={{
+                                opacity: !patient.email ? 0.5 : 1,
+                                cursor: !patient.email
+                                  ? "not-allowed"
+                                  : "pointer",
+                              }}
+                            >
+                              <Mail
+                                size={16}
+                                color={
+                                  patient.email ? "currentColor" : "var(--gray)"
+                                }
+                              />
+                            </ActionButton>
+                          </PrintDropdown>
                         </ActionContainer>
                       </td>
                     </tr>
@@ -2682,7 +2704,7 @@ const FranchiseOverview = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={11}>
                     <NoData>No patients found</NoData>
                   </td>
                 </tr>
@@ -2691,83 +2713,122 @@ const FranchiseOverview = () => {
           </Table>
         </TableContainer>
 
-        {activeDropdownPatientId &&
-          ReactDOM.createPortal(
-            (() => {
-              // Find which patient triggered the dropdown so we can pass it to handlePrint
-              const activePatient = filteredPatients.find(
-                (p) => p.barcode === activeDropdownPatientId,
-              );
-              if (!activePatient) return null;
-
-              return (
-                <PortalDropdownMenu
-                  style={{ top: dropdownPos.top, left: dropdownPos.left }}
-                  // Keep the menu open while hovering over it
-                  onMouseEnter={() =>
-                    setActiveDropdownPatientId(activeDropdownPatientId)
-                  }
-                  onMouseLeave={hideDropdown}
-                >
-                  <DropdownItem
-                    onClick={() => {
-                      handlePrint(activePatient, true);
-                      hideDropdown();
-                    }}
-                  >
-                    Print with Letterpad
-                  </DropdownItem>
-                  <DropdownItem
-                    onClick={() => {
-                      handlePrint(activePatient, false);
-                      hideDropdown();
-                    }}
-                  >
-                    Print without Letterpad
-                  </DropdownItem>
-                </PortalDropdownMenu>
-              );
-            })(),
-            document.body,
-          )}
       </Card>
 
-      {/* Test Sorting Modal */}
+      {/* ── PORTAL DROPDOWN: renders at <body> level, escapes overflow:auto clipping ── */}
+      {activeDropdownPatientId &&
+        activePatient &&
+        ReactDOM.createPortal(
+          <PortalDropdownMenu
+            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+            onMouseEnter={() => {
+              // Keep the menu open while hovering over it
+              setActiveDropdownPatientId(activeDropdownPatientId);
+              setActiveDropdownType(activeDropdownType);
+            }}
+            onMouseLeave={hideDropdown}
+          >
+            {activeDropdownType === "print" && (
+              <>
+                <DropdownItem
+                  onClick={() => {
+                    handlePrint(activePatient, true);
+                    hideDropdown();
+                  }}
+                >
+                  Print with Letterpad
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => {
+                    handlePrint(activePatient, false);
+                    hideDropdown();
+                  }}
+                >
+                  Print without Letterpad
+                </DropdownItem>
+              </>
+            )}
+            {activeDropdownType === "whatsapp" && (
+              <>
+                <DropdownItem
+                  onClick={() => {
+                    handleWhatsAppShare(activePatient, true);
+                    hideDropdown();
+                  }}
+                >
+                  Send with Letterpad
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => {
+                    handleWhatsAppShare(activePatient, false);
+                    hideDropdown();
+                  }}
+                >
+                  Send without Letterpad
+                </DropdownItem>
+              </>
+            )}
+            {activeDropdownType === "email" && (
+              <>
+                <DropdownItem
+                  onClick={() => {
+                    handleSendEmail(activePatient, true);
+                    hideDropdown();
+                  }}
+                >
+                  Send with Letterpad
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => {
+                    handleSendEmail(activePatient, false);
+                    hideDropdown();
+                  }}
+                >
+                  Send without Letterpad
+                </DropdownItem>
+              </>
+            )}
+          </PortalDropdownMenu>,
+          document.body,
+        )}
+
       {isTestModalOpen && (
-        <FranchiseTestSorting
+        <TestSorting
           patient={selectedPatient}
-          onClose={() => setIsTestModalOpen(false)}
+          onClose={() => {
+            setIsTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
         />
       )}
-      {/* M/B Test Sorting Modal */}
       {isMBTestModalOpen && (
-        <FranchiseMBTestSorting
+        <MBTestSorting
           patient={selectedPatient}
-          onClose={() => setIsMBTestModalOpen(false)}
+          onClose={() => {
+            setIsMBTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
         />
       )}
-      {/* Test Status Modal */}
       <TestStatusModal />
-      {/* Credit Amount Modal */}
+
       <Modal
         isOpen={modalIsOpen}
         onRequestClose={closeModal}
         style={{
-          overlay: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-          },
+          overlay: { backgroundColor: "rgba(0,0,0,0.5)" },
           content: {
             width: "800px",
             height: "fit-content",
             position: "absolute",
-            left: "400px", // Adjusted for sidebar width
+            left: "400px",
             right: "auto",
             top: "50%",
             transform: "translateY(-50%)",
             padding: "20px",
             borderRadius: "10px",
             backgroundColor: "#fff",
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Adding shadow
+            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -2777,7 +2838,6 @@ const FranchiseOverview = () => {
           },
         }}
       >
-        {/* Close Icon at Top-Right */}
         <div
           style={{
             position: "absolute",
@@ -2791,7 +2851,6 @@ const FranchiseOverview = () => {
         >
           <IoMdClose />
         </div>
-        {/* Pass patient_id and date as props */}
         {selectedPatient && (
           <div
             style={{
@@ -2800,11 +2859,28 @@ const FranchiseOverview = () => {
               flexDirection: "column",
               alignItems: "center",
             }}
-          ></div>
+          >
+            <PatientOverallReport
+              patient_id={selectedPatient.patient_id}
+              date={selectedPatient.date}
+            />
+          </div>
         )}
       </Modal>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </Container>
   );
 };
 
-export default FranchiseOverview;
+export default PatientOverview;

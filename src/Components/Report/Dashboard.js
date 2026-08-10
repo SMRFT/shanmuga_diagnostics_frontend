@@ -10,6 +10,7 @@ import {
   Wallet,
   Calendar,
   RefreshCw,
+  Percent,
 } from "lucide-react";
 import axios from "axios";
 import styled from "styled-components";
@@ -280,6 +281,7 @@ const Dashboard = () => {
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [creditAmount, setCreditAmount] = useState(0);
+  const [totalDiscount, setTotalDiscount] = useState(0);
   const [registeredPatients, setRegisteredPatients] = useState(0);
   const [testCount, setTestCount] = useState(0);
   const [homeVisits, setHomeVisits] = useState(0);
@@ -364,8 +366,22 @@ const Dashboard = () => {
       0
     );
 
+    const disc = filteredPatients.reduce((sum, patient) => {
+      const d = patient.discount;
+      if (!d) return sum;
+      const strD = String(d).trim();
+      const tot = Number.parseFloat(patient.totalAmount) || 0;
+      if (strD.endsWith("%")) {
+        const pct = Number.parseFloat(strD);
+        return sum + (isNaN(pct) ? 0 : (tot * pct) / 100);
+      }
+      const val = Number.parseFloat(strD);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+
     setTotalAmount(total);
     setCreditAmount(credit);
+    setTotalDiscount(disc);
     setRegisteredPatients(filteredPatients.length);
 
     const tests = filteredPatients.reduce((count, patient) => {
@@ -569,6 +585,15 @@ const Dashboard = () => {
       }),
       icon: <Wallet size={24} />,
       color: "#10b981",
+    },
+    {
+      title: `${periodLabel} Total Discount`,
+      value: totalDiscount.toLocaleString("en-IN", {
+        style: "currency",
+        currency: "INR",
+      }),
+      icon: <Percent size={24} />,
+      color: "#3b82f6",
     },
     {
       title: `${periodLabel} Credit Amount`,

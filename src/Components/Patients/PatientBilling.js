@@ -42,28 +42,28 @@ const Container = styled.div`
 const Header = styled.div`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 24px 30px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  padding: 14px 22px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.2);
 
   h1 {
     margin: 0;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
   p {
-    margin: 8px 0 0 0;
+    margin: 3px 0 0 0;
     opacity: 0.9;
-    font-size: 14px;
+    font-size: 12px;
   }
 
   @media (max-width: 480px) {
-    padding: 16px;
-    h1 { font-size: 18px; }
+    padding: 12px 14px;
+    h1 { font-size: 16px; }
   }
 `
 
@@ -71,25 +71,25 @@ const BackButton = styled.button`
   background: #6366f1;
   color: white;
   border: none;
-  padding: 10px 18px;
+  padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   transition: all 0.2s;
   &:hover { background: #4f46e5; transform: translateY(-1px); }
 `
 
 const Button = styled.button`
-  padding: ${(p) => (p.size === "sm" ? "7px 11px" : "11px 22px")};
+  padding: ${(p) => (p.size === "sm" ? "6px 10px" : "9px 18px")};
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -111,30 +111,39 @@ const Button = styled.button`
 ═══════════════════════════════════════════════════ */
 const PatientListContainer = styled.div`
   background: white;
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 10px;
+  padding: 16px 20px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+
+  @media (max-width: 600px) {
+    padding: 12px;
+  }
 `
 
 const SearchAndFiltersContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 10px;
   align-items: flex-end;
-  margin-bottom: 20px;
-  padding: 16px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
   background: #f8fafc;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
+
+  @media (max-width: 640px) {
+    gap: 8px;
+    padding: 10px;
+  }
 `
 
 const ActionButtons = styled.div`
   display: flex;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 16px;
   justify-content: flex-end;
-  margin-bottom: 24px;
-  padding: 20px;
+  margin-bottom: 16px;
+  padding: 14px;
   background: #f8fafc;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
@@ -142,37 +151,45 @@ const ActionButtons = styled.div`
 
 const SearchContainer = styled.div`
   position: relative;
-  flex: 2;
-  min-width: 220px;
+  flex: 1.5;
+  min-width: 170px;
 
   input {
     width: 100%;
-    padding: 10px 14px 10px 42px;
+    height: 38px;
+    padding: 6px 12px 6px 36px;
     border: 2px solid #e2e8f0;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 13px;
     background: white;
     box-sizing: border-box;
     transition: border-color 0.2s;
     &:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
   }
-  svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+  svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 14px; }
 `
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
-  min-width: 140px;
+  min-width: 120px;
 
-  label { font-size: 13px; font-weight: 500; color: #374151; }
+  label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #475569;
+  }
 
   select, input[type="date"], input[type="text"], input[type="number"] {
-    padding: 7px 10px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 14px;
+    height: 38px;
+    padding: 6px 10px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13px;
     background: white;
     box-sizing: border-box;
     transition: border-color 0.2s;
@@ -566,8 +583,13 @@ const PatientBilling = () => {
   useEffect(() => {
     fetchTestDetails()
     fetchB2BPackages()
-    if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate()
   }, [])
+
+  useEffect(() => {
+    if (dateFilters.fromDate && dateFilters.toDate) {
+      fetchPatientsByDate()
+    }
+  }, [dateFilters.fromDate, dateFilters.toDate])
 
   const fetchB2BPackages = async () => {
     try {
@@ -1152,6 +1174,7 @@ const PatientBilling = () => {
                     <option value="Hospital">Hospital</option>
                     <option value="Walk-in">Walk-in</option>
                     <option value="Home Collection">Home Collection</option>
+                    <option value="Shanmuga 360">Shanmuga 360</option>
                   </select>
                 </FormGroup>
 
@@ -1166,16 +1189,12 @@ const PatientBilling = () => {
                   <input type="date" value={dateFilters.toDate}
                     onChange={(e) => setDateFilters(p => ({ ...p, toDate: e.target.value }))} />
                 </FormGroup>
-
-                <Button variant="primary" onClick={fetchPatientsByDate} style={{ height: "42px", padding: "0 20px" }}>
-                  <FaSearch /> Search
-                </Button>
               </SearchAndFiltersContainer>
 
               {/* ── CHANGE 2: Pagination controls top ── */}
               <PaginationRow>
                 <span className="info">
-                  {loading ? "Loading…" : (
+                  {!loading && (
                     <>Showing <strong>{pagedPatients.length}</strong> of <strong>{filteredPatients.length}</strong> patients</>
                   )}
                 </span>

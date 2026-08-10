@@ -348,22 +348,24 @@ const MDashboard = () => {
     const prepareSegmentData = () => {
         if (!data) return [];
         return [
-            { name: 'Home Coll.', value: data.samples.segments.home_collection, fill: '#6e8efb' },
-            { name: 'B2B', value: data.samples.segments.b2b, fill: '#a777e3' },
-            { name: 'Hospital', value: data.samples.segments.hospital, fill: '#fdcb6e' },
-            { name: 'Franchise', value: data.samples.segments.franchise, fill: '#e56f8f' },
-            { name: 'Corp Health', value: data.samples.segments.company_health_check, fill: '#00b894' },
+            { name: 'Home Coll.', value: data.samples.segments.home_collection || 0, fill: '#6e8efb' },
+            { name: 'B2B', value: data.samples.segments.b2b || 0, fill: '#a777e3' },
+            { name: 'Shanmuga 360', value: data.samples.segments.shanmuga_360 || 0, fill: '#8b5cf6' },
+            { name: 'Hospital', value: data.samples.segments.hospital || 0, fill: '#fdcb6e' },
+            { name: 'Franchise', value: data.samples.segments.franchise || 0, fill: '#e56f8f' },
+            { name: 'Corp Health', value: data.samples.segments.company_health_check || 0, fill: '#00b894' },
         ];
     };
 
     const prepareRevenueData = () => {
         if (!data) return [];
         return [
-            { name: 'Home Coll.', value: data.financials.gross.home_collection },
-            { name: 'B2B', value: data.financials.gross.b2b },
-            { name: 'Hospital', value: data.financials.gross.hospital },
-            { name: 'Franchise', value: data.financials.gross.franchise_share },
-            { name: 'Corp Health', value: data.financials.gross.company_health_check },
+            { name: 'Home Coll.', value: data.financials.gross.home_collection || 0 },
+            { name: 'B2B', value: data.financials.gross.b2b || 0 },
+            { name: 'Shanmuga 360', value: data.financials.gross.shanmuga_360 || 0 },
+            { name: 'Hospital', value: data.financials.gross.hospital || 0 },
+            { name: 'Franchise', value: data.financials.gross.franchise_share || 0 },
+            { name: 'Corp Health', value: data.financials.gross.company_health_check || 0 },
         ].filter(item => item.value > 0);
     };
 
@@ -437,6 +439,16 @@ const MDashboard = () => {
                             </CardHeader>
                             <CardValue>{data.tests.total}</CardValue>
                             <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.9 }}>Processed Tests Count</div>
+                        </Card>
+                        <Card bg="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" color="white" delay="0.35s">
+                            <CardHeader>
+                                <CardLabel>Total Discount</CardLabel>
+                                <IconBox iconBg="rgba(255,255,255,0.2)" iconColor="white">
+                                    <i className="bi bi-percent"></i>
+                                </IconBox>
+                            </CardHeader>
+                            <CardValue style={{ fontSize: '2rem' }}>{formatCurrency(data.financials?.total_discount || data.financials?.discount || 0)}</CardValue>
+                            <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.9 }}>Total Discounts Offered</div>
                         </Card>
                         <Card bg="linear-gradient(135deg, #6e8efb 0%, #4facfe 100%)" color="white" delay="0.4s">
                             <CardHeader>
@@ -527,6 +539,15 @@ const MDashboard = () => {
                             </CardHeader>
                             <CardValue style={{ color: '#333' }}>{data.samples.segments.b2b}</CardValue>
                         </Card>
+                        <Card delay="0.55s" style={{ borderLeft: '5px solid #8b5cf6' }}>
+                            <CardHeader>
+                                <CardLabel style={{ color: '#555' }}>Shanmuga 360</CardLabel>
+                                <IconBox iconBg="rgba(139, 92, 246, 0.1)" iconColor="#8b5cf6">
+                                    <i className="bi bi-person-workspace"></i>
+                                </IconBox>
+                            </CardHeader>
+                            <CardValue style={{ color: '#333' }}>{data.samples.segments.shanmuga_360 || 0}</CardValue>
+                        </Card>
                         <Card delay="0.6s" style={{ borderLeft: '5px solid #e56f8f' }}>
                             <CardHeader>
                                 <CardLabel style={{ color: '#555' }}>Franchise</CardLabel>
@@ -582,6 +603,13 @@ const MDashboard = () => {
                             </TableRow>
                             <TableRow>
                                 <TableLabel>
+                                    <MainLabel>Shanmuga 360</MainLabel>
+                                    <SubLabel>360 Diagnostic Revenue</SubLabel>
+                                </TableLabel>
+                                <TableValue>{formatCurrency(data.financials.gross.shanmuga_360 || 0)}</TableValue>
+                            </TableRow>
+                            <TableRow>
+                                <TableLabel>
                                     <MainLabel>Corporate Checkup</MainLabel>
                                     <SubLabel>Bulk Screening</SubLabel>
                                 </TableLabel>
@@ -609,6 +637,15 @@ const MDashboard = () => {
                                 <CardValue style={{ fontSize: '1.8rem', color: '#c0392b' }}>{formatCurrency(data.financials.credit_amount)}</CardValue>
                                 <div style={{ fontSize: '0.8rem', color: '#e74c3c', marginTop: '0.5rem' }}>
                                     <i className="bi bi-exclamation-circle-fill" style={{ marginRight: '5px' }}></i>
+                                </div>
+                            </Card>
+
+                            <Card bg="#fffbe6" style={{ marginBottom: '1.5rem', border: '1px solid #ffe58f', height: 'auto', padding: '1.5rem', boxShadow: 'none' }}>
+                                <CardLabel style={{ color: '#d48806', marginBottom: '0.5rem' }}>Total Discount Offered</CardLabel>
+                                <CardValue style={{ fontSize: '1.8rem', color: '#d48806' }}>{formatCurrency(data.financials?.total_discount || data.financials?.discount || 0)}</CardValue>
+                                <div style={{ fontSize: '0.8rem', color: '#d48806', marginTop: '0.5rem' }}>
+                                    <i className="bi bi-percent" style={{ marginRight: '5px' }}></i>
+                                    Discounts applied on billing
                                 </div>
                             </Card>
 
