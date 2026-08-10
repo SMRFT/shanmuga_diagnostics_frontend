@@ -314,6 +314,79 @@ const LoadingText = styled.p`
   font-weight: 500;
 `;
 
+const ParameterListContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: -4px;
+  margin-bottom: 8px;
+  border: 1px solid #eaeaea;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  background: #fdfdfd;
+  padding: 8px 16px 8px 36px;
+`;
+
+const ParameterItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed #eee;
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ParameterInfo = styled.div`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex: 1;
+`;
+
+const ParameterName = styled.span`
+  font-size: 13px;
+  color: #444;
+  font-weight: ${(props) => (props.selected ? "600" : "400")};
+`;
+
+const ParameterCodeBadge = styled.span`
+  font-size: 11px;
+  background: #f0f0f0;
+  color: #666;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+`;
+
+const ExpandButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  color: #777;
+  margin-left: 8px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(219, 155, 185, 0.15);
+    color: #db9bb9;
+  }
+`;
+
+const ParamCountBadge = styled.span`
+  font-size: 11px;
+  background: #f0f0f0;
+  color: #666;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  font-weight: 500;
+`;
+
 const FranchiseTestSorting = ({ patient, onClose }) => {
   const [tests, setTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -324,6 +397,7 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [dispatchedTests, setDispatchedTests] = useState(new Set());
+  const [expandedTests, setExpandedTests] = useState(new Set());
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -351,10 +425,16 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
             const testsWithDispatch = sortedTests.map((test) => ({
               test_id: test.test_id,
               test_name: test.test_name,
+              test_code: test.test_code,
               NABL: test.NABL || false,
               dispatched: test.dispatch || false,
               created_date: test.created_date, // Changed from test.dispatched to test.dispatch
               department: test.department || "",
+              parameters: (test.parameters || []).map((p) => ({
+                test_code: p.test_code,
+                name: p.name || p.test_name || p.test_code || "Parameter",
+                value: p.value || "",
+              })),
             }));
 
             setTests(testsWithDispatch);
@@ -391,6 +471,19 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
     fetchTests();
   }, [patient.patient_id, patient.barcode, patient.date]);
 
+  const handleToggleExpand = (test_id, e) => {
+    if (e) e.stopPropagation();
+    setExpandedTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(test_id)) {
+        next.delete(test_id);
+      } else {
+        next.add(test_id);
+      }
+      return next;
+    });
+  };
+
   const handleSelectTest = (test) => {
     const isMolBio = test.department === "Molecular Biology";
 
@@ -401,16 +494,73 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
         return prev.filter((t) => t.test_id !== test.test_id);
       }
 
+      const allParamCodes = test.parameters
+        ? test.parameters.map((p) => p.test_code)
+        : [];
+
+      const testToSelect = {
+        ...test,
+        selectedParamCodes: allParamCodes,
+      };
+
       if (isMolBio) {
         // Select this Mol Bio test only — clear everything else
-        return [test];
+        return [testToSelect];
       }
 
       // Non-Mol Bio selected — clear any Mol Bio and add this one
       const withoutMolBio = prev.filter(
         (t) => t.department !== "Molecular Biology",
       );
-      return [...withoutMolBio, test];
+      return [...withoutMolBio, testToSelect];
+    });
+  };
+
+  const handleSelectParameter = (test, param, e) => {
+    if (e) e.stopPropagation();
+
+    setSelectedTests((prev) => {
+      const existing = prev.find((t) => t.test_id === test.test_id);
+      const allParamCodes = test.parameters
+        ? test.parameters.map((p) => p.test_code)
+        : [];
+
+      let newSelectedParamCodes = [];
+
+      if (!existing) {
+        newSelectedParamCodes = [param.test_code];
+      } else {
+        const currentParamCodes = existing.selectedParamCodes || allParamCodes;
+        if (currentParamCodes.includes(param.test_code)) {
+          newSelectedParamCodes = currentParamCodes.filter((c) => c !== param.test_code);
+        } else {
+          newSelectedParamCodes = [...currentParamCodes, param.test_code];
+        }
+      }
+
+      if (newSelectedParamCodes.length === 0) {
+        return prev.filter((t) => t.test_id !== test.test_id);
+      }
+
+      const updatedTest = {
+        ...(existing || test),
+        selectedParamCodes: newSelectedParamCodes,
+      };
+
+      if (test.department === "Molecular Biology") {
+        return [updatedTest];
+      }
+
+      const withoutMolBio = prev.filter((t) => t.department !== "Molecular Biology");
+      const existingIdx = withoutMolBio.findIndex((t) => t.test_id === test.test_id);
+
+      if (existingIdx !== -1) {
+        const newArr = [...withoutMolBio];
+        newArr[existingIdx] = updatedTest;
+        return newArr;
+      } else {
+        return [...withoutMolBio, updatedTest];
+      }
     });
   };
 
@@ -421,7 +571,14 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
     if (selectAllChecked) {
       setSelectedTests([]);
     } else {
-      setSelectedTests([...nonMolBioTests]);
+      setSelectedTests(
+        nonMolBioTests.map((t) => ({
+          ...t,
+          selectedParamCodes: t.parameters
+            ? t.parameters.map((p) => p.test_code)
+            : [],
+        }))
+      );
     }
     setSelectAllChecked(!selectAllChecked);
   };
@@ -473,14 +630,30 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
       console.log("Signatures Data:", signaturesData);
       console.log("Selected Tests:", selectedTests);
 
-      // Filter tests by test_id
+      // Filter tests by test_id and filter their parameters based on selectedParamCodes
       const orderedTests = selectedTests
-        .map((selectedTest) =>
-          patientDetails.testdetails.find(
+        .map((selectedTest) => {
+          const detail = patientDetails.testdetails.find(
             (t) => t.test_id === selectedTest.test_id,
-          ),
-        )
-        .filter((test) => test);
+          );
+          if (!detail) return null;
+
+          const testCopy = JSON.parse(JSON.stringify(detail));
+
+          if (
+            testCopy.parameters &&
+            testCopy.parameters.length > 0 &&
+            selectedTest.selectedParamCodes &&
+            Array.isArray(selectedTest.selectedParamCodes)
+          ) {
+            testCopy.parameters = testCopy.parameters.filter((param) =>
+              selectedTest.selectedParamCodes.includes(param.test_code),
+            );
+          }
+
+          return testCopy;
+        })
+        .filter((test) => test && (!test.parameters || test.parameters.length > 0));
 
       console.log("Ordered Tests:", orderedTests);
       if (!orderedTests.length) {
@@ -2221,9 +2394,16 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
       toast.error("An unexpected error occurred while generating the PDF");
     }
   };
-  const filteredTests = tests.filter((test) =>
-    test.test_name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredTests = tests.filter((test) => {
+    const query = searchTerm.toLowerCase();
+    const matchesTestName = test.test_name.toLowerCase().includes(query);
+    const matchesParam = test.parameters?.some(
+      (p) =>
+        (p.name && p.name.toLowerCase().includes(query)) ||
+        (p.test_code && p.test_code.toLowerCase().includes(query)),
+    );
+    return matchesTestName || matchesParam;
+  });
 
   return (
     <ModalOverlay>
@@ -2272,25 +2452,75 @@ const FranchiseTestSorting = ({ patient, onClose }) => {
             </div>
           ) : (
             filteredTests.map((test) => {
-              const isSelected = selectedTests.some(
+              const selectedEntry = selectedTests.find(
                 (t) => t.test_id === test.test_id,
               );
+              const isSelected = !!selectedEntry;
+              const hasParameters = test.parameters && test.parameters.length > 0;
+              const isExpanded = expandedTests.has(test.test_id) || (searchTerm && hasParameters);
+
+              const selectedParamCodes = selectedEntry
+                ? selectedEntry.selectedParamCodes || test.parameters.map((p) => p.test_code)
+                : [];
+              const selectedParamCount = hasParameters ? selectedParamCodes.length : 0;
 
               return (
-                <TestItem
-                  key={test.test_id}
-                  onClick={() => handleSelectTest(test)}
-                >
-                  <TestInfo>
-                    <CheckboxContainer checked={isSelected}>
-                      {isSelected && <Check size={14} color="white" />}
-                    </CheckboxContainer>
-                    <TestName selected={isSelected}>
-                      {test.test_name}
-                      {test.NABL && <span className="nabl-asterisk">*</span>}
-                    </TestName>
-                  </TestInfo>
-                </TestItem>
+                <React.Fragment key={test.test_id}>
+                  <TestItem onClick={() => handleSelectTest(test)}>
+                    <TestInfo>
+                      <CheckboxContainer checked={isSelected}>
+                        {isSelected && <Check size={14} color="white" />}
+                      </CheckboxContainer>
+                      <TestName selected={isSelected}>
+                        {test.test_name}
+                        {test.NABL && <span className="nabl-asterisk">*</span>}
+                      </TestName>
+                      {hasParameters && (
+                        <>
+                          <ParamCountBadge>
+                            {isSelected
+                              ? `${selectedParamCount}/${test.parameters.length} selected`
+                              : `${test.parameters.length} params`}
+                          </ParamCountBadge>
+                          <ExpandButton
+                            onClick={(e) => handleToggleExpand(test.test_id, e)}
+                            title={isExpanded ? "Collapse parameters" : "Expand parameters"}
+                          >
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </ExpandButton>
+                        </>
+                      )}
+                    </TestInfo>
+                  </TestItem>
+
+                  {hasParameters && isExpanded && (
+                    <ParameterListContainer>
+                      {test.parameters.map((param) => {
+                        const isParamChecked = isSelected && selectedParamCodes.includes(param.test_code);
+
+                        return (
+                          <ParameterItem key={param.test_code || param.name}>
+                            <ParameterInfo
+                              onClick={(e) => handleSelectParameter(test, param, e)}
+                            >
+                              <CheckboxContainer checked={isParamChecked}>
+                                {isParamChecked && <Check size={14} color="white" />}
+                              </CheckboxContainer>
+                              <ParameterName selected={isParamChecked}>
+                                {param.name}
+                              </ParameterName>
+                              {param.test_code && param.test_code !== param.name && (
+                                <ParameterCodeBadge>
+                                  {param.test_code}
+                                </ParameterCodeBadge>
+                              )}
+                            </ParameterInfo>
+                          </ParameterItem>
+                        );
+                      })}
+                    </ParameterListContainer>
+                  )}
+                </React.Fragment>
               );
             })
           )}

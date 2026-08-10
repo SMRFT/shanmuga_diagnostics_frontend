@@ -323,6 +323,18 @@ const EmergencyBadge = styled.span`
     `}
 `;
 
+const TatBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: ${(props) => props.theme.borderRadius.sm};
+  background-color: #e0e7ff;
+  color: #3730a3;
+  white-space: nowrap;
+`;
+
 const Button = styled.button`
   display: inline-flex;
   align-items: center;
@@ -881,6 +893,7 @@ const HmsSampleStatus = () => {
         collection_container: test.collection_container || "N/A",
         container: test.collection_container || "N/A",
         testname: test.testname || test.test_name || "N/A",
+        TAT_Time: test.TAT_Time || test.tat_time || test.TAT || "",
       }));
 
       setCurrentPatientTests(allTests);
@@ -1191,6 +1204,7 @@ const HmsSampleStatus = () => {
                         <tr>
                           <Th>Sl.No</Th>
                           <Th>Test Name</Th>
+                          <Th>TAT</Th>
                           <Th>Container Type</Th>
                           <Th>Department</Th>
                           <Th>Status</Th>
@@ -1214,6 +1228,13 @@ const HmsSampleStatus = () => {
                           <Tr key={test.test_id}>
                             <Td>{index + 1}</Td>
                             <Td>{test.testname || test.test_name}</Td>
+                            <Td>
+                              {test.TAT_Time || test.tat_time ? (
+                                <TatBadge>{test.TAT_Time || test.tat_time}</TatBadge>
+                              ) : (
+                                "N/A"
+                              )}
+                            </Td>
                             <Td>
                               {test.container ||
                                 test.collection_container ||
