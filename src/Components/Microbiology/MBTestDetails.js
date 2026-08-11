@@ -556,6 +556,10 @@ function MBTestDetails() {
       title: "48hrs - No growth",
       text: "No significant Growth in culture after 48 hrs of incubation.",
     },
+    {
+      title: "Blood - 48hrs",
+      text: "'NEGATIVE' in blood culture, Culture is sterile after 48hrs of incubation.",
+    },
   ];
   const preliminaryRemarksOptions = [
     {
@@ -1195,8 +1199,8 @@ function MBTestDetails() {
                           style={{
                             borderColor:
                               (!parameterRemarks && !remarks[test.testname]) ||
-                              (parameterRemarks?.trim() === "" &&
-                                remarks[test.testname]?.trim() === "")
+                                (parameterRemarks?.trim() === "" &&
+                                  remarks[test.testname]?.trim() === "")
                                 ? "red"
                                 : undefined,
                           }}
@@ -1264,8 +1268,8 @@ function MBTestDetails() {
                           style={{
                             borderColor:
                               (!parameterRemarks && !remarks[test.testname]) ||
-                              (parameterRemarks?.trim() === "" &&
-                                remarks[test.testname]?.trim() === "")
+                                (parameterRemarks?.trim() === "" &&
+                                  remarks[test.testname]?.trim() === "")
                                 ? "red"
                                 : undefined,
                           }}
@@ -1276,7 +1280,7 @@ function MBTestDetails() {
                 ) : (
                   <>
                     {!test.parametersBySubtitle ||
-                    Object.keys(test.parametersBySubtitle).length === 0 ? (
+                      Object.keys(test.parametersBySubtitle).length === 0 ? (
                       <>
                         <FormRow>
                           <FormGroup>
@@ -1333,14 +1337,14 @@ function MBTestDetails() {
                                       )) === "Sensitive"
                                       ? "#4caf50"
                                       : (parameterResults[test.testname] ||
-                                            getResultStatus(
-                                              values[test.testname],
-                                            )) === "Intermediate"
+                                        getResultStatus(
+                                          values[test.testname],
+                                        )) === "Intermediate"
                                         ? "#ff9800"
                                         : (parameterResults[test.testname] ||
-                                              getResultStatus(
-                                                values[test.testname],
-                                              )) === "Nil"
+                                          getResultStatus(
+                                            values[test.testname],
+                                          )) === "Nil"
                                           ? "#151310"
                                           : "#f44336",
                                   fontWeight: "600",
@@ -1380,9 +1384,9 @@ function MBTestDetails() {
                           <FormGroup>
                             <Label>Value</Label>
                             {test.value_option &&
-                            test.value_option.length > 0 ? (
+                              test.value_option.length > 0 ? (
                               !initialValues[test.testname] ||
-                              initialValues[test.testname].trim() === "" ? (
+                                initialValues[test.testname].trim() === "" ? (
                                 <SelectWrapper>
                                   <Select
                                     value={values[test.testname] || ""}
@@ -1415,7 +1419,7 @@ function MBTestDetails() {
                                 value={values[test.testname] || ""}
                                 onChange={
                                   !initialValues[test.testname] ||
-                                  initialValues[test.testname].trim() === ""
+                                    initialValues[test.testname].trim() === ""
                                     ? (e) => handleValueChange(test.testname, e)
                                     : undefined
                                 }
@@ -1425,7 +1429,7 @@ function MBTestDetails() {
                                 }
                                 placeholder={
                                   !initialValues[test.testname] ||
-                                  initialValues[test.testname].trim() === ""
+                                    initialValues[test.testname].trim() === ""
                                     ? "Enter value"
                                     : "Value available"
                                 }
@@ -1492,7 +1496,7 @@ function MBTestDetails() {
                                   style={{
                                     borderColor:
                                       !remarks[test.testname] ||
-                                      remarks[test.testname].trim() === ""
+                                        remarks[test.testname].trim() === ""
                                         ? "red"
                                         : undefined,
                                   }}
@@ -1630,18 +1634,18 @@ function MBTestDetails() {
                                                     )) === "Sensitive"
                                                     ? "#4caf50"
                                                     : (parameterResults[
-                                                          uniqueKey
-                                                        ] ||
-                                                          getResultStatus(
-                                                            values[uniqueKey],
-                                                          )) === "Intermediate"
+                                                      uniqueKey
+                                                    ] ||
+                                                      getResultStatus(
+                                                        values[uniqueKey],
+                                                      )) === "Intermediate"
                                                       ? "#ff9800"
                                                       : (parameterResults[
-                                                            uniqueKey
-                                                          ] ||
-                                                            getResultStatus(
-                                                              values[uniqueKey],
-                                                            )) === "Nil"
+                                                        uniqueKey
+                                                      ] ||
+                                                        getResultStatus(
+                                                          values[uniqueKey],
+                                                        )) === "Nil"
                                                         ? "#100e0b"
                                                         : "#f44336",
                                                 fontWeight: "600",
@@ -1768,53 +1772,53 @@ function MBTestDetails() {
                               currentValue.trim() !== ""
                             );
                           }) && (
-                          <RemarksSection>
-                            <FormGroup>
-                              <Label>
-                                Impression{" "}
-                                <span style={{ color: "red" }}>*</span>
-                              </Label>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.5rem",
-                                  marginBottom: "0.5rem",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {remarksOptions.map((option, idx) => (
-                                  <Button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => {
-                                      setParameterRemarks(option.text);
-                                    }}
-                                    style={{
-                                      fontSize: "0.875rem",
-                                      padding: "0.5rem 0.75rem",
-                                      backgroundColor: "var(--secondary)",
-                                      minWidth: "45%",
-                                    }}
-                                  >
-                                    {option.title}
-                                  </Button>
-                                ))}
-                              </div>
-                              <TextArea
-                                value={parameterRemarks || ""}
-                                onChange={handleParameterRemarksChange}
-                                placeholder="Enter remarks or select from options above (required)"
-                                style={{
-                                  borderColor:
-                                    !parameterRemarks ||
-                                    parameterRemarks.trim() === ""
-                                      ? "red"
-                                      : undefined,
-                                }}
-                              />
-                            </FormGroup>
-                          </RemarksSection>
-                        )}
+                            <RemarksSection>
+                              <FormGroup>
+                                <Label>
+                                  Impression{" "}
+                                  <span style={{ color: "red" }}>*</span>
+                                </Label>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {remarksOptions.map((option, idx) => (
+                                    <Button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => {
+                                        setParameterRemarks(option.text);
+                                      }}
+                                      style={{
+                                        fontSize: "0.875rem",
+                                        padding: "0.5rem 0.75rem",
+                                        backgroundColor: "var(--secondary)",
+                                        minWidth: "45%",
+                                      }}
+                                    >
+                                      {option.title}
+                                    </Button>
+                                  ))}
+                                </div>
+                                <TextArea
+                                  value={parameterRemarks || ""}
+                                  onChange={handleParameterRemarksChange}
+                                  placeholder="Enter remarks or select from options above (required)"
+                                  style={{
+                                    borderColor:
+                                      !parameterRemarks ||
+                                        parameterRemarks.trim() === ""
+                                        ? "red"
+                                        : undefined,
+                                  }}
+                                />
+                              </FormGroup>
+                            </RemarksSection>
+                          )}
                       </ParameterSection>
                     )}
                   </>
