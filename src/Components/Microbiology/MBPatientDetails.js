@@ -364,6 +364,39 @@ const UserInfoRow = styled.div`
   margin-top: 0.25rem;
 `;
 
+const TATIndicator = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  min-width: 105px;
+  justify-content: center;
+  opacity: 1 !important;
+  background-color: ${(props) => {
+    if (props.secondsLeft === null || props.secondsLeft === undefined) return "#e0e7ff";
+    if (props.secondsLeft < 0) return "#dc3545"; // Red - Overdue / Late
+    if (props.secondsLeft < 7200) return "#ffc107"; // Yellow - Critical (< 2 hours)
+    return "#28a745"; // Green - On track
+  }};
+  color: ${(props) => (props.secondsLeft !== null && props.secondsLeft !== undefined ? "white" : "#3730a3")};
+`;
+
+const TATText = styled.span`
+  white-space: nowrap;
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.5px;
+`;
+
+const TATLabel = styled.div`
+  font-size: 0.65rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  line-height: 1;
+`;
+
 const UserBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -390,6 +423,11 @@ const StatusBadge = styled.span`
         return css`
           background-color: ${props.theme.colors.success}20;
           color: ${props.theme.colors.success};
+        `;
+      case "Dispatched":
+        return css`
+          background-color: #D1FAE5;
+          color: #065F46;
         `;
       case "Rerun Initiated":
         return css`
@@ -767,8 +805,7 @@ const MBPatientDetails = () => {
     setShowModal(false);
 
     navigate(
-      `/MBTestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patient_id}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${
-        location_id || "Shanmuga Referrence Lab"
+      `/MBTestDetails?date=${formattedPatientDate}&created_date=${formattedCreatedDate}&patient_id=${patient_id}&patientname=${patientname}&age=${age}&barcode=${encodedBarcode}&locationId=${location_id || "Shanmuga Referrence Lab"
       }&test_id=${test.test_id}&parameter_type=${parameterType}&test_code=${test.test_code}`,
       {
         state: {
@@ -794,9 +831,144 @@ const MBPatientDetails = () => {
     setShowModal(true);
   };
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const parseTatToSeconds = (tatStr) => {
+    if (!tatStr || tatStr === "N/A") return null;
+    let totalMinutes = 0;
+    const str = String(tatStr).toUpperCase();
+    const d = str.match(/(\d+)\s*D/);
+    const h = str.match(/(\d+)\s*H/);
+    const m = str.match(/(\d+)\s*M/);
+    if (d) totalMinutes += parseInt(d[1], 10) * 1440;
+    if (h) totalMinutes += parseInt(h[1], 10) * 60;
+    if (m) totalMinutes += parseInt(m[1], 10);
+    if (!d && !h && !m) {
+      const num = str.match(/(\d+)/);
+      if (num) {
+        if (str.includes("DAY")) totalMinutes += parseInt(num[1], 10) * 1440;
+        else if (str.includes("MIN")) totalMinutes += parseInt(num[1], 10);
+        else totalMinutes += parseInt(num[1], 10) * 60;
+      }
+    }
+    return totalMinutes ? totalMinutes * 60 : null;
+  };
+
+  const formatTimeRemaining = (seconds) => {
+    if (seconds === null || seconds === undefined) return null;
+    const absSeconds = Math.abs(seconds);
+    const days = Math.floor(absSeconds / 86400);
+    const hours = Math.floor((absSeconds % 86400) / 3600);
+    const minutes = Math.floor((absSeconds % 3600) / 60);
+    const secs = Math.floor(absSeconds % 60);
+
+    let parts = [];
+    if (days > 0) parts.push(`${days}D`);
+    if (hours > 0 || days > 0) parts.push(`${hours}H`);
+    if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes}M`);
+    parts.push(`${secs}S`);
+
+    return parts.join(":");
+  };
+
+  const calculateLiveSecondsLeft = (test, patient) => {
+    if (test.tat_status === "completed" && typeof test.seconds_left === "number") {
+      return test.seconds_left;
+    }
+    if (test.tat_status === "pending" && test.tat_deadline) {
+      const deadline = new Date(test.tat_deadline);
+      return Math.floor((deadline - currentTime) / 1000);
+    }
+    if (typeof test.seconds_left === "number") {
+      return test.seconds_left;
+    }
+
+    const tatSeconds = parseTatToSeconds(test.TAT_Time);
+    const sampleTime =
+      test.samplecollected_time ||
+      test.sample_collected_time ||
+      test.collected_time ||
+      test.created_date ||
+      (patient ? patient.created_date || patient.date : null);
+
+    if (!tatSeconds || !sampleTime) return null;
+
+    const collectedDt = new Date(String(sampleTime).replace(" ", "T"));
+    if (isNaN(collectedDt.getTime())) return null;
+
+    const isCompleted =
+      test.tat_status === "completed" ||
+      Boolean(test.approve || test.approve_time || test.dispatch || test.is_dispatched || test.dispatch_time);
+
+    if (isCompleted) {
+      const endDt = test.approve_time || test.dispatch_time
+        ? new Date(String(test.approve_time || test.dispatch_time).replace(" ", "T"))
+        : new Date();
+      const timeTakenSeconds = Math.floor((endDt - collectedDt) / 1000);
+      return tatSeconds - timeTakenSeconds;
+    } else {
+      const deadline = new Date(collectedDt.getTime() + tatSeconds * 1000);
+      return Math.floor((deadline - currentTime) / 1000);
+    }
+  };
+
+  const formatTATDisplay = (test, patient) => {
+    const tatTimeVal = test.tat_time || test.TAT_Time || test.tat;
+    const liveSecondsLeft = calculateLiveSecondsLeft(test, patient);
+    const isCompleted =
+      test.tat_status === "completed" ||
+      Boolean(test.approve || test.approve_time || test.dispatch || test.is_dispatched || test.dispatch_time);
+
+    if (isCompleted) {
+      if (liveSecondsLeft === null) {
+        return tatTimeVal ? { label: "TAT", time: tatTimeVal, isOverdue: false } : null;
+      }
+      const timeStr = formatTimeRemaining(liveSecondsLeft);
+      if (liveSecondsLeft >= 0) {
+        return {
+          label: "Completed",
+          time: `${timeStr} early`,
+          isOverdue: false,
+        };
+      } else {
+        return {
+          label: "Completed",
+          time: `${timeStr} late`,
+          isOverdue: true,
+        };
+      }
+    } else {
+      if (liveSecondsLeft === null) {
+        return tatTimeVal ? { label: "TAT", time: tatTimeVal, isOverdue: false } : null;
+      }
+      const timeStr = formatTimeRemaining(liveSecondsLeft);
+      if (liveSecondsLeft > 0) {
+        return {
+          label: "Time Left",
+          time: timeStr,
+          isOverdue: false,
+        };
+      } else {
+        return {
+          label: "Overdue",
+          time: timeStr,
+          isOverdue: true,
+        };
+      }
+    }
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case "Approved":
+      case "Dispatched":
         return <CheckCircle size={12} />;
       case "Rerun Initiated":
         return <RefreshCcw size={12} />;
@@ -806,6 +978,9 @@ const MBPatientDetails = () => {
   };
 
   const getTestStatus = (test) => {
+    if (test.dispatch || test.is_dispatched) {
+      return "Dispatched";
+    }
     if (!test.test_value_exists) {
       return "Waiting for Technician's Approval";
     }
@@ -896,6 +1071,8 @@ const MBPatientDetails = () => {
         return testStatus === "Waiting for Doctor's Approval";
       } else if (statusFilter === "approved") {
         return testStatus === "Approved";
+      } else if (statusFilter === "dispatched") {
+        return testStatus === "Dispatched";
       } else if (statusFilter === "rerun") {
         return testStatus === "Rerun Initiated";
       }
@@ -1008,6 +1185,7 @@ const MBPatientDetails = () => {
             <option value="technician">Waiting for Technician</option>
             <option value="doctor">Waiting for Doctor</option>
             <option value="approved">Approved</option>
+            <option value="dispatched">Dispatched</option>
             <option value="rerun">Rerun Initiated</option>
           </FilterSelect>
 
@@ -1066,9 +1244,9 @@ const MBPatientDetails = () => {
                             ? format(new Date(patient.date), "MMM dd, yyyy")
                             : patient.created_date
                               ? format(
-                                  new Date(patient.created_date),
-                                  "MMM dd, yyyy",
-                                )
+                                new Date(patient.created_date),
+                                "MMM dd, yyyy",
+                              )
                               : "N/A"}
                         </PatientInfo>
                       </Td>
@@ -1139,6 +1317,8 @@ const MBPatientDetails = () => {
                                     test,
                                     patient.is_preliminary,
                                   );
+                                  const tatDisplay = formatTATDisplay(test, patient);
+                                  const liveSecondsLeft = calculateLiveSecondsLeft(test, patient);
                                   return (
                                     <TestButton
                                       key={idx}
@@ -1147,7 +1327,7 @@ const MBPatientDetails = () => {
                                       }
                                       title={
                                         testStatus ===
-                                        "Waiting for Technician's Approval"
+                                          "Waiting for Technician's Approval"
                                           ? test.is_preliminary && test.approve
                                             ? "Enter Final Report"
                                             : "Enter Test Values"
@@ -1158,22 +1338,24 @@ const MBPatientDetails = () => {
                                       disabled={
                                         !(
                                           testStatus ===
-                                            "Waiting for Technician's Approval" ||
+                                          "Waiting for Technician's Approval" ||
                                           testStatus === "Rerun Initiated"
                                         )
                                       }
                                     >
                                       <TestNameRow>
-                                        <span>
-                                          {test.test_id} - {test.testname}
-                                        </span>
                                         <div
                                           style={{
                                             display: "flex",
                                             alignItems: "center",
                                             gap: "0.5rem",
+                                            flex: 1,
+                                            flexWrap: "wrap",
                                           }}
                                         >
+                                          <span>
+                                            {test.test_id} - {test.testname}
+                                          </span>
                                           {test.is_preliminary && (
                                             <span
                                               style={{
@@ -1190,8 +1372,16 @@ const MBPatientDetails = () => {
                                               Preliminary
                                             </span>
                                           )}
-                                          <ChevronRight size={16} />
+                                          {tatDisplay && (
+                                            <TATIndicator secondsLeft={liveSecondsLeft}>
+                                              <div style={{ textAlign: "center" }}>
+                                                <TATLabel>{tatDisplay.label}</TATLabel>
+                                                <TATText>{tatDisplay.time}</TATText>
+                                              </div>
+                                            </TATIndicator>
+                                          )}
                                         </div>
+                                        <ChevronRight size={16} />
                                       </TestNameRow>
                                       <UserInfoRow>
                                         {test.collectd_by && (
@@ -1210,6 +1400,18 @@ const MBPatientDetails = () => {
                                           <UserBadge>
                                             <Users size={10} />
                                             V/B: {test.verified_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.approve_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            A/B: {test.approve_by}
+                                          </UserBadge>
+                                        )}
+                                        {test.dispatch_by && (
+                                          <UserBadge>
+                                            <Users size={10} />
+                                            D/B: {test.dispatch_by}
                                           </UserBadge>
                                         )}
                                         {test.rerun_by && (

@@ -557,9 +557,9 @@ const ShanmugaMIS = () => {
     }
   };
 
-  // Group all data by patient
+  // Group all data by patient & barcode
   const groupedData = data.reduce((acc, row) => {
-    const key = `${row.patient_name}_${row.age}`;
+    const key = row.barcode ? row.barcode : `${row.patient_name}_${row.age}`;
     if (!acc[key]) acc[key] = { ...row, tests: [] };
     acc[key].tests.push(row);
     return acc;
