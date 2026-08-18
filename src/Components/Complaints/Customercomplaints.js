@@ -730,10 +730,10 @@ const CustomerComplaints = () => {
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.results)
-        ? res.results
-        : [];
+          ? res.data
+          : Array.isArray(res?.results)
+            ? res.results
+            : [];
       // Defensive sort — the backend already orders by complaint_id
       // ascending, but sorting again here keeps the table correct even if
       // that ever changes upstream.
@@ -753,10 +753,10 @@ const CustomerComplaints = () => {
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.results)
-        ? res.results
-        : [];
+          ? res.data
+          : Array.isArray(res?.results)
+            ? res.results
+            : [];
       setClinicalNames(list);
     } catch (err) {
       console.error("Failed to load clinical names:", err);
@@ -770,10 +770,10 @@ const CustomerComplaints = () => {
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.data?.data)
-        ? res.data.data
-        : [];
+          ? res.data
+          : Array.isArray(res?.data?.data)
+            ? res.data.data
+            : [];
       setEmployees(list);
     } catch (err) {
       console.error("Failed to load B2B lab employees:", err);
@@ -906,22 +906,12 @@ const CustomerComplaints = () => {
     return newErrors;
   };
 
-  // Field order used to pick which single message to toast when several
-  // fields are missing at once — top-to-bottom as they appear in the form.
-  const FIELD_ORDER = ["labcode", "issuetype", "otherIssueText", "comments", "assignedby"];
-
   const handleSave = async () => {
     const newErrors = validate();
-    if (Object.keys(newErrors).length > 0) {
-      const firstField = FIELD_ORDER.find((key) => newErrors[key]);
-      showToast(newErrors[firstField], "error");
-      return;
-    }
+    if (Object.keys(newErrors).length > 0) return;
 
     setSaving(true);
     try {
-      // Build the stored issue-type string: selected labels, with "Other"
-      // replaced by whatever the user actually typed.
       const issuetypeString = formData.issuetype
         .map((value) =>
           value === OTHER_ISSUE_VALUE ? formData.otherIssueText.trim() : value
@@ -929,7 +919,6 @@ const CustomerComplaints = () => {
         .join(", ");
 
       const payload = {
-       
         labcode: isClinicalReports ? clinicalReportsLabCode : formData.labcode,
         patient_id: formData.patientId.trim() || null,
         issuetype: issuetypeString,
@@ -976,7 +965,6 @@ const CustomerComplaints = () => {
     setCompleting(true);
     try {
       await apiRequest(`${Labbaseurl}customer_complaints/`, "PATCH", {
-       
         complaint_id: complaintId,
         completion_comments: completionText.trim(),
       });
@@ -997,15 +985,7 @@ const CustomerComplaints = () => {
   };
 
   // ── Export (CSV / PDF) ───────────────────────────────────────────────
-  //
-  // Both exports work off `complaints`, which already reflects whatever
-  // the From/To dates + Status dropdown currently have selected (the
-  // backend GET request applies those filters), so "export" always means
-  // "export exactly what's on screen right now."
 
-  // SD-R-CL never assigns complaints and doesn't see Ageing on screen for
-  // that reason — mirror the same hiding in the exports so the columns
-  // aren't just blank there.
   const EXPORT_COLUMNS = [
     "ID",
     "Lab Name",
@@ -1030,29 +1010,29 @@ const CustomerComplaints = () => {
         row.patient_id || "",
         row.issuetype || "",
         row.comments || "",
-        ...(isClinicalReports
-          ? []
-          : [employeeIdToName[row.assignedby] || row.assignedby || ""]),
+        ...(isClinicalReports ? [] : [employeeIdToName[row.assignedby] || row.assignedby || ""]),
         row.status || "",
-        ...(isClinicalReports ? [] : [ageing === null ? "—" : `${ageing}`]),
+        ...(isClinicalReports ? [] : [ageing === null ? "" : ageing]),
         row.completion_comments || "",
       ];
     });
 
-  const getExportFilename = (ext) => {
-    const statusLabel = statusFilter === "all" ? "all" : statusFilter;
-    return `customer_complaints_${statusLabel}_${fromDate}_to_${toDate}.${ext}`;
+  const getExportFilename = (extension) => {
+    const fromStr = fromDate || "all";
+    const toStr = toDate || "all";
+    return `customer_complaints_${fromStr}_to_${toStr}.${extension}`;
   };
 
   const handleExportCSV = () => {
     if (visibleComplaints.length === 0) {
-      showToast("No data to export for the current filters.", "error");
+      showToast("No complaints to export.", "error");
       return;
     }
 
-    const escapeCsvField = (field) => {
-      const str = String(field ?? "");
-      if (/[",\n]/.test(str)) {
+    const escapeCsvField = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val);
+      if (/[",\n\r]/.test(str)) {
         return `"${str.replace(/"/g, '""')}"`;
       }
       return str;
@@ -1080,26 +1060,23 @@ const CustomerComplaints = () => {
 
   const handleExportPDF = () => {
     if (visibleComplaints.length === 0) {
-      showToast("No data to export for the current filters.", "error");
+      showToast("No complaints to export.", "error");
       return;
     }
 
     try {
       const doc = new jsPDF({ orientation: "landscape" });
+      const title = "Customer Complaints Report";
+      const subtitle = `Date Range: ${fromDate} to ${toDate} | Status: ${statusFilter.toUpperCase()}`;
 
       doc.setFontSize(14);
-      doc.text("Customer Complaints", 14, 15);
-
+      doc.text(title, 14, 15);
       doc.setFontSize(10);
-      const statusLabel = statusFilter === "all" ? "All" : statusFilter;
-      doc.text(
-        `Status: ${statusLabel}   |   From: ${fromDate}   To: ${toDate}`,
-        14,
-        22
-      );
+      doc.setTextColor(100);
+      doc.text(subtitle, 14, 22);
 
       autoTable(doc, {
-        startY: 28,
+        startY: 26,
         head: [EXPORT_COLUMNS],
         body: buildExportRows(),
         styles: { fontSize: 8, cellPadding: 3 },
@@ -1186,15 +1163,15 @@ const CustomerComplaints = () => {
             {visibleComplaints.map((row) => (
               <tr key={row.complaint_id}>
                 {!isClinicalReports && <Td>{row.complaint_id}</Td>}
-                <Td>{labCodeToName[row.labcode] || row.labcode}</Td>
+                <Td>{labCodeToName[row.labcode] || row.labcode || "—"}</Td>
                 <Td>{row.patient_id || "—"}</Td>
-                <Td>{row.issuetype}</Td>
-                <Td>{row.comments}</Td>
+                <Td>{row.issuetype || "—"}</Td>
+                <Td>{row.comments || "—"}</Td>
                 {!isClinicalReports && (
-                  <Td>{employeeIdToName[row.assignedby] || row.assignedby}</Td>
+                  <Td>{employeeIdToName[row.assignedby] || row.assignedby || "—"}</Td>
                 )}
                 <Td>
-                  <StatusBadge $status={row.status}>{row.status}</StatusBadge>
+                  <StatusBadge $status={row.status}>{row.status || "—"}</StatusBadge>
                 </Td>
                 <Td>
                   {row.status === COMPLAINT_STATUS.PENDING ? (
@@ -1299,11 +1276,6 @@ const CustomerComplaints = () => {
                   {errors.labcode && <ErrorText>{errors.labcode}</ErrorText>}
                 </FormGroup>
               )}
-              {isClinicalReports && errors.labcode && (
-                <FormGroup>
-                  <ErrorText>{errors.labcode}</ErrorText>
-                </FormGroup>
-              )}
 
               <FormGroup>
                 <Label htmlFor="complaint-patientid">Patient ID</Label>
@@ -1347,6 +1319,7 @@ const CustomerComplaints = () => {
                 <Label htmlFor="complaint-comments">Comments</Label>
                 <TextArea
                   id="complaint-comments"
+                  placeholder="Describe the complaint..."
                   value={formData.comments}
                   onChange={handleChange("comments")}
                 />

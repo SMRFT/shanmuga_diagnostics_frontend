@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
 import styled from "styled-components";
 import axios from "axios";
@@ -547,12 +547,71 @@ const RowSelect = styled.select`
     border-color: ${TEAL};
   }
 
+  &:disabled {
+    background: #f1f3f5;
+    color: #495057;
+    cursor: not-allowed;
+    border-color: #d5dede;
+    opacity: 0.85;
+  }
+
   @media (max-width: 768px) {
     min-width: 0;
     width: 100%;
     max-width: 190px;
     font-size: 16px; /* avoid iOS zoom */
     padding: 8px;
+  }
+`;
+
+const SummaryWrapper = styled.div`
+  margin-top: 24px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #eef2f2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  max-width: 500px;
+`;
+
+const SummaryHeaderBox = styled.div`
+  background: #f8f6fc;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eef2f2;
+`;
+
+const SummaryHeading = styled.h3`
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: ${TEAL_DARK};
+`;
+
+const SummaryTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 10px 16px;
+    text-align: left;
+  }
+
+  th {
+    background: #fafafa;
+    color: #555;
+    font-weight: 600;
+    border-bottom: 1px solid #eef2f2;
+  }
+
+  td {
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
   }
 `;
 
@@ -673,6 +732,61 @@ const getCollectorNameById = (collectors, id) => {
     (c) => getCollectorValue(c) === id
   );
   return match ? getCollectorLabel(match) : id;
+};
+
+const computeLocationSummary = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+
+  // Group rows by date
+  const byDate = {};
+  rows.forEach((row) => {
+    const d = row.date || "Unknown";
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(row);
+  });
+
+  const summary = [];
+  const sortedDates = Object.keys(byDate).sort();
+
+  sortedDates.forEach((dateKey) => {
+    const dayRows = byDate[dateKey];
+    const locCounts = new Map(); // Canonical name -> count
+    const keyMap = new Map(); // Lowercase -> Canonical name
+
+    dayRows.forEach((row) => {
+      if (!row.location || typeof row.location !== "string") return;
+      const parts = row.location
+        .split(/[,;\n]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      parts.forEach((part) => {
+        // Strip any existing (count) if user typed e.g. "Kakapalayam(1)"
+        const match = part.match(/^(.+?)\s*\(\s*\d+\s*\)$/);
+        const name = match ? match[1].trim() : part.trim();
+        if (!name) return;
+
+        const lower = name.toLowerCase();
+        if (keyMap.has(lower)) {
+          const canonical = keyMap.get(lower);
+          locCounts.set(canonical, locCounts.get(canonical) + 1);
+        } else {
+          keyMap.set(lower, name);
+          locCounts.set(name, 1);
+        }
+      });
+    });
+
+    locCounts.forEach((count, locName) => {
+      summary.push({
+        date: dateKey,
+        location: locName,
+        count: count,
+      });
+    });
+  });
+
+  return summary;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
@@ -944,6 +1058,11 @@ function Busfare() {
     0
   );
 
+  const locationSummary = useMemo(
+    () => computeLocationSummary(busfares),
+    [busfares]
+  );
+
   // Builds the row data shared by both export formats, in display order,
   // using the same lookups the table already uses for collector names.
   const buildExportRows = () =>
@@ -961,6 +1080,7 @@ function Busfare() {
     const rows = buildExportRows();
     if (rows.length === 0) return;
 
+    // Total row
     rows.push({
       Date: "",
       Location: "Total",
@@ -971,11 +1091,46 @@ function Busfare() {
       "Picked Up By": "",
     });
 
+    // One blank row below Total
+    rows.push({
+      Date: "",
+      Location: "",
+      Amount: "",
+      "Collected By": "",
+      "Pickup Time": "",
+      "Bus Reached Time": "",
+      "Picked Up By": "",
+    });
+
+    // Location Summary Header
+    rows.push({
+      Date: "Date",
+      Location: "Location",
+      Amount: "Count",
+      "Collected By": "",
+      "Pickup Time": "",
+      "Bus Reached Time": "",
+      "Picked Up By": "",
+    });
+
+    // Location Summary Data
+    locationSummary.forEach((item) => {
+      rows.push({
+        Date: item.date,
+        Location: item.location,
+        Amount: item.count,
+        "Collected By": "",
+        "Pickup Time": "",
+        "Bus Reached Time": "",
+        "Picked Up By": "",
+      });
+    });
+
     const worksheet = XLSX.utils.json_to_sheet(rows);
     worksheet["!cols"] = [
+      { wch: 14 },
+      { wch: 25 },
       { wch: 12 },
-      { wch: 20 },
-      { wch: 10 },
       { wch: 18 },
       { wch: 12 },
       { wch: 16 },
@@ -1012,12 +1167,29 @@ function Busfare() {
     const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 28;
     doc.setFontSize(11);
     doc.setFont(undefined, "bold");
-    doc.text(`Total Amount: Rs.${totalAmount.toFixed(2)}`, 14, finalY + 10);
+    doc.text(`Total Amount: Rs.${totalAmount.toFixed(2)}`, 14, finalY + 8);
+
+    if (locationSummary.length > 0) {
+      doc.setFontSize(11);
+      doc.text("Location Summary:", 14, finalY + 18);
+
+      autoTable(doc, {
+        head: [["Date", "Location", "Count"]],
+        body: locationSummary.map((item) => [item.date, item.location, item.count]),
+        startY: finalY + 22,
+        theme: "grid",
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [124, 92, 196], textColor: 255 },
+        alternateRowStyles: { fillColor: [247, 245, 252] },
+        tableWidth: 100,
+      });
+    }
 
     doc.save(`bus-fares_${fromDate}_to_${toDate}.pdf`);
   };
 
   const handlePickedUpChange = async (busfareId, pickedupby) => {
+    if (!pickedupby) return;
     setPickingUpId(busfareId);
 
     // Optimistic update so the dropdown reflects the choice immediately.
@@ -1131,7 +1303,8 @@ function Busfare() {
                   <RowSelect
                     value={row.pickedupby || ""}
                     onChange={(e) => handlePickedUpChange(row.busfare_id, e.target.value)}
-                    disabled={pickingUpId === row.busfare_id}
+                    disabled={pickingUpId === row.busfare_id || Boolean(row.pickedupby)}
+                    title={row.pickedupby ? "Picked Up By is finalized" : "Select collector"}
                   >
                     <option value="">Select collector</option>
                     {(Array.isArray(collectors) ? collectors : []).map((collector, idx) => (
@@ -1166,6 +1339,32 @@ function Busfare() {
         )}
         {loading && <EmptyState>Loading...</EmptyState>}
       </TableWrapper>
+
+      {!loading && locationSummary.length > 0 && (
+        <SummaryWrapper>
+          <SummaryHeaderBox>
+            <SummaryHeading>Location Summary</SummaryHeading>
+          </SummaryHeaderBox>
+          <SummaryTable>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Location</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {locationSummary.map((item, idx) => (
+                <tr key={idx}>
+                  <td>{item.date}</td>
+                  <td>{item.location}</td>
+                  <td>{item.count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </SummaryTable>
+        </SummaryWrapper>
+      )}
 
       {showModal &&
         ReactDOM.createPortal(

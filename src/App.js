@@ -108,6 +108,7 @@ import B2BPackageList from "./Components/Lab/B2BPackageList";
 
 import Busfare from "./Components/Busfare/Busfare";
 import CustomerComplaints from "./Components/Complaints/Customercomplaints";
+import CustomercomplaintsQRScan from "./Components/Complaints/CustomercomplaintsQRScan";
 import Salesplan from "./Components/Sales/Salesplan";
 import SalesReport from "./Components/Sales/Salesreport";
 import SalesSummary from "./Components/Sales/Salessummary";
@@ -610,6 +611,26 @@ function App() {
             <Route
               path="/CustomerComplaints"
               element={<CustomerComplaints />}
+            />
+
+            <Route
+              path="/CustomercomplaintsQRScan"
+              element={<CustomercomplaintsQRScan />}
+            />
+
+            <Route
+              path="/CustomerComplaintsQRScan"
+              element={<CustomercomplaintsQRScan />}
+            />
+
+            <Route
+              path="/Feedback"
+              element={<CustomercomplaintsQRScan />}
+            />
+
+            <Route
+              path="/feedback"
+              element={<CustomercomplaintsQRScan />}
             />
 
 
