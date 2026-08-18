@@ -113,6 +113,17 @@ import SalesReport from "./Components/Sales/Salesreport";
 import SalesSummary from "./Components/Sales/Salessummary";
 import OverallSummary from "./Components/Sales/OverallSummary";
 
+// Franchise Enrollment & Management Imports
+import FranchiseRegister from "./Components/FranchiseEntrollment/FranchiseRegister";
+import FranchiseList from "./Components/FranchiseEntrollment/FranchiseList";
+import FranchiseDetails from "./Components/FranchiseEntrollment/FranchiseDetails";
+import FranchiseLocations from "./Components/FranchiseEntrollment/FranchiseLocations";
+import Barcodestock from "./Components/FranchiseEntrollment/Barcodestock";
+import InactiveFranchises from "./Components/FranchiseEntrollment/InactiveFranchises";
+import Cancelledbill from "./Components/FranchiseEntrollment/Cancelledbill";
+import FinalBillcancel from "./Components/FranchiseEntrollment/FinalbillCancel";
+import MonthEndCalculation from "./Components/FranchiseEntrollment/MonthEndCalculation";
+
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
   margin-top: 15px;
@@ -248,6 +259,10 @@ function App() {
       "/SalesDetailsEdit": "Sales Details Edit",
       "/SalesVisitLogReport": "Sales Visit Log Report",
       "/SalesindividualReport": "Sales Individual Report",
+      "/Salesplan": "Sales Plan",
+      "/SalesSummary": "Sales Summary",
+      "/OverallSummary": "Overall Summary",
+      "/SalesReport": "Sales Report",
       "/B2B": "B2B",
       "/B2BApproval": "B2B Approval",
       "/B2BFinalApproval": "B2B Final Approval",
@@ -295,6 +310,15 @@ function App() {
       "/PatientOverallReport": "Patient Overall Report",
       "/ClinicalDashboard": "Clinical Dashboard",
       "/ClinicalPatientOverview": "Clinical Patient Overview",
+      "/FranchiseRegister": "Franchise Register",
+      "/FranchiseList": "Franchise List",
+      "/EmployeeDetails/:franchiseId": "Franchise Details",
+      "/FranchiseLocations": "Franchise Locations",
+      "/Barcodestock": "Barcode Stock",
+      "/InactiveFranchises": "Inactive Franchises",
+      "/Cancelledbill": "Cancelled Bill",
+      "/FinalBillcancel": "Final Bill Cancel",
+      "/MonthEndCalculation": "Month End Calculation",
     };
 
     const path = location.pathname;
@@ -608,6 +632,17 @@ function App() {
               path="/SalesReport"
               element={<SalesReport />}
             />
+
+            {/* Franchise Enrollment & Management Routes */}
+            <Route path="/FranchiseRegister" element={<FranchiseRegister />} />
+            <Route path="/FranchiseList" element={<FranchiseList />} />
+            <Route path="/EmployeeDetails/:franchiseId" element={<FranchiseDetails />} />
+            <Route path="/FranchiseLocations" element={<FranchiseLocations />} />
+            <Route path="/Barcodestock" element={<Barcodestock />} />
+            <Route path="/InactiveFranchises" element={<InactiveFranchises />} />
+            <Route path="/Cancelledbill" element={<Cancelledbill />} />
+            <Route path="/FinalBillcancel" element={<FinalBillcancel />} />
+            <Route path="/MonthEndCalculation" element={<MonthEndCalculation />} />
 
           </Routes>
 
