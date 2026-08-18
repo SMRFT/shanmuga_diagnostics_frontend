@@ -2777,6 +2777,21 @@ const Sidebar = () => {
             </>
           )}
 
+
+          {role === "TeleCalling" && (
+            <>
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
+            </>
+          )}
+
         </SidebarContent>
         <SignOutWrapper>
           <SidebarNavLink
