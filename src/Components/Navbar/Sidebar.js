@@ -34,7 +34,8 @@ import {
   FaCheckDouble,
   FaMapMarkedAlt,
   FaHistory,
-  FaBook
+  FaBook,
+  FaQrcode
 } from "react-icons/fa";
 import { PiTestTubeDuotone } from "react-icons/pi";
 import { GrOverview } from "react-icons/gr";
@@ -2528,6 +2529,18 @@ const Sidebar = () => {
                   <FaChartLine />
                 </IconWrapper>
                 Customer Complaints
+              </SidebarNavLink>
+
+             
+
+              <SidebarNavLink
+                to="/FeedbackGrievanceReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <TbReport />
+                </IconWrapper>
+                Feedback & Grievance Report
               </SidebarNavLink>
             </>
           )}
