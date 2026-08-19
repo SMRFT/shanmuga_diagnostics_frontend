@@ -373,8 +373,8 @@ function App() {
     location.pathname === "/LIS/FeedbackGrievance" ||
     location.pathname.endsWith("/FeedbackGrievance") ||
     window.location.pathname.endsWith("/FeedbackGrievance") ||
-    window.location.pathname.toLowerCase().includes("feedbackgrievance") ;
-   
+    window.location.pathname.toLowerCase().includes("feedbackgrievance");
+
 
   if (!role) {
     if (isEstimatePath) {
@@ -657,33 +657,16 @@ function App() {
               path="/CustomercomplaintsQRScan"
               element={<CustomercomplaintsQRScan />}
             />
-            <Route
-              path="/LIS/CustomercomplaintsQRScan"
-              element={<CustomercomplaintsQRScan />}
-            />
 
             <Route
               path="/FeedbackGrievance"
               element={<FeedbackGrievance />}
             />
-            <Route
-              path="/LIS/FeedbackGrievance"
-              element={<FeedbackGrievance />}
-            />
+
 
             <Route
               path="/FeedbackGrievanceReport"
               element={<FeedbackGrievanceReport />}
-            />
-
-            <Route
-              path="/Feedback"
-              element={<FeedbackGrievance />}
-            />
-
-            <Route
-              path="/feedback"
-              element={<FeedbackGrievance />}
             />
 
 
