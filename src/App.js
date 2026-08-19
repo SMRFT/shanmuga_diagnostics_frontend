@@ -257,6 +257,10 @@ function App() {
       "/DoctorForm": "Doctor Form",
       "/MBPatientList": "Microbiology Patient List",
       "/MBDoctorForm": "Microbiology Doctor Form",
+      "/CustomerComplaints": "Customer Complaints",
+      "/CustomercomplaintsQRScan": "Customer Complaints QR Scan",
+      "/FeedbackGrievance": "Feedback & Grievance",
+      "/FeedbackGrievanceReport": "Feedback & Grievance Report",
       "/SalesVisit": "Sales Visit Log",
       "/SalesDashboard": "Sales Dashboard",
       "/SalesDetailsEdit": "Sales Details Edit",
@@ -349,13 +353,28 @@ function App() {
     );
   }
 
-  // Allow public access without login for /Estimate
+  // Allow public access without login for /Estimate, /CustomercomplaintsQRScan, /FeedbackGrievance
   const isEstimatePath =
     location.pathname === "/Estimate" ||
     location.pathname === "/LIS/Estimate" ||
     location.pathname.endsWith("/Estimate") ||
     window.location.pathname.endsWith("/Estimate") ||
     window.location.pathname.toLowerCase().includes("estimate");
+
+  const isCustomercomplaintsQRScanPath =
+    location.pathname === "/CustomercomplaintsQRScan" ||
+    location.pathname === "/LIS/CustomercomplaintsQRScan" ||
+    location.pathname.endsWith("/CustomercomplaintsQRScan") ||
+    window.location.pathname.endsWith("/CustomercomplaintsQRScan") ||
+    window.location.pathname.toLowerCase().includes("customercomplaintsqrscan");
+
+  const isFeedbackGrievancePath =
+    location.pathname === "/FeedbackGrievance" ||
+    location.pathname === "/LIS/FeedbackGrievance" ||
+    location.pathname.endsWith("/FeedbackGrievance") ||
+    window.location.pathname.endsWith("/FeedbackGrievance") ||
+    window.location.pathname.toLowerCase().includes("feedbackgrievance") ;
+   
 
   if (!role) {
     if (isEstimatePath) {
@@ -366,6 +385,25 @@ function App() {
         </div>
       );
     }
+
+    if (isCustomercomplaintsQRScanPath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <CustomercomplaintsQRScan />
+        </div>
+      );
+    }
+
+    if (isFeedbackGrievancePath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <FeedbackGrievance />
+        </div>
+      );
+    }
+
     return (
       <div
         style={{
@@ -619,9 +657,17 @@ function App() {
               path="/CustomercomplaintsQRScan"
               element={<CustomercomplaintsQRScan />}
             />
+            <Route
+              path="/LIS/CustomercomplaintsQRScan"
+              element={<CustomercomplaintsQRScan />}
+            />
 
             <Route
               path="/FeedbackGrievance"
+              element={<FeedbackGrievance />}
+            />
+            <Route
+              path="/LIS/FeedbackGrievance"
               element={<FeedbackGrievance />}
             />
 
