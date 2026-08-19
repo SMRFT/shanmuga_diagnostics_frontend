@@ -653,7 +653,7 @@ const initialFormData = {
   issuetype: [], // array of selected checkbox values
   otherIssueText: "",
   comments: "",
-  assignedby: "",
+  assignedto: "",
 };
 
 const CustomerComplaints = () => {
@@ -778,7 +778,7 @@ const CustomerComplaints = () => {
     } catch (err) {
       console.error("Failed to load B2B lab employees:", err);
       showToast(
-        getErrorMessage(err, "Failed to load employees for Assigned By."),
+        getErrorMessage(err, "Failed to load employees for Assigned To."),
         "error"
       );
       setEmployees([]);
@@ -899,8 +899,8 @@ const CustomerComplaints = () => {
       newErrors.otherIssueText = "Please describe the issue";
     }
     if (!formData.comments.trim()) newErrors.comments = "Comments are required";
-    if (!isClinicalReports && !formData.assignedby)
-      newErrors.assignedby = "Assigned by is required";
+    if (!isClinicalReports && !formData.assignedto && !formData.assignedby)
+      newErrors.assignedto = "Assigned To is required";
 
     setErrors(newErrors);
     return newErrors;
@@ -923,7 +923,7 @@ const CustomerComplaints = () => {
         patient_id: formData.patientId.trim() || null,
         issuetype: issuetypeString,
         comments: formData.comments.trim(),
-        assignedby: formData.assignedby,
+        assignedto: formData.assignedto || formData.assignedby,
       };
 
       await apiRequest(`${Labbaseurl}customer_complaints/`, "POST", payload);
@@ -992,10 +992,11 @@ const CustomerComplaints = () => {
     "Patient ID",
     "Issue Type",
     "Comments",
-    ...(isClinicalReports ? [] : ["Assigned By"]),
+    ...(isClinicalReports ? [] : ["Assigned To"]),
     "Status",
     ...(isClinicalReports ? [] : ["Ageing (Days)"]),
     "Completion Comments",
+    "Created By",
   ];
 
   const buildExportRows = () =>
@@ -1010,10 +1011,11 @@ const CustomerComplaints = () => {
         row.patient_id || "",
         row.issuetype || "",
         row.comments || "",
-        ...(isClinicalReports ? [] : [employeeIdToName[row.assignedby] || row.assignedby || ""]),
+        ...(isClinicalReports ? [] : [row.assignedby_name || row.assigned_to_name || employeeIdToName[row.assignedby] || row.assignedby || ""]),
         row.status || "",
         ...(isClinicalReports ? [] : [ageing === null ? "" : ageing]),
         row.completion_comments || "",
+        row.created_by_name || employeeIdToName[row.created_by] || row.created_by || "",
       ];
     });
 
@@ -1148,27 +1150,26 @@ const CustomerComplaints = () => {
         <Table>
           <thead>
             <tr>
-              {!isClinicalReports && <Th>ID</Th>}
               <Th>Lab Name</Th>
               <Th>Patient ID</Th>
               <Th>Issue Type</Th>
               <Th>Comments</Th>
-              {!isClinicalReports && <Th>Assigned By</Th>}
+              {!isClinicalReports && <Th>Assigned To</Th>}
               <Th>Status</Th>
               <Th>Ageing (Days)</Th>
               <Th>Completion Comments</Th>
+              <Th>Created By</Th>
             </tr>
           </thead>
           <tbody>
             {visibleComplaints.map((row) => (
               <tr key={row.complaint_id}>
-                {!isClinicalReports && <Td>{row.complaint_id}</Td>}
                 <Td>{labCodeToName[row.labcode] || row.labcode || "—"}</Td>
                 <Td>{row.patient_id || "—"}</Td>
                 <Td>{row.issuetype || "—"}</Td>
                 <Td>{row.comments || "—"}</Td>
                 {!isClinicalReports && (
-                  <Td>{employeeIdToName[row.assignedby] || row.assignedby || "—"}</Td>
+                  <Td>{row.assignedto_name || row.assigned_to_name || row.assignedby_name || employeeIdToName[row.assignedto] || employeeIdToName[row.assignedby] || row.assignedto || row.assignedby || "—"}</Td>
                 )}
                 <Td>
                   <StatusBadge $status={row.status}>{row.status || "—"}</StatusBadge>
@@ -1224,6 +1225,7 @@ const CustomerComplaints = () => {
                     </CompleteButton>
                   )}
                 </Td>
+                <Td><strong>{row.created_by_name || employeeIdToName[row.created_by] || row.created_by || "—"}</strong></Td>
               </tr>
             ))}
           </tbody>
@@ -1328,11 +1330,11 @@ const CustomerComplaints = () => {
 
               {!isClinicalReports && (
                 <FormGroup>
-                  <Label htmlFor="complaint-assignedby">Assigned By</Label>
+                  <Label htmlFor="complaint-assignedto">Assigned To</Label>
                   <Select
-                    id="complaint-assignedby"
-                    value={formData.assignedby}
-                    onChange={handleChange("assignedby")}
+                    id="complaint-assignedto"
+                    value={formData.assignedto || formData.assignedby || ""}
+                    onChange={handleChange("assignedto")}
                   >
                     <option value="">Select employee</option>
                     {employees.map((emp, idx) => (
@@ -1341,7 +1343,9 @@ const CustomerComplaints = () => {
                       </option>
                     ))}
                   </Select>
-                  {errors.assignedby && <ErrorText>{errors.assignedby}</ErrorText>}
+                  {(errors.assignedto || errors.assignedby) && (
+                    <ErrorText>{errors.assignedto || errors.assignedby}</ErrorText>
+                  )}
                 </FormGroup>
               )}
 
