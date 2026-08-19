@@ -1241,7 +1241,7 @@ const CustomerComplaints = () => {
               <CloseIconButton onClick={closeModal} aria-label="Close" title="Close">
                 ×
               </CloseIconButton>
-              <ModalTitle>Add Customer Complaint</ModalTitle>
+              <ModalTitle>Feedback & Grievance </ModalTitle>
 
               {!isClinicalReports && (
                 <FormGroup>

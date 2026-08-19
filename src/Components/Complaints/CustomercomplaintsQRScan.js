@@ -1,28 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import ReactDOM from "react-dom";
-import styled, { keyframes } from "styled-components";
+import React, { useState } from "react";
+import styled from "styled-components";
 import { QRCodeCanvas } from "qrcode.react";
-import apiRequest from "../Auth/apiRequest";
-import {
-  ISSUE_TYPE_OPTIONS,
-  OTHER_ISSUE_VALUE,
-} from "../Constantdata/Customercomplaintconstants";
-
-const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
 const ACCENT = "#b673c9";
 const ACCENT_DARK = "#895697";
-
-const initialFormData = {
-  labcode: "",
-  patientId: "",
-  issuetype: [],
-  otherIssueText: "",
-  comments: "",
-  assignedby: "",
-};
-
-// ── Styled Components ───────────────────────────────────────────────────
 
 const Container = styled.div`
   min-height: 100vh;
@@ -31,21 +12,27 @@ const Container = styled.div`
   justify-content: center;
   align-items: center;
   padding: 30px 16px;
+  box-sizing: border-box;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+
+  @media (max-width: 480px) {
+    padding: 16px 12px;
+  }
 `;
 
 const Card = styled.div`
   background: #ffffff;
   width: 100%;
-  max-width: ${(props) => (props.$isForm ? "600px" : "460px")};
+  max-width: 480px;
   border-radius: 20px;
-  padding: ${(props) => (props.$isForm ? "36px 32px" : "40px 32px")};
+  padding: 40px 32px;
   box-shadow: 0 16px 40px rgba(137, 86, 151, 0.14);
   border: 1px solid rgba(182, 115, 201, 0.25);
   display: flex;
   flex-direction: column;
-  align-items: ${(props) => (props.$isForm ? "stretch" : "center")};
-  text-align: ${(props) => (props.$isForm ? "left" : "center")};
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
 
   @media (max-width: 480px) {
     padding: 24px 18px;
@@ -54,8 +41,6 @@ const Card = styled.div`
 `;
 
 const BrandBadge = styled.div`
-  display: inline-block;
-  align-self: center;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -65,7 +50,11 @@ const BrandBadge = styled.div`
   padding: 5px 14px;
   border-radius: 20px;
   margin-bottom: 12px;
-  text-align: center;
+
+  @media (max-width: 480px) {
+    font-size: 11px;
+    padding: 4px 12px;
+  }
 `;
 
 const Title = styled.h1`
@@ -73,10 +62,9 @@ const Title = styled.h1`
   font-weight: 700;
   color: #2b2230;
   margin: 0 0 8px 0;
-  text-align: center;
 
   @media (max-width: 480px) {
-    font-size: 21px;
+    font-size: 20px;
   }
 `;
 
@@ -85,7 +73,11 @@ const Subtitle = styled.p`
   color: #6d6473;
   margin: 0 0 24px 0;
   line-height: 1.5;
-  text-align: center;
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
 `;
 
 const QRFrame = styled.div`
@@ -94,626 +86,272 @@ const QRFrame = styled.div`
   border-radius: 16px;
   border: 2px solid #f0e6f5;
   box-shadow: 0 8px 24px rgba(137, 86, 151, 0.08);
-  margin-bottom: 0;
+  margin-bottom: 22px;
   display: flex;
   justify-content: center;
   align-items: center;
-`;
+  max-width: 100%;
+  box-sizing: border-box;
 
-// ── Form Styled Components ──────────────────────────────────────────────
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 18px;
-`;
-
-const Label = styled.label`
-  font-size: 13px;
-  font-weight: 600;
-  color: #4a3e52;
-  margin-bottom: 6px;
-`;
-
-const TextInput = styled.input`
-  padding: 10px 12px;
-  border: 1px solid #d5dede;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #333;
-  background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${ACCENT};
-    box-shadow: 0 0 0 3px rgba(182, 115, 201, 0.15);
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
   }
-
-  &::placeholder {
-    color: #a4b3b3;
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 10px 12px;
-  border: 1px solid #d5dede;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #333;
-  background: #fff;
-  min-height: 90px;
-  resize: vertical;
-  font-family: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${ACCENT};
-    box-shadow: 0 0 0 3px rgba(182, 115, 201, 0.15);
-  }
-
-  &::placeholder {
-    color: #a4b3b3;
-  }
-`;
-
-const Select = styled.select`
-  padding: 10px 12px;
-  border: 1px solid #d5dede;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #333;
-  background: #fff;
-  transition: border-color 0.15s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${ACCENT};
-  }
-`;
-
-const LabSearchWrapper = styled.div`
-  position: relative;
-`;
-
-const LabDropdownList = styled.div`
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  background: #fff;
-  border: 1px solid #d5dede;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  z-index: 20;
-`;
-
-const LabDropdownItem = styled.div`
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-
-  &:hover {
-    background: #f7edfa;
-    color: ${ACCENT_DARK};
-  }
-`;
-
-const LabDropdownEmpty = styled.div`
-  padding: 10px 12px;
-  font-size: 13px;
-  color: #7a8a8a;
-`;
-
-const CheckboxGroup = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #333;
-  cursor: pointer;
-  background: #fdfbfd;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #efe8f2;
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: #f7eff9;
-  }
-
-  input {
-    accent-color: ${ACCENT_DARK};
-    cursor: pointer;
-  }
-`;
-
-const ErrorText = styled.div`
-  color: #d64545;
-  font-size: 12px;
-  margin-top: 4px;
-  font-weight: 500;
-`;
-
-const SubmitButton = styled.button`
-  background: ${ACCENT};
-  color: #fff;
-  border: none;
-  width: 100%;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 12px;
-  transition: background 0.15s ease, transform 0.1s ease;
-
-  &:hover:not(:disabled) {
-    background: ${ACCENT_DARK};
-  }
-
-  &:active:not(:disabled) {
-    transform: scale(0.99);
-  }
-
-  &:disabled {
-    opacity: 0.65;
-    cursor: not-allowed;
-  }
-`;
-
-const SuccessBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 30px 12px;
-`;
-
-const SuccessIcon = styled.div`
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: #eaf8f0;
-  color: #27ae60;
-  font-size: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 14px rgba(39, 174, 96, 0.2);
-`;
-
-const SuccessTitle = styled.h2`
-  font-size: 22px;
-  font-weight: 700;
-  color: #2b2230;
-  margin: 0 0 10px 0;
-`;
-
-const SuccessMessage = styled.p`
-  font-size: 15px;
-  color: #555;
-  line-height: 1.6;
-  max-width: 420px;
-  margin: 0 0 28px 0;
-`;
-
-const ResetButton = styled.button`
-  background: ${ACCENT};
-  color: #fff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: ${ACCENT_DARK};
-  }
-`;
-
-const toastSlideIn = keyframes`
-  from {
-    transform: translateX(24px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-`;
-
-const ToastContainer = styled.div`
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 3000;
 
   @media (max-width: 480px) {
-    left: 16px;
-    right: 16px;
-    top: 16px;
+    padding: 12px;
+    margin-bottom: 18px;
   }
 `;
 
-const ToastItem = styled.div`
-  min-width: 240px;
-  max-width: 360px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
-  background: ${(props) => (props.$type === "error" ? "#d64545" : "#2e9e5b")};
-  animation: ${toastSlideIn} 0.2s ease-out;
+const InstructionBox = styled.div`
+  background: #faf6fc;
+  border: 1px solid #eedff5;
+  border-radius: 10px;
+  padding: 12px 14px;
+  width: 100%;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  box-sizing: border-box;
+
+  @media (max-width: 480px) {
+    padding: 10px 12px;
+    margin-bottom: 16px;
+  }
 `;
 
-// ── Main Component ─────────────────────────────────────────────────────
+const IconCircle = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: ${ACCENT};
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+`;
+
+const InstructionText = styled.div`
+  font-size: 13px;
+  color: #4a3e52;
+  line-height: 1.4;
+  font-weight: 500;
+
+  @media (max-width: 480px) {
+    font-size: 12.5px;
+  }
+`;
+
+const LinkRow = styled.div`
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+
+  @media (max-width: 480px) {
+    margin-bottom: 16px;
+  }
+`;
+
+const LinkInput = styled.input`
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d5dede;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #555;
+  background: #fdfbfd;
+  min-width: 0;
+
+  &:focus {
+    outline: none;
+    border-color: ${ACCENT};
+  }
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+`;
+
+const CopyButton = styled.button`
+  background: #eef2f2;
+  color: ${ACCENT_DARK};
+  border: 1px solid #d5dede;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+  min-height: 40px;
+
+  &:hover {
+    background: #e2ecec;
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+`;
+
+const ActionRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+`;
+
+const ActionButton = styled.button`
+  background: ${(props) => (props.$primary ? ACCENT : "#6c757d")};
+  color: #ffffff;
+  border: none;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-height: 44px;
+
+  &:hover {
+    background: ${(props) => (props.$primary ? ACCENT_DARK : "#5a6268")};
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 480px) {
+    font-size: 14px;
+    padding: 11px;
+  }
+`;
 
 const CustomercomplaintsQRScan = () => {
-  // Check whether to show the Feedback & Grievance form alone or the QR code alone
-  const isFormMode = useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    const path = window.location.pathname.toLowerCase();
-    return (
-      params.get("form") === "1" ||
-      params.get("mode") === "feedback" ||
-      path.endsWith("/feedback")
-    );
-  }, []);
+  const [copied, setCopied] = useState(false);
 
-  const formUrl = `${window.location.origin}/CustomercomplaintsQRScan?form=1`;
+  const formUrl = `${window.location.origin}/FeedbackGrievance`;
 
-  // Form states
-  const [formData, setFormData] = useState(initialFormData);
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const [clinicalNames, setClinicalNames] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [labSearchTerm, setLabSearchTerm] = useState("");
-  const [labDropdownOpen, setLabDropdownOpen] = useState(false);
-  const [toasts, setToasts] = useState([]);
-
-  const showToast = useCallback((message, type = "success") => {
-    const id = `${Date.now()}-${Math.random()}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  }, []);
-
-  const loadClinicalNames = useCallback(async () => {
-    try {
-      const res = await apiRequest(`${Labbaseurl}get_b2b_clinical_names/`, "GET");
-      const list = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.results)
-        ? res.results
-        : [];
-      setClinicalNames(list);
-    } catch (err) {
-      console.error("Failed to load clinical names:", err);
-    }
-  }, []);
-
-  const loadEmployees = useCallback(async () => {
-    try {
-      const res = await apiRequest(`${Labbaseurl}get_b2b_lab_employees/`, "GET");
-      const list = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.data?.data)
-        ? res.data.data
-        : [];
-      setEmployees(list);
-    } catch (err) {
-      console.error("Failed to load employees:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isFormMode) {
-      loadClinicalNames();
-      loadEmployees();
-    }
-  }, [isFormMode, loadClinicalNames, loadEmployees]);
-
-  const filteredClinicalNames = clinicalNames.filter((cn) => {
-    const name = cn.clinicalname || "";
-    const code = cn.referrerCode || "";
-    const q = labSearchTerm.trim().toLowerCase();
-    return name.toLowerCase().includes(q) || code.toLowerCase().includes(q);
-  });
-
-  const handleLabSearchChange = (e) => {
-    const val = e.target.value;
-    setLabSearchTerm(val);
-    setFormData((prev) => ({ ...prev, labcode: val }));
-    setLabDropdownOpen(true);
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(formUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSelectLab = (cn) => {
-    setFormData((prev) => ({
-      ...prev,
-      labcode: cn.referrerCode || cn.clinicalname,
-    }));
-    setLabSearchTerm(cn.clinicalname || cn.referrerCode);
-    setLabDropdownOpen(false);
+  const handleDownloadQR = () => {
+    const canvas = document.getElementById("qr-canvas-display");
+    if (!canvas) return;
+    const pngUrl = canvas.toDataURL("image/png");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = "shanmuga-feedback-qr.png";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
   };
 
-  const handleChange = (field) => (e) => {
-    const val = e.target.value;
-    setFormData((prev) => ({ ...prev, [field]: val }));
-  };
-
-  const handleIssueTypeToggle = (value) => {
-    setFormData((prev) => {
-      const exists = prev.issuetype.includes(value);
-      const next = exists
-        ? prev.issuetype.filter((v) => v !== value)
-        : [...prev.issuetype, value];
-      return {
-        ...prev,
-        issuetype: next,
-        otherIssueText: exists && value === OTHER_ISSUE_VALUE ? "" : prev.otherIssueText,
-      };
-    });
-  };
-
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.labcode.trim()) {
-      newErrors.labcode = "Lab Name is required";
-    }
-    if (formData.issuetype.length === 0) {
-      newErrors.issuetype = "Please select at least one issue type";
-    }
-    if (
-      formData.issuetype.includes(OTHER_ISSUE_VALUE) &&
-      !formData.otherIssueText.trim()
-    ) {
-      newErrors.otherIssueText = "Please specify the issue";
-    }
-    if (!formData.comments.trim()) {
-      newErrors.comments = "Comments / feedback are required";
-    }
-    setErrors(newErrors);
-    return newErrors;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      const firstKey = Object.keys(validationErrors)[0];
-      showToast(validationErrors[firstKey], "error");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const issuetypeString = formData.issuetype
-        .map((value) =>
-          value === OTHER_ISSUE_VALUE ? formData.otherIssueText.trim() : value
-        )
-        .join(", ");
-
-      const payload = {
-        labcode: formData.labcode.trim(),
-        patient_id: formData.patientId.trim() || null,
-        issuetype: issuetypeString,
-        comments: formData.comments.trim(),
-        assignedby: formData.assignedby || "",
-      };
-
-      const res = await apiRequest(`${Labbaseurl}customer_complaints/`, "POST", payload);
-      if (res && res.success === false) {
-        showToast(res.error || "Failed to submit. Please try again.", "error");
-        return;
-      }
-
-      setSubmitted(true);
-      showToast("Feedback submitted successfully!", "success");
-    } catch (err) {
-      console.error("Failed to submit feedback:", err);
-      showToast("Failed to submit feedback. Please try again.", "error");
-    } finally {
-      setSaving(false);
-    }
+  const handlePrintQR = () => {
+    const canvas = document.getElementById("qr-canvas-display");
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Feedback & Grievance QR Code - Shanmuga Diagnostics</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 40px 20px; margin: 0; }
+            .brand { color: #895697; font-size: 20px; font-weight: bold; margin-bottom: 6px; }
+            .title { font-size: 22px; color: #222; margin-bottom: 12px; font-weight: bold; }
+            .desc { color: #666; font-size: 14px; margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+            img { width: 260px; height: 260px; }
+          </style>
+        </head>
+        <body>
+          <div class="brand">Shanmuga Diagnostics</div>
+          <div class="title">Feedback And Grievance</div>
+          <div class="desc">Scan this QR code with your mobile camera to submit your feedback or grievance directly.</div>
+          <img src="${dataUrl}" />
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
     <Container>
-      <Card $isForm={isFormMode}>
+      <Card>
         <BrandBadge>Shanmuga Diagnostics</BrandBadge>
+        <Title>Feedback & Grievance QR Code</Title>
+        <Subtitle>
+          Scan this QR code with any smartphone camera to open and submit the Feedback & Grievance form.
+        </Subtitle>
 
-        {isFormMode ? (
-          /* ── Feedback And Grievance Form Alone ── */
-          submitted ? (
-            <SuccessBox>
-              <SuccessIcon>✓</SuccessIcon>
-              <SuccessTitle>Thank You!</SuccessTitle>
-              <SuccessMessage>
-                Your feedback and grievance have been recorded successfully. Our team will review your submission and take necessary action promptly.
-              </SuccessMessage>
-              <ResetButton
-                type="button"
-                onClick={() => {
-                  setFormData(initialFormData);
-                  setLabSearchTerm("");
-                  setSubmitted(false);
-                }}
-              >
-                Submit Another Response
-              </ResetButton>
-            </SuccessBox>
-          ) : (
-            <form onSubmit={handleSubmit} style={{ width: "100%" }}>
-              <Title>Feedback And Grievance</Title>
-              <Subtitle>
-                We value your feedback. Please fill in the details below to submit your feedback or grievance.
-              </Subtitle>
+        <QRFrame>
+          <QRCodeCanvas
+            id="qr-canvas-display"
+            value={formUrl}
+            size={220}
+            level="H"
+            includeMargin={true}
+          />
+        </QRFrame>
 
-              <FormGroup>
-                <Label htmlFor="qr-labname">Lab Name *</Label>
-                <LabSearchWrapper>
-                  <TextInput
-                    id="qr-labname"
-                    placeholder="Search and select a lab"
-                    autoComplete="off"
-                    value={labSearchTerm}
-                    onChange={handleLabSearchChange}
-                    onFocus={() => setLabDropdownOpen(true)}
-                    onBlur={() => setTimeout(() => setLabDropdownOpen(false), 200)}
-                  />
-                  {labDropdownOpen && (
-                    <LabDropdownList>
-                      {filteredClinicalNames.length === 0 ? (
-                        <LabDropdownEmpty>No matching labs found</LabDropdownEmpty>
-                      ) : (
-                        filteredClinicalNames.map((cn) => (
-                          <LabDropdownItem
-                            key={cn.referrerCode}
-                            onMouseDown={() => handleSelectLab(cn)}
-                          >
-                            {cn.clinicalname} ({cn.referrerCode})
-                          </LabDropdownItem>
-                        ))
-                      )}
-                    </LabDropdownList>
-                  )}
-                </LabSearchWrapper>
-                {errors.labcode && <ErrorText>{errors.labcode}</ErrorText>}
-              </FormGroup>
+        <InstructionBox>
+          <IconCircle>📱</IconCircle>
+          <InstructionText>
+            Open camera on mobile device & point at QR code to open the <strong>Feedback & Grievance</strong> form.
+          </InstructionText>
+        </InstructionBox>
 
-              <FormGroup>
-                <Label htmlFor="qr-patientid">Patient ID (Optional)</Label>
-                <TextInput
-                  id="qr-patientid"
-                  placeholder="Enter Patient ID if applicable"
-                  value={formData.patientId}
-                  onChange={handleChange("patientId")}
-                />
-              </FormGroup>
+        <LinkRow>
+          <LinkInput type="text" readOnly value={formUrl} />
+          <CopyButton type="button" onClick={handleCopyLink}>
+            {copied ? "Copied!" : "Copy Link"}
+          </CopyButton>
+        </LinkRow>
 
-              <FormGroup>
-                <Label>Issue Type *</Label>
-                <CheckboxGroup>
-                  {ISSUE_TYPE_OPTIONS.map((opt) => (
-                    <CheckboxLabel key={opt.value}>
-                      <input
-                        type="checkbox"
-                        checked={formData.issuetype.includes(opt.value)}
-                        onChange={() => handleIssueTypeToggle(opt.value)}
-                      />
-                      {opt.label}
-                    </CheckboxLabel>
-                  ))}
-                </CheckboxGroup>
-                {formData.issuetype.includes(OTHER_ISSUE_VALUE) && (
-                  <TextInput
-                    style={{ marginTop: "8px" }}
-                    placeholder="Please specify the issue"
-                    value={formData.otherIssueText}
-                    onChange={handleChange("otherIssueText")}
-                  />
-                )}
-                {errors.issuetype && <ErrorText>{errors.issuetype}</ErrorText>}
-                {errors.otherIssueText && <ErrorText>{errors.otherIssueText}</ErrorText>}
-              </FormGroup>
-
-              <FormGroup>
-                <Label htmlFor="qr-comments">Comments / Grievance Details *</Label>
-                <TextArea
-                  id="qr-comments"
-                  placeholder="Please describe the issue or feedback in detail..."
-                  value={formData.comments}
-                  onChange={handleChange("comments")}
-                />
-                {errors.comments && <ErrorText>{errors.comments}</ErrorText>}
-              </FormGroup>
-
-              {employees.length > 0 && (
-                <FormGroup>
-                  <Label htmlFor="qr-assignedby">Assigned By (Optional)</Label>
-                  <Select
-                    id="qr-assignedby"
-                    value={formData.assignedby}
-                    onChange={handleChange("assignedby")}
-                  >
-                    <option value="">Select employee</option>
-                    {employees.map((emp, idx) => (
-                      <option key={`${emp.employeeId}-${idx}`} value={emp.employeeId}>
-                        {emp.employeeName}
-                      </option>
-                    ))}
-                  </Select>
-                </FormGroup>
-              )}
-
-              <SubmitButton type="submit" disabled={saving}>
-                {saving ? "Submitting..." : "Submit Feedback & Grievance"}
-              </SubmitButton>
-            </form>
-          )
-        ) : (
-          /* ── QR Scan Alone ── */
-          <>
-            <Title>Feedback & Grievance QR Code</Title>
-            <Subtitle>
-              Scan this QR code with any smartphone camera to open and submit the Feedback & Grievance form.
-            </Subtitle>
-
-            <QRFrame>
-              <QRCodeCanvas
-                id="qr-canvas-display"
-                value={formUrl}
-                size={240}
-                level="H"
-                includeMargin={true}
-              />
-            </QRFrame>
-          </>
-        )}
+        <ActionRow>
+          <ActionButton $primary type="button" onClick={handleDownloadQR}>
+            ⬇ Download
+          </ActionButton>
+          <ActionButton type="button" onClick={handlePrintQR}>
+            🖨 Print QR
+          </ActionButton>
+          <ActionButton
+            $primary
+            type="button"
+            onClick={() => window.open(formUrl, "_blank")}
+            style={{ background: "#4e73df" }}
+          >
+            ↗ Open Form
+          </ActionButton>
+        </ActionRow>
       </Card>
-
-      {toasts.length > 0 &&
-        ReactDOM.createPortal(
-          <ToastContainer>
-            {toasts.map((t) => (
-              <ToastItem key={t.id} $type={t.type}>
-                {t.message}
-              </ToastItem>
-            ))}
-          </ToastContainer>,
-          document.body
-        )}
     </Container>
   );
 };

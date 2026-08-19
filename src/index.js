@@ -22,6 +22,7 @@ function setforlocaldev() {
   return dev_token;
 }
 
+
 // --- Function to redirect to login ---
 function redirectToLogin() {
   if (REDIRECT_URL) {
@@ -92,7 +93,11 @@ function getUserRole(allowedActions) {
 
 // --- Main execution ---
 (function main() {
-  const isEstimatePath = window.location.pathname.toLowerCase().includes("estimate");
+  const path = window.location.pathname.toLowerCase();
+  const isPublicRoute =
+    path.includes("customercomplaintsqrscan") ||
+    path.includes("feedbackgrievance") ||
+    path.includes("estimate");
 
   try {
     console.log("Starting token validation...");
@@ -112,8 +117,8 @@ function getUserRole(allowedActions) {
     // If still no token (development token is empty), redirect to login unless on public route
     if (!accessToken || accessToken.trim() === "") {
       console.log("❌ No valid token available");
-      if (isEstimatePath) {
-        console.log("Public estimate route detected, rendering App without token...");
+      if (isPublicRoute) {
+        console.log("Public route detected, rendering App without token...");
         const root = ReactDOM.createRoot(document.getElementById("root"));
         root.render(
           <React.StrictMode>
@@ -122,6 +127,7 @@ function getUserRole(allowedActions) {
         );
         return;
       }
+
       localStorage.removeItem("access_token"); // Clean up
       redirectToLogin();
       return; // Stop execution here
@@ -156,22 +162,14 @@ function getUserRole(allowedActions) {
       );
     }
 
-    // Store user payload and extracted information for app usage
-    localStorage.setItem("user_payload", JSON.stringify(userPayload));
-    localStorage.setItem("employeeId", employeeId);
+    // Store additional user data for the app
+    localStorage.setItem("employee_id", employeeId);
     localStorage.setItem("name", name);
-    localStorage.setItem("userEmail", userEmail);
     localStorage.setItem("role", userRole);
+    localStorage.setItem("email", userEmail);
+    localStorage.setItem("user_payload", JSON.stringify(userPayload));
 
-    console.log("✅ User payload and extracted data stored in localStorage");
-    console.log("Stored data:", {
-      employeeId,
-      name,
-      userEmail,
-      role: userRole,
-    });
-
-    // Token is valid, render app
+    // Render the React application
     console.log("✅ Rendering lab app...");
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(
@@ -200,8 +198,8 @@ function getUserRole(allowedActions) {
     // Clean up invalid token
     localStorage.removeItem("access_token");
 
-    if (isEstimatePath) {
-      console.log("Public estimate route detected, rendering App despite token validation failure...");
+    if (isPublicRoute) {
+      console.log("Public route detected, rendering App despite token validation failure...");
       const root = ReactDOM.createRoot(document.getElementById("root"));
       root.render(
         <React.StrictMode>
