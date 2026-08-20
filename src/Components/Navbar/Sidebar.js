@@ -1508,16 +1508,22 @@ const Sidebar = () => {
                   Cancelled Bill
                 </SubLink>
                 <SubLink
-                  to="/FinalBillcancel"
+                  to="/Cancelledbillreport"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Final Bill Cancel
+                  Cancelled Bill Report
                 </SubLink>
                 <SubLink
                   to="/MonthEndCalculation"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Month End Calculation
+                </SubLink>
+                <SubLink
+                  to="/FranchiseHomeCollection"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Home Collection
                 </SubLink>
               </DropdownContent>
 
@@ -2066,16 +2072,22 @@ const Sidebar = () => {
                   Cancelled Bill
                 </SubLink>
                 <SubLink
-                  to="/FinalBillcancel"
+                  to="/Cancelledbillreport"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Final Bill Cancel
+                  Cancelled Bill Report
                 </SubLink>
                 <SubLink
                   to="/MonthEndCalculation"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Month End Calculation
+                </SubLink>
+                <SubLink
+                  to="/FranchiseHomeCollection"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Home Collection
                 </SubLink>
               </DropdownContent>
 
@@ -2598,16 +2610,22 @@ const Sidebar = () => {
                   Cancelled Bill
                 </SubLink>
                 <SubLink
-                  to="/FinalBillcancel"
+                  to="/Cancelledbillreport"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  Final Bill Cancel
+                  Cancelled Bill Report
                 </SubLink>
                 <SubLink
                   to="/MonthEndCalculation"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   Month End Calculation
+                </SubLink>
+                <SubLink
+                  to="/FranchiseHomeCollection"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Home Collection
                 </SubLink>
               </DropdownContent>
 
