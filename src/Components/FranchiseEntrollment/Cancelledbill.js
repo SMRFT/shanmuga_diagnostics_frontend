@@ -1,45 +1,134 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import apiRequest from "../Auth/apiRequest";
 import styled from "styled-components";
 
-// Styled Components
+// ================= Styled Components =================
 const Container = styled.div`
+  max-width: 1500px;
+  margin: 0 auto;
   min-height: 100vh;
-  background: linear-gradient(135deg, rgba(240, 147, 251, 0.05), rgba(102, 126, 234, 0.05));
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.04), rgba(102, 126, 234, 0.04));
   padding: 2rem;
   font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 `;
 
 const Header = styled.div`
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
+
+  h1 {
+    background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: 0.5px;
+  }
+
+  p {
+    color: #718096;
+    font-size: 1.05rem;
+    margin: 0;
+  }
 `;
 
-const Title = styled.h1`
-  background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0;
-  letter-spacing: 0.5px;
+const StatsBar = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
 `;
 
-const Subtitle = styled.p`
-  color: #718096;
-  font-size: 1.1rem;
-  margin-top: 0.5rem;
-  font-weight: 400;
+const StatCard = styled.div`
+  background: #ffffff;
+  padding: 1.2rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(225, 232, 255, 0.8);
+  text-align: center;
+  min-width: 140px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  }
+
+  .number {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: ${props => props.$color || "#667eea"};
+    display: block;
+    line-height: 1.2;
+  }
+
+  .label {
+    color: #4a5568;
+    font-size: 0.82rem;
+    margin-top: 0.35rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+`;
+
+const FilterSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
+const FilterTabs = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const FilterTab = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid ${props => props.$active ? "#667eea" : "#e2e8f0"};
+  background: ${props => props.$active ? "linear-gradient(135deg, #667eea, #764ba2)" : "#ffffff"};
+  color: ${props => props.$active ? "#ffffff" : "#4a5568"};
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #667eea;
+    color: ${props => props.$active ? "#ffffff" : "#667eea"};
+  }
+`;
+
+const SearchInput = styled.input`
+  padding: 0.55rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  min-width: 250px;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+  }
 `;
 
 const TableWrapper = styled.div`
-  max-width: 1500px;
-  margin: 0 auto;
   background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   border: 1px solid rgba(225, 232, 255, 0.8);
 `;
@@ -51,7 +140,7 @@ const TableScroll = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 960px;
+  min-width: 1000px;
 `;
 
 const Thead = styled.thead`
@@ -60,9 +149,9 @@ const Thead = styled.thead`
 
 const Th = styled.th`
   text-align: left;
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.2rem;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -73,41 +162,60 @@ const Tr = styled.tr`
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(38, 204, 204, 0.08);
+    background: rgba(240, 244, 255, 0.6);
   }
 
   &:not(:last-child) {
-    border-bottom: 1px solid #eef1f1;
+    border-bottom: 1px solid #edf2f7;
   }
 `;
 
 const Td = styled.td`
-  padding: 0.9rem 1.25rem;
-  font-size: 0.92rem;
-  color: #333;
+  padding: 0.9rem 1.2rem;
+  font-size: 0.9rem;
+  color: #2d3748;
   vertical-align: middle;
 `;
 
 const TestNameCell = styled(Td)`
   font-weight: 600;
   color: #006666;
+  max-width: 280px;
 `;
 
 const StatusBadge = styled.span`
-  background: ${props =>
-    props.status === 'Cancel Accepted' ? '#ff4757' :
-    props.status === 'Cancel Requested' ? '#ffa502' :
-    props.status === 'cancelled' ? '#ff4757' :
-    props.status === 'pending' ? '#ffa502' : '#26cccc'
-  };
-  color: white;
-  padding: 0.3rem 0.8rem;
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
   border-radius: 20px;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  background: ${props => {
+    switch (props.status) {
+      case 'Cancel Requested':
+        return '#f39c12';
+      case 'Cancel Accepted':
+        return '#3498db';
+      case 'Cancel Approved':
+        return '#27ae60';
+      case 'Rejected':
+      case 'Reject':
+        return '#e74c3c';
+      default:
+        return '#718096';
+    }
+  }};
+  color: white;
+`;
+
+const DateInfo = styled.div`
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 0.3rem;
+  white-space: nowrap;
+  font-weight: 500;
 `;
 
 const MRPTag = styled.span`
@@ -121,36 +229,46 @@ const MRPTag = styled.span`
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 `;
 
 const ActionButton = styled.button`
-  padding: 0.45rem 0.9rem;
   border: none;
+  padding: 0.45rem 0.85rem;
   border-radius: 6px;
-  font-size: 0.75rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.74rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   white-space: nowrap;
 
-  ${props => props.$variant === 'approve' ? `
+  ${props =>
+    props.$variant === 'approve'
+      ? `
     background: #27ae60;
     color: white;
 
     &:hover {
-      background: #229954;
+      background: #219955;
       transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);
     }
+  `
+      : props.$variant === 'reject'
+        ? `
+    background: #e74c3c;
+    color: white;
 
-    &:disabled {
-      background: #95a5a6;
-      cursor: not-allowed;
-      transform: none;
+    &:hover {
+      background: #c0392b;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
     }
-  ` : props.$variant === 'view' ? `
+  `
+        : `
     background: #006666;
     color: white;
 
@@ -158,25 +276,18 @@ const ActionButton = styled.button`
       background: #004d4d;
       transform: translateY(-1px);
     }
-  ` : `
-    background: #e74c3c;
-    color: white;
-
-    &:hover {
-      background: #c0392b;
-      transform: translateY(-1px);
-    }
-
-    &:disabled {
-      background: #95a5a6;
-      cursor: not-allowed;
-      transform: none;
-    }
   `}
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
 `;
 
 const NoActionLabel = styled.span`
-  color: #aaa;
+  color: #a0aec0;
   font-size: 0.8rem;
   font-style: italic;
 `;
@@ -196,7 +307,7 @@ const ModalCard = styled.div`
   background: white;
   border-radius: 16px;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -262,16 +373,18 @@ const ModalTestList = styled.ol`
   padding-left: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.8rem;
 `;
 
 const ModalTestItem = styled.li`
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   color: #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed #edf2f7;
 `;
 
 const ModalTestName = styled.span`
@@ -286,33 +399,33 @@ const EmptyState = styled.div`
   border-radius: 16px;
   max-width: 500px;
   margin: 0 auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-`;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 
-const EmptyStateIcon = styled.div`
-  font-size: 4rem;
-  color: #00a0a0;
-  margin-bottom: 1rem;
-`;
+  .icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    color: #667eea;
+  }
 
-const EmptyStateText = styled.p`
-  color: #666;
-  font-size: 1.2rem;
-  margin: 0;
+  .text {
+    color: #718096;
+    font-size: 1.1rem;
+    margin: 0;
+  }
 `;
 
 const LoadingSpinner = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 200px;
+  height: 250px;
 
   &::after {
     content: '';
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid white;
+    width: 45px;
+    height: 45px;
+    border: 4px solid rgba(102, 126, 234, 0.2);
+    border-top: 4px solid #667eea;
     border-radius: 50%;
     animation: spin 1s ease-in-out infinite;
   }
@@ -324,11 +437,13 @@ const LoadingSpinner = styled.div`
   }
 `;
 
-const CancelRequestedTests = () => {
+const Cancelledbill = () => {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingTests, setProcessingTests] = useState(new Set());
   const [viewItem, setViewItem] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
@@ -346,23 +461,35 @@ const CancelRequestedTests = () => {
     setLoading(false);
   };
 
-  const handleTestAction = async (patientId, barcode, testName, action) => {
-    const testKey = `${patientId}_${barcode}_${testName}`;
+  const handleTestAction = async (patientId, barcode, testName, testId, action) => {
+    const testKey = `${patientId}_${barcode}_${testId || testName}`;
     setProcessingTests(prev => new Set([...prev, testKey]));
+
+    const targetStatus = action === 'approve' ? 'Cancel Approved' : 'Rejected';
+    const currentUserId = localStorage.getItem("auth-user-id") || localStorage.getItem("user_id") || "60157";
 
     const response = await apiRequest(`${Labbaseurl}update-test-status/`, "POST", {
       patient_id: patientId,
       barcode: barcode,
       test_name: testName,
-      new_status: action === 'approve' ? 'Cancel Accepted' : 'Rejected'
+      test_id: testId,
+      action: action,
+      new_status: targetStatus,
+      approved_by: currentUserId
     });
 
-    if (response.success) {
+    if (response.success && (response.data?.success || response.data?.message)) {
+      toast.success(`Test ${action === 'approve' ? 'Cancel Approved' : 'Rejected'} successfully!`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
       fetchTests();
-      alert(`Test ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
     } else {
       console.error(`Error ${action}ing test:`, response.error);
-      alert(`Error ${action}ing test. Please try again.`);
+      toast.error(`Error processing cancellation: ${response.error || "Please try again."}`, {
+        position: "top-right",
+        autoClose: 4000,
+      });
     }
 
     setProcessingTests(prev => {
@@ -370,6 +497,63 @@ const CancelRequestedTests = () => {
       newSet.delete(testKey);
       return newSet;
     });
+  };
+
+  // Flatten tests for statistics & filtering
+  const allTestItems = tests.flatMap(item =>
+    (item.cancel_requested_tests || []).map(test => ({
+      ...item,
+      test
+    }))
+  );
+
+  const totalPatients = tests.length;
+  const totalTestRequests = allTestItems.length;
+  const pendingCount = allTestItems.filter(i => i.test.status === "Cancel Requested" || i.test.status === "Cancel Accepted").length;
+  const approvedCount = allTestItems.filter(i => i.test.status === "Cancel Approved").length;
+  const rejectedCount = allTestItems.filter(i => i.test.status === "Rejected" || i.test.status === "Reject").length;
+
+  const filteredItems = allTestItems.filter(entry => {
+    const status = entry.test.status;
+    let matchesStatus = true;
+    if (statusFilter === "pending") {
+      matchesStatus = status === "Cancel Requested" || status === "Cancel Accepted";
+    } else if (statusFilter === "approved") {
+      matchesStatus = status === "Cancel Approved";
+    } else if (statusFilter === "rejected") {
+      matchesStatus = status === "Rejected" || status === "Reject";
+    }
+
+    if (!matchesStatus) return false;
+
+    if (searchTerm.trim() !== "") {
+      const term = searchTerm.toLowerCase();
+      const patientId = (entry.patient_id || "").toLowerCase();
+      const barcode = (entry.barcode || "").toLowerCase();
+      const franchiseId = (entry.franchise_id || "").toLowerCase();
+      const doctor = (entry.referredDoctor || "").toLowerCase();
+      const testName = (entry.test.test_name || "").toLowerCase();
+
+      return (
+        patientId.includes(term) ||
+        barcode.includes(term) ||
+        franchiseId.includes(term) ||
+        doctor.includes(term) ||
+        testName.includes(term)
+      );
+    }
+
+    return true;
+  });
+
+  const formatTimestamp = (isoDate) => {
+    if (!isoDate) return null;
+    try {
+      const d = new Date(isoDate);
+      return isNaN(d.getTime()) ? isoDate : d.toLocaleString();
+    } catch {
+      return isoDate;
+    }
   };
 
   if (loading) {
@@ -383,14 +567,73 @@ const CancelRequestedTests = () => {
   return (
     <Container>
       <Header>
-        <Title>Cancel Requested Tests</Title>
-        <Subtitle>Manage and review test cancellation requests</Subtitle>
+        <h1>Cancelled Bill Dashboard</h1>
+        <p>Review and process patient test cancellation requests</p>
       </Header>
 
-      {tests.length === 0 ? (
+      <StatsBar>
+        <StatCard $color="#667eea">
+          <span className="number">{totalPatients}</span>
+          <div className="label">Patients</div>
+        </StatCard>
+        <StatCard $color="#764ba2">
+          <span className="number">{totalTestRequests}</span>
+          <div className="label">Total Requests</div>
+        </StatCard>
+        <StatCard $color="#f39c12">
+          <span className="number">{pendingCount}</span>
+          <div className="label">Pending</div>
+        </StatCard>
+        <StatCard $color="#27ae60">
+          <span className="number">{approvedCount}</span>
+          <div className="label">Cancel Approved</div>
+        </StatCard>
+        <StatCard $color="#e74c3c">
+          <span className="number">{rejectedCount}</span>
+          <div className="label">Rejected</div>
+        </StatCard>
+      </StatsBar>
+
+      <FilterSection>
+        <FilterTabs>
+          <FilterTab
+            $active={statusFilter === "all"}
+            onClick={() => setStatusFilter("all")}
+          >
+            All ({totalTestRequests})
+          </FilterTab>
+          <FilterTab
+            $active={statusFilter === "pending"}
+            onClick={() => setStatusFilter("pending")}
+          >
+            Pending ({pendingCount})
+          </FilterTab>
+          <FilterTab
+            $active={statusFilter === "approved"}
+            onClick={() => setStatusFilter("approved")}
+          >
+            Cancel Approved ({approvedCount})
+          </FilterTab>
+          <FilterTab
+            $active={statusFilter === "rejected"}
+            onClick={() => setStatusFilter("rejected")}
+          >
+            Rejected ({rejectedCount})
+          </FilterTab>
+        </FilterTabs>
+
+        <SearchInput
+          type="text"
+          placeholder="Search by Patient ID, Barcode, Doctor, Test..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </FilterSection>
+
+      {filteredItems.length === 0 ? (
         <EmptyState>
-          <EmptyStateIcon>🔍</EmptyStateIcon>
-          <EmptyStateText>No cancel requested tests found.</EmptyStateText>
+          <div className="icon">📋</div>
+          <p className="text">No cancellation requests matching criteria.</p>
         </EmptyState>
       ) : (
         <TableWrapper>
@@ -398,70 +641,103 @@ const CancelRequestedTests = () => {
             <Table>
               <Thead>
                 <tr>
-                  <Th>Patient ID</Th>
+                  <Th>Patient Details</Th>
                   <Th>Barcode</Th>
-                  <Th>Franchise</Th>
+                  <Th>Franchise Details</Th>
                   <Th>Referred Doctor</Th>
-                  {/* <Th>Test Name</Th> */}
+                  <Th>Test Name</Th>
                   <Th>Status</Th>
                   <Th>MRP</Th>
                   <Th>Actions</Th>
                 </tr>
               </Thead>
               <tbody>
-                {tests.map((item, idx) =>
-                  item.cancel_requested_tests?.map((test, i) => {
-                    const testKey = `${item.patient_id}_${item.barcode}_${test.test_name}`;
-                    const isProcessing = processingTests.has(testKey);
-                    const showActions = test.status === 'Cancel Requested';
+                {filteredItems.map((entry, idx) => {
+                  const item = entry;
+                  const test = entry.test;
+                  const testKey = `${item.patient_id}_${item.barcode}_${test.test_id || test.test_name}`;
+                  const isProcessing = processingTests.has(testKey);
+                  const showActions = test.status === "Cancel Requested" || test.status === "Cancel Accepted";
 
-                    return (
-                      <Tr key={`${idx}_${i}`}>
-                        <Td>{item.patient_id}</Td>
-                        <Td>{item.barcode}</Td>
-                        <Td>{item.franchise_id}</Td>
-                        <Td>{item.referredDoctor}</Td>
-                        {/* <TestNameCell>{test.test_name}</TestNameCell> */}
-                        <Td>
-                          <StatusBadge status={test.status}>{test.status}</StatusBadge>
-                        </Td>
-                        <Td>
-                          <MRPTag>₹{test.MRP}</MRPTag>
-                        </Td>
-                        <Td>
-                          <ActionButtons>
-                            <ActionButton
-                              $variant="view"
-                              onClick={() => setViewItem(item)}
-                            >
-                              View
-                            </ActionButton>
-                            {showActions ? (
-                              <>
-                                <ActionButton
-                                  $variant="approve"
-                                  disabled={isProcessing}
-                                  onClick={() => handleTestAction(item.patient_id, item.barcode, test.test_name, 'approve')}
-                                >
-                                  {isProcessing ? '...' : 'Approve'}
-                                </ActionButton>
-                                <ActionButton
-                                  $variant="reject"
-                                  disabled={isProcessing}
-                                  onClick={() => handleTestAction(item.patient_id, item.barcode, test.test_name, 'reject')}
-                                >
-                                  {isProcessing ? '...' : 'Reject'}
-                                </ActionButton>
-                              </>
-                            ) : (
-                              <NoActionLabel>—</NoActionLabel>
-                            )}
-                          </ActionButtons>
-                        </Td>
-                      </Tr>
-                    );
-                  })
-                )}
+                  const approvedTime = test.Approveddatetime || test.cancel_approved_date;
+                  const rejectedTime = test.Rejecteddatetime || test.rejected_date;
+
+                  return (
+                    <Tr key={`${item.patient_id}_${item.barcode}_${test.test_id || test.test_name}_${idx}`}>
+                      <Td>
+                        <div style={{ fontWeight: 700, color: "#1e3c72" }}>{item.patient_name || "—"}</div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", fontFamily: "monospace" }}>{item.patient_id}</div>
+                      </Td>
+                      <Td style={{ fontFamily: "monospace", fontWeight: 600 }}>{item.barcode}</Td>
+                      <Td>
+                        <div style={{ fontWeight: 600, color: "#1e293b" }}>{item.franchise_name || "—"}</div>
+                        <span style={{ background: "#e0e7ff", color: "#3730a3", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontSize: "0.74rem" }}>
+                          {item.franchise_id}
+                        </span>
+                      </Td>
+                      <Td>{item.referredDoctor || "—"}</Td>
+                      <TestNameCell>{test.test_name}</TestNameCell>
+                      <Td>
+                        <StatusBadge status={test.status}>{test.status}</StatusBadge>
+                        {approvedTime && (
+                          <DateInfo>✅ Approved: {formatTimestamp(approvedTime)}</DateInfo>
+                        )}
+                        {rejectedTime && (
+                          <DateInfo>❌ Rejected: {formatTimestamp(rejectedTime)}</DateInfo>
+                        )}
+                      </Td>
+                      <Td>
+                        <MRPTag>₹{test.MRP}</MRPTag>
+                      </Td>
+                      <Td>
+                        <ActionButtons>
+                          <ActionButton
+                            $variant="view"
+                            onClick={() => setViewItem(item)}
+                          >
+                            View
+                          </ActionButton>
+                          {showActions ? (
+                            <>
+                              <ActionButton
+                                $variant="approve"
+                                disabled={isProcessing}
+                                onClick={() =>
+                                  handleTestAction(
+                                    item.patient_id,
+                                    item.barcode,
+                                    test.test_name,
+                                    test.test_id,
+                                    'approve'
+                                  )
+                                }
+                              >
+                                {isProcessing ? '...' : 'Approve'}
+                              </ActionButton>
+                              <ActionButton
+                                $variant="reject"
+                                disabled={isProcessing}
+                                onClick={() =>
+                                  handleTestAction(
+                                    item.patient_id,
+                                    item.barcode,
+                                    test.test_name,
+                                    test.test_id,
+                                    'reject'
+                                  )
+                                }
+                              >
+                                {isProcessing ? '...' : 'Reject'}
+                              </ActionButton>
+                            </>
+                          ) : (
+                            <NoActionLabel>Processed</NoActionLabel>
+                          )}
+                        </ActionButtons>
+                      </Td>
+                    </Tr>
+                  );
+                })}
               </tbody>
             </Table>
           </TableScroll>
@@ -488,7 +764,18 @@ const CancelRequestedTests = () => {
                 <ModalTestList>
                   {viewItem.cancel_requested_tests?.map((test, i) => (
                     <ModalTestItem key={i}>
-                      <ModalTestName>{test.test_name}</ModalTestName>
+                      <div>
+                        <ModalTestName>{test.test_name}</ModalTestName>
+                        <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "2px" }}>
+                          MRP: ₹{test.MRP}
+                          {(test.Approveddatetime || test.cancel_approved_date) && (
+                            <span> • Approved: {formatTimestamp(test.Approveddatetime || test.cancel_approved_date)} {test.approved_by ? `by ${test.approved_by}` : ''}</span>
+                          )}
+                          {(test.Rejecteddatetime || test.rejected_date) && (
+                            <span> • Rejected: {formatTimestamp(test.Rejecteddatetime || test.rejected_date)} {test.rejected_by ? `by ${test.rejected_by}` : ''}</span>
+                          )}
+                        </div>
+                      </div>
                       <StatusBadge status={test.status}>{test.status}</StatusBadge>
                     </ModalTestItem>
                   ))}
@@ -498,8 +785,20 @@ const CancelRequestedTests = () => {
           </ModalOverlay>,
           document.body
         )}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </Container>
   );
 };
 
-export default CancelRequestedTests;
+export default Cancelledbill;

@@ -250,7 +250,7 @@ const ActionButton = styled.button`
 const CustomercomplaintsQRScan = () => {
   const [copied, setCopied] = useState(false);
 
-  const formUrl = `${window.location.origin}/FeedbackGrievance`;
+  const formUrl = `${window.location.origin}/LIS/FeedbackGrievance`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(formUrl);

@@ -67,7 +67,7 @@ const Barcodestock = () => {
     return () => clearTimeout(timer);
   }, [message]);
 
-  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL || '/_b_a_c_k_e_n_d/LIS/';
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });

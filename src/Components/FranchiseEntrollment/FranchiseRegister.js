@@ -550,9 +550,6 @@ const FranchiseRegister = () => {
     pincode: "",
     dob: currentDate,
     initialpayment: "No",
-    paymentmethod: "",
-    paymentmode: "",
-   
   })
 
   // File states
@@ -570,18 +567,19 @@ const FranchiseRegister = () => {
   const [validationErrors, setValidationErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-  const fetchInitialData = async () => {
+  const fetchNextFranchiseId = async () => {
     const idResponse = await apiRequest(`${Labbaseurl}getnextfranchiseid/`, 'GET');
-    if (idResponse.success) {
+    if (idResponse.success && idResponse.data?.franchise_id) {
       setFormData((prev) => ({
         ...prev,
         franchise_id: idResponse.data.franchise_id
       }));
     }
   };
-  fetchInitialData();
-}, []);
+
+  useEffect(() => {
+    fetchNextFranchiseId();
+  }, []);
 
   // Updated useEffect to use apiRequest function
 useEffect(() => {
@@ -878,14 +876,16 @@ useEffect(() => {
   const data = new FormData();
 
   // Add other form values with transformations
-const updatedFormData = {
-  ...formData,
-  location_id: formData.location,
-  initialpayment: franchiseFeeChecked ? "10000" : "No",
-};
+  const updatedFormData = {
+    ...formData,
+    location_id: formData.location || formData.location_id,
+    initialpayment: franchiseFeeChecked ? "10000" : "No",
+  };
 
   for (const key in updatedFormData) {
-    data.append(key, updatedFormData[key]);
+    if (key !== "paymentmethod" && key !== "paymentmode") {
+      data.append(key, updatedFormData[key]);
+    }
   }
 
   // Append files
@@ -921,6 +921,9 @@ const updatedFormData = {
         pincode: "",
         dob: currentDate,
       });
+
+      // Fetch next ID for subsequent registration
+      fetchNextFranchiseId();
 
       // Reset all files
       setAadhaarFile(null);

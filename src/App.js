@@ -124,8 +124,9 @@ import FranchiseLocations from "./Components/FranchiseEntrollment/FranchiseLocat
 import Barcodestock from "./Components/FranchiseEntrollment/Barcodestock";
 import InactiveFranchises from "./Components/FranchiseEntrollment/InactiveFranchises";
 import Cancelledbill from "./Components/FranchiseEntrollment/Cancelledbill";
-import FinalBillcancel from "./Components/FranchiseEntrollment/FinalbillCancel";
+import Cancelledbillreport from "./Components/FranchiseEntrollment/Cancelledbillreport";
 import MonthEndCalculation from "./Components/FranchiseEntrollment/MonthEndCalculation";
+import FranchiseHomeCollection from "./Components/FranchiseEntrollment/FranchiseHomeCollection";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -324,8 +325,9 @@ function App() {
       "/Barcodestock": "Barcode Stock",
       "/InactiveFranchises": "Inactive Franchises",
       "/Cancelledbill": "Cancelled Bill",
-      "/FinalBillcancel": "Final Bill Cancel",
+      "/Cancelledbillreport": "Cancelled Bill Report",
       "/MonthEndCalculation": "Month End Calculation",
+      "/FranchiseHomeCollection": "Franchise Home Collection",
     };
 
     const path = location.pathname;
@@ -663,6 +665,12 @@ function App() {
               element={<FeedbackGrievance />}
             />
 
+            <Route
+              path="/LIS/FeedbackGrievance"
+              element={<FeedbackGrievance />}
+            />
+
+
 
             <Route
               path="/FeedbackGrievanceReport"
@@ -698,8 +706,9 @@ function App() {
             <Route path="/Barcodestock" element={<Barcodestock />} />
             <Route path="/InactiveFranchises" element={<InactiveFranchises />} />
             <Route path="/Cancelledbill" element={<Cancelledbill />} />
-            <Route path="/FinalBillcancel" element={<FinalBillcancel />} />
+            <Route path="/Cancelledbillreport" element={<Cancelledbillreport />} />
             <Route path="/MonthEndCalculation" element={<MonthEndCalculation />} />
+            <Route path="/FranchiseHomeCollection" element={<FranchiseHomeCollection />} />
 
           </Routes>
 
