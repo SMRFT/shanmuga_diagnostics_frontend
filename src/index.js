@@ -163,7 +163,7 @@ function getUserRole(allowedActions) {
     }
 
     // Store additional user data for the app
-    localStorage.setItem("employee_id", employeeId);
+    localStorage.setItem("employeeId", employeeId);
     localStorage.setItem("name", name);
     localStorage.setItem("role", userRole);
     localStorage.setItem("email", userEmail);
