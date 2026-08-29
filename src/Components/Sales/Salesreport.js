@@ -368,6 +368,7 @@ const SalesReport = () => {
   );
 
   const planTotals = useMemo(() => buildTotals("plan_by_day"), [buildTotals]);
+  const planVolumeTotals = useMemo(() => buildTotals("plan_volume_by_day"), [buildTotals]);
   const actualTotals = useMemo(() => buildTotals("actual_by_day"), [buildTotals]);
 
   // Format a number as Indian Rupee — e.g. 1234.5 → "₹1,234.50"
@@ -395,7 +396,7 @@ const SalesReport = () => {
 
   const loading = loadingEmployees || loadingReport;
 
-  const renderGrid = (metric, totals) => (
+  const renderGrid = (metric, totals, volumeMetric, volumeTotals) => (
     <TableWrapper>
       <Table>
         <thead>
@@ -429,6 +430,9 @@ const SalesReport = () => {
             const monthTotal = Object.values(row[metric] || {}).reduce(
               (s, v) => s + (Number(v) || 0), 0
             );
+            const monthVolTotal = volumeMetric ? Object.values(row[volumeMetric] || {}).reduce(
+              (s, v) => s + (Number(v) || 0), 0
+            ) : 0;
             return (
               <tr key={row.employee_id}>
                 <StickyTd>{row.employee_name}</StickyTd>
@@ -436,12 +440,24 @@ const SalesReport = () => {
                   <React.Fragment key={`${g.week}-${i}`}>
                     {g.days.map((d) => {
                       const value = row[metric]?.[String(d.day)];
-                      return <Td key={d.day}>{value ? fmtAmt(value) : ""}</Td>;
+                      const volValue = volumeMetric ? row[volumeMetric]?.[String(d.day)] : null;
+                      return (
+                        <Td key={d.day}>
+                          {volumeMetric && volValue ? <div style={{fontSize: '11px', color: '#66b2b2', fontWeight: 600, marginBottom: '2px'}}>Vol: {volValue}</div> : null}
+                          <div>{value ? fmtAmt(value) : ""}</div>
+                        </Td>
+                      );
                     })}
-                    <WeekTotalTd>{fmtAmt(weekSum(row[metric], g))}</WeekTotalTd>
+                    <WeekTotalTd>
+                      {volumeMetric ? <div style={{fontSize: '11px', color: '#66b2b2', fontWeight: 600, marginBottom: '2px'}}>Vol: {weekSum(row[volumeMetric], g)}</div> : null}
+                      <div>{fmtAmt(weekSum(row[metric], g))}</div>
+                    </WeekTotalTd>
                   </React.Fragment>
                 ))}
-                <WeekTotalTd>{fmtAmt(monthTotal)}</WeekTotalTd>
+                <WeekTotalTd>
+                  {volumeMetric ? <div style={{fontSize: '11px', color: '#66b2b2', fontWeight: 600, marginBottom: '2px'}}>Vol: {monthVolTotal}</div> : null}
+                  <div>{fmtAmt(monthTotal)}</div>
+                </WeekTotalTd>
               </tr>
             );
           })}
@@ -453,13 +469,20 @@ const SalesReport = () => {
               {weekGroups.map((g, i) => (
                 <React.Fragment key={`${g.week}-${i}`}>
                   {g.days.map((d) => (
-                    <Td key={d.day}>{fmtAmt(totals[d.day] ?? 0)}</Td>
+                    <Td key={d.day}>
+                      {volumeMetric && volumeTotals[d.day] ? <div style={{fontSize: '11px', color: '#66b2b2', fontWeight: 600, marginBottom: '2px'}}>Vol: {volumeTotals[d.day]}</div> : null}
+                      <div>{fmtAmt(totals[d.day] ?? 0)}</div>
+                    </Td>
                   ))}
-                  <WeekTotalTd>{fmtAmt(grandWeekSum(totals, g))}</WeekTotalTd>
+                  <WeekTotalTd>
+                    {volumeMetric ? <div style={{fontSize: '11px', color: '#66b2b2', fontWeight: 600, marginBottom: '2px'}}>Vol: {grandWeekSum(volumeTotals, g)}</div> : null}
+                    <div>{fmtAmt(grandWeekSum(totals, g))}</div>
+                  </WeekTotalTd>
                 </React.Fragment>
               ))}
               <WeekTotalTd>
-                {fmtAmt(Object.values(totals).reduce((s, v) => s + (Number(v) || 0), 0))}
+                {volumeMetric ? <div style={{fontSize: '11px', color: '#66b2b2', fontWeight: 600, marginBottom: '2px'}}>Vol: {Object.values(volumeTotals || {}).reduce((s, v) => s + (Number(v) || 0), 0)}</div> : null}
+                <div>{fmtAmt(Object.values(totals).reduce((s, v) => s + (Number(v) || 0), 0))}</div>
               </WeekTotalTd>
             </TotalsRow>
           </tfoot>
@@ -511,7 +534,7 @@ const SalesReport = () => {
       {!error && (
         <>
           <SectionTitle>Plan Amount (₹) — from Sales Plan</SectionTitle>
-          {renderGrid("plan_by_day", planTotals)}
+          {renderGrid("plan_by_day", planTotals, "plan_volume_by_day", planVolumeTotals)}
 
           <SectionTitle>Actual Amount (₹) — from Billing</SectionTitle>
           {renderGrid("actual_by_day", actualTotals)}
