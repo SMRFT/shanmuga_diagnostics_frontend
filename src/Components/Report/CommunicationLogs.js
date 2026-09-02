@@ -317,6 +317,7 @@ const CommunicationLogs = () => {
     const matchesSearch =
       log.patientName?.toLowerCase().includes(searchLower) ||
       log.patientId?.toLowerCase().includes(searchLower) ||
+      log.barcode?.toLowerCase().includes(searchLower) ||
       log.recipient?.toLowerCase().includes(searchLower);
 
     return matchesType && matchesSearch;
@@ -405,7 +406,7 @@ const CommunicationLogs = () => {
                 <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#a3aed0' }} />
                 <Input
                   type="text"
-                  placeholder="Search by Patient Name, ID or Phone..."
+                  placeholder="Search by Patient Name, ID, Barcode or Phone..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ paddingLeft: '2.5rem', width: '100%' }}
@@ -425,6 +426,7 @@ const CommunicationLogs = () => {
                   <th>Date & Time</th>
                   <th>Patient ID</th>
                   <th>Patient Name</th>
+                  <th>Barcode</th>
                   <th>Type</th>
                   <th>Recipient</th>
                   <th>Status</th>
@@ -444,6 +446,7 @@ const CommunicationLogs = () => {
                       <td>{format(new Date(log.date), "dd MMM yyyy, hh:mm a")}</td>
                       <td style={{ fontWeight: 600 }}>{log.patientId}</td>
                       <td>{log.patientName}</td>
+                      <td style={{ fontWeight: 600, color: "#4318FF" }}>{log.barcode || "-"}</td>
                       <td>
                         <TypeBadge type={log.type}>
                           {log.type === "Email" ? <Mail size={14} /> : <MessageCircle size={14} />}

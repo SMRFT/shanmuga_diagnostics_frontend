@@ -17,6 +17,7 @@ import {
   Mail,
   Flag,
   X,
+  Check,
   List,
   user,
   ChevronDown,
@@ -364,8 +365,39 @@ const Badge = styled.span`
 
 const ActionContainer = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
+`;
+
+const StatusBadgeUnder = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 3px;
+`;
+
+const SuccessCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: #16a34a;
+  background-color: rgba(22, 163, 74, 0.12);
+  padding: 1px 4px;
+  border-radius: 4px;
+`;
+
+const FailedCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.12);
+  padding: 1px 4px;
+  border-radius: 4px;
 `;
 
 const ActionButton = styled.button`
@@ -438,11 +470,18 @@ const PortalDropdownMenu = styled.div`
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   min-width: 200px;
   z-index: 9999;
-  overflow: hidden;
   border: 1px solid #e9ecef;
-  // Bridge the gap with invisible top padding
-  padding-top: 6px;
-  margin-top: -6px;
+
+  /* Invisible hover bridge above the menu to eliminate cursor gap */
+  &::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 0;
+    right: 0;
+    height: 14px;
+    background: transparent;
+  }
 `;
 
 const DropdownItem = styled.button`
@@ -456,6 +495,15 @@ const DropdownItem = styled.button`
   font-size: 0.875rem;
   cursor: pointer;
   transition: var(--transition);
+
+  &:first-child {
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+  }
+  &:last-child {
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+  }
 
   &:hover {
     background-color: var(--gray-light);
@@ -708,8 +756,10 @@ const formatTimeRemaining = (seconds) => {
 
 const HMSPatientOverview = () => {
   const [patients, setPatients] = useState([]);
+  const patientsRef = useRef([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
+  const [commSummary, setCommSummary] = useState({});
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
@@ -771,6 +821,22 @@ const HMSPatientOverview = () => {
     }
   };
 
+  const fetchCommunicationLogs = useCallback(async (patientList) => {
+    const list = patientList || patientsRef.current;
+    const barcodes = (list || []).map((p) => p.barcode).filter(Boolean);
+    if (!barcodes.length) return;
+    try {
+      const response = await apiRequest(`${Labbaseurl}communication_logs/`, "POST", {
+        barcodes,
+      });
+      if (response.success && response.data) {
+        setCommSummary(response.data.summary || {});
+      }
+    } catch (error) {
+      console.error("Error fetching communication logs summary:", error);
+    }
+  }, [Labbaseurl]);
+
   // Fetch patients when component mounts or dates change
   const fetchCombinedPatientData = useCallback(async () => {
     setLoading(true);
@@ -790,8 +856,10 @@ const HMSPatientOverview = () => {
         const idB = String(b.patient_id || b.barcode || b.id || "");
         return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
       });
+      patientsRef.current = sortedData;
       setPatients(sortedData);
       setFilteredPatients(sortedData);
+      fetchCommunicationLogs(sortedData);
 
       const statusMap = {};
       patientData.forEach((patient) => {
@@ -809,7 +877,7 @@ const HMSPatientOverview = () => {
     }
 
     setLoading(false);
-  }, [startDate, endDate, Labbaseurl]);
+  }, [startDate, endDate, Labbaseurl, fetchCommunicationLogs]);
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -1196,6 +1264,7 @@ const HMSPatientOverview = () => {
         file_url: fileUrl,
         pdf_name: pdfName,
         patient_id: patient.patient_id,
+        barcode: patient.barcode || "",
         template_name: "hms_diagnostics_template",
       });
 
@@ -1205,60 +1274,67 @@ const HMSPatientOverview = () => {
         toast.error("Failed to send WhatsApp template message.");
         console.error("Backend error:", res.data.error);
       }
+      fetchCommunicationLogs();
     } catch (error) {
       console.error("Error sending WhatsApp message:", error);
       toast.error("Error sending WhatsApp message.");
+      fetchCommunicationLogs();
     }
   };
 
-  //  const handleSendEmail = async (patient) => {
-  //   try {
-  //     const pdfBlob = await handlePrint(patient, true); // Generate PDF with letterpad
-  //     if (!pdfBlob) {
-  //       toast.error("Failed to generate the PDF.");
-  //       return;
-  //     }
+  const handleSendEmail = async (patient, withLetterpad = true) => {
+    try {
+      const pdfBlob = await handlePrint(patient, withLetterpad);
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF.");
+        return;
+      }
 
-  //     if (!patient.email) {
-  //       toast.warning("Patient email is missing.");
-  //       return;
-  //     }
+      if (!patient.email) {
+        toast.warning("Patient email is missing.");
+        return;
+      }
 
-  //     const formData = new FormData();
-  //     formData.append("subject", `Test Details for ${patient.patient_name}`);
-  //     formData.append(
-  //       "message",
-  //       `Dear ${
-  //         patient.patient_name || "Recipient"
-  //       },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
-  //         patient.patient_name || "the patient"
-  //       }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
-  //     );
-  //     formData.append("recipients", patient.email);
-  //     formData.append(
-  //       "attachments",
-  //       new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
-  //         type: "application/pdf",
-  //       })
-  //     );
+      const formData = new FormData();
+      formData.append("subject", `Test Details for ${patient.patient_name}`);
+      formData.append(
+        "message",
+        `Dear ${
+          patient.patient_name || "Recipient"
+        },\n\nWe hope this message finds you well. Please find attached the lab test results for ${
+          patient.patient_name || "the patient"
+        }. If you have any questions or require further assistance, feel free to contact us.\n\nThank you for choosing our services.`
+      );
+      formData.append("recipients", patient.email);
+      formData.append("patient_id", patient.patient_id);
+      formData.append("patient_name", patient.patient_name);
+      formData.append("barcode", patient.barcode || "");
+      formData.append(
+        "attachments",
+        new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
+          type: "application/pdf",
+        })
+      );
 
-  //     const emailResponse = await apiRequest(
-  //       `${Labbaseurl}send-email/`,
-  //       "POST",
-  //       formData,
-  //       { "Content-Type": "multipart/form-data" }
-  //     );
+      const emailResponse = await apiRequest(
+        `${Labbaseurl}send-email/`,
+        "POST",
+        formData,
+        { "Content-Type": "multipart/form-data" }
+      );
 
-  //     if (emailResponse.success) {
-  //       toast.success("Email sent successfully!");
-  //     } else {
-  //       toast.error(`Failed to send email: ${emailResponse.error}`);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error sending email:", error);
-  //     toast.error("Failed to send email.");
-  //   }
-  // };
+      if (emailResponse.success) {
+        toast.success("Email sent successfully!");
+      } else {
+        toast.error(`Failed to send email: ${emailResponse.error}`);
+      }
+      fetchCommunicationLogs();
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast.error("Failed to send email.");
+      fetchCommunicationLogs();
+    }
+  };
 
   const handlePrint = async (patient, withLetterpad = true) => {
     try {
@@ -2335,10 +2411,14 @@ const HMSPatientOverview = () => {
   };
 
   const showDropdown = (barcode, type, e) => {
-    // Calculate where to place the portal menu based on the trigger button position
-    const rect = e.currentTarget.getBoundingClientRect();
+    // Target the actual button element so the dropdown appears snug directly under the icon
+    const buttonEl =
+      e.currentTarget.tagName === "BUTTON"
+        ? e.currentTarget
+        : e.currentTarget.querySelector("button") || e.currentTarget;
+    const rect = buttonEl.getBoundingClientRect();
     setDropdownPos({
-      top: rect.bottom + 4, // 4px gap below the button
+      top: rect.bottom, // directly beneath the button with 0 gap
       left: rect.right - 190, // align right edge of menu with button right edge
     });
     setActiveDropdownPatientId(barcode);
@@ -2855,6 +2935,7 @@ const HMSPatientOverview = () => {
                                 showDropdown(patient.barcode, "whatsapp", e)
                               }
                               onMouseLeave={hideDropdown}
+                              style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
                             >
                               <ActionButton
                                 disabled={!isPrintMailEnabled}
@@ -2862,6 +2943,22 @@ const HMSPatientOverview = () => {
                               >
                                 <MessageCircle size={16} />
                               </ActionButton>
+                              {commSummary[patient.barcode]?.WhatsApp && (
+                                <StatusBadgeUnder>
+                                  {commSummary[patient.barcode].WhatsApp.success > 0 && (
+                                    <SuccessCount title={`${commSummary[patient.barcode].WhatsApp.success} WhatsApp Sent Successfully`}>
+                                      <Check size={10} strokeWidth={3} />
+                                      {commSummary[patient.barcode].WhatsApp.success}
+                                    </SuccessCount>
+                                  )}
+                                  {commSummary[patient.barcode].WhatsApp.failed > 0 && (
+                                    <FailedCount title={`${commSummary[patient.barcode].WhatsApp.failed} WhatsApp Failed`}>
+                                      <X size={10} strokeWidth={3} />
+                                      {commSummary[patient.barcode].WhatsApp.failed}
+                                    </FailedCount>
+                                  )}
+                                </StatusBadgeUnder>
+                              )}
                             </PrintDropdown>
                           )}
                         </ActionContainer>
