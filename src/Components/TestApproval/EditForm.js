@@ -41,17 +41,73 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 const StyledToastContainer = styled(ToastContainer)`
-  .Toastify__toast--success {
-    background-color: var(--white);
+  .Toastify__toast {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    background-color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 12px 16px;
   }
+
   .Toastify__toast--error {
-    background-color: var(--danger);
+    background-color: #ffffff;
+    color: #b91c1c;
+    border: 1.5px solid #ef4444;
+    .Toastify__toast-icon svg {
+      fill: #ef4444;
+    }
+    .Toastify__progress-bar {
+      background: #ef4444;
+    }
+    .Toastify__close-button {
+      color: #ef4444;
+    }
   }
-  .Toastify__toast--info {
-    background-color: var(--info);
+
+  .Toastify__toast--success {
+    background-color: #ffffff;
+    color: #15803d;
+    border: 1.5px solid #22c55e;
+    .Toastify__toast-icon svg {
+      fill: #22c55e;
+    }
+    .Toastify__progress-bar {
+      background: #22c55e;
+    }
+    .Toastify__close-button {
+      color: #22c55e;
+    }
   }
+
   .Toastify__toast--warning {
-    background-color: var(--warning);
+    background-color: #ffffff;
+    color: #b45309;
+    border: 1.5px solid #f59e0b;
+    .Toastify__toast-icon svg {
+      fill: #f59e0b;
+    }
+    .Toastify__progress-bar {
+      background: #f59e0b;
+    }
+    .Toastify__close-button {
+      color: #f59e0b;
+    }
+  }
+
+  .Toastify__toast--info {
+    background-color: #ffffff;
+    color: #1d4ed8;
+    border: 1.5px solid #3b82f6;
+    .Toastify__toast-icon svg {
+      fill: #3b82f6;
+    }
+    .Toastify__progress-bar {
+      background: #3b82f6;
+    }
+    .Toastify__close-button {
+      color: #3b82f6;
+    }
   }
 `;
 

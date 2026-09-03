@@ -1050,6 +1050,7 @@ const PatientOverview = () => {
         file_url: fileUrl,
         pdf_name: pdfName,
         patient_id: patient.patient_id,
+        barcode: patient.barcode || "",
       });
       if (res.data.success)
         toast.success("WhatsApp PDF message sent successfully!");
@@ -1083,6 +1084,7 @@ const PatientOverview = () => {
       formData.append("recipients", patient.email);
       formData.append("patient_id", patient.patient_id);
       formData.append("patient_name", patient.patient_name);
+      formData.append("barcode", patient.barcode || "");
       formData.append(
         "attachments",
         new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
