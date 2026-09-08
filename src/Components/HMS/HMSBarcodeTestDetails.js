@@ -808,11 +808,21 @@ const HMSBarcodeTestDetails = () => {
   };
 
   const handleBack = () => {
+    const currentGeneratedBarcode =
+      (testDetails && testDetails.find((t) => t.barcode)?.barcode) ||
+      selectedPatient?.barcode ||
+      extractBarcodeFromBillNo(
+        bill_no,
+        selectedPatient?.BillType || bill_type
+      ) ||
+      searchTerm ||
+      "";
+
     navigate("/HMSBarcodeGeneration", {
       state: {
         fromDate: fromDateParam || new Date().toISOString().split("T")[0],
         toDate: toDateParam || new Date().toISOString().split("T")[0],
-        searchTerm: searchTerm || "",
+        searchTerm: currentGeneratedBarcode,
       },
     });
   };

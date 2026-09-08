@@ -868,6 +868,7 @@ const PatientDataTable = () => {
                     type="date"
                     name="from_date"
                     value={filters.from_date}
+                    max={filters.to_date || new Date().toISOString().split("T")[0]}
                     onChange={handleFilterChange}
                   />
                 </InputGroup>
@@ -880,6 +881,8 @@ const PatientDataTable = () => {
                     type="date"
                     name="to_date"
                     value={filters.to_date}
+                    min={filters.from_date}
+                    max={new Date().toISOString().split("T")[0]}
                     onChange={handleFilterChange}
                   />
                 </InputGroup>

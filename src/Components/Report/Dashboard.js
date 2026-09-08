@@ -688,12 +688,15 @@ const Dashboard = () => {
             <StyledInput
               type="date"
               value={startDate}
+              max={endDate || new Date().toISOString().split("T")[0]}
               onChange={(e) => setStartDate(e.target.value)}
               placeholder="Start Date"
             />
             <StyledInput
               type="date"
               value={endDate}
+              min={startDate}
+              max={new Date().toISOString().split("T")[0]}
               onChange={(e) => setEndDate(e.target.value)}
               placeholder="End Date"
             />

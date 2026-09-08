@@ -652,7 +652,7 @@ const TrackingHistory = () => {
           <Input
             type="date"
             value={mapDate}
-            onChange={(e) => setMapDate(e.target.value)}
+            onChange={(e) => setMapDate(e.target.value)} max={new Date().toISOString().split("T")[0]}
             style={{ minWidth: '160px' }}
           />
           <PrimaryButton onClick={fetchMapData} disabled={mapLoading}>
@@ -783,7 +783,7 @@ const TrackingHistory = () => {
             <Input
               type="date"
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => setFromDate(e.target.value)} max={toDate || new Date().toISOString().split("T")[0]}
             />
           </FilterGroup>
           <FilterGroup>
@@ -791,7 +791,7 @@ const TrackingHistory = () => {
             <Input
               type="date"
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => setToDate(e.target.value)} min={fromDate} max={new Date().toISOString().split("T")[0]}
             />
           </FilterGroup>
           <FilterGroup>

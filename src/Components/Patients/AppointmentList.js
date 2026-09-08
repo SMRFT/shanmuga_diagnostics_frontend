@@ -246,11 +246,11 @@ const AppointmentList = () => {
       <FilterSection>
         <div>
           <label style={{marginRight: '8px', color: '#4a5568'}}>From:</label>
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+          <input type="date" value={fromDate} max={toDate || new Date().toISOString().split("T")[0]} onChange={e => setFromDate(e.target.value)} />
         </div>
         <div>
           <label style={{marginRight: '8px', color: '#4a5568'}}>To:</label>
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+          <input type="date" value={toDate} min={fromDate} max={new Date().toISOString().split("T")[0]} onChange={e => setToDate(e.target.value)} />
         </div>
         <button onClick={fetchAppointments}>Search</button>
       </FilterSection>

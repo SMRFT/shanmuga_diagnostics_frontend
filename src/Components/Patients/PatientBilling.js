@@ -1181,12 +1181,15 @@ const PatientBilling = () => {
                 <FormGroup>
                   <label>From Date</label>
                   <input type="date" value={dateFilters.fromDate}
+                    max={dateFilters.toDate || new Date().toISOString().split("T")[0]}
                     onChange={(e) => setDateFilters(p => ({ ...p, fromDate: e.target.value }))} />
                 </FormGroup>
 
                 <FormGroup>
                   <label>To Date</label>
                   <input type="date" value={dateFilters.toDate}
+                    min={dateFilters.fromDate}
+                    max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setDateFilters(p => ({ ...p, toDate: e.target.value }))} />
                 </FormGroup>
               </SearchAndFiltersContainer>

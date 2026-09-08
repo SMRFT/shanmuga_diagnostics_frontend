@@ -453,6 +453,7 @@ const LogisticsTATReport = () => {
             <Input
               type="date"
               value={filters.start_date}
+              max={filters.end_date || new Date().toISOString().split("T")[0]}
               onChange={(e) => handleFilterChange('start_date', e.target.value)}
             />
           </FilterGroup>
@@ -462,6 +463,8 @@ const LogisticsTATReport = () => {
             <Input
               type="date"
               value={filters.end_date}
+              min={filters.start_date}
+              max={new Date().toISOString().split("T")[0]}
               onChange={(e) => handleFilterChange('end_date', e.target.value)}
             />
           </FilterGroup>
