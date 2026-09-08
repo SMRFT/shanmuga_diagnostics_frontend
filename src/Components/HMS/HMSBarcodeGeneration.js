@@ -445,7 +445,10 @@ const HMSBarcodeGeneration = () => {
       String(d.getDate()).padStart(2, "0"),
     ].join("-");
 
-    const computedBarcode = extractBarcodeFromBillNo(patient.bill_no, patient.IPOPType || patient.BillType);
+    const computedBarcode =
+      patient.barcode ||
+      (patient.testdetails && patient.testdetails.find((t) => t.barcode)?.barcode) ||
+      extractBarcodeFromBillNo(patient.bill_no, patient.BillType || patient.IPOPType);
     const effectiveSearchTerm = searchTerm.trim() || computedBarcode || patient.bill_no || "";
 
     navigate("/HMSBarcodeTestDetails", {
@@ -490,7 +493,11 @@ const HMSBarcodeGeneration = () => {
     if (searchTerm.trim() !== "") {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter((patient) => {
-        const computedBarcode = extractBarcodeFromBillNo(patient.bill_no, patient.IPOPType || patient.BillType)?.toLowerCase() || "";
+        const computedBarcode = (
+          patient.barcode ||
+          (patient.testdetails && patient.testdetails.find((t) => t.barcode)?.barcode) ||
+          extractBarcodeFromBillNo(patient.bill_no, patient.BillType || patient.IPOPType)
+        )?.toLowerCase() || "";
         const testBarcodes = (patient.testdetails || [])
           .map((t) => (t.barcode || "").toLowerCase())
           .join(" ");
@@ -514,9 +521,20 @@ const HMSBarcodeGeneration = () => {
 
     if (statusFilter !== "ALL") {
       filtered = filtered.filter(
-        (patient) => patient.barcode_status === statusFilter,
+        (patient) =>
+          (patient.barcode_status || "Pending").toLowerCase() ===
+          statusFilter.toLowerCase()
       );
     }
+
+    // Sort: Pending should display first over Generated
+    filtered = [...filtered].sort((a, b) => {
+      const statusA = (a.barcode_status || "Pending").toLowerCase();
+      const statusB = (b.barcode_status || "Pending").toLowerCase();
+      if (statusA === "pending" && statusB !== "pending") return -1;
+      if (statusA !== "pending" && statusB === "pending") return 1;
+      return 0;
+    });
 
     setFilteredPatients(filtered);
     setCurrentPage(1);
@@ -591,6 +609,7 @@ const HMSBarcodeGeneration = () => {
             <FInput
               type="date"
               value={fromDate}
+              max={toDate || getTodayStr()}
               onChange={(e) => {
                 setFromDate(e.target.value);
                 setSearchTerm("");
@@ -603,6 +622,8 @@ const HMSBarcodeGeneration = () => {
             <FInput
               type="date"
               value={toDate}
+              min={fromDate}
+              max={getTodayStr()}
               onChange={(e) => {
                 setToDate(e.target.value);
                 setSearchTerm("");
@@ -629,8 +650,8 @@ const HMSBarcodeGeneration = () => {
                 setSearchTerm("");
               }}>
               <option value="ALL">All Status</option>
-              <option value="Generated">Generated</option>
               <option value="Pending">Pending</option>
+              <option value="Generated">Generated</option>
             </FSelect>
           </FGroup>
 

@@ -400,7 +400,7 @@ const RouteAnalysisDashboard = () => {
             <input 
               type="date" 
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => setFromDate(e.target.value)} max={toDate || new Date().toISOString().split("T")[0]}
               style={{
                 padding: "8px 12px",
                 borderRadius: "8px",
@@ -415,7 +415,7 @@ const RouteAnalysisDashboard = () => {
             <input 
               type="date" 
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => setToDate(e.target.value)} min={fromDate} max={new Date().toISOString().split("T")[0]}
               style={{
                 padding: "8px 12px",
                 borderRadius: "8px",

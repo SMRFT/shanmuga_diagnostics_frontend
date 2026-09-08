@@ -419,7 +419,7 @@ const fetchSalesMapping = async () => {
           <DateInput
             type="date"
             value={filter.fromDate}
-            onChange={(e) => handleFilterChange("fromDate", e.target.value)}
+            onChange={(e) => handleFilterChange("fromDate", e.target.value)} max={filter.toDate || new Date().toISOString().split("T")[0]}
           />
         </FilterGroup>
 
@@ -431,7 +431,7 @@ const fetchSalesMapping = async () => {
           <DateInput
             type="date"
             value={filter.toDate}
-            onChange={(e) => handleFilterChange("toDate", e.target.value)}
+            onChange={(e) => handleFilterChange("toDate", e.target.value)} min={filter.fromDate} max={new Date().toISOString().split("T")[0]}
           />
         </FilterGroup>
 

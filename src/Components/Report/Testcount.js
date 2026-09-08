@@ -411,6 +411,7 @@ export default function TestSummary() {
                 <Input
                   type="date"
                   value={fromDate}
+                  max={toDate || new Date().toISOString().split("T")[0]}
                   onChange={e => setFromDate(e.target.value)}
                 />
               </InputGroup>

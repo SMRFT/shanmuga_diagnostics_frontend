@@ -772,7 +772,7 @@ const ShanmugaMIS = () => {
           <DateInput
             type="date"
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
+            onChange={(e) => setFromDate(e.target.value)} max={toDate || new Date().toISOString().split("T")[0]} max={toDate || new Date().toISOString().split("T")[0]}
           />
         </DatePickerWrapper>
 
@@ -782,7 +782,7 @@ const ShanmugaMIS = () => {
           <DateInput
             type="date"
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
+            onChange={(e) => setToDate(e.target.value)} min={fromDate} max={new Date().toISOString().split("T")[0]} min={fromDate} max={new Date().toISOString().split("T")[0]}
           />
         </DatePickerWrapper>
 

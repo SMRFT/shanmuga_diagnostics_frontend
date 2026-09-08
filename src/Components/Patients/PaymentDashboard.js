@@ -327,12 +327,15 @@ const PaymentDashboard = () => {
           <DateInput 
             type="date" 
             value={fromDate}
+            max={toDate || new Date().toISOString().split("T")[0]}
             onChange={(e) => setFromDate(e.target.value)}
           />
           <Label>To:</Label>
           <DateInput 
             type="date" 
             value={toDate}
+            min={fromDate}
+            max={new Date().toISOString().split("T")[0]}
             onChange={(e) => setToDate(e.target.value)}
           />
           <FilterButton onClick={handleFilter}>
@@ -354,12 +357,15 @@ const PaymentDashboard = () => {
           <DateInput 
             type="date" 
             value={fromDate}
+            max={toDate || new Date().toISOString().split("T")[0]}
             onChange={(e) => setFromDate(e.target.value)}
           />
           <Label>To:</Label>
           <DateInput 
             type="date" 
             value={toDate}
+            min={fromDate}
+            max={new Date().toISOString().split("T")[0]}
             onChange={(e) => setToDate(e.target.value)}
           />
           <Label>Payment:</Label>

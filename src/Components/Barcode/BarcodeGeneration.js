@@ -395,9 +395,20 @@ const BarcodeGeneration = () => {
       if (response.success) {
         const data = response.data.data;
         if (Array.isArray(data)) {
-          setAllPatients(data);
-          setFilteredPatients(data);
-          setTotalPages(Math.max(1, Math.ceil(data.length / patientsPerPage)));
+          const validPatients = data.filter((patient) => {
+            const nonServiceTests = (patient.testdetails || []).filter((test) => {
+              const testName = (test.testname || test.test_name || "").toLowerCase();
+              return (
+                !testName.includes("service charge") &&
+                test.is_servicecharge !== true &&
+                test.is_servicecharge !== "true"
+              );
+            });
+            return nonServiceTests.length > 0;
+          });
+          setAllPatients(validPatients);
+          setFilteredPatients(validPatients);
+          setTotalPages(Math.max(1, Math.ceil(validPatients.length / patientsPerPage)));
         } else {
           setAllPatients([]);
           setFilteredPatients([]);
@@ -494,9 +505,20 @@ const BarcodeGeneration = () => {
 
     if (statusFilter !== "ALL") {
       filtered = filtered.filter(
-        (patient) => (patient.barcode_status || "Pending") === statusFilter
+        (patient) =>
+          (patient.barcode_status || "Pending").toLowerCase() ===
+          statusFilter.toLowerCase()
       );
     }
+
+    // Sort: Pending should display first over Generated
+    filtered = [...filtered].sort((a, b) => {
+      const statusA = (a.barcode_status || "Pending").toLowerCase();
+      const statusB = (b.barcode_status || "Pending").toLowerCase();
+      if (statusA === "pending" && statusB !== "pending") return -1;
+      if (statusA !== "pending" && statusB === "pending") return 1;
+      return 0;
+    });
 
     setFilteredPatients(filtered);
     setCurrentPage(1);
@@ -567,6 +589,7 @@ const BarcodeGeneration = () => {
             <FInput
               type="date"
               value={fromDate}
+              max={toDate || getTodayStr()}
               onChange={(e) => {
                 setFromDate(e.target.value);
                 setSearchTerm("");
@@ -579,6 +602,8 @@ const BarcodeGeneration = () => {
             <FInput
               type="date"
               value={toDate}
+              min={fromDate}
+              max={getTodayStr()}
               onChange={(e) => {
                 setToDate(e.target.value);
                 setSearchTerm("");
@@ -596,8 +621,8 @@ const BarcodeGeneration = () => {
               }}
             >
               <option value="ALL">All Status</option>
-              <option value="Generated">Generated</option>
               <option value="Pending">Pending</option>
+              <option value="Generated">Generated</option>
             </FSelect>
           </FGroup>
 

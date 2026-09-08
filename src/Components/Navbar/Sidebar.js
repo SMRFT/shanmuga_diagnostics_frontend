@@ -3,53 +3,51 @@
 import { useState, useEffect } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { NavLink } from "react-router-dom";
+import React from "react";
 import {
-  FaUser,
   FaBars,
   FaTimes,
+  FaSearch,
   FaChevronDown,
-  FaWpforms,
-  FaEdit,
-  FaChartPie,
-  FaFileInvoiceDollar,
-  FaCreditCard,
+  FaSignOutAlt,
+  FaUserInjured,
+  FaReceipt,
   FaBarcode,
   FaVial,
-  FaFileAlt,
-  FaSignOutAlt,
-  FaDollarSign,
-  FaUserCircle,
-  FaMap,
   FaTruck,
   FaRoute,
-  FaChartLine,
-  FaNotesMedical,
-  FaMoneyBillWave,
-  FaFileMedicalAlt,
-  FaBuilding,
-  FaCalculator,
-  FaVials,
-  FaHandHoldingUsd,
-  FaCoins,
-  FaCheckDouble,
   FaMapMarkedAlt,
   FaHistory,
-  FaBook
+  FaFileInvoiceDollar,
+  FaMoneyBillWave,
+  FaChartLine,
+  FaChartPie,
+  FaNotesMedical,
+  FaFileMedicalAlt,
+  FaFlask,
+  FaClipboardList,
+  FaChartBar,
+  FaHandshake,
+  FaBuilding,
+  FaVials,
+  FaHospitalAlt,
+  FaHandHoldingUsd,
+  FaCoins,
+  FaBalanceScale,
+  FaCalculator,
+  FaHeadset,
+  FaCheckDouble
 } from "react-icons/fa";
 import { PiTestTubeDuotone } from "react-icons/pi";
-import { GrOverview } from "react-icons/gr";
-import { TbReport } from "react-icons/tb";
-import {
-  FaClinicMedical
-} from "react-icons/fa";
-import {
-  FaMapMarkerAlt
-} from "react-icons/fa";
-import { DollarSign } from "lucide-react";
 
 const slideIn = keyframes`
  from { transform: translateX(-20px); opacity: 0; }
  to { transform: translateX(0); opacity: 1; }
+`;
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
 `;
 
 const gradientAnimation = keyframes`
@@ -75,7 +73,7 @@ const SidebarContainer = styled.div`
   position: fixed;
   top: 0;
   left: 0;
-  overflow-y: auto;
+  overflow: hidden;
   z-index: 1000;
   transform: ${({ isOpen }) =>
     isOpen ? "translateX(0)" : "translateX(-100%)"};
@@ -85,94 +83,150 @@ const SidebarContainer = styled.div`
   display: flex;
   flex-direction: column;
 
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-  }
-
   @media (min-width: 769px) {
     transform: translateX(0);
   }
 `;
 
+const SidebarTopFixed = styled.div`
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  background: transparent;
+`;
+
 const SignOutWrapper = styled.div`
+  flex-shrink: 0;
   margin-top: auto;
-  padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 20;
 `;
 
 const LogoContainer = styled.div`
-  padding: 24px 20px;
+  padding: 16px 16px 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+`;
+
+const LogoBadge = styled.div`
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
+  font-size: 20px;
+  color: white;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  position: relative;
+  flex-shrink: 0;
+`;
 
-  h1 {
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    margin: 0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+const PulseIndicator = styled.span`
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  background: #34d399;
+  border: 2px solid #a777e3;
+  border-radius: 50%;
+  animation: ${pulse} 2s infinite ease-in-out;
+`;
+
+const BrandTextGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
+const BrandTitle = styled.div`
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: white;
+  line-height: 1.2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+`;
+
+const BrandSubtitle = styled.div`
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
 `;
 
 const UserInfoContainer = styled.div`
   ${glassEffect}
-  padding: 20px;
-  margin: 10px 15px 20px 15px;
+  padding: 10px 14px;
+  margin: 10px 14px 8px 14px;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-`;
+  transition: all 0.2s ease;
 
-const UserAvatar = styled.div`
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
 `;
 
 const UserDetails = styled.div`
-  text-align: center;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 `;
 
 const UserName = styled.div`
-  font-size: 16px;
+  font-size: 14.5px;
   font-weight: 600;
   color: white;
-  margin-bottom: 4px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
-const UserRole = styled.div`
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+const UserMetaRow = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.85);
   font-weight: 500;
-  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
-const EmployeeId = styled.div`
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+const UserRoleText = styled.span`
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const MetaDivider = styled.span`
+  margin: 0 6px;
+  opacity: 0.5;
+  font-size: 10px;
+  flex-shrink: 0;
+`;
+
+const EmployeeText = styled.span`
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 400;
+  flex-shrink: 0;
 `;
 
 const SidebarToggle = styled.button`
@@ -202,147 +256,396 @@ const SidebarToggle = styled.button`
 `;
 
 const SidebarContent = styled.div`
-  padding: 0 15px 20px;
+  padding: 4px 15px 16px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Custom smooth scrollbar */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.45);
+  }
 `;
 
 const SectionDivider = styled.div`
-  margin: 15px 0;
+  margin: 8px 6px;
   height: 1px;
   background: linear-gradient(
     to right,
     transparent,
-    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.35),
     transparent
   );
 `;
 
 const SidebarNavLink = styled(NavLink)`
-  color: white;
+  color: rgba(255, 255, 255, 0.92);
   display: flex;
   align-items: center;
-  padding: 14px 18px;
+  padding: 9px 12px;
   text-decoration: none;
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: 500;
-  border-radius: 12px;
-  margin-bottom: 5px;
-  transition: all 0.3s ease;
+  border-radius: 9px;
+  margin-bottom: 2px;
+  transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
 
-  &:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.1);
-    transition: width 0.3s ease;
-    z-index: -1;
-  }
-
   &:hover {
-    transform: translateX(5px);
-
-    &:before {
-      width: 100%;
-    }
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateX(3px);
   }
 
   &.active {
-    ${glassEffect}
+    background: rgba(255, 255, 255, 0.22);
+    color: white;
     font-weight: 600;
-    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
   }
 `;
 
 const DropdownHeader = styled.div`
-  color: white;
+  color: rgba(255, 255, 255, 0.92);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  font-size: 15px;
+  padding: 9px 12px;
+  font-size: 13.5px;
   font-weight: 500;
-  border-radius: 12px;
-  margin-bottom: 5px;
+  border-radius: 9px;
+  margin-bottom: 2px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  user-select: none;
 
   &:hover {
-    ${glassEffect}
-    transform: translateX(5px);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateX(3px);
   }
 
   ${(props) =>
     props.isOpen &&
     css`
-      ${glassEffect}
-      transform: translateX(5px);
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-weight: 600;
     `}
 `;
 
 const DropdownContent = styled.div`
   overflow: hidden;
-  max-height: ${(props) => (props.isOpen ? "500px" : "0")};
-  transition: max-height 0.4s ease-in-out;
-  margin-left: 10px;
+  max-height: ${(props) => (props.isOpen ? "800px" : "0")};
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 12px;
+  padding-left: 4px;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: ${(props) => (props.isOpen ? "4px" : "0")};
 
   & > * {
-    animation: ${slideIn} 0.3s ease forwards;
+    animation: ${slideIn} 0.2s ease forwards;
   }
 `;
 
 const SubLink = styled(NavLink)`
-  color: white;
-  padding: 12px 18px 12px 30px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 7px 10px 7px 20px;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 12.5px;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  border-radius: 12px;
-  margin-bottom: 4px;
-  transition: all 0.3s ease;
+  border-radius: 7px;
+  margin-bottom: 2px;
+  transition: all 0.2s ease;
   position: relative;
 
   &:before {
     content: "";
     position: absolute;
-    left: 15px;
+    left: 8px;
     top: 50%;
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.5);
     transform: translateY(-50%);
+    transition: all 0.2s ease;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px);
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    transform: translateX(3px);
+
+    &:before {
+      background: white;
+      box-shadow: 0 0 5px white;
+    }
   }
 
   &.active {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
     font-weight: 600;
+
+    &:before {
+      background: white;
+      box-shadow: 0 0 6px white;
+      transform: translateY(-50%) scale(1.2);
+    }
   }
 `;
 
 const IconWrapper = styled.span`
-  margin-right: 12px;
+  margin-right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 15px;
+  color: white;
+  flex-shrink: 0;
 `;
 
 const ChevronIcon = styled(FaChevronDown)`
-  transition: transform 0.3s ease;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  transition: transform 0.25s ease;
   transform: ${(props) => (props.isOpen ? "rotate(180deg)" : "rotate(0)")};
+  flex-shrink: 0;
 `;
 
+
+const SearchContainer = styled.div`
+  padding: 0 14px 10px 14px;
+`;
+
+const SearchInputWrapper = styled.div`
+  ${glassEffect}
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  &:focus-within {
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const SearchIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  margin-right: 8px;
+`;
+
+const SearchInput = styled.input`
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 13px;
+  width: 100%;
+  font-weight: 500;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 12.5px;
+    font-weight: 400;
+  }
+`;
+
+const ClearSearchButton = styled.button`
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: 4px;
+  font-size: 11px;
+  transition: all 0.15s ease;
+  margin-left: 4px;
+
+  &:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.25);
+  }
+`;
+
+const SearchResultsHeader = styled.div`
+  padding: 4px 6px 8px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+`;
+
+const MatchCountBadge = styled.span`
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+`;
+
+const NoResultsFound = styled.div`
+  ${glassEffect}
+  padding: 22px 14px;
+  margin: 10px 4px;
+  border-radius: 10px;
+  text-align: center;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: ${slideIn} 0.25s ease forwards;
+`;
+
+const flattenElements = (children) => {
+  const elements = [];
+  React.Children.forEach(children, (child) => {
+    if (!child) return;
+    if (child.type === React.Fragment) {
+      elements.push(...flattenElements(child.props.children));
+    } else if (Array.isArray(child)) {
+      elements.push(...flattenElements(child));
+    } else {
+      elements.push(child);
+    }
+  });
+  return elements;
+};
+
+const extractTextFromNode = (node) => {
+  if (!node) return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractTextFromNode).join(" ");
+  if (React.isValidElement(node) && node.props && node.props.children) {
+    return extractTextFromNode(node.props.children);
+  }
+  return "";
+};
+
+const SearchableMenu = ({ searchQuery, children }) => {
+  if (!searchQuery || !searchQuery.trim()) {
+    return <>{children}</>;
+  }
+
+  const query = searchQuery.toLowerCase().trim();
+  const elements = flattenElements(children);
+  const matchedElements = [];
+
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    if (!el || !React.isValidElement(el)) continue;
+
+    if (el.type === DropdownHeader) {
+      const headerText = extractTextFromNode(el).toLowerCase();
+      const contentEl = elements[i + 1];
+      const isContent = contentEl && contentEl.type === DropdownContent;
+
+      let hasSubMatch = false;
+      let matchedSubLinks = [];
+
+      if (isContent && contentEl.props && contentEl.props.children) {
+        const subLinks = flattenElements(contentEl.props.children);
+        matchedSubLinks = subLinks.filter((sub) => {
+          const subText = extractTextFromNode(sub).toLowerCase();
+          return subText.includes(query);
+        });
+        hasSubMatch = matchedSubLinks.length > 0;
+      }
+
+      if (headerText.includes(query)) {
+        matchedElements.push(
+          React.cloneElement(el, { key: `match-hdr-${i}`, isOpen: true })
+        );
+        if (isContent) {
+          matchedElements.push(
+            React.cloneElement(contentEl, {
+              key: `match-cnt-${i}`,
+              isOpen: true,
+            })
+          );
+        }
+      } else if (hasSubMatch) {
+        matchedElements.push(
+          React.cloneElement(el, { key: `match-subhdr-${i}`, isOpen: true })
+        );
+        matchedElements.push(
+          React.cloneElement(
+            contentEl,
+            { key: `match-subcnt-${i}`, isOpen: true },
+            matchedSubLinks
+          )
+        );
+      }
+
+      if (isContent) i++;
+    } else if (el.type === SidebarNavLink) {
+      const linkText = extractTextFromNode(el).toLowerCase();
+      if (linkText.includes(query)) {
+        matchedElements.push(
+          React.cloneElement(el, { key: `match-link-${i}` })
+        );
+      }
+    }
+  }
+
+  if (matchedElements.length === 0) {
+    return (
+      <NoResultsFound>
+        <FaSearch style={{ fontSize: "20px", opacity: 0.6, marginBottom: "4px" }} />
+        <div style={{ fontWeight: 600, fontSize: "13px" }}>No results found</div>
+        <div style={{ fontSize: "11px", opacity: 0.8 }}>No matches for "{searchQuery}"</div>
+      </NoResultsFound>
+    );
+  }
+
+  return (
+    <>
+      <SearchResultsHeader>
+        <span>SEARCH RESULTS</span>
+        <MatchCountBadge>{matchedElements.length} MATCHES</MatchCountBadge>
+      </SearchResultsHeader>
+      {matchedElements}
+    </>
+  );
+};
+
 const Sidebar = () => {
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [role, setRole] = useState("");
   const [name, setName] = useState("");
@@ -405,20 +708,62 @@ const Sidebar = () => {
       </SidebarToggle>
 
       <SidebarContainer isOpen={isSidebarOpen}>
-        <LogoContainer>
-          <h1>Shanmuga</h1>
-          <h1>Diagnostics</h1>
-        </LogoContainer>
+        <SidebarTopFixed>
+          <LogoContainer>
+            <LogoBadge>
+              <PiTestTubeDuotone />
+              <PulseIndicator />
+            </LogoBadge>
+            <BrandTextGroup>
+              <BrandTitle>SHANMUGA</BrandTitle>
+              <BrandSubtitle>DIAGNOSTICS</BrandSubtitle>
+            </BrandTextGroup>
+          </LogoContainer>
 
-        <UserInfoContainer>
-          <UserDetails>
-            <UserName>{name}</UserName>
-            <EmployeeId>ID : {employeeId}</EmployeeId>
-            <UserRole>Role : {role}</UserRole>
-          </UserDetails>
-        </UserInfoContainer>
+          <UserInfoContainer>
+            <UserDetails>
+              <UserName title={name}>{name}</UserName>
+              <UserMetaRow>
+                <UserRoleText>{role || "Staff"}</UserRoleText>
+                <MetaDivider>|</MetaDivider>
+                <EmployeeText>
+                  {employeeId
+                    ? employeeId.startsWith("ID")
+                      ? employeeId
+                      : `ID: ${employeeId}`
+                    : "ID: N/A"}
+                </EmployeeText>
+              </UserMetaRow>
+            </UserDetails>
+          </UserInfoContainer>
+
+          <SearchContainer>
+            <SearchInputWrapper>
+              <SearchIconWrapper>
+                <FaSearch />
+              </SearchIconWrapper>
+              <SearchInput
+                type="text"
+                placeholder="Search menu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search navigation menu"
+              />
+              {searchQuery && (
+                <ClearSearchButton
+                  onClick={() => setSearchQuery("")}
+                  title="Clear search"
+                  type="button"
+                >
+                  <FaTimes />
+                </ClearSearchButton>
+              )}
+            </SearchInputWrapper>
+          </SearchContainer>
+        </SidebarTopFixed>
 
         <SidebarContent>
+          <SearchableMenu searchQuery={searchQuery}>
           {role === "Sample Collector" && (
             <>
               <DropdownHeader
@@ -427,7 +772,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaClinicMedical />
+                    <FaHandshake />
                   </IconWrapper>
                   B2B Details
                 </div>
@@ -460,7 +805,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaUser />
+                    <FaUserInjured />
                   </IconWrapper>
                   Patient Details
                 </div>
@@ -497,7 +842,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaCreditCard />
+                    <FaReceipt />
                   </IconWrapper>
                   Billing
                 </div>
@@ -628,8 +973,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
@@ -638,8 +983,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaHeadset />
+                  </IconWrapper>
                 Customer Complaints
               </SidebarNavLink>
             </>
@@ -653,7 +998,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaUser />
+                    <FaUserInjured />
                   </IconWrapper>
                   Patient Details
                 </div>
@@ -683,8 +1028,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaNotesMedical />
-                </IconWrapper>
+                    <FaNotesMedical />
+                  </IconWrapper>
                 Patient Summary
               </SidebarNavLink>
               <SidebarNavLink
@@ -692,8 +1037,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaMoneyBillWave />
-                </IconWrapper>
+                    <FaMoneyBillWave />
+                  </IconWrapper>
                 Payment Dashboard
               </SidebarNavLink>
               <SidebarNavLink
@@ -701,8 +1046,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaFileInvoiceDollar />
-                </IconWrapper>
+                    <FaFileInvoiceDollar />
+                  </IconWrapper>
                 Billing Dashboard
               </SidebarNavLink>
 
@@ -711,8 +1056,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
             </>
@@ -726,7 +1071,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaCreditCard />
+                    <FaReceipt />
                   </IconWrapper>
                   Billing
                 </div>
@@ -770,7 +1115,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <PiTestTubeDuotone />
+                    <FaVial />
                   </IconWrapper>
                   Sample
                 </div>
@@ -816,7 +1161,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaFileAlt />
+                    <FaFileMedicalAlt />
                   </IconWrapper>
                   Report
                 </div>
@@ -864,8 +1209,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaEdit />
-                </IconWrapper>
+                    <FaFlask />
+                  </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
@@ -874,8 +1219,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
@@ -884,8 +1229,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaFileMedicalAlt />
-                </IconWrapper>
+                    <FaClipboardList />
+                  </IconWrapper>
                 MIS Report
               </SidebarNavLink>
             </>
@@ -899,7 +1244,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaUser />
+                    <FaUserInjured />
                   </IconWrapper>
                   Patient Details
                 </div>
@@ -921,7 +1266,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaCreditCard />
+                    <FaReceipt />
                   </IconWrapper>
                   Billing
                 </div>
@@ -983,7 +1328,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <PiTestTubeDuotone />
+                    <FaVial />
                   </IconWrapper>
                   Sample
                 </div>
@@ -1023,7 +1368,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaFileAlt />
+                    <FaFileMedicalAlt />
                   </IconWrapper>
                   Report
                 </div>
@@ -1077,8 +1422,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
@@ -1087,8 +1432,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaEdit />
-                </IconWrapper>
+                    <FaFlask />
+                  </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
@@ -1097,8 +1442,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaVials />
-                </IconWrapper>
+                    <FaVials />
+                  </IconWrapper>
                 B2B Test Count
               </SidebarNavLink>
 
@@ -1107,8 +1452,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaFileMedicalAlt />
-                </IconWrapper>
+                    <FaClipboardList />
+                  </IconWrapper>
                 MIS Report
               </SidebarNavLink>
               <SidebarNavLink
@@ -1116,8 +1461,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaVials />
-                </IconWrapper>
+                    <FaHospitalAlt />
+                  </IconWrapper>
                 HMS Test Count
               </SidebarNavLink>
 
@@ -1126,8 +1471,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaHeadset />
+                  </IconWrapper>
                 Customer Complaints
               </SidebarNavLink>
             </>
@@ -1141,7 +1486,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaUser />
+                    <FaUserInjured />
                   </IconWrapper>
                   Patient Details
                 </div>
@@ -1184,7 +1529,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaCreditCard />
+                    <FaReceipt />
                   </IconWrapper>
                   Billing
                 </div>
@@ -1342,8 +1687,8 @@ const Sidebar = () => {
 
               <SidebarNavLink to="/B2B" onClick={() => setIsSidebarOpen(false)}>
                 <IconWrapper>
-                  <FaBuilding />
-                </IconWrapper>
+                    <FaBuilding />
+                  </IconWrapper>
                 B2B Master
               </SidebarNavLink>
 
@@ -1352,8 +1697,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
@@ -1363,8 +1708,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaHeadset />
+                  </IconWrapper>
                 Customer Complaints
               </SidebarNavLink>
             </>
@@ -1426,8 +1771,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <GrOverview />
-                </IconWrapper>
+                    <FaNotesMedical />
+                  </IconWrapper>
                 Patient Summary
               </SidebarNavLink>
             </>
@@ -1440,8 +1785,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartPie />
-                </IconWrapper>
+                    <FaChartPie />
+                  </IconWrapper>
                 Dashboard
               </SidebarNavLink>
 
@@ -1450,8 +1795,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaFileInvoiceDollar />
-                </IconWrapper>
+                    <FaFileInvoiceDollar />
+                  </IconWrapper>
                 Billing Dashboard
               </SidebarNavLink>
 
@@ -1461,7 +1806,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaClinicMedical />
+                    <FaHandshake />
                   </IconWrapper>
                   B2B Details
                 </div>
@@ -1511,7 +1856,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaUser />
+                    <FaUserInjured />
                   </IconWrapper>
                   Patient Details
                 </div>
@@ -1545,7 +1890,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaCreditCard />
+                    <FaReceipt />
                   </IconWrapper>
                   Billing
                 </div>
@@ -1610,7 +1955,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <PiTestTubeDuotone />
+                    <FaVial />
                   </IconWrapper>
                   Sample
                 </div>
@@ -1662,7 +2007,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaFileAlt />
+                    <FaFileMedicalAlt />
                   </IconWrapper>
                   Report
                 </div>
@@ -1832,8 +2177,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
               <SidebarNavLink
@@ -1841,8 +2186,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaCheckDouble />
-                </IconWrapper>
+                    <FaCheckDouble />
+                  </IconWrapper>
                 Corporate Report Approval
               </SidebarNavLink>
 
@@ -1851,8 +2196,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaEdit />
-                </IconWrapper>
+                    <FaFlask />
+                  </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
@@ -1862,7 +2207,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaFileMedicalAlt />
+                    <FaChartBar />
                   </IconWrapper>
                   MIS
                 </div>
@@ -1934,8 +2279,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartPie />
-                </IconWrapper>
+                    <FaChartPie />
+                  </IconWrapper>
                 Dashboard
               </SidebarNavLink>
 
@@ -1944,8 +2289,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaFileInvoiceDollar />
-                </IconWrapper>
+                    <FaFileInvoiceDollar />
+                  </IconWrapper>
                 Billing Dashboard
               </SidebarNavLink>
 
@@ -1955,7 +2300,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaClinicMedical />
+                    <FaHandshake />
                   </IconWrapper>
                   B2B Details
                 </div>
@@ -2006,7 +2351,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaUser />
+                    <FaUserInjured />
                   </IconWrapper>
                   Patient Details
                 </div>
@@ -2055,7 +2400,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaCreditCard />
+                    <FaReceipt />
                   </IconWrapper>
                   Billing
                 </div>
@@ -2300,8 +2645,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
@@ -2310,8 +2655,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaCheckDouble />
-                </IconWrapper>
+                    <FaCheckDouble />
+                  </IconWrapper>
                 Corporate Report Approval
               </SidebarNavLink>
 
@@ -2320,8 +2665,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaEdit />
-                </IconWrapper>
+                    <FaFlask />
+                  </IconWrapper>
                 Test Edit
               </SidebarNavLink>
 
@@ -2331,7 +2676,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaFileMedicalAlt />
+                    <FaChartBar />
                   </IconWrapper>
                   MIS
                 </div>
@@ -2396,8 +2741,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaHeadset />
+                  </IconWrapper>
                 Customer Complaints
               </SidebarNavLink>
             </>
@@ -2411,7 +2756,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaClinicMedical />
+                    <FaHandshake />
                   </IconWrapper>
                   B2B Details
                 </div>
@@ -2439,7 +2784,7 @@ const Sidebar = () => {
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <IconWrapper>
-                    <FaFileAlt />
+                    <FaFileMedicalAlt />
                   </IconWrapper>
                   Report
                 </div>
@@ -2466,8 +2811,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
@@ -2476,8 +2821,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaCheckDouble />
-                </IconWrapper>
+                    <FaCheckDouble />
+                  </IconWrapper>
                 Corporate Report Approval
               </SidebarNavLink>
 
@@ -2486,8 +2831,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaFileMedicalAlt />
-                </IconWrapper>
+                    <FaClipboardList />
+                  </IconWrapper>
                 MIS Report
               </SidebarNavLink>
             </>
@@ -2500,8 +2845,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaMapMarkedAlt />
-                </IconWrapper>
+                    <FaMapMarkedAlt />
+                  </IconWrapper>
                 Logistics Tracking
               </SidebarNavLink>
               <SidebarNavLink
@@ -2509,8 +2854,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaHistory />
-                </IconWrapper>
+                    <FaHistory />
+                  </IconWrapper>
                 Tracking History
               </SidebarNavLink>
             </>
@@ -2523,8 +2868,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartPie />
-                </IconWrapper>
+                    <FaChartPie />
+                  </IconWrapper>
                 Dashboard
               </SidebarNavLink>
 
@@ -2533,8 +2878,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaCalculator />
-                </IconWrapper>
+                    <FaCalculator />
+                  </IconWrapper>
                 Bill Estimate
               </SidebarNavLink>
               <SidebarNavLink
@@ -2542,8 +2887,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaFileMedicalAlt />
+                  </IconWrapper>
                 Report Dashboard
               </SidebarNavLink>
 
@@ -2552,8 +2897,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaBook />
-                </IconWrapper>
+                    <FaBalanceScale />
+                  </IconWrapper>
                 Ledger Balance
               </SidebarNavLink>
 
@@ -2563,8 +2908,8 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaHeadset />
+                  </IconWrapper>
                 Customer Complaints
               </SidebarNavLink>
             </>
@@ -2577,13 +2922,14 @@ const Sidebar = () => {
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <IconWrapper>
-                  <FaChartLine />
-                </IconWrapper>
+                    <FaHeadset />
+                  </IconWrapper>
                 Customer Complaints
               </SidebarNavLink>
             </>
           )}
 
+                  </SearchableMenu>
         </SidebarContent>
         <SignOutWrapper>
           <SidebarNavLink
@@ -2594,8 +2940,8 @@ const Sidebar = () => {
             }}
           >
             <IconWrapper>
-              <FaSignOutAlt />
-            </IconWrapper>
+                    <FaSignOutAlt />
+                  </IconWrapper>
             Sign Out
           </SidebarNavLink>
         </SignOutWrapper>

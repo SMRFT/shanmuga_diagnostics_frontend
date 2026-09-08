@@ -391,12 +391,12 @@ const MDashboard = () => {
                 <Controls>
                     <div style={{ position: 'relative' }}>
                         <i className="bi bi-calendar-event" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}></i>
-                        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
+                        <Input type="date" value={fromDate} max={toDate || new Date().toISOString().split("T")[0]} onChange={(e) => setFromDate(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
                     </div>
                     <span style={{ color: '#888' }}>to</span>
                     <div style={{ position: 'relative' }}>
                         <i className="bi bi-calendar-event" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#888' }}></i>
-                        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
+                        <Input type="date" value={toDate} min={fromDate} max={new Date().toISOString().split("T")[0]} onChange={(e) => setToDate(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
                     </div>
                     <Button onClick={handleSearch}>
                         <i className="bi bi-search" style={{ marginRight: '8px' }}></i>

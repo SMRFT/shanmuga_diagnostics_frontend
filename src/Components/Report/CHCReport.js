@@ -3348,7 +3348,7 @@ const CHCReport = () => {
               <FilterInput
                 type="date"
                 value={startDate.toISOString().split("T")[0]}
-                onChange={(e) => setStartDate(new Date(e.target.value))}
+                onChange={(e) => setStartDate(new Date(e.target.value))} max={endDate ? endDate.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}
               />
             </FilterGroup>
             <FilterGroup>
@@ -3356,7 +3356,7 @@ const CHCReport = () => {
               <FilterInput
                 type="date"
                 value={endDate.toISOString().split("T")[0]}
-                onChange={(e) => setEndDate(new Date(e.target.value))}
+                onChange={(e) => setEndDate(new Date(e.target.value))} min={startDate ? startDate.toISOString().split("T")[0] : undefined} max={new Date().toISOString().split("T")[0]}
               />
             </FilterGroup>
             <FilterGroup>

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { Calendar, Users, FileText, Search, RefreshCw, Download } from "lucide-react"
+import { Calendar, Users, FileText, Search, RefreshCw, Download, FlaskConical, Eye, X, FileSpreadsheet } from "lucide-react"
+import * as XLSX from "xlsx"
 import apiRequest from "../Auth/apiRequest"
 
 // Styled Components
@@ -367,10 +368,195 @@ const ExportButton = styled(Button)`
   }
 `
 
+const TestCellWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+`
+
+const TestCountBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+`
+
+const ViewTestsBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #f8fafc;
+  color: #6366f1;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #eef2ff;
+    border-color: #818cf8;
+    transform: translateY(-1px);
+  }
+`
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 550px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+`
+
+const ModalHeader = styled.div`
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafa;
+`
+
+const ModalTitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`
+
+const ModalIcon = styled.div`
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const ModalTitle = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+`
+
+const ModalSubtitle = styled.p`
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 2px 0 0 0;
+`
+
+const ModalCloseBtn = styled.button`
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+`
+
+const ModalBody = styled.div`
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`
+
+const TestCard = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+  }
+`
+
+const TestInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`
+
+const TestNumberBadge = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: #e0e7ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+`
+
+const TestNameText = styled.span`
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+`
+
+const TestAmountText = styled.span`
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #059669;
+`
+
+const ModalFooter = styled.div`
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+`
+
 const PatientDashboard = () => {
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
   const [patients, setPatients] = useState([])
+  const [selectedModalItem, setSelectedModalItem] = useState(null)
+  const [totalRegistrationsCount, setTotalRegistrationsCount] = useState(0)
   const [segmentFilter, setSegmentFilter] = useState("all")
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -379,50 +565,57 @@ const PatientDashboard = () => {
   // Mock API URL - replace with your actual API endpoint
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL
 
-    const getCurrentDate = () => new Date().toISOString().split("T")[0]
+  const getCurrentDate = () => new Date().toISOString().split("T")[0]
 
-    const [dateFilters, setDateFilters] = useState({
+  const [dateFilters, setDateFilters] = useState({
     fromDate: getCurrentDate(),
-    toDate:   getCurrentDate(),
+    toDate: getCurrentDate(),
   })
 
-  useEffect(() => {
-    if (dateFilters.fromDate && dateFilters.toDate) fetchData()
-  }, [])
-
-  useEffect(() => {
-    if (dateFilters.fromDate && dateFilters.toDate) fetchData()
-  }, [dateFilters])
-
-  const fetchData = async () => {
-    if (!dateFilters.fromDate || !dateFilters.toDate) { toast.warning("Please select both dates"); return }
+  const fetchData = async (from = dateFilters.fromDate, to = dateFilters.toDate) => {
+    if (!from || !to) {
+      toast.warning("Please select both dates")
+      return
+    }
     setLoading(true)
     try {
-      // Replace this with your actual API call
       const response = await apiRequest(
-        `${Labbaseurl}patients_by_date/?start_date=${dateFilters.fromDate}&end_date=${dateFilters.toDate}`, "GET"
+        `${Labbaseurl}patients_by_date/?start_date=${from}&end_date=${to}`,
+        "GET"
       )
       const data = response.data
 
       // Handle the API response structure
       if (data.success && Array.isArray(data.data)) {
         setPatients(data.data)
+        setTotalRegistrationsCount(data.total_registrations !== undefined ? data.total_registrations : data.data.length)
       } else if (Array.isArray(data)) {
         setPatients(data)
+        setTotalRegistrationsCount(data.length)
       } else {
         setPatients([])
+        setTotalRegistrationsCount(0)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
       setPatients([])
+      setTotalRegistrationsCount(0)
     } finally {
       setLoading(false)
     }
   }
 
+  useEffect(() => {
+    if (dateFilters.fromDate && dateFilters.toDate) {
+      fetchData(dateFilters.fromDate, dateFilters.toDate)
+    }
+  }, [dateFilters.fromDate, dateFilters.toDate])
+
   const handleSearch = () => {
-    if (startDate && endDate) {
-      fetchData(startDate, endDate)
+    if (dateFilters.fromDate && dateFilters.toDate) {
+      fetchData(dateFilters.fromDate, dateFilters.toDate)
+    } else {
+      toast.warning("Please select both dates")
     }
   }
 
@@ -513,38 +706,80 @@ const PatientDashboard = () => {
     (p) => parseFloat(p.totalAmount || 0) > 0
   ).length
 
-  const exportToCSV = () => {
-    if (filteredPatients.length === 0) return
+  const handleExportExcel = () => {
+    if (!filteredPatients || filteredPatients.length === 0) {
+      toast.warning("No data available to export")
+      return
+    }
 
-    const headers = ["Bill No", "Patient Name", "Phone", "Age", "Gender", "Ref By", "Test Count", "Billing Status", "Gross Amount", "Discount", "Net Amount"]
+    try {
+      const excelData = []
 
-    const data = filteredPatients.map((p) => [
-      p.bill_no || "",
-      p.patientname || "",
-      p.phone || "N/A",
-      p.age || "",
-      p.gender || "",
-      p.refby || "",
-      p.testdetails?.length || 0,
-      parseFloat(p.totalAmount || 0) > 0 ? "Billed" : "Not Billed",
-      parseFloat(p.totalAmount || 0).toFixed(2),
-      formatDiscountDisplay(p),
-      getNetBillAmount(p).toFixed(2),
-    ])
+      filteredPatients.forEach((item, patientIdx) => {
+        const testList = (item.testdetails && Array.isArray(item.testdetails) && item.testdetails.length > 0)
+          ? item.testdetails
+          : [{ test_name: "-", amount: "" }]
 
-    data.push(["", "Grand Total", "", "", "", "", totalTests.toString(), "", totalAmount, totalDiscountVal, totalNetAmountVal])
+        const grossAmt = parseFloat(item.totalAmount || 0)
+        const discAmt = getNumericDiscount(item)
+        const netAmt = getNetBillAmount(item)
+        const isBilled = grossAmt > 0
 
-    const csvContent = [headers.join(","), ...data.map((row) => row.join(","))].join("\n")
+        testList.forEach((test, testIdx) => {
+          const isFirst = testIdx === 0
+          const tname = typeof test === "object" ? (test.testname || test.test_name || "-") : String(test)
+          const tamount = typeof test === "object" && test.amount !== undefined && test.amount !== "" ? Number(test.amount) : ""
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `patient-data-${dateFilters.fromDate}-to-${dateFilters.toDate}.csv`)
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+          excelData.push({
+            "S.No": isFirst ? patientIdx + 1 : "",
+            "Bill No": isFirst ? (item.bill_no || "-") : "",
+            "Patient Name": isFirst ? (item.patientname || "-") : "",
+            "Phone": isFirst ? (item.phone || "-") : "",
+            "Age": isFirst ? (item.age || "-") : "",
+            "Gender": isFirst ? (item.gender || "-") : "",
+            "Ref By": isFirst ? (item.refby || "-") : "",
+            "Segment": isFirst ? (item.segment || "-") : "",
+            "Test #": testIdx + 1,
+            "Test Name": tname,
+            "Test Amount (₹)": tamount !== "" ? tamount : "-",
+            "Status": isFirst ? (isBilled ? "Billed" : "Not Billed") : "",
+            "Gross Amount (₹)": isFirst ? grossAmt : "",
+            "Discount (₹)": isFirst ? discAmt : "",
+            "Net Amount (₹)": isFirst ? netAmt : "",
+          })
+        })
+      })
+
+      const ws = XLSX.utils.json_to_sheet(excelData)
+
+      ws["!cols"] = [
+        { wch: 6 },  // S.No
+        { wch: 16 }, // Bill No
+        { wch: 22 }, // Patient Name
+        { wch: 14 }, // Phone
+        { wch: 8 },  // Age
+        { wch: 10 }, // Gender
+        { wch: 20 }, // Ref By
+        { wch: 16 }, // Segment
+        { wch: 8 },  // Test #
+        { wch: 35 }, // Test Name
+        { wch: 15 }, // Test Amount (₹)
+        { wch: 12 }, // Status
+        { wch: 16 }, // Gross Amount (₹)
+        { wch: 14 }, // Discount (₹)
+        { wch: 16 }, // Net Amount (₹)
+      ]
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, "Patient Billing Report")
+
+      const fileName = `Billing_Dashboard_Report_${dateFilters.fromDate || 'all'}_to_${dateFilters.toDate || 'all'}.xlsx`
+      XLSX.writeFile(wb, fileName)
+      toast.success("Excel exported successfully!")
+    } catch (error) {
+      console.error("Error exporting to Excel:", error)
+      toast.error("Failed to export Excel file")
+    }
   }
 
   return (
@@ -559,7 +794,10 @@ const PatientDashboard = () => {
               <DateInput
                 type="date"
                 value={dateFilters.fromDate}
-                onChange={(e)=>setDateFilters(p=>({...p,fromDate:e.target.value}))} 
+                max={dateFilters.toDate || getCurrentDate()}
+                onChange={(e) =>
+                  setDateFilters((p) => ({ ...p, fromDate: e.target.value }))
+                }
               />
             </DateInputGroup>
 
@@ -568,7 +806,11 @@ const PatientDashboard = () => {
               <DateInput
                 type="date"
                 value={dateFilters.toDate}
-                onChange={(e)=>setDateFilters(p=>({...p,fromDate:e.target.value}))} 
+                min={dateFilters.fromDate}
+                max={getCurrentDate()}
+                onChange={(e) =>
+                  setDateFilters((p) => ({ ...p, toDate: e.target.value }))
+                }
               />
             </DateInputGroup>
 
@@ -603,7 +845,7 @@ const PatientDashboard = () => {
               </StatIcon>
               <StatTitle>Total Registrations</StatTitle>
             </StatHeader>
-            <StatValue>{totalPatients}</StatValue>
+            <StatValue>{totalRegistrationsCount}</StatValue>
           </StatCard>
 
           <StatCard>
@@ -641,9 +883,9 @@ const PatientDashboard = () => {
           <TableHeader>
             <TableTitle>Patient Registrations</TableTitle>
             {patients.length > 0 && (
-              <ExportButton onClick={exportToCSV}>
-                <Download size={16} />
-                Export CSV
+              <ExportButton onClick={handleExportExcel}>
+                <FileSpreadsheet size={16} />
+                Export Excel
               </ExportButton>
             )}
           </TableHeader>
@@ -664,7 +906,7 @@ const PatientDashboard = () => {
                     <Th>Age</Th>
                     <Th>Gender</Th>
                     <Th>Ref By</Th>
-                    <Th>Test Count</Th>
+                    <Th>Tests Ordered</Th>
                     <Th>Status</Th>
                     <Th>Gross Amt</Th>
                     <Th>Discount</Th>
@@ -680,7 +922,22 @@ const PatientDashboard = () => {
                       <Td>{p.age}</Td>
                       <Td>{p.gender}</Td>
                       <Td>{p.refby}</Td>
-                      <Td>{p.testdetails?.length || 0}</Td>
+                      <Td style={{ minWidth: '170px' }}>
+                        {p.testdetails && p.testdetails.length > 0 ? (
+                          <TestCellWrapper>
+                            <TestCountBadge>
+                              <FlaskConical size={13} />
+                              {p.testdetails.length} {p.testdetails.length === 1 ? 'Test' : 'Tests'}
+                            </TestCountBadge>
+                            <ViewTestsBtn onClick={() => setSelectedModalItem(p)}>
+                              <Eye size={13} />
+                              View Tests
+                            </ViewTestsBtn>
+                          </TestCellWrapper>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>-</span>
+                        )}
+                      </Td>
                       <Td>
                         <StatusBadge billed={parseFloat(p.totalAmount || 0) > 0}>
                           {parseFloat(p.totalAmount || 0) > 0 ? "Billed" : "Not Billed"}
@@ -693,7 +950,7 @@ const PatientDashboard = () => {
                   ))}
                   <TotalRow>
                     <Td colSpan={6}>Grand Total (Filtered)</Td>
-                    <Td>{totalTests}</Td>
+                    <Td>{totalTests} Tests</Td>
                     <Td></Td>
                     <Td>₹{totalAmount}</Td>
                     <Td style={{ color: "#e11d48" }}>₹{totalDiscountVal}</Td>
@@ -750,6 +1007,64 @@ const PatientDashboard = () => {
           )}
         </TableContainer>
       </FormCard>
+
+      {/* View Tests Modal */}
+      {selectedModalItem && (
+        <ModalOverlay onClick={() => setSelectedModalItem(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitleGroup>
+                <ModalIcon>
+                  <FlaskConical size={20} />
+                </ModalIcon>
+                <div>
+                  <ModalTitle>Ordered Tests</ModalTitle>
+                  <ModalSubtitle>
+                    {selectedModalItem.patientname} • Bill #{selectedModalItem.bill_no || "N/A"}
+                  </ModalSubtitle>
+                </div>
+              </ModalTitleGroup>
+              <ModalCloseBtn onClick={() => setSelectedModalItem(null)}>
+                <X size={20} />
+              </ModalCloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              {selectedModalItem.testdetails && selectedModalItem.testdetails.length > 0 ? (
+                selectedModalItem.testdetails.map((test, idx) => {
+                  const tname = typeof test === "object" ? (test.testname || test.test_name || "") : String(test)
+                  const tamount = typeof test === "object" ? test.amount : null
+                  return (
+                    <TestCard key={idx}>
+                      <TestInfo>
+                        <TestNumberBadge>#{idx + 1}</TestNumberBadge>
+                        <TestNameText>{tname || "Unnamed Test"}</TestNameText>
+                      </TestInfo>
+                      {tamount !== null && tamount !== undefined && Number(tamount) > 0 && (
+                        <TestAmountText>₹{Number(tamount).toFixed(2)}</TestAmountText>
+                      )}
+                    </TestCard>
+                  )
+                })
+              ) : (
+                <div style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>
+                  No tests recorded for this bill.
+                </div>
+              )}
+            </ModalBody>
+            <ModalFooter>
+              <div style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                Total: <strong style={{ color: "#0f172a" }}>{selectedModalItem.testdetails?.length || 0} Tests</strong>
+              </div>
+              <Button
+                style={{ height: "36px", padding: "8px 18px", fontSize: "0.84rem" }}
+                onClick={() => setSelectedModalItem(null)}
+              >
+                Close
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
     </FormContainer>
   )
 }
