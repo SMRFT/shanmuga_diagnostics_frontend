@@ -933,6 +933,7 @@ const CorporatePatientOverview = () => {
         collected_date: patient.collected_date || "N/A",
         file_url: fileUrl,
         pdf_name: pdfName,
+        barcode: patient.barcode || "",
         template_name: "chc_report",
       });
 

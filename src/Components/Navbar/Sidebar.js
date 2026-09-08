@@ -37,6 +37,11 @@ import {
   FaCalculator,
   FaHeadset,
   FaCheckDouble
+  FaCheckDouble,
+  FaMapMarkedAlt,
+  FaHistory,
+  FaBook,
+  FaQrcode
 } from "react-icons/fa";
 import { PiTestTubeDuotone } from "react-icons/pi";
 
@@ -665,6 +670,7 @@ const Sidebar = () => {
     financeDetails: false,
     misDetails: false,
     b2bDetails: false,
+    franchiseDetails: false,
   };
 
   const [dropdowns, setDropdowns] = useState(() => {
@@ -1801,6 +1807,76 @@ const Sidebar = () => {
               </SidebarNavLink>
 
               <DropdownHeader
+                isOpen={dropdowns.franchiseDetails}
+                onClick={() => toggleDropdown("franchiseDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaClinicMedical />
+                  </IconWrapper>
+                  Franchise Management
+                </div>
+                <ChevronIcon isOpen={dropdowns.franchiseDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.franchiseDetails}>
+                <SubLink
+                  to="/FranchiseRegister"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Register
+                </SubLink>
+                <SubLink
+                  to="/FranchiseList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise List
+                </SubLink>
+                <SubLink
+                  to="/FranchiseLocations"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Locations
+                </SubLink>
+                <SubLink
+                  to="/InactiveFranchises"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Inactive Franchises
+                </SubLink>
+                <SubLink
+                  to="/Barcodestock"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Barcode Stock
+                </SubLink>
+                <SubLink
+                  to="/Cancelledbill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Cancelled Bill
+                </SubLink>
+                <SubLink
+                  to="/Cancelledbillreport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Cancelled Bill Report
+                </SubLink>
+                <SubLink
+                  to="/MonthEndCalculation"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Month End Calculation
+                </SubLink>
+                <SubLink
+                  to="/FranchiseHomeCollection"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Home Collection
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader
                 isOpen={dropdowns.b2bDetails}
                 onClick={() => toggleDropdown("b2bDetails")}
               >
@@ -2295,6 +2371,76 @@ const Sidebar = () => {
               </SidebarNavLink>
 
               <DropdownHeader
+                isOpen={dropdowns.franchiseDetails}
+                onClick={() => toggleDropdown("franchiseDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaClinicMedical />
+                  </IconWrapper>
+                  Franchise Management
+                </div>
+                <ChevronIcon isOpen={dropdowns.franchiseDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.franchiseDetails}>
+                <SubLink
+                  to="/FranchiseRegister"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Register
+                </SubLink>
+                <SubLink
+                  to="/FranchiseList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise List
+                </SubLink>
+                <SubLink
+                  to="/FranchiseLocations"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Locations
+                </SubLink>
+                <SubLink
+                  to="/InactiveFranchises"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Inactive Franchises
+                </SubLink>
+                <SubLink
+                  to="/Barcodestock"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Barcode Stock
+                </SubLink>
+                <SubLink
+                  to="/Cancelledbill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Cancelled Bill
+                </SubLink>
+                <SubLink
+                  to="/Cancelledbillreport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Cancelled Bill Report
+                </SubLink>
+                <SubLink
+                  to="/MonthEndCalculation"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Month End Calculation
+                </SubLink>
+                <SubLink
+                  to="/FranchiseHomeCollection"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Home Collection
+                </SubLink>
+              </DropdownContent>
+
+              <DropdownHeader
                 isOpen={dropdowns.b2bDetails}
                 onClick={() => toggleDropdown("b2bDetails")}
               >
@@ -2745,11 +2891,93 @@ const Sidebar = () => {
                   </IconWrapper>
                 Customer Complaints
               </SidebarNavLink>
+
+             
+
+              <SidebarNavLink
+                to="/FeedbackGrievanceReport"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <TbReport />
+                </IconWrapper>
+                Feedback & Grievance Report
+              </SidebarNavLink>
             </>
           )}
 
           {role === "CEO" && (
             <>
+              <DropdownHeader
+                isOpen={dropdowns.franchiseDetails}
+                onClick={() => toggleDropdown("franchiseDetails")}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <IconWrapper>
+                    <FaClinicMedical />
+                  </IconWrapper>
+                  Franchise Management
+                </div>
+                <ChevronIcon isOpen={dropdowns.franchiseDetails} />
+              </DropdownHeader>
+
+              <DropdownContent isOpen={dropdowns.franchiseDetails}>
+                <SubLink
+                  to="/FranchiseRegister"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Register
+                </SubLink>
+                <SubLink
+                  to="/FranchiseList"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise List
+                </SubLink>
+                <SubLink
+                  to="/FranchiseLocations"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Franchise Locations
+                </SubLink>
+                <SubLink
+                  to="/InactiveFranchises"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Inactive Franchises
+                </SubLink>
+                <SubLink
+                  to="/Barcodestock"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Barcode Stock
+                </SubLink>
+                <SubLink
+                  to="/Cancelledbill"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Cancelled Bill
+                </SubLink>
+                <SubLink
+                  to="/Cancelledbillreport"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Cancelled Bill Report
+                </SubLink>
+                <SubLink
+                  to="/MonthEndCalculation"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Month End Calculation
+                </SubLink>
+                <SubLink
+                  to="/FranchiseHomeCollection"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  Home Collection
+                </SubLink>
+              </DropdownContent>
+
               <DropdownHeader
                 isOpen={dropdowns.b2bDetails}
                 onClick={() => toggleDropdown("b2bDetails")}
@@ -2929,7 +3157,21 @@ const Sidebar = () => {
             </>
           )}
 
-                  </SearchableMenu>
+
+          {role === "TeleCalling" && (
+            <>
+              <SidebarNavLink
+                to="/CustomerComplaints"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <IconWrapper>
+                  <FaChartLine />
+                </IconWrapper>
+                Customer Complaints
+              </SidebarNavLink>
+            </>
+          )}
+
         </SidebarContent>
         <SignOutWrapper>
           <SidebarNavLink

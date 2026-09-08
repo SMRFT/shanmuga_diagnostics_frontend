@@ -2563,6 +2563,7 @@ const TestSorting = ({ patient, onClose }) => {
         file_url: fileUrl,
         pdf_name: pdfName,
         patient_id: patient.patient_id,
+        barcode: patient.barcode || "",
       });
 
       if (res.data.success) {

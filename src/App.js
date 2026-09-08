@@ -108,10 +108,25 @@ import B2BPackageList from "./Components/Lab/B2BPackageList";
 
 import Busfare from "./Components/Busfare/Busfare";
 import CustomerComplaints from "./Components/Complaints/Customercomplaints";
+import CustomercomplaintsQRScan from "./Components/Complaints/CustomercomplaintsQRScan";
+import FeedbackGrievance from "./Components/Complaints/FeedbackGrievance";
+import FeedbackGrievanceReport from "./Components/Complaints/FeedbackGrievanceReport";
 import Salesplan from "./Components/Sales/Salesplan";
 import SalesReport from "./Components/Sales/Salesreport";
 import SalesSummary from "./Components/Sales/Salessummary";
 import OverallSummary from "./Components/Sales/OverallSummary";
+
+// Franchise Enrollment & Management Imports
+import FranchiseRegister from "./Components/FranchiseEntrollment/FranchiseRegister";
+import FranchiseList from "./Components/FranchiseEntrollment/FranchiseList";
+import FranchiseDetails from "./Components/FranchiseEntrollment/FranchiseDetails";
+import FranchiseLocations from "./Components/FranchiseEntrollment/FranchiseLocations";
+import Barcodestock from "./Components/FranchiseEntrollment/Barcodestock";
+import InactiveFranchises from "./Components/FranchiseEntrollment/InactiveFranchises";
+import Cancelledbill from "./Components/FranchiseEntrollment/Cancelledbill";
+import Cancelledbillreport from "./Components/FranchiseEntrollment/Cancelledbillreport";
+import MonthEndCalculation from "./Components/FranchiseEntrollment/MonthEndCalculation";
+import FranchiseHomeCollection from "./Components/FranchiseEntrollment/FranchiseHomeCollection";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -243,11 +258,19 @@ function App() {
       "/DoctorForm": "Doctor Form",
       "/MBPatientList": "Microbiology Patient List",
       "/MBDoctorForm": "Microbiology Doctor Form",
+      "/CustomerComplaints": "Customer Complaints",
+      "/CustomercomplaintsQRScan": "Customer Complaints QR Scan",
+      "/FeedbackGrievance": "Feedback & Grievance",
+      "/FeedbackGrievanceReport": "Feedback & Grievance Report",
       "/SalesVisit": "Sales Visit Log",
       "/SalesDashboard": "Sales Dashboard",
       "/SalesDetailsEdit": "Sales Details Edit",
       "/SalesVisitLogReport": "Sales Visit Log Report",
       "/SalesindividualReport": "Sales Individual Report",
+      "/Salesplan": "Sales Plan",
+      "/SalesSummary": "Sales Summary",
+      "/OverallSummary": "Overall Summary",
+      "/SalesReport": "Sales Report",
       "/B2B": "B2B",
       "/B2BApproval": "B2B Approval",
       "/B2BFinalApproval": "B2B Final Approval",
@@ -295,6 +318,16 @@ function App() {
       "/PatientOverallReport": "Patient Overall Report",
       "/ClinicalDashboard": "Clinical Dashboard",
       "/ClinicalPatientOverview": "Clinical Patient Overview",
+      "/FranchiseRegister": "Franchise Register",
+      "/FranchiseList": "Franchise List",
+      "/EmployeeDetails/:franchiseId": "Franchise Details",
+      "/FranchiseLocations": "Franchise Locations",
+      "/Barcodestock": "Barcode Stock",
+      "/InactiveFranchises": "Inactive Franchises",
+      "/Cancelledbill": "Cancelled Bill",
+      "/Cancelledbillreport": "Cancelled Bill Report",
+      "/MonthEndCalculation": "Month End Calculation",
+      "/FranchiseHomeCollection": "Franchise Home Collection",
     };
 
     const path = location.pathname;
@@ -322,13 +355,28 @@ function App() {
     );
   }
 
-  // Allow public access without login for /Estimate
+  // Allow public access without login for /Estimate, /CustomercomplaintsQRScan, /FeedbackGrievance
   const isEstimatePath =
     location.pathname === "/Estimate" ||
     location.pathname === "/LIS/Estimate" ||
     location.pathname.endsWith("/Estimate") ||
     window.location.pathname.endsWith("/Estimate") ||
     window.location.pathname.toLowerCase().includes("estimate");
+
+  const isCustomercomplaintsQRScanPath =
+    location.pathname === "/CustomercomplaintsQRScan" ||
+    location.pathname === "/LIS/CustomercomplaintsQRScan" ||
+    location.pathname.endsWith("/CustomercomplaintsQRScan") ||
+    window.location.pathname.endsWith("/CustomercomplaintsQRScan") ||
+    window.location.pathname.toLowerCase().includes("customercomplaintsqrscan");
+
+  const isFeedbackGrievancePath =
+    location.pathname === "/FeedbackGrievance" ||
+    location.pathname === "/LIS/FeedbackGrievance" ||
+    location.pathname.endsWith("/FeedbackGrievance") ||
+    window.location.pathname.endsWith("/FeedbackGrievance") ||
+    window.location.pathname.toLowerCase().includes("feedbackgrievance");
+
 
   if (!role) {
     if (isEstimatePath) {
@@ -339,6 +387,25 @@ function App() {
         </div>
       );
     }
+
+    if (isCustomercomplaintsQRScanPath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <CustomercomplaintsQRScan />
+        </div>
+      );
+    }
+
+    if (isFeedbackGrievancePath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <FeedbackGrievance />
+        </div>
+      );
+    }
+
     return (
       <div
         style={{
@@ -588,6 +655,28 @@ function App() {
               element={<CustomerComplaints />}
             />
 
+            <Route
+              path="/CustomercomplaintsQRScan"
+              element={<CustomercomplaintsQRScan />}
+            />
+
+            <Route
+              path="/FeedbackGrievance"
+              element={<FeedbackGrievance />}
+            />
+
+            <Route
+              path="/LIS/FeedbackGrievance"
+              element={<FeedbackGrievance />}
+            />
+
+
+
+            <Route
+              path="/FeedbackGrievanceReport"
+              element={<FeedbackGrievanceReport />}
+            />
+
 
             <Route
               path="/Salesplan"
@@ -608,6 +697,18 @@ function App() {
               path="/SalesReport"
               element={<SalesReport />}
             />
+
+            {/* Franchise Enrollment & Management Routes */}
+            <Route path="/FranchiseRegister" element={<FranchiseRegister />} />
+            <Route path="/FranchiseList" element={<FranchiseList />} />
+            <Route path="/EmployeeDetails/:franchiseId" element={<FranchiseDetails />} />
+            <Route path="/FranchiseLocations" element={<FranchiseLocations />} />
+            <Route path="/Barcodestock" element={<Barcodestock />} />
+            <Route path="/InactiveFranchises" element={<InactiveFranchises />} />
+            <Route path="/Cancelledbill" element={<Cancelledbill />} />
+            <Route path="/Cancelledbillreport" element={<Cancelledbillreport />} />
+            <Route path="/MonthEndCalculation" element={<MonthEndCalculation />} />
+            <Route path="/FranchiseHomeCollection" element={<FranchiseHomeCollection />} />
 
           </Routes>
 

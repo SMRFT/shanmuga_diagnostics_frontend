@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom"; // NEW
 import axios from "axios";
 import styled, { createGlobalStyle } from "styled-components";
@@ -18,6 +18,7 @@ import {
   Mail,
   Flag,
   X,
+  Check,
   List,
   user,
   ChevronDown,
@@ -310,8 +311,39 @@ const Badge = styled.span`
 `;
 const ActionContainer = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
+`;
+
+const StatusBadgeUnder = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 3px;
+`;
+
+const SuccessCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: #16a34a;
+  background-color: rgba(22, 163, 74, 0.12);
+  padding: 1px 4px;
+  border-radius: 4px;
+`;
+
+const FailedCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.12);
+  padding: 1px 4px;
+  border-radius: 4px;
 `;
 const ActionButton = styled.button`
   display: flex;
@@ -378,12 +410,20 @@ const PortalDropdownMenu = styled.div`
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   min-width: 200px;
   z-index: 9999;
-  overflow: hidden;
   border: 1px solid #e9ecef;
-  // Bridge the gap with invisible top padding
-  padding-top: 6px;
-  margin-top: -6px;
+
+  /* Invisible hover bridge above the menu to eliminate cursor gap */
+  &::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 0;
+    right: 0;
+    height: 14px;
+    background: transparent;
+  }
 `;
+
 const DropdownItem = styled.button`
   display: block;
   width: 100%;
@@ -395,6 +435,16 @@ const DropdownItem = styled.button`
   font-size: 0.875rem;
   cursor: pointer;
   transition: var(--transition);
+
+  &:first-child {
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+  }
+  &:last-child {
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+  }
+
   &:hover {
     background-color: var(--gray-light);
   }
@@ -633,8 +683,10 @@ const parsePatientDate = (dateStr, registrationDate) => {
 
 const PatientOverview = () => {
   const [patients, setPatients] = useState([]);
+  const patientsRef = useRef([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
+  const [commSummary, setCommSummary] = useState({});
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
@@ -712,6 +764,22 @@ const PatientOverview = () => {
     fetchClinicalNames();
   }, []);
 
+  const fetchCommunicationLogs = useCallback(async (patientList) => {
+    const list = patientList || patientsRef.current;
+    const barcodes = (list || []).map((p) => p.barcode).filter(Boolean);
+    if (!barcodes.length) return;
+    try {
+      const response = await apiRequest(`${Labbaseurl}communication_logs/`, "POST", {
+        barcodes,
+      });
+      if (response.success && response.data) {
+        setCommSummary(response.data.summary || {});
+      }
+    } catch (error) {
+      console.error("Error fetching communication logs summary:", error);
+    }
+  }, [Labbaseurl]);
+
   const fetchCombinedPatientData = useCallback(async () => {
     setLoading(true);
     const formattedStartDate = startDate.toISOString().split("T")[0];
@@ -728,8 +796,10 @@ const PatientOverview = () => {
         const idB = String(b.patient_id || b.barcode || b.id || "");
         return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: "base" });
       });
+      patientsRef.current = sortedData;
       setPatients(sortedData);
       setFilteredPatients(sortedData);
+      fetchCommunicationLogs(sortedData);
       const statusMap = {};
       patientData.forEach((patient) => {
         statusMap[patient.patient_id] = {
@@ -743,7 +813,7 @@ const PatientOverview = () => {
       setError("Failed to load patient data");
     }
     setLoading(false);
-  }, [startDate, endDate, Labbaseurl]);
+  }, [startDate, endDate, Labbaseurl, fetchCommunicationLogs]);
 
   useEffect(() => {
     if (startDate && endDate) fetchCombinedPatientData();
@@ -1029,6 +1099,7 @@ const PatientOverview = () => {
         file_url: fileUrl,
         pdf_name: pdfName,
         patient_id: patient.patient_id,
+        barcode: patient.barcode || "",
       });
       if (res.data.success)
         toast.success("WhatsApp PDF message sent successfully!");
@@ -1036,9 +1107,11 @@ const PatientOverview = () => {
         toast.error("Failed to send WhatsApp template message.");
         console.error("Backend error:", res.data.error);
       }
+      fetchCommunicationLogs();
     } catch (error) {
       console.error("Error sending WhatsApp message:", error);
       toast.error("Error sending WhatsApp message.");
+      fetchCommunicationLogs();
     }
   };
 
@@ -1062,6 +1135,7 @@ const PatientOverview = () => {
       formData.append("recipients", patient.email);
       formData.append("patient_id", patient.patient_id);
       formData.append("patient_name", patient.patient_name);
+      formData.append("barcode", patient.barcode || "");
       formData.append(
         "attachments",
         new File([pdfBlob], `${patient.patient_name}_TestDetails.pdf`, {
@@ -1076,9 +1150,11 @@ const PatientOverview = () => {
       );
       if (emailResponse.success) toast.success("Email sent successfully!");
       else toast.error(`Failed to send email: ${emailResponse.error}`);
+      fetchCommunicationLogs();
     } catch (error) {
       console.error("Error sending email:", error);
       toast.error("Failed to send email.");
+      fetchCommunicationLogs();
     }
   };
 
@@ -2156,9 +2232,14 @@ const PatientOverview = () => {
 
   // NEW: showDropdown captures the button's screen position for the portal menu
   const showDropdown = (id, type, e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    // Target the actual button element so the dropdown appears snug directly under the icon
+    const buttonEl =
+      e.currentTarget.tagName === "BUTTON"
+        ? e.currentTarget
+        : e.currentTarget.querySelector("button") || e.currentTarget;
+    const rect = buttonEl.getBoundingClientRect();
     setDropdownPos({
-      top: rect.bottom + 4, // 4px below the button
+      top: rect.bottom, // directly beneath the button with 0 gap
       left: rect.right - 200, // right-align to button
     });
     setActiveDropdownPatientId(id);
@@ -2662,32 +2743,50 @@ const PatientOverview = () => {
                           {/* WHATSAPP dropdown trigger */}
                           <PrintDropdown
                             onMouseEnter={(e) =>
-                              isWhatsAppEmailEnabled && // ← changed
-                              showDropdown(patient.patient_id, "whatsapp", e)
+                              isWhatsAppEmailEnabled &&
+                              showDropdown(patient.barcode, "whatsapp", e)
                             }
                             onMouseLeave={hideDropdown}
+                            style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
                           >
                             <ActionButton
-                              disabled={!isWhatsAppEmailEnabled} // ← changed
+                              disabled={!isWhatsAppEmailEnabled}
                               title="Share via WhatsApp"
                             >
                               <MessageCircle size={16} />
                             </ActionButton>
+                            {commSummary[patient.barcode]?.WhatsApp && (
+                              <StatusBadgeUnder>
+                                {commSummary[patient.barcode].WhatsApp.success > 0 && (
+                                  <SuccessCount title={`${commSummary[patient.barcode].WhatsApp.success} WhatsApp Sent Successfully`}>
+                                    <Check size={10} strokeWidth={3} />
+                                    {commSummary[patient.barcode].WhatsApp.success}
+                                  </SuccessCount>
+                                )}
+                                {commSummary[patient.barcode].WhatsApp.failed > 0 && (
+                                  <FailedCount title={`${commSummary[patient.barcode].WhatsApp.failed} WhatsApp Failed`}>
+                                    <X size={10} strokeWidth={3} />
+                                    {commSummary[patient.barcode].WhatsApp.failed}
+                                  </FailedCount>
+                                )}
+                              </StatusBadgeUnder>
+                            )}
                           </PrintDropdown>
 
                           {/* EMAIL dropdown trigger */}
                           <PrintDropdown
                             onMouseEnter={(e) =>
-                              isWhatsAppEmailEnabled && // ← changed
+                              isWhatsAppEmailEnabled &&
                               patient.email &&
-                              showDropdown(patient.patient_id, "email", e)
+                              showDropdown(patient.barcode, "email", e)
                             }
                             onMouseLeave={hideDropdown}
+                            style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
                           >
                             <ActionButton
                               disabled={
                                 !isWhatsAppEmailEnabled || !patient.email
-                              } // ← changed
+                              }
                               title={
                                 patient.email
                                   ? "Send Email"
@@ -2707,6 +2806,22 @@ const PatientOverview = () => {
                                 }
                               />
                             </ActionButton>
+                            {commSummary[patient.barcode]?.Email && (
+                              <StatusBadgeUnder>
+                                {commSummary[patient.barcode].Email.success > 0 && (
+                                  <SuccessCount title={`${commSummary[patient.barcode].Email.success} Email Sent Successfully`}>
+                                    <Check size={10} strokeWidth={3} />
+                                    {commSummary[patient.barcode].Email.success}
+                                  </SuccessCount>
+                                )}
+                                {commSummary[patient.barcode].Email.failed > 0 && (
+                                  <FailedCount title={`${commSummary[patient.barcode].Email.failed} Email Failed`}>
+                                    <X size={10} strokeWidth={3} />
+                                    {commSummary[patient.barcode].Email.failed}
+                                  </FailedCount>
+                                )}
+                              </StatusBadgeUnder>
+                            )}
                           </PrintDropdown>
                         </ActionContainer>
                       </td>
