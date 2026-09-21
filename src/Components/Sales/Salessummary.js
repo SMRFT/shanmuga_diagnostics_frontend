@@ -51,6 +51,19 @@ const DateInput = styled.input`
   &:focus { outline: none; border-color: #219c9c; }
 `;
 
+const CategorySelect = styled.select`
+  padding: 7px 11px;
+  border: 1px solid #cfe3e3;
+  border-radius: 8px;
+  color: #256565;
+  font-weight: 600;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  min-width: 140px;
+  &:focus { outline: none; border-color: #219c9c; }
+`;
+
 const SubLabel = styled.div`
   font-size: 11px;
   color: #8fa8a8;
@@ -177,22 +190,27 @@ const pctOk = (v) =>
 
 const SalesSummary = () => {
   const [selectedDate, setSelectedDate] = useState(toDateInput(new Date()));
+  const [category, setCategory] = useState("all");
+  const [categories, setCategories] = useState([]);
   const [resp, setResp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async (dateStr) => {
+  const fetchData = useCallback(async (dateStr, catStr) => {
     setLoading(true);
     setError(null);
     try {
       const res = await apiRequest(
-        `${Labbaseurl}salesplan_summary/?date=${dateStr}`,
+        `${Labbaseurl}salesplan_summary/?date=${dateStr}&category=${catStr || "all"}`,
         "GET"
       );
       // apiRequest wraps response as { success, data, status }
       const payload = res?.data;
       if (res?.success && payload?.rows) {
         setResp(payload);
+        if (Array.isArray(payload.categories)) {
+          setCategories(payload.categories);
+        }
       } else {
         setError(res?.error || "Unexpected response from server.");
         setResp(null);
@@ -206,8 +224,8 @@ const SalesSummary = () => {
   }, []);
 
   useEffect(() => {
-    fetchData(selectedDate);
-  }, [selectedDate, fetchData]);
+    fetchData(selectedDate, category);
+  }, [selectedDate, category, fetchData]);
 
   const rows = resp?.rows || [];
   const todayLabel = resp?.today_label || "-";
@@ -227,13 +245,34 @@ const SalesSummary = () => {
           )}
         </div>
         <FilterRow>
-          <DateLabel htmlFor="sum-date">As of date</DateLabel>
-          <DateInput
-            id="sum-date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+          <div>
+            <DateLabel htmlFor="sum-date">As of date</DateLabel>
+            <div style={{ marginTop: "3px" }}>
+              <DateInput
+                id="sum-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <DateLabel htmlFor="sum-category">Category</DateLabel>
+            <div style={{ marginTop: "3px" }}>
+              <CategorySelect
+                id="sum-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </CategorySelect>
+            </div>
+          </div>
         </FilterRow>
       </Header>
 
@@ -248,7 +287,7 @@ const SalesSummary = () => {
           <Table>
             <thead>
               <tr>
-                <StickyGroupTh rowSpan={2}>Segment Name</StickyGroupTh>
+                <StickyGroupTh rowSpan={2}>Sales Executive</StickyGroupTh>
                 <GroupTh colSpan={3}>{todayLabel}</GroupTh>
                 <GroupTh colSpan={3}>WTD ({wtdLabel})</GroupTh>
                 <GroupTh colSpan={3}>MTD ({mtdLabel})</GroupTh>
@@ -267,13 +306,14 @@ const SalesSummary = () => {
             </thead>
             <tbody>
               {rows.map((row, idx) => {
-                const isTotal = row.category === "Total";
+                const isTotal = row.category === "Total" || row.employee_id === "total" || row.employee_name === "Total";
                 const bg = isTotal ? "#fff3e0" : undefined;
                 const bdColor = isTotal ? "#f0c890" : undefined;
+                const displayName = row.employee_name || row.category;
                 return (
                   <tr key={idx} style={{ background: bg }}>
                     <StickyTd style={{ background: bg || "#f7fcfc", borderColor: bdColor }}>
-                      {row.category}
+                      {displayName}
                     </StickyTd>
 
                     {/* Today */}
