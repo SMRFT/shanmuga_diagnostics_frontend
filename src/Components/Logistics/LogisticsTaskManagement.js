@@ -664,15 +664,21 @@ const LogisticsTaskManagement = () => {
   const calculateTotalDistance = (history) => {
     if (!history || history.length < 2) return 0;
     let total = 0;
-    for (let i = 1; i < history.length; i++) {
-      const prev = history[i - 1];
-      const curr = history[i];
-      const lat1 = prev.latitude || prev.lat;
-      const lng1 = prev.longitude || prev.lng;
-      const lat2 = curr.latitude || curr.lat;
-      const lng2 = curr.longitude || curr.lng;
-      if (lat1 && lng1 && lat2 && lng2) {
-        total += calculateDistance(lat1, lng1, lat2, lng2);
+    let lastValid = null;
+    for (let i = 0; i < history.length; i++) {
+      const pt = history[i];
+      const lat = parseFloat(pt.latitude || pt.lat || 0);
+      const lng = parseFloat(pt.longitude || pt.lng || 0);
+      if (!lat || !lng) continue;
+      if (!lastValid) {
+        lastValid = { lat, lng };
+        continue;
+      }
+      const dist = calculateDistance(lastValid.lat, lastValid.lng, lat, lng);
+      // Ignore stationary jitter (< 15 meters / 0.015 km)
+      if (dist >= 0.015) {
+        total += dist;
+        lastValid = { lat, lng };
       }
     }
     return total.toFixed(2);
@@ -799,29 +805,18 @@ const LogisticsTaskManagement = () => {
             timestamp: endTime.toISOString(),
           });
 
-          // Calculate total distance fallback
-          let totalDistance = 0;
-          for (let i = 1; i < locationHistory.length; i++) {
-            const prev = locationHistory[i - 1];
-            const curr = locationHistory[i];
-            const lat1 = prev.latitude || prev.lat;
-            const lng1 = prev.longitude || prev.lng;
-            const lat2 = curr.latitude || curr.lat;
-            const lng2 = curr.longitude || curr.lng;
-            if (lat1 && lng1 && lat2 && lng2) {
-              totalDistance += calculateDistance(lat1, lng1, lat2, lng2);
-            }
-          }
+          // Calculate total distance fallback with stationary jitter filtering
+          const totalDistance = calculateTotalDistance(locationHistory);
 
           sessionStorage.setItem(sessionKey, JSON.stringify(locationHistory));
           sessionStorage.setItem(`location_end_${today}`, endTime.toISOString());
-          sessionStorage.setItem(`location_distance_${today}`, totalDistance.toFixed(2));
+          sessionStorage.setItem(`location_distance_${today}`, totalDistance);
 
           setLocationTracking(prev => ({
             ...prev,
             isTracking: false,
             endTime,
-            distance: totalDistance.toFixed(2),
+            distance: totalDistance,
           }));
 
           // Clear watch interval and release wake lock

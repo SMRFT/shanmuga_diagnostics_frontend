@@ -437,15 +437,11 @@ const formatDate = (dateStr) => {
 };
 
 const formatDistance = (dist) => {
-  if (dist === null || dist === undefined || dist === '') return '0 m';
+  if (dist === null || dist === undefined || dist === '') return '0.00 km';
   let val = parseFloat(dist);
-  if (isNaN(val) || val <= 0) return '0 m';
+  if (isNaN(val) || val <= 0) return '0.00 km';
 
-  if (val > 500) {
-    val = val / 1000;
-  }
-
-  if (val < 1.0) {
+  if (val < 0.1) {
     const meters = Math.round(val * 1000);
     return `${meters} m`;
   }
