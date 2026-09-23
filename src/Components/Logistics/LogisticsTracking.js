@@ -1,62 +1,347 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
-import { Users, RefreshCw, Navigation } from 'lucide-react';
-import styled from 'styled-components';
+import { 
+  Users, RefreshCw, Navigation, Maximize2, Play, Pause, 
+  MapPin, Clock, Search, ArrowRight, Crosshair, CheckCircle2,
+  Activity, Compass, ShieldCheck, ChevronRight, X
+} from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
 import apiRequest from '../Auth/apiRequest';
 
+// --- Animations ---
+const pulseGlow = keyframes`
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+`;
+
+const liveBeacon = keyframes`
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+`;
+
 // --- Styled Components ---
-const MapWrapper = styled.div`
-  width: 100%;
-  height: calc(100vh - 80px);
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+const Container = styled.div`
+  padding: 16px 20px;
+  background: #f1f5f9;
+  min-height: 100vh;
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+  box-sizing: border-box;
 `;
 
-const OverlayPanel = styled.div`
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  z-index: 10;
-  width: 290px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+const HeaderBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
 `;
 
-const LiveBadge = styled.span`
+const TitleSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const PageTitle = styled.h2`
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const SyncBadge = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #ef4444;
-  color: white;
-  padding: 4px 10px;
+  gap: 6px;
+  background: ${props => props.$active ? '#ecfdf5' : '#f1f5f9'};
+  color: ${props => props.$active ? '#065f46' : '#475569'};
+  border: 1px solid ${props => props.$active ? '#a7f3d0' : '#cbd5e1'};
+  padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  animation: pulse 2s infinite;
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+`;
+
+const LiveDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${props => props.$active ? '#10b981' : '#94a3b8'};
+  display: inline-block;
+  ${props => props.$active && `
+    box-shadow: 0 0 8px #10b981;
+    animation: ${pulseGlow} 2s infinite;
+  `}
+`;
+
+const ActionBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 `;
 
-// --- Curated Vibrant Person Colors Palette ---
+const MainGrid = styled.div`
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 16px;
+  height: calc(100vh - 95px);
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+`;
+
+const SidebarCard = styled.div`
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+`;
+
+const SearchBox = styled.div`
+  position: relative;
+  margin-bottom: 12px;
+
+  input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 13px;
+    background: #f8fafc;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+
+    &:focus {
+      background: #ffffff;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+  }
+
+  svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+  }
+`;
+
+const FilterTabs = styled.div`
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+`;
+
+const TabButton = styled.button`
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: ${props => props.$active ? '#ffffff' : 'transparent'};
+  color: ${props => props.$active ? '#0f172a' : '#64748b'};
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: ${props => props.$active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'};
+  transition: all 0.15s ease;
+`;
+
+const CollectorList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+`;
+
+const CollectorItem = styled.div`
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid ${props => props.$selected ? '#6366f1' : '#f1f5f9'};
+  background: ${props => props.$selected ? '#f5f3ff' : '#ffffff'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: ${props => props.$selected ? '0 4px 12px rgba(99,102,241,0.12)' : '0 1px 3px rgba(0,0,0,0.03)'};
+
+  &:hover {
+    border-color: ${props => props.$selected ? '#6366f1' : '#cbd5e1'};
+    background: ${props => props.$selected ? '#f5f3ff' : '#f8fafc'};
+    transform: translateY(-1px);
+  }
+`;
+
+const ItemHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+`;
+
+const NameTag = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1e293b;
+`;
+
+const ColorPill = styled.span`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: ${props => props.$color};
+  box-shadow: 0 0 6px ${props => props.$color};
+  flex-shrink: 0;
+`;
+
+const DistanceBadge = styled.span`
+  font-size: 13px;
+  font-weight: 700;
+  color: #4338ca;
+  background: #eef2ff;
+  padding: 3px 8px;
+  border-radius: 6px;
+`;
+
+const ItemMeta = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #64748b;
+`;
+
+const StatusChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: ${props => props.$active ? '#16a34a' : '#64748b'};
+`;
+
+const MapContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  position: relative;
+  border: 1px solid #e2e8f0;
+`;
+
+const MapOverlayControls = styled.div`
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const OverlayBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+    color: #4f46e5;
+  }
+`;
+
+const BottomDetailCard = styled.div`
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  max-width: 620px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  z-index: 20;
+  animation: slideUp 0.3s ease;
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+
+// --- Color Palette ---
 const PERSON_COLORS = [
-  '#4F46E5', // Indigo
-  '#059669', // Emerald Green
-  '#DC2626', // Bright Red
-  '#D97706', // Amber / Orange
-  '#7C3AED', // Royal Purple
-  '#0891B2', // Cyan
-  '#BE185D', // Pink / Rose
-  '#EA580C', // Deep Orange
-  '#2563EB', // Blue
-  '#16A34A', // Forest Green
-  '#9333EA', // Purple
-  '#0284C7', // Sky Blue
+  '#4F46E5', '#059669', '#DC2626', '#D97706', '#7C3AED', 
+  '#0891B2', '#BE185D', '#EA580C', '#2563EB', '#16A34A', '#9333EA', '#0284C7'
 ];
 
 const getPersonColor = (index, name = '') => {
@@ -70,37 +355,17 @@ const getPersonColor = (index, name = '') => {
   return PERSON_COLORS[Math.abs(hash) % PERSON_COLORS.length];
 };
 
-// --- SVG Icons for Zomato/Swiggy style Start & Bike Travelling Markers ---
-const START_MARKER_ICON = {
-  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
-      <circle cx="17" cy="17" r="13" fill="#10B981" stroke="#FFFFFF" stroke-width="2.5"/>
-      <text x="17" y="21" font-size="11" font-family="Arial, sans-serif" font-weight="bold" fill="#FFFFFF" text-anchor="middle">S</text>
-    </svg>
-  `),
-};
+export const formatDistance = (dist) => {
+  if (dist === null || dist === undefined || dist === '') return '0.00 km';
+  let val = parseFloat(dist);
+  if (isNaN(val) || val <= 0) return '0.00 km';
 
-const END_MARKER_ICON = {
-  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
-      <circle cx="17" cy="17" r="13" fill="#EF4444" stroke="#FFFFFF" stroke-width="2.5"/>
-      <text x="17" y="21" font-size="11" font-family="Arial, sans-serif" font-weight="bold" fill="#FFFFFF" text-anchor="middle">E</text>
-    </svg>
-  `),
+  if (val < 0.1) {
+    const meters = Math.round(val * 1000);
+    return `${meters} m`;
+  }
+  return `${val.toFixed(2)} km`;
 };
-
-// SVG Bike Rider Icon with Dynamic Heading Angle
-const getBikeMarkerIcon = (heading = 0, color = '#2563EB') => ({
-  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
-      <g transform="rotate(${heading}, 22, 22)">
-        <circle cx="22" cy="22" r="17" fill="${color}" stroke="#FFFFFF" stroke-width="2.5" />
-        <!-- Delivery Bike Symbol -->
-        <path d="M13 27 C13 25, 15 23, 17 23 L23 23 L26 18 C26.5 17, 27.5 17, 28 18 L30 21 L32 21 M15 28 A 3.5 3.5 0 1 0 15 21 A 3.5 3.5 0 1 0 15 28 M29 28 A 3.5 3.5 0 1 0 29 21 A 3.5 3.5 0 1 0 29 28 M22 17 A 2 2 0 1 0 22 13 A 2 2 0 1 0 22 17 Z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </g>
-    </svg>
-  `),
-});
 
 const calculateBearing = (startLat, startLng, destLat, destLng) => {
   const startPhi = (startLat * Math.PI) / 180;
@@ -112,30 +377,126 @@ const calculateBearing = (startLat, startLng, destLat, destLng) => {
   return (brng + 360) % 360;
 };
 
-const formatDistance = (dist) => {
-  if (dist === null || dist === undefined || dist === '') return '0 m';
-  let val = parseFloat(dist);
-  if (isNaN(val) || val <= 0) return '0 m';
+// --- Custom SVGs for High-Visibility Markers ---
+const getStartMarkerIcon = (color = '#10B981') => ({
+  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">
+      <defs>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      <path d="M19 0 C8.5 0 0 8.5 0 19 C0 32 19 46 19 46 C19 46 38 32 38 19 C38 8.5 29.5 0 19 0 Z" fill="#10B981" filter="url(#shadow)"/>
+      <circle cx="19" cy="18" r="10" fill="#FFFFFF"/>
+      <text x="19" y="22" font-size="10" font-family="Arial, sans-serif" font-weight="bold" fill="#10B981" text-anchor="middle">START</text>
+    </svg>
+  `),
+});
 
-  if (val > 500) {
-    val = val / 1000;
-  }
+const getBikeMarkerIcon = (heading = 0, color = '#2563EB', isLive = true) => ({
+  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50">
+      <defs>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+        </filter>
+      </defs>
+      <!-- Outer Beacon Ring -->
+      <circle cx="25" cy="25" r="22" fill="${color}" fill-opacity="0.25"/>
+      <g transform="rotate(${heading}, 25, 25)">
+        <!-- Center Solid Badge -->
+        <circle cx="25" cy="25" r="18" fill="${color}" stroke="#FFFFFF" stroke-width="2.5" filter="url(#glow)"/>
+        <!-- Delivery Bike Silhouette -->
+        <path d="M15 31 C15 28.5, 17.5 26.5, 20 26.5 L26 26.5 L29.5 20.5 C30 19.5, 31.5 19.5, 32 20.5 L34.5 24 L37 24 M17 32.5 A 4 4 0 1 0 17 24.5 A 4 4 0 1 0 17 32.5 M33 32.5 A 4 4 0 1 0 33 24.5 A 4 4 0 1 0 33 32.5 M25.5 19.5 A 2.2 2.2 0 1 0 25.5 15.1 A 2.2 2.2 0 1 0 25.5 19.5 Z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </svg>
+  `),
+});
 
-  if (val < 1.0) {
-    const meters = Math.round(val * 1000);
-    return `${meters} m`;
-  }
+const getCompletedMarkerIcon = (color = '#64748B') => ({
+  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">
+      <defs>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      <path d="M19 0 C8.5 0 0 8.5 0 19 C0 32 19 46 19 46 C19 46 38 32 38 19 C38 8.5 29.5 0 19 0 Z" fill="#EF4444" filter="url(#shadow)"/>
+      <circle cx="19" cy="18" r="10" fill="#FFFFFF"/>
+      <text x="19" y="22" font-size="10" font-family="Arial, sans-serif" font-weight="bold" fill="#EF4444" text-anchor="middle">END</text>
+    </svg>
+  `),
+});
 
-  return `${val.toFixed(2)} km`;
+// --- Map Camera & Bounds Controller ---
+const MapViewController = ({ targetCollector, fitAllTrigger, collectors }) => {
+  const map = useMap();
+
+  // Navigate & fit route when collector is selected
+  useEffect(() => {
+    if (!map || !targetCollector) return;
+
+    const history = (targetCollector.routePoints && targetCollector.routePoints.length > 0)
+      ? targetCollector.routePoints
+      : [{ lat: targetCollector.latitudeStart, lng: targetCollector.longitudeStart }];
+
+    if (history.length === 0) return;
+
+    if (history.length === 1) {
+      const lat = parseFloat(history[0].lat || history[0].latitude);
+      const lng = parseFloat(history[0].lng || history[0].longitude);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+        map.panTo({ lat, lng });
+        map.setZoom(15);
+      }
+    } else {
+      const bounds = new window.google.maps.LatLngBounds();
+      history.forEach(pt => {
+        const lat = parseFloat(pt.lat || pt.latitude);
+        const lng = parseFloat(pt.lng || pt.longitude);
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+          bounds.extend({ lat, lng });
+        }
+      });
+      map.fitBounds(bounds, { top: 60, right: 60, bottom: 120, left: 60 });
+    }
+  }, [map, targetCollector]);
+
+  // Fit all collectors on screen
+  useEffect(() => {
+    if (!map || !collectors || collectors.length === 0) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    let count = 0;
+
+    collectors.forEach(c => {
+      const history = (c.routePoints && c.routePoints.length > 0)
+        ? c.routePoints
+        : [{ lat: c.latitudeStart, lng: c.longitudeStart }];
+
+      history.forEach(pt => {
+        const lat = parseFloat(pt.lat || pt.latitude);
+        const lng = parseFloat(pt.lng || pt.longitude);
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+          bounds.extend({ lat, lng });
+          count++;
+        }
+      });
+    });
+
+    if (count > 0) {
+      map.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
+    }
+  }, [map, fitAllTrigger]);
+
+  return null;
 };
 
-// --- Thin Polyline Component (Zomato/Swiggy 3px Thin Line) ---
-const TrackedPath = ({ collectorId, points, color, onDistanceCalculated }) => {
+// --- Stable Polyline Path Component ---
+const TrackedPolyline = ({ points, color, isSelected }) => {
   const map = useMap();
   const polylineRef = useRef(null);
-  const shadowPolylineRef = useRef(null);
-  const directionsRendererRef = useRef(null);
-  const lastPathStrRef = useRef('');
+  const casingRef = useRef(null);
+  const lastLenRef = useRef(0);
 
   const pathCoordinates = useMemo(() => {
     if (!points || !Array.isArray(points)) return [];
@@ -150,131 +511,52 @@ const TrackedPath = ({ collectorId, points, color, onDistanceCalculated }) => {
   useEffect(() => {
     if (!map || pathCoordinates.length < 2) return;
 
-    const pathStr = JSON.stringify(pathCoordinates);
-    if (lastPathStrRef.current === pathStr) return;
-    lastPathStrRef.current = pathStr;
+    // Only recreate polyline if point count changes or selection changes
+    if (polylineRef.current && lastLenRef.current === pathCoordinates.length) {
+      polylineRef.current.setOptions({
+        strokeColor: color,
+        strokeWeight: isSelected ? 5 : 3,
+        strokeOpacity: isSelected ? 1.0 : 0.65,
+        zIndex: isSelected ? 10 : 3
+      });
+      return;
+    }
+    lastLenRef.current = pathCoordinates.length;
 
-    // Clean up existing renderers
-    if (directionsRendererRef.current) {
-      directionsRendererRef.current.setMap(null);
-      directionsRendererRef.current = null;
-    }
-    if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
-    }
-    if (shadowPolylineRef.current) {
-      shadowPolylineRef.current.setMap(null);
-      shadowPolylineRef.current = null;
-    }
+    if (casingRef.current) casingRef.current.setMap(null);
+    if (polylineRef.current) polylineRef.current.setMap(null);
 
-    // 1. Thin Line (3px main line + 4px casing)
-    shadowPolylineRef.current = new window.google.maps.Polyline({
+    casingRef.current = new window.google.maps.Polyline({
       path: pathCoordinates,
       geodesic: true,
       strokeColor: '#FFFFFF',
-      strokeOpacity: 0.8,
-      strokeWeight: 4,
+      strokeOpacity: isSelected ? 0.9 : 0.6,
+      strokeWeight: isSelected ? 7 : 5,
       map: map,
-      zIndex: 1
+      zIndex: isSelected ? 9 : 2
     });
 
     polylineRef.current = new window.google.maps.Polyline({
       path: pathCoordinates,
       geodesic: true,
       strokeColor: color,
-      strokeOpacity: 0.9,
-      strokeWeight: 3,
+      strokeOpacity: isSelected ? 1.0 : 0.7,
+      strokeWeight: isSelected ? 5 : 3,
       map: map,
-      zIndex: 2
+      zIndex: isSelected ? 10 : 3
     });
 
-    // Compute distance
-    if (onDistanceCalculated && collectorId) {
-      let totalMeters = 0;
-      for (let i = 0; i < pathCoordinates.length - 1; i++) {
-        const p1 = new window.google.maps.LatLng(pathCoordinates[i].lat, pathCoordinates[i].lng);
-        const p2 = new window.google.maps.LatLng(pathCoordinates[i + 1].lat, pathCoordinates[i + 1].lng);
-        if (window.google.maps.geometry && window.google.maps.geometry.spherical) {
-          totalMeters += window.google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
-        } else {
-          const R = 6371e3;
-          const dLat = (p2.lat() - p1.lat()) * Math.PI / 180;
-          const dLng = (p2.lng() - p1.lng()) * Math.PI / 180;
-          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(p1.lat() * Math.PI / 180) * Math.cos(p2.lat() * Math.PI / 180) *
-                    Math.sin(dLng/2) * Math.sin(dLng/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          totalMeters += R * c;
-        }
-      }
-      onDistanceCalculated(collectorId, (totalMeters / 1000).toFixed(2));
-    }
-
-    // Try road route via DirectionsService
-    if (window.google.maps.DirectionsService) {
-      const directionsService = new window.google.maps.DirectionsService();
-      const origin = pathCoordinates[0];
-      const destination = pathCoordinates[pathCoordinates.length - 1];
-
-      let waypoints = [];
-      if (pathCoordinates.length > 2) {
-        const intermediate = pathCoordinates.slice(1, -1);
-        const step = intermediate.length > 23 ? intermediate.length / 23 : 1;
-        const count = Math.min(intermediate.length, 23);
-        for (let i = 0; i < count; i++) {
-          waypoints.push({
-            location: intermediate[Math.floor(i * step)],
-            stopover: false
-          });
-        }
-      }
-
-      directionsService.route({
-        origin: origin,
-        destination: destination,
-        waypoints: waypoints,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      }, (result, status) => {
-        if (status === window.google.maps.DirectionsStatus.OK && result) {
-          if (polylineRef.current) polylineRef.current.setMap(null);
-          if (shadowPolylineRef.current) shadowPolylineRef.current.setMap(null);
-
-          directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
-            map,
-            suppressMarkers: true,
-            directions: result,
-            polylineOptions: {
-              strokeColor: color,
-              strokeOpacity: 0.9,
-              strokeWeight: 3,
-              zIndex: 3
-            }
-          });
-
-          if (onDistanceCalculated && collectorId && result.routes[0]) {
-            let totalM = 0;
-            result.routes[0].legs.forEach(leg => {
-              totalM += leg.distance.value;
-            });
-            onDistanceCalculated(collectorId, (totalM / 1000).toFixed(2));
-          }
-        }
-      });
-    }
-
     return () => {
-      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null);
+      if (casingRef.current) casingRef.current.setMap(null);
       if (polylineRef.current) polylineRef.current.setMap(null);
-      if (shadowPolylineRef.current) shadowPolylineRef.current.setMap(null);
     };
-  }, [map, pathCoordinates, color, collectorId, onDistanceCalculated]);
+  }, [map, pathCoordinates, color, isSelected]);
 
   return null;
 };
 
-// --- Smooth Continuous Animated Bike Marker for Live Travelling Rider ---
-const AnimatedBikeMarker = ({ points, collector, color, isLive, onClick }) => {
+// --- Smooth Live Travelling Rider Marker ---
+const LiveTravellingMarker = ({ points, collector, color, isLive, onClick }) => {
   const [currentPos, setCurrentPos] = useState(null);
   const [heading, setHeading] = useState(0);
   const prevTargetRef = useRef(null);
@@ -298,7 +580,6 @@ const AnimatedBikeMarker = ({ points, collector, color, isLive, onClick }) => {
     if (!lastPoint) return;
 
     const prevTarget = prevTargetRef.current;
-
     if (!prevTarget) {
       setCurrentPos(lastPoint);
       prevTargetRef.current = lastPoint;
@@ -318,7 +599,7 @@ const AnimatedBikeMarker = ({ points, collector, color, isLive, onClick }) => {
     const destLng = lastPoint.lng;
 
     let startTime = null;
-    const duration = 14000; // Continuous smooth glide matching 15s polling window
+    const duration = 10000;
 
     const step = (timestamp) => {
       if (!startTime) startTime = timestamp;
@@ -346,219 +627,340 @@ const AnimatedBikeMarker = ({ points, collector, color, isLive, onClick }) => {
   if (!currentPos && !lastPoint) return null;
 
   const position = currentPos || lastPoint;
-  const markerIcon = isLive ? getBikeMarkerIcon(heading, color) : END_MARKER_ICON;
+  const markerIcon = isLive ? getBikeMarkerIcon(heading, color, isLive) : getCompletedMarkerIcon(color);
 
   return (
     <Marker
       position={position}
       icon={markerIcon}
       onClick={onClick}
-      title={`${isLive ? 'Live Travelling (Bike)' : 'End Location'} - ${collector.sampleCollector}`}
+      title={`${collector.sampleCollector} (${isLive ? 'Live Travelling' : 'Shift Ended'})`}
     />
   );
 };
 
-// --- Main Dashboard Component (LIVE ONLY — today's date, no date picker) ---
+// --- Main Dashboard Component ---
 const LogisticsTracking = () => {
   const [collectors, setCollectors] = useState([]);
   const [selectedCollector, setSelectedCollector] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [accurateDistances, setAccurateDistances] = useState({});
+  const [navigationTarget, setNavigationTarget] = useState(null);
+  const [fitAllTrigger, setFitAllTrigger] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterTab, setFilterTab] = useState('all'); // 'all' | 'active' | 'completed'
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [countdown, setCountdown] = useState(25);
 
   const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
   const BASE_URL = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   const today = new Date().toISOString().split('T')[0];
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (isManual = false) => {
     try {
-      setLoading(true);
+      if (isManual) setIsManualSyncing(true);
       const res = await apiRequest(`${BASE_URL}sample-collector-location/?date=${today}`, 'GET');
       const dataArray = Array.isArray(res) ? res : (res?.data || res?.results || []);
       const validData = dataArray.filter(item => item.sampleCollector && ((item.routePoints && item.routePoints.length > 0) || item.latitudeStart));
+      
       setCollectors(validData);
+
+      // Keep selected collector synced with fresh data without breaking active view
+      setSelectedCollector(prev => {
+        if (!prev) return null;
+        return validData.find(c => c.id === prev.id) || prev;
+      });
+
+      setCountdown(25);
     } catch (err) {
-      console.error("Tracking Error:", err);
+      console.error("Live Tracking Error:", err);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      if (isManual) setIsManualSyncing(false);
     }
+  }, [BASE_URL, today]);
+
+  // Initial load
+  useEffect(() => {
+    fetchData(true);
+  }, [fetchData]);
+
+  // Auto-refresh timer & silent polling every 25s
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          fetchData(false);
+          return 25;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [autoRefresh, fetchData]);
+
+  // Filtered list
+  const filteredCollectors = useMemo(() => {
+    return collectors.filter(c => {
+      const matchesSearch = c.sampleCollector.toLowerCase().includes(searchQuery.toLowerCase());
+      if (filterTab === 'active') return matchesSearch && c.isActive;
+      if (filterTab === 'completed') return matchesSearch && !c.isActive;
+      return matchesSearch;
+    });
+  }, [collectors, searchQuery, filterTab]);
+
+  const activeCount = useMemo(() => collectors.filter(c => c.isActive).length, [collectors]);
+  const completedCount = useMemo(() => collectors.filter(c => !c.isActive).length, [collectors]);
+
+  const handleSelectCollector = (collector) => {
+    setSelectedCollector(collector);
+    setNavigationTarget(collector);
   };
 
-  // Poll for live updates every 15 seconds
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <div style={{ padding: '20px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
-          <Navigation color="#4F46E5" /> Live Logistics Tracking
-        </h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <LiveBadge>● LIVE</LiveBadge>
-          <span style={{ fontSize: '14px', color: '#555', fontWeight: '500' }}>{today}</span>
-          <button onClick={fetchData} style={{ padding: '8px 15px', cursor: 'pointer', borderRadius: '5px', background: '#fff', border: '1px solid #ddd' }}>
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
-      </header>
+    <Container>
+      {/* --- HEADER --- */}
+      <HeaderBar>
+        <TitleSection>
+          <PageTitle>
+            <Navigation color="#4F46E5" size={24} /> Live Sample Collector Tracking
+          </PageTitle>
+        </TitleSection>
 
-      <MapWrapper>
-        <APIProvider apiKey={API_KEY}>
-          <Map
-            defaultCenter={{ lat: 11.6735, lng: 78.1525 }}
-            defaultZoom={11}
-            mapId="bf50a69a05151240"
-            gestureHandling={'greedy'}
-            disableDefaultUI={false}
+        <HeaderActions>
+          <SyncBadge $active={autoRefresh}>
+            <LiveDot $active={autoRefresh} />
+            {autoRefresh ? `Auto-sync in ${countdown}s` : 'Sync Paused'}
+          </SyncBadge>
+
+          <ActionBtn 
+            onClick={() => setAutoRefresh(prev => !prev)}
+            title={autoRefresh ? "Pause live auto-refresh while you inspect" : "Resume live auto-refresh"}
           >
-            {collectors.map((collector, index) => {
-              const history = (collector.routePoints && collector.routePoints.length > 0)
-                ? collector.routePoints
-                : [
-                    { lat: collector.latitudeStart, lng: collector.longitudeStart },
-                    { lat: collector.currentLatitude || collector.latitudeEnd, lng: collector.currentLongitude || collector.longitudeEnd }
-                  ].filter(p => p.lat && p.lng);
+            {autoRefresh ? <Pause size={14} color="#ef4444" /> : <Play size={14} color="#10b981" />}
+            {autoRefresh ? "Pause Live" : "Resume Live"}
+          </ActionBtn>
 
-              if (!history.length) return null;
-              const startPos = history[0];
-              const lastPos = history[history.length - 1];
-              const isLive = collector.isActive;
-              const personColor = getPersonColor(index, collector.sampleCollector);
+          <ActionBtn onClick={() => fetchData(true)} disabled={isManualSyncing}>
+            <RefreshCw size={14} className={isManualSyncing ? 'animate-spin' : ''} />
+            Sync Now
+          </ActionBtn>
+        </HeaderActions>
+      </HeaderBar>
 
-              const startLat = parseFloat(startPos.latitude || startPos.lat);
-              const startLng = parseFloat(startPos.longitude || startPos.lng);
-              const lastLat = parseFloat(lastPos.latitude || lastPos.lat);
-              const lastLng = parseFloat(lastPos.longitude || lastPos.lng);
+      {/* --- MAIN INTERFACE --- */}
+      <MainGrid>
+        {/* --- LEFT SIDEBAR --- */}
+        <SidebarCard>
+          <SearchBox>
+            <Search size={15} />
+            <input 
+              type="text" 
+              placeholder="Search sample collector..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </SearchBox>
+
+          <FilterTabs>
+            <TabButton 
+              $active={filterTab === 'all'} 
+              onClick={() => setFilterTab('all')}
+            >
+              All ({collectors.length})
+            </TabButton>
+            <TabButton 
+              $active={filterTab === 'active'} 
+              onClick={() => setFilterTab('active')}
+            >
+              🟢 Moving ({activeCount})
+            </TabButton>
+            <TabButton 
+              $active={filterTab === 'completed'} 
+              onClick={() => setFilterTab('completed')}
+            >
+              🏁 Ended ({completedCount})
+            </TabButton>
+          </FilterTabs>
+
+          <CollectorList>
+            {filteredCollectors.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8', fontSize: '13px' }}>
+                {initialLoading ? 'Loading collectors...' : 'No sample collectors found'}
+              </div>
+            )}
+
+            {filteredCollectors.map((c, index) => {
+              const personColor = getPersonColor(index, c.sampleCollector);
+              const isSelected = selectedCollector?.id === c.id;
 
               return (
-                <React.Fragment key={collector.id || index}>
-                  <TrackedPath 
-                    collectorId={collector.id}
-                    points={history} 
-                    color={personColor} 
-                    onDistanceCalculated={(id, dist) => setAccurateDistances(prev => ({...prev, [id]: dist}))}
-                  />
+                <CollectorItem 
+                  key={c.id || index}
+                  $selected={isSelected}
+                  onClick={() => handleSelectCollector(c)}
+                >
+                  <ItemHeader>
+                    <NameTag>
+                      <ColorPill $color={personColor} />
+                      <span>{c.sampleCollector}</span>
+                    </NameTag>
+                    <DistanceBadge>
+                      {formatDistance(c.distance_travelled)}
+                    </DistanceBadge>
+                  </ItemHeader>
 
-                  {/* Start Location Marker */}
-                  {!isNaN(startLat) && !isNaN(startLng) && (
-                    <Marker
-                      position={{ lat: startLat, lng: startLng }}
-                      icon={START_MARKER_ICON}
-                      onClick={() => setSelectedCollector(collector)}
-                      title={`Start Location - ${collector.sampleCollector}`}
+                  <ItemMeta>
+                    <StatusChip $active={c.isActive}>
+                      {c.isActive ? '● Live Moving' : '✓ Shift Ended'}
+                    </StatusChip>
+                    <span>
+                      {c.startTime ? `Started: ${new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                    </span>
+                  </ItemMeta>
+                </CollectorItem>
+              );
+            })}
+          </CollectorList>
+        </SidebarCard>
+
+        {/* --- RIGHT GOOGLE MAP --- */}
+        <MapContainer>
+          <APIProvider apiKey={API_KEY}>
+            <Map
+              defaultCenter={{ lat: 11.6735, lng: 78.1525 }}
+              defaultZoom={12}
+              mapId="bf50a69a05151240"
+              gestureHandling={'greedy'}
+              disableDefaultUI={false}
+            >
+              <MapViewController 
+                targetCollector={navigationTarget} 
+                fitAllTrigger={fitAllTrigger} 
+                collectors={collectors} 
+              />
+
+              {/* Render Paths and Markers */}
+              {collectors.map((collector, index) => {
+                const history = (collector.routePoints && collector.routePoints.length > 0)
+                  ? collector.routePoints
+                  : [
+                      { lat: collector.latitudeStart, lng: collector.longitudeStart },
+                      { lat: collector.currentLatitude || collector.latitudeEnd, lng: collector.currentLongitude || collector.longitudeEnd }
+                    ].filter(p => p.lat && p.lng);
+
+                if (!history.length) return null;
+                const startPos = history[0];
+                const personColor = getPersonColor(index, collector.sampleCollector);
+                const isSelected = selectedCollector?.id === collector.id;
+
+                const startLat = parseFloat(startPos.latitude || startPos.lat);
+                const startLng = parseFloat(startPos.longitude || startPos.lng);
+
+                return (
+                  <React.Fragment key={collector.id || index}>
+                    {/* Road Polyline */}
+                    <TrackedPolyline 
+                      points={history} 
+                      color={personColor} 
+                      isSelected={isSelected}
                     />
-                  )}
 
-                  {/* Smooth Continuous Animated Bike Rider for Current / Live Location */}
-                  {!isNaN(lastLat) && !isNaN(lastLng) && (
-                    <AnimatedBikeMarker
+                    {/* Start Location Pin */}
+                    {!isNaN(startLat) && !isNaN(startLng) && (
+                      <Marker
+                        position={{ lat: startLat, lng: startLng }}
+                        icon={getStartMarkerIcon(personColor)}
+                        onClick={() => handleSelectCollector(collector)}
+                        title={`Start Point: ${collector.sampleCollector}`}
+                      />
+                    )}
+
+                    {/* Current Live Moving Bike Marker */}
+                    <LiveTravellingMarker
                       points={history}
                       collector={collector}
                       color={personColor}
-                      isLive={isLive}
-                      onClick={() => setSelectedCollector(collector)}
+                      isLive={collector.isActive}
+                      onClick={() => handleSelectCollector(collector)}
                     />
-                  )}
-                </React.Fragment>
-              );
-            })}
-
-            {selectedCollector && (
-              <InfoWindow
-                position={{
-                  lat: parseFloat(
-                    (selectedCollector.routePoints && selectedCollector.routePoints.length > 0)
-                      ? selectedCollector.routePoints.slice(-1)[0].latitude || selectedCollector.routePoints.slice(-1)[0].lat
-                      : selectedCollector.currentLatitude || selectedCollector.latitudeEnd || selectedCollector.latitudeStart
-                  ),
-                  lng: parseFloat(
-                    (selectedCollector.routePoints && selectedCollector.routePoints.length > 0)
-                      ? selectedCollector.routePoints.slice(-1)[0].longitude || selectedCollector.routePoints.slice(-1)[0].lng
-                      : selectedCollector.currentLongitude || selectedCollector.longitudeEnd || selectedCollector.longitudeStart
-                  )
-                }}
-                onCloseClick={() => setSelectedCollector(null)}
-              >
-                <div style={{ color: '#333', minWidth: '160px' }}>
-                  <h4 style={{ margin: '0 0 5px 0' }}>{selectedCollector.sampleCollector}</h4>
-                  <p style={{ fontSize: '12px', margin: '2px 0' }}>
-                    <b>Status:</b> {selectedCollector.isActive ? '🔴 Live Travelling' : '✅ Completed'}
-                  </p>
-                  <p style={{ fontSize: '12px', margin: '2px 0' }}>
-                    <b>Distance:</b> {formatDistance(accurateDistances[selectedCollector.id] || selectedCollector.distance_travelled)}
-                  </p>
-                  {selectedCollector.startTime && (
-                    <p style={{ fontSize: '11px', color: '#666', margin: '2px 0' }}>
-                      Started: {new Date(selectedCollector.startTime).toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
-              </InfoWindow>
-            )}
-          </Map>
-
-          <OverlayPanel>
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 15px 0' }}>
-              <Users size={18} /> Active Collectors ({collectors.length})
-            </h4>
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {collectors.length === 0 && (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
-                  No active collectors today
-                </div>
-              )}
-              {collectors.map((c, index) => {
-                const personColor = getPersonColor(index, c.sampleCollector);
-                return (
-                  <div 
-                    key={c.id} 
-                    style={{ 
-                      padding: '10px', 
-                      borderBottom: '1px solid #eee', 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      background: selectedCollector?.id === c.id ? '#f0f4ff' : 'transparent',
-                      borderRadius: '6px'
-                    }}
-                    onClick={() => setSelectedCollector(c)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span 
-                        style={{ 
-                          width: '12px', 
-                          height: '12px', 
-                          borderRadius: '50%', 
-                          backgroundColor: personColor, 
-                          display: 'inline-block',
-                          boxShadow: `0 0 6px ${personColor}`,
-                          flexShrink: 0
-                        }} 
-                        title={`Route Color: ${personColor}`}
-                      />
-                      <div>
-                        <div style={{ fontWeight: '600', fontSize: '14px' }}>{c.sampleCollector}</div>
-                        <div style={{ fontSize: '11px', color: c.isActive ? '#22c55e' : '#777' }}>
-                          {c.isActive ? 'Currently Travelling' : 'Shift Ended'}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
-                      {formatDistance(accurateDistances[c.id] || c.distance_travelled)}
-                    </div>
-                  </div>
+                  </React.Fragment>
                 );
               })}
-            </div>
-          </OverlayPanel>
-        </APIProvider>
-      </MapWrapper>
-    </div>
+
+              {/* FLOATING MAP CONTROLS */}
+              <MapOverlayControls>
+                <OverlayBtn onClick={() => setFitAllTrigger(prev => prev + 1)} title="Fit all sample collectors on screen">
+                  <Maximize2 size={14} /> Fit All Riders
+                </OverlayBtn>
+              </MapOverlayControls>
+
+              {/* BOTTOM DETAIL CARD FOR SELECTED COLLECTOR */}
+              {selectedCollector && (
+                <BottomDetailCard>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <ColorPill $color={getPersonColor(0, selectedCollector.sampleCollector)} style={{ width: '16px', height: '16px' }} />
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>
+                          {selectedCollector.sampleCollector}
+                        </h3>
+                        <span style={{ fontSize: '12px', color: selectedCollector.isActive ? '#16a34a' : '#64748b', fontWeight: '600' }}>
+                          {selectedCollector.isActive ? '🟢 Currently Travelling On Duty' : '🏁 Shift Completed'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => setSelectedCollector(null)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', marginBottom: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Distance Travelled</div>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#4338ca' }}>
+                        {formatDistance(selectedCollector.distance_travelled)}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Duty Started</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                        {selectedCollector.startTime ? new Date(selectedCollector.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </div>
+                    </div>
+
+                    {selectedCollector.endTime && (
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Duty Ended</div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                          {new Date(selectedCollector.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <ActionBtn onClick={() => setNavigationTarget({ ...selectedCollector })}>
+                      <Crosshair size={14} color="#4F46E5" /> Focus Route
+                    </ActionBtn>
+                  </div>
+                </BottomDetailCard>
+              )}
+            </Map>
+          </APIProvider>
+        </MapContainer>
+      </MainGrid>
+    </Container>
   );
 };
 

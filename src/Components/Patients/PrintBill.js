@@ -586,10 +586,11 @@ const PrintBill = () => {
       ? numberToWords(patient.netAmount) + " rupees only"
       : "";
 
-    const formatDateTimeUTC = (isoString) => {
+    const formatDateTime = (isoString) => {
       if (!isoString) return "NIL";
 
       const dateObj = new Date(isoString);
+      if (isNaN(dateObj.getTime())) return "NIL";
 
       return dateObj.toLocaleString("en-IN", {
         year: "numeric",
@@ -599,7 +600,7 @@ const PrintBill = () => {
         minute: "2-digit",
         second: "2-digit",
         hour12: true,
-        timeZone: "UTC",   // 🔥 Force UTC display
+        timeZone: "Asia/Kolkata",
       }).replace(/am|pm/gi, (m) => m.toUpperCase());
     };
 
@@ -642,13 +643,21 @@ const PrintBill = () => {
             <div class="details">
               <table id="invoiceTable">
                 <tr>
-                  <td><strong>Bill Date:</strong> ${formatDateTimeUTC(patient.bill_date) || "NIL"}</td>
+                  <td><strong>Bill Date:</strong> ${formatDateTime(patient.bill_date || patient.date) || "NIL"}</td>
                   <td><strong>Bill No:</strong> ${patient.bill_no || "NIL"}</td>
                 </tr>
                 <tr>
                   <td><strong>Patient ID:</strong> ${patient.patient_id || "NIL"}</td>
                   <td><strong>Lab Name:</strong> ${patient.B2B || "NIL"}</td>
                 </tr>
+                ${
+                  (patient.segment === "Shanmuga 360" || (patient.segment && patient.segment.toLowerCase().includes("360")) || patient.order_id)
+                    ? `<tr>
+                        <td><strong>Order ID:</strong> ${patient.order_id || "NIL"}</td>
+                        <td><strong>Segment:</strong> ${patient.segment || "Shanmuga 360"}</td>
+                      </tr>`
+                    : ""
+                }
                 <tr>
                   <td><strong>Name:</strong> ${patient.patientname || "NIL"}</td>
                   <td><strong>Gender/Age:</strong> ${patient.gender || "NIL"}/${patient.age || "NIL"} Yrs</td>
@@ -724,12 +733,20 @@ const PrintBill = () => {
     }, 1000);
   };
 
-  const filteredPatients = patients.filter(
-    (patient) =>
-      patient.patient_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.patientname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.lab_id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPatients = patients.filter((patient) => {
+    // If not billed (e.g. only Registered), do not display in the list
+    if (patient.status && patient.status.toLowerCase() === "registered") return false;
+    if (!patient.bill_no && (!patient.status || patient.status.toLowerCase() !== "billed")) return false;
+
+    const term = searchTerm.toLowerCase();
+    return (
+      patient.patient_id?.toLowerCase().includes(term) ||
+      patient.patientname?.toLowerCase().includes(term) ||
+      patient.lab_id?.toLowerCase().includes(term) ||
+      patient.bill_no?.toLowerCase().includes(term) ||
+      patient.order_id?.toLowerCase().includes(term)
+    );
+  });
 
   // ── CHANGE 2: dynamic per-page ──
   const indexOfLastPatient = currentPage * patientsPerPage;
@@ -794,7 +811,7 @@ const PrintBill = () => {
             <SearchContainer>
               <input
                 type="text"
-                placeholder="Search by Patient ID, Name, or Lab ID..."
+                placeholder="Search by Patient ID, Name, Lab ID, Bill No, or Order ID..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -837,7 +854,8 @@ const PrintBill = () => {
               <Table>
                 <thead>
                   <tr>
-                    <th>Date</th>
+                    <th>Bill Date</th>
+                    <th>Bill No</th>
                     <th>Patient ID</th>
                     <th>Name</th>
                     <th>Age/Gender</th>
@@ -850,36 +868,52 @@ const PrintBill = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentPatients.map((patient) => (
-                    <tr key={patient.patient_id}>
-                      <td>{format(new Date(patient.date), "dd/MM/yyyy")}</td>
-                      <td><strong>{patient.patient_id}</strong></td>
-                      <td>{patient.patientname}</td>
-                      <td>{`${patient.age || "N/A"}/${patient.gender || "N/A"}`}</td>
-                      <td>
-                        <Badge type={patient.segment}>{patient.segment}</Badge>
-                      </td>
-                      {/* ── CHANGE 1: Emergency / Normal badge in table ── */}
-                      <td>
-                        <EmergencyBadge emergency={patient.is_emergency}>
-                          {patient.is_emergency ? "🚨 Emergency" : "✔ Normal"}
-                        </EmergencyBadge>
-                      </td>
-                      <td>₹{parseFloat(patient.totalAmount || 0).toFixed(2)}</td>
-                      <td><strong>₹{parseFloat(patient.netAmount || 0).toFixed(2)}</strong></td>
-                      <td>
-                        {patient.discount && parseFloat(patient.discount) > 0
-                          ? `₹${parseFloat(patient.discount).toFixed(2)}`
-                          : "-"}
-                      </td>
-                      <td>
-                        <PrintButton onClick={() => handlePrint(patient)}>
-                          <Printer size={14} />
-                          Print
-                        </PrintButton>
-                      </td>
-                    </tr>
-                  ))}
+                  {currentPatients.map((patient) => {
+                    const displayDate = patient.bill_date || patient.date;
+                    let formattedDate = "N/A";
+                    try {
+                      formattedDate = displayDate ? format(new Date(displayDate), "dd/MM/yyyy") : "N/A";
+                    } catch (e) {
+                      formattedDate = "N/A";
+                    }
+
+                    return (
+                      <tr key={patient.patient_id || patient.id}>
+                        <td>{formattedDate}</td>
+                        <td><strong>{patient.bill_no || "-"}</strong></td>
+                        <td><strong>{patient.patient_id}</strong></td>
+                        <td>{patient.patientname}</td>
+                        <td>{`${patient.age || "N/A"}/${patient.gender || "N/A"}`}</td>
+                        <td>
+                          <Badge type={patient.segment}>{patient.segment || "B2C"}</Badge>
+                          {patient.order_id ? (
+                            <div style={{ fontSize: "11px", color: "#4f46e5", fontWeight: "600", marginTop: "2px" }}>
+                              Order: {patient.order_id}
+                            </div>
+                          ) : null}
+                        </td>
+                        {/* ── CHANGE 1: Emergency / Normal badge in table ── */}
+                        <td>
+                          <EmergencyBadge emergency={patient.is_emergency}>
+                            {patient.is_emergency ? "🚨 Emergency" : "✔ Normal"}
+                          </EmergencyBadge>
+                        </td>
+                        <td>₹{parseFloat(patient.totalAmount || 0).toFixed(2)}</td>
+                        <td><strong>₹{parseFloat(patient.netAmount || 0).toFixed(2)}</strong></td>
+                        <td>
+                          {patient.discount && parseFloat(patient.discount) > 0
+                            ? `₹${parseFloat(patient.discount).toFixed(2)}`
+                            : "-"}
+                        </td>
+                        <td>
+                          <PrintButton onClick={() => handlePrint(patient)}>
+                            <Printer size={14} />
+                            Print
+                          </PrintButton>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </Table>
             </TableWrapper>

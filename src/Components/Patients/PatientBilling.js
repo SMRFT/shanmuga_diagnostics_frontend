@@ -1034,13 +1034,21 @@ const PatientBilling = () => {
       </div>
       <div class="details"><table>
         <tr>
-          <td><strong>Bill Date:</strong> ${fmtDT(new Date().toISOString())}</td>
+          <td><strong>Bill Date:</strong> ${fmtDT(selectedPatient.bill_date || selectedPatient.date || new Date().toISOString())}</td>
           <td><strong>Bill No:</strong> ${newBillNo || selectedPatient.bill_no || "NIL"}</td>
         </tr>
         <tr>
           <td><strong>Patient ID:</strong> ${selectedPatient.patient_id || "NIL"}</td>
           <td><strong>Lab Name:</strong> ${selectedPatient.B2B || "NIL"}</td>
         </tr>
+        ${
+          (selectedPatient.segment === "Shanmuga 360" || (selectedPatient.segment && selectedPatient.segment.toLowerCase().includes("360")) || selectedPatient.order_id || billingData?.order_id)
+            ? `<tr>
+                <td><strong>Order ID:</strong> ${selectedPatient.order_id || billingData?.order_id || "NIL"}</td>
+                <td><strong>Segment:</strong> ${selectedPatient.segment || "Shanmuga 360"}</td>
+              </tr>`
+            : ""
+        }
         <tr>
           <td><strong>Name:</strong> ${selectedPatient.patientname || "NIL"}</td>
           <td><strong>Gender/Age:</strong> ${selectedPatient.gender || "NIL"}/${selectedPatient.age || "NIL"} Yrs</td>
@@ -1234,7 +1242,7 @@ const PatientBilling = () => {
                     <tbody>
                       {pagedPatients.map((patient, idx) => (
                         <tr key={idx}>
-                          <td>{new Date(patient.date).toLocaleDateString()}</td>
+                          <td>{new Date(patient.bill_date || patient.date).toLocaleDateString("en-IN")}</td>
                           <td><strong>{patient.patient_id}</strong></td>
                           <td>{patient.patientname}</td>
                           <td>{patient.age}/{patient.gender}</td>
