@@ -541,6 +541,7 @@ const PatientBilling = () => {
   const [searchValue, setSearchValue] = useState("")
   const [emergencyFilter, setEmergencyFilter] = useState("all")
   const [segmentFilter, setSegmentFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(false)
   const [testOptions, setTestOptions] = useState([])
   const [filteredTestOptions, setFilteredTestOptions] = useState([])
@@ -723,7 +724,8 @@ const PatientBilling = () => {
       (emergencyFilter === "emergency" && p.is_emergency) ||
       (emergencyFilter === "normal" && !p.is_emergency)
     const seg = segmentFilter === "all" || (p.segment && p.segment.toLowerCase() === segmentFilter.toLowerCase())
-    return ok && em && seg
+    const st = statusFilter === "all" || (p.status && p.status.toLowerCase() === statusFilter.toLowerCase())
+    return ok && em && seg && st
   })
 
   const totalPages = Math.ceil(filteredPatients.length / recordsPerPage)
@@ -1114,8 +1116,11 @@ const PatientBilling = () => {
       } else {
         paymentMethodData = { paymentmethod: billingData.paymentMethod, paymentDetails: billingData.paymentDetails || "" }
       }
+      const rawBillId = selectedPatient._id?.$oid || selectedPatient._id || selectedPatient.id
+      const validBillId = rawBillId && String(rawBillId).trim() && !["none", "null", "undefined"].includes(String(rawBillId).toLowerCase()) ? rawBillId : undefined
+
       const updateData = {
-        bill_id: selectedPatient._id?.$oid || selectedPatient._id || selectedPatient.id,
+        ...(validBillId ? { bill_id: validBillId } : {}),
         patient_id: selectedPatient.patient_id,
         date: selectedPatient.date,
         testdetails: selectedTests,
@@ -1162,12 +1167,12 @@ const PatientBilling = () => {
                 <SearchContainer>
                   <FaSearch />
                   <input type="text" placeholder="Search by Patient ID, Name or Lab ID"
-                    value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
+                    value={searchValue} onChange={(e) => { setSearchValue(e.target.value); setListPage(1); }} />
                 </SearchContainer>
 
                 <FormGroup>
                   <label>Emergency Status</label>
-                  <select value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
+                  <select value={emergencyFilter} onChange={(e) => { setEmergencyFilter(e.target.value); setListPage(1); }}>
                     <option value="all">All Patients</option>
                     <option value="emergency">Emergency Only</option>
                     <option value="normal">Normal Only</option>
@@ -1176,13 +1181,22 @@ const PatientBilling = () => {
 
                 <FormGroup>
                   <label>Segment</label>
-                  <select value={segmentFilter} onChange={(e) => setSegmentFilter(e.target.value)}>
+                  <select value={segmentFilter} onChange={(e) => { setSegmentFilter(e.target.value); setListPage(1); }}>
                     <option value="all">All Segments</option>
                     <option value="B2B">B2B</option>
                     <option value="Hospital">Hospital</option>
                     <option value="Walk-in">Walk-in</option>
                     <option value="Home Collection">Home Collection</option>
                     <option value="Shanmuga 360">Shanmuga 360</option>
+                  </select>
+                </FormGroup>
+
+                <FormGroup>
+                  <label>Status</label>
+                  <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setListPage(1); }}>
+                    <option value="all">All (Registered & Billed)</option>
+                    <option value="Registered">Registered Only</option>
+                    <option value="Billed">Billed Only</option>
                   </select>
                 </FormGroup>
 
