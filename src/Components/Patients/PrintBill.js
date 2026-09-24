@@ -650,14 +650,13 @@ const PrintBill = () => {
                   <td><strong>Patient ID:</strong> ${patient.patient_id || "NIL"}</td>
                   <td><strong>Lab Name:</strong> ${patient.B2B || "NIL"}</td>
                 </tr>
-                ${
-                  (patient.segment === "Shanmuga 360" || (patient.segment && patient.segment.toLowerCase().includes("360")) || patient.order_id)
-                    ? `<tr>
+                ${(patient.segment === "Shanmuga 360" || (patient.segment && patient.segment.toLowerCase().includes("360")) || patient.order_id)
+        ? `<tr>
                         <td><strong>Order ID:</strong> ${patient.order_id || "NIL"}</td>
                         <td><strong>Segment:</strong> ${patient.segment || "Shanmuga 360"}</td>
                       </tr>`
-                    : ""
-                }
+        : ""
+      }
                 <tr>
                   <td><strong>Name:</strong> ${patient.patientname || "NIL"}</td>
                   <td><strong>Gender/Age:</strong> ${patient.gender || "NIL"}/${patient.age || "NIL"} Yrs</td>
