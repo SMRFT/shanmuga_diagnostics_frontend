@@ -237,43 +237,70 @@ const getRouteColor = (index, name = '') => {
   return ROUTE_COLORS[Math.abs(hash) % ROUTE_COLORS.length];
 };
 
-// --- SVG Icons for Zomato/Swiggy style Start & End/Live Markers ---
+// --- SVG Icons for Start & End/Live Markers ---
 const START_MARKER_ICON = {
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
-      <circle cx="17" cy="17" r="13" fill="#10B981" stroke="#FFFFFF" stroke-width="2.5"/>
-      <text x="17" y="21" font-size="11" font-family="Arial, sans-serif" font-weight="bold" fill="#FFFFFF" text-anchor="middle">S</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+      <defs>
+        <filter id="hist-s-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      <circle cx="13" cy="13" r="11" fill="#10B981" stroke="#FFFFFF" stroke-width="2.5" filter="url(#hist-s-glow)"/>
+      <text x="13" y="17" font-size="12" font-family="'Inter', Arial, sans-serif" font-weight="900" fill="#FFFFFF" text-anchor="middle">S</text>
     </svg>
   `),
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(26, 26) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(13, 13) : undefined,
 };
 
 const END_MARKER_ICON = {
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
-      <circle cx="17" cy="17" r="13" fill="#EF4444" stroke="#FFFFFF" stroke-width="2.5"/>
-      <text x="17" y="21" font-size="11" font-family="Arial, sans-serif" font-weight="bold" fill="#FFFFFF" text-anchor="middle">E</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+      <defs>
+        <filter id="hist-e-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      <circle cx="13" cy="13" r="11" fill="#EF4444" stroke="#FFFFFF" stroke-width="2.5" filter="url(#hist-e-glow)"/>
+      <text x="13" y="17" font-size="11" font-family="'Inter', Arial, sans-serif" font-weight="900" fill="#FFFFFF" text-anchor="middle">E</text>
     </svg>
   `),
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(26, 26) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(13, 13) : undefined,
 };
 
-const getLiveMarkerIcon = (color = '#2563EB') => ({
+// Swiggy / Zomato style Delivery Vehicle Bike Marker
+const getDeliveryVehicleMarkerIcon = (color = '#2563EB') => ({
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
-      <circle cx="19" cy="19" r="16" fill="${color}" stroke="#FFFFFF" stroke-width="2.5"/>
-      <circle cx="19" cy="19" r="6" fill="#FFFFFF"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <defs>
+        <filter id="hist-bike-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
+        </filter>
+      </defs>
+      <circle cx="18" cy="18" r="17" fill="${color}" fill-opacity="0.22"/>
+      <circle cx="18" cy="18" r="14" fill="${color}" stroke="#FFFFFF" stroke-width="2" filter="url(#hist-bike-shadow)"/>
+      <g>
+        <rect x="9.5" y="14.5" width="4" height="4" rx="0.8" fill="#FFFFFF" fill-opacity="0.95"/>
+        <circle cx="12.5" cy="22" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+        <circle cx="23.5" cy="22" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+        <path d="M12.5 22 L17 22 L19.5 15.5 L22.5 15.5 M23.5 22 L21.5 15.5 L23.5 13" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="17.5" cy="12" r="1.8" fill="#FFFFFF"/>
+      </g>
     </svg>
   `),
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(36, 36) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(18, 18) : undefined,
 });
 
 // =============================================
-// THIN LINE POLYLINE COMPONENT (3px Line)
+// SOLID TRAVELLING ROUTE POLYLINE COMPONENT
 // =============================================
-const TrackedPath = ({ collectorId, points, color = '#4F46E5', onDistanceCalculated }) => {
+const TrackedPath = ({ collectorId, points, color = '#2563EB', onDistanceCalculated }) => {
   const map = useMap();
   const polylineRef = useRef(null);
   const shadowPolylineRef = useRef(null);
-  const directionsRendererRef = useRef(null);
-  const lastPathStrRef = useRef('');
 
   const pathCoordinates = useMemo(() => {
     if (!points || !Array.isArray(points)) return [];
@@ -286,46 +313,45 @@ const TrackedPath = ({ collectorId, points, color = '#4F46E5', onDistanceCalcula
   }, [points]);
 
   useEffect(() => {
-    if (!map || pathCoordinates.length < 2) return;
-
-    const pathStr = JSON.stringify(pathCoordinates);
-    if (lastPathStrRef.current === pathStr) return;
-    lastPathStrRef.current = pathStr;
-
-    // Clean up previous polylines & directions
-    if (directionsRendererRef.current) {
-      directionsRendererRef.current.setMap(null);
-      directionsRendererRef.current = null;
-    }
-    if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
-    }
-    if (shadowPolylineRef.current) {
-      shadowPolylineRef.current.setMap(null);
-      shadowPolylineRef.current = null;
+    if (!map || !window.google?.maps || pathCoordinates.length < 2) {
+      if (shadowPolylineRef.current) { shadowPolylineRef.current.setMap(null); shadowPolylineRef.current = null; }
+      if (polylineRef.current) { polylineRef.current.setMap(null); polylineRef.current = null; }
+      return;
     }
 
-    // 1. Thin Line (3px main line + 4px casing)
-    shadowPolylineRef.current = new window.google.maps.Polyline({
-      path: pathCoordinates,
-      geodesic: true,
-      strokeColor: '#FFFFFF',
-      strokeOpacity: 0.8,
-      strokeWeight: 4,
-      map: map,
-      zIndex: 1
-    });
+    if (!polylineRef.current) {
+      // 1. White border casing for high contrast on roads
+      shadowPolylineRef.current = new window.google.maps.Polyline({
+        path: pathCoordinates,
+        geodesic: true,
+        strokeColor: '#FFFFFF',
+        strokeOpacity: 0.9,
+        strokeWeight: 6,
+        map: map,
+        zIndex: 2
+      });
 
-    polylineRef.current = new window.google.maps.Polyline({
-      path: pathCoordinates,
-      geodesic: true,
-      strokeColor: color,
-      strokeOpacity: 0.9,
-      strokeWeight: 3,
-      map: map,
-      zIndex: 2
-    });
+      // 2. Main vibrant travelling polyline
+      polylineRef.current = new window.google.maps.Polyline({
+        path: pathCoordinates,
+        geodesic: true,
+        strokeColor: color || '#2563EB',
+        strokeOpacity: 1.0,
+        strokeWeight: 4,
+        map: map,
+        zIndex: 3
+      });
+    } else {
+      if (shadowPolylineRef.current) {
+        shadowPolylineRef.current.setPath(pathCoordinates);
+      }
+      polylineRef.current.setPath(pathCoordinates);
+      polylineRef.current.setOptions({
+        strokeColor: color || '#2563EB',
+        strokeWeight: 4,
+        zIndex: 3
+      });
+    }
 
     // Compute distance
     if (onDistanceCalculated && collectorId) {
@@ -349,62 +375,15 @@ const TrackedPath = ({ collectorId, points, color = '#4F46E5', onDistanceCalcula
       onDistanceCalculated(collectorId, (totalMeters / 1000).toFixed(2));
     }
 
-    // Attempt road route via DirectionsService
-    if (window.google.maps.DirectionsService) {
-      const directionsService = new window.google.maps.DirectionsService();
-      const origin = pathCoordinates[0];
-      const destination = pathCoordinates[pathCoordinates.length - 1];
-
-      let waypoints = [];
-      if (pathCoordinates.length > 2) {
-        const intermediate = pathCoordinates.slice(1, -1);
-        const step = intermediate.length > 23 ? intermediate.length / 23 : 1;
-        const count = Math.min(intermediate.length, 23);
-        for (let i = 0; i < count; i++) {
-          waypoints.push({
-            location: intermediate[Math.floor(i * step)],
-            stopover: false
-          });
-        }
-      }
-
-      directionsService.route({
-        origin: origin,
-        destination: destination,
-        waypoints: waypoints,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      }, (result, status) => {
-        if (status === window.google.maps.DirectionsStatus.OK && result) {
-          if (polylineRef.current) polylineRef.current.setMap(null);
-          if (shadowPolylineRef.current) shadowPolylineRef.current.setMap(null);
-
-          directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
-            map,
-            suppressMarkers: true,
-            directions: result,
-            polylineOptions: {
-              strokeColor: color,
-              strokeOpacity: 0.9,
-              strokeWeight: 3,
-              zIndex: 3
-            }
-          });
-
-          if (onDistanceCalculated && collectorId && result.routes[0]) {
-            let totalM = 0;
-            result.routes[0].legs.forEach(leg => {
-              totalM += leg.distance.value;
-            });
-            onDistanceCalculated(collectorId, (totalM / 1000).toFixed(2));
-          }
-        }
-      });
-    }
-
     return () => {
-      if (directionsRendererRef.current) directionsRendererRef.current.setMap(null);
-      if (polylineRef.current) polylineRef.current.setMap(null);
-      if (shadowPolylineRef.current) shadowPolylineRef.current.setMap(null);
+      if (shadowPolylineRef.current) {
+        shadowPolylineRef.current.setMap(null);
+        shadowPolylineRef.current = null;
+      }
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
     };
   }, [map, pathCoordinates, color, collectorId, onDistanceCalculated]);
 
@@ -689,7 +668,7 @@ const TrackingHistory = () => {
                   <TrackedPath 
                     collectorId={collector.id}
                     points={history} 
-                    color={personColor} 
+                    color={collector.isActive ? (personColor || '#2563EB') : '#64748B'} 
                     onDistanceCalculated={(id, dist) => setAccurateDistances(prev => ({...prev, [id]: dist}))}
                   />
                   
@@ -703,13 +682,13 @@ const TrackingHistory = () => {
                     />
                   )}
                   
-                  {/* End / Live Location Marker */}
+                  {/* End / Live Vehicle Location Marker */}
                   {!isNaN(endLat) && !isNaN(endLng) && (
                     <Marker
                       position={{ lat: endLat, lng: endLng }}
-                      icon={collector.isActive ? getLiveMarkerIcon(personColor) : END_MARKER_ICON}
+                      icon={collector.isActive ? getDeliveryVehicleMarkerIcon(personColor) : END_MARKER_ICON}
                       onClick={() => setSelectedMapCollector(collector)}
-                      title={`${collector.isActive ? 'Live Location' : 'End Location'} - ${collector.sampleCollector}`}
+                      title={`${collector.isActive ? 'Live Delivery Vehicle' : 'End Location'} - ${collector.sampleCollector}`}
                     />
                   )}
                 </React.Fragment>
