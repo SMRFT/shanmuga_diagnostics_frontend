@@ -5,7 +5,7 @@ import {
   MapPin, Clock, Search, ArrowRight, Crosshair, CheckCircle2,
   Activity, Compass, ShieldCheck, ChevronRight, X
 } from 'lucide-react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import apiRequest from '../Auth/apiRequest';
 
 // --- Animations ---
@@ -80,7 +80,7 @@ const LiveDot = styled.span`
   border-radius: 50%;
   background: ${props => props.$active ? '#10b981' : '#94a3b8'};
   display: inline-block;
-  ${props => props.$active && `
+  ${props => props.$active && css`
     box-shadow: 0 0 8px #10b981;
     animation: ${pulseGlow} 2s infinite;
   `}
@@ -377,55 +377,69 @@ const calculateBearing = (startLat, startLng, destLat, destLng) => {
   return (brng + 360) % 360;
 };
 
-// --- Custom SVGs for High-Visibility Markers ---
+// --- Custom Clean SVGs for Compact High-Visibility Markers ---
 const getStartMarkerIcon = (color = '#10B981') => ({
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
       <defs>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+        <filter id="s-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.3"/>
         </filter>
       </defs>
-      <path d="M19 0 C8.5 0 0 8.5 0 19 C0 32 19 46 19 46 C19 46 38 32 38 19 C38 8.5 29.5 0 19 0 Z" fill="#10B981" filter="url(#shadow)"/>
-      <circle cx="19" cy="18" r="10" fill="#FFFFFF"/>
-      <text x="19" y="22" font-size="10" font-family="Arial, sans-serif" font-weight="bold" fill="#10B981" text-anchor="middle">START</text>
+      <circle cx="13" cy="13" r="11" fill="${color}" stroke="#FFFFFF" stroke-width="2.5" filter="url(#s-glow)"/>
+      <text x="13" y="17" font-size="12" font-family="'Inter', Arial, sans-serif" font-weight="900" fill="#FFFFFF" text-anchor="middle">S</text>
     </svg>
   `),
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(26, 26) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(13, 13) : undefined,
 });
 
-const getBikeMarkerIcon = (heading = 0, color = '#2563EB', isLive = true) => ({
+// Swiggy / Zomato style Vehicle Delivery Bike with heading rotation
+const getDeliveryVehicleMarkerIcon = (heading = 0, color = '#2563EB') => ({
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50">
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
       <defs>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+        <filter id="bike-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
         </filter>
       </defs>
-      <!-- Outer Beacon Ring -->
-      <circle cx="25" cy="25" r="22" fill="${color}" fill-opacity="0.25"/>
-      <g transform="rotate(${heading}, 25, 25)">
-        <!-- Center Solid Badge -->
-        <circle cx="25" cy="25" r="18" fill="${color}" stroke="#FFFFFF" stroke-width="2.5" filter="url(#glow)"/>
-        <!-- Delivery Bike Silhouette -->
-        <path d="M15 31 C15 28.5, 17.5 26.5, 20 26.5 L26 26.5 L29.5 20.5 C30 19.5, 31.5 19.5, 32 20.5 L34.5 24 L37 24 M17 32.5 A 4 4 0 1 0 17 24.5 A 4 4 0 1 0 17 32.5 M33 32.5 A 4 4 0 1 0 33 24.5 A 4 4 0 1 0 33 32.5 M25.5 19.5 A 2.2 2.2 0 1 0 25.5 15.1 A 2.2 2.2 0 1 0 25.5 19.5 Z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Outer Pulsing Halo -->
+      <circle cx="18" cy="18" r="17" fill="${color}" fill-opacity="0.22"/>
+      <!-- Solid Badge Circle -->
+      <circle cx="18" cy="18" r="14" fill="${color}" stroke="#FFFFFF" stroke-width="2" filter="url(#bike-shadow)"/>
+      <!-- Swiggy/Zomato style Delivery Scooter Graphic -->
+      <g transform="rotate(${heading}, 18, 18)">
+        <!-- Delivery sample box on carrier -->
+        <rect x="9.5" y="14.5" width="4" height="4" rx="0.8" fill="#FFFFFF" fill-opacity="0.95"/>
+        <!-- Rear & Front Wheels -->
+        <circle cx="12.5" cy="22" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+        <circle cx="23.5" cy="22" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+        <!-- Scooter Chassis / Handlebar -->
+        <path d="M12.5 22 L17 22 L19.5 15.5 L22.5 15.5 M23.5 22 L21.5 15.5 L23.5 13" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Rider Helmet -->
+        <circle cx="17.5" cy="12" r="1.8" fill="#FFFFFF"/>
       </g>
     </svg>
   `),
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(36, 36) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(18, 18) : undefined,
 });
 
-const getCompletedMarkerIcon = (color = '#64748B') => ({
+// Distinct Ended / Shift Completed Marker
+const getCompletedMarkerIcon = (color = '#EF4444') => ({
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
       <defs>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+        <filter id="e-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.3"/>
         </filter>
       </defs>
-      <path d="M19 0 C8.5 0 0 8.5 0 19 C0 32 19 46 19 46 C19 46 38 32 38 19 C38 8.5 29.5 0 19 0 Z" fill="#EF4444" filter="url(#shadow)"/>
-      <circle cx="19" cy="18" r="10" fill="#FFFFFF"/>
-      <text x="19" y="22" font-size="10" font-family="Arial, sans-serif" font-weight="bold" fill="#EF4444" text-anchor="middle">END</text>
+      <circle cx="14" cy="14" r="12" fill="${color}" stroke="#FFFFFF" stroke-width="2.2" filter="url(#e-glow)"/>
+      <text x="14" y="18" font-size="12" font-family="'Inter', Arial, sans-serif" font-weight="900" fill="#FFFFFF" text-anchor="middle">E</text>
     </svg>
   `),
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(28, 28) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(14, 14) : undefined,
 });
 
 // --- Map Camera & Bounds Controller ---
@@ -492,11 +506,10 @@ const MapViewController = ({ targetCollector, fitAllTrigger, collectors }) => {
 };
 
 // --- Stable Polyline Path Component ---
-const TrackedPolyline = ({ points, color, isSelected }) => {
+const TrackedPolyline = ({ points, color = '#2563EB', isSelected }) => {
   const map = useMap();
   const polylineRef = useRef(null);
   const casingRef = useRef(null);
-  const lastLenRef = useRef(0);
 
   const pathCoordinates = useMemo(() => {
     if (!points || !Array.isArray(points)) return [];
@@ -509,46 +522,57 @@ const TrackedPolyline = ({ points, color, isSelected }) => {
   }, [points]);
 
   useEffect(() => {
-    if (!map || pathCoordinates.length < 2) return;
-
-    // Only recreate polyline if point count changes or selection changes
-    if (polylineRef.current && lastLenRef.current === pathCoordinates.length) {
-      polylineRef.current.setOptions({
-        strokeColor: color,
-        strokeWeight: isSelected ? 5 : 3,
-        strokeOpacity: isSelected ? 1.0 : 0.65,
-        zIndex: isSelected ? 10 : 3
-      });
+    if (!map || !window.google?.maps || pathCoordinates.length < 2) {
+      if (casingRef.current) { casingRef.current.setMap(null); casingRef.current = null; }
+      if (polylineRef.current) { polylineRef.current.setMap(null); polylineRef.current = null; }
       return;
     }
-    lastLenRef.current = pathCoordinates.length;
 
-    if (casingRef.current) casingRef.current.setMap(null);
-    if (polylineRef.current) polylineRef.current.setMap(null);
+    if (!polylineRef.current) {
+      casingRef.current = new window.google.maps.Polyline({
+        path: pathCoordinates,
+        geodesic: true,
+        strokeColor: '#FFFFFF',
+        strokeOpacity: 0.9,
+        strokeWeight: isSelected ? 6 : 4,
+        map: map,
+        zIndex: isSelected ? 9 : 2
+      });
 
-    casingRef.current = new window.google.maps.Polyline({
-      path: pathCoordinates,
-      geodesic: true,
-      strokeColor: '#FFFFFF',
-      strokeOpacity: isSelected ? 0.9 : 0.6,
-      strokeWeight: isSelected ? 7 : 5,
-      map: map,
-      zIndex: isSelected ? 9 : 2
-    });
-
-    polylineRef.current = new window.google.maps.Polyline({
-      path: pathCoordinates,
-      geodesic: true,
-      strokeColor: color,
-      strokeOpacity: isSelected ? 1.0 : 0.7,
-      strokeWeight: isSelected ? 5 : 3,
-      map: map,
-      zIndex: isSelected ? 10 : 3
-    });
+      polylineRef.current = new window.google.maps.Polyline({
+        path: pathCoordinates,
+        geodesic: true,
+        strokeColor: color || '#2563EB',
+        strokeOpacity: 1.0,
+        strokeWeight: isSelected ? 4 : 3,
+        map: map,
+        zIndex: isSelected ? 10 : 3
+      });
+    } else {
+      if (casingRef.current) {
+        casingRef.current.setPath(pathCoordinates);
+        casingRef.current.setOptions({
+          strokeWeight: isSelected ? 6 : 4,
+          zIndex: isSelected ? 9 : 2
+        });
+      }
+      polylineRef.current.setPath(pathCoordinates);
+      polylineRef.current.setOptions({
+        strokeColor: color || '#2563EB',
+        strokeWeight: isSelected ? 4 : 3,
+        zIndex: isSelected ? 10 : 3
+      });
+    }
 
     return () => {
-      if (casingRef.current) casingRef.current.setMap(null);
-      if (polylineRef.current) polylineRef.current.setMap(null);
+      if (casingRef.current) {
+        casingRef.current.setMap(null);
+        casingRef.current = null;
+      }
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
     };
   }, [map, pathCoordinates, color, isSelected]);
 
@@ -627,7 +651,7 @@ const LiveTravellingMarker = ({ points, collector, color, isLive, onClick }) => 
   if (!currentPos && !lastPoint) return null;
 
   const position = currentPos || lastPoint;
-  const markerIcon = isLive ? getBikeMarkerIcon(heading, color, isLive) : getCompletedMarkerIcon(color);
+  const markerIcon = isLive ? getDeliveryVehicleMarkerIcon(heading, color) : getCompletedMarkerIcon('#EF4444');
 
   return (
     <Marker
@@ -862,12 +886,19 @@ const LogisticsTracking = () => {
                 const startLat = parseFloat(startPos.latitude || startPos.lat);
                 const startLng = parseFloat(startPos.longitude || startPos.lng);
 
+                // Distinct styling: Moving/Active routes have vibrant colors, Ended routes are muted slate gray
+                const routeColor = collector.isActive
+                  ? (isSelected ? '#2563EB' : personColor)
+                  : (isSelected ? '#475569' : '#64748B');
+
+                const startColor = collector.isActive ? '#10B981' : '#64748B';
+
                 return (
                   <React.Fragment key={collector.id || index}>
-                    {/* Road Polyline */}
+                    {/* Road Polyline (Vibrant for moving, Slate for ended) */}
                     <TrackedPolyline 
                       points={history} 
-                      color={personColor} 
+                      color={routeColor} 
                       isSelected={isSelected}
                     />
 
@@ -875,13 +906,13 @@ const LogisticsTracking = () => {
                     {!isNaN(startLat) && !isNaN(startLng) && (
                       <Marker
                         position={{ lat: startLat, lng: startLng }}
-                        icon={getStartMarkerIcon(personColor)}
+                        icon={getStartMarkerIcon(startColor)}
                         onClick={() => handleSelectCollector(collector)}
                         title={`Start Point: ${collector.sampleCollector}`}
                       />
                     )}
 
-                    {/* Current Live Moving Bike Marker */}
+                    {/* Live Moving Vehicle / Ended Marker */}
                     <LiveTravellingMarker
                       points={history}
                       collector={collector}
