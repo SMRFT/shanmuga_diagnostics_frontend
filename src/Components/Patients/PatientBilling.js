@@ -541,6 +541,7 @@ const PatientBilling = () => {
   const [searchValue, setSearchValue] = useState("")
   const [emergencyFilter, setEmergencyFilter] = useState("all")
   const [segmentFilter, setSegmentFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(false)
   const [testOptions, setTestOptions] = useState([])
   const [filteredTestOptions, setFilteredTestOptions] = useState([])
@@ -723,7 +724,8 @@ const PatientBilling = () => {
       (emergencyFilter === "emergency" && p.is_emergency) ||
       (emergencyFilter === "normal" && !p.is_emergency)
     const seg = segmentFilter === "all" || (p.segment && p.segment.toLowerCase() === segmentFilter.toLowerCase())
-    return ok && em && seg
+    const st = statusFilter === "all" || (p.status && p.status.toLowerCase() === statusFilter.toLowerCase())
+    return ok && em && seg && st
   })
 
   const totalPages = Math.ceil(filteredPatients.length / recordsPerPage)
@@ -1034,13 +1036,21 @@ const PatientBilling = () => {
       </div>
       <div class="details"><table>
         <tr>
-          <td><strong>Bill Date:</strong> ${fmtDT(new Date().toISOString())}</td>
+          <td><strong>Bill Date:</strong> ${fmtDT(selectedPatient.bill_date || selectedPatient.date || new Date().toISOString())}</td>
           <td><strong>Bill No:</strong> ${newBillNo || selectedPatient.bill_no || "NIL"}</td>
         </tr>
         <tr>
           <td><strong>Patient ID:</strong> ${selectedPatient.patient_id || "NIL"}</td>
           <td><strong>Lab Name:</strong> ${selectedPatient.B2B || "NIL"}</td>
         </tr>
+        ${
+          (selectedPatient.segment === "Shanmuga 360" || (selectedPatient.segment && selectedPatient.segment.toLowerCase().includes("360")) || selectedPatient.order_id || billingData?.order_id)
+            ? `<tr>
+                <td><strong>Order ID:</strong> ${selectedPatient.order_id || billingData?.order_id || "NIL"}</td>
+                <td><strong>Segment:</strong> ${selectedPatient.segment || "Shanmuga 360"}</td>
+              </tr>`
+            : ""
+        }
         <tr>
           <td><strong>Name:</strong> ${selectedPatient.patientname || "NIL"}</td>
           <td><strong>Gender/Age:</strong> ${selectedPatient.gender || "NIL"}/${selectedPatient.age || "NIL"} Yrs</td>
@@ -1106,8 +1116,11 @@ const PatientBilling = () => {
       } else {
         paymentMethodData = { paymentmethod: billingData.paymentMethod, paymentDetails: billingData.paymentDetails || "" }
       }
+      const rawBillId = selectedPatient._id?.$oid || selectedPatient._id || selectedPatient.id
+      const validBillId = rawBillId && String(rawBillId).trim() && !["none", "null", "undefined"].includes(String(rawBillId).toLowerCase()) ? rawBillId : undefined
+
       const updateData = {
-        bill_id: selectedPatient._id?.$oid || selectedPatient._id || selectedPatient.id,
+        ...(validBillId ? { bill_id: validBillId } : {}),
         patient_id: selectedPatient.patient_id,
         date: selectedPatient.date,
         testdetails: selectedTests,
@@ -1154,12 +1167,12 @@ const PatientBilling = () => {
                 <SearchContainer>
                   <FaSearch />
                   <input type="text" placeholder="Search by Patient ID, Name or Lab ID"
-                    value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
+                    value={searchValue} onChange={(e) => { setSearchValue(e.target.value); setListPage(1); }} />
                 </SearchContainer>
 
                 <FormGroup>
                   <label>Emergency Status</label>
-                  <select value={emergencyFilter} onChange={(e) => setEmergencyFilter(e.target.value)}>
+                  <select value={emergencyFilter} onChange={(e) => { setEmergencyFilter(e.target.value); setListPage(1); }}>
                     <option value="all">All Patients</option>
                     <option value="emergency">Emergency Only</option>
                     <option value="normal">Normal Only</option>
@@ -1168,13 +1181,22 @@ const PatientBilling = () => {
 
                 <FormGroup>
                   <label>Segment</label>
-                  <select value={segmentFilter} onChange={(e) => setSegmentFilter(e.target.value)}>
+                  <select value={segmentFilter} onChange={(e) => { setSegmentFilter(e.target.value); setListPage(1); }}>
                     <option value="all">All Segments</option>
                     <option value="B2B">B2B</option>
                     <option value="Hospital">Hospital</option>
                     <option value="Walk-in">Walk-in</option>
                     <option value="Home Collection">Home Collection</option>
                     <option value="Shanmuga 360">Shanmuga 360</option>
+                  </select>
+                </FormGroup>
+
+                <FormGroup>
+                  <label>Status</label>
+                  <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setListPage(1); }}>
+                    <option value="all">All (Registered & Billed)</option>
+                    <option value="Registered">Registered Only</option>
+                    <option value="Billed">Billed Only</option>
                   </select>
                 </FormGroup>
 
@@ -1234,7 +1256,7 @@ const PatientBilling = () => {
                     <tbody>
                       {pagedPatients.map((patient, idx) => (
                         <tr key={idx}>
-                          <td>{new Date(patient.date).toLocaleDateString()}</td>
+                          <td>{new Date(patient.bill_date || patient.date).toLocaleDateString("en-IN")}</td>
                           <td><strong>{patient.patient_id}</strong></td>
                           <td>{patient.patientname}</td>
                           <td>{patient.age}/{patient.gender}</td>

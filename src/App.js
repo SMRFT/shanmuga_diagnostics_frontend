@@ -127,6 +127,9 @@ import Cancelledbill from "./Components/FranchiseEntrollment/Cancelledbill";
 import Cancelledbillreport from "./Components/FranchiseEntrollment/Cancelledbillreport";
 import MonthEndCalculation from "./Components/FranchiseEntrollment/MonthEndCalculation";
 import FranchiseHomeCollection from "./Components/FranchiseEntrollment/FranchiseHomeCollection";
+import TestDirectoryForm from "./Components/TestDirectory/TestDirectoryForm";
+import TestDirectoryReport from "./Components/TestDirectory/TestDirectoryReport";
+import TestMonographView from "./Components/TestDirectory/TestMonographView";
 
 // Wrapper for the main content to shift it to the right of the sidebar
 const ContentWrapper = styled.div`
@@ -238,6 +241,9 @@ function App() {
       "/SampleStatus": "Sample Status",
       "/SampleStatusUpdate": "Sample Status Update",
       "/TestEdit": "Test Edit",
+      "/TestDirectoryForm": "Diagnostic Test Form",
+      "/TestDirectoryReport": "Diagnostic Test Directory Report",
+      "/TestDirectory": "Diagnostic Test Directory",
       "/PatientDetails": "Patient Details",
       "/TestDetails": "Test Details",
       "/WorkList": "Work List",
@@ -377,8 +383,54 @@ function App() {
     window.location.pathname.endsWith("/FeedbackGrievance") ||
     window.location.pathname.toLowerCase().includes("feedbackgrievance");
 
+  const isTestDirectoryFormPath =
+    location.pathname.startsWith("/TestDirectoryForm") ||
+    location.pathname.startsWith("/LIS/TestDirectoryForm") ||
+    window.location.pathname.toLowerCase().includes("testdirectoryform");
+
+  const isTestDirectoryReportPath =
+    location.pathname.startsWith("/TestDirectoryReport") ||
+    location.pathname.startsWith("/LIS/TestDirectoryReport") ||
+    location.pathname === "/TestDirectory" ||
+    location.pathname === "/LIS/TestDirectory" ||
+    window.location.pathname.toLowerCase().includes("testdirectoryreport") ||
+    window.location.pathname.toLowerCase().endsWith("/testdirectory");
+
+  const isPathologyTestPath =
+    location.pathname.startsWith("/pathology-test") ||
+    location.pathname.startsWith("/LIS/pathology-test") ||
+    location.pathname.startsWith("/test/") ||
+    location.pathname.startsWith("/LIS/test/") ||
+    window.location.pathname.toLowerCase().includes("pathology-test");
 
   if (!role) {
+    if (isPathologyTestPath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <TestMonographView />
+        </div>
+      );
+    }
+
+    if (isTestDirectoryFormPath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <TestDirectoryForm />
+        </div>
+      );
+    }
+
+    if (isTestDirectoryReportPath) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <ToastContainer />
+          <TestDirectoryReport />
+        </div>
+      );
+    }
+
     if (isEstimatePath) {
       return (
         <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
@@ -676,6 +728,14 @@ function App() {
               path="/FeedbackGrievanceReport"
               element={<FeedbackGrievanceReport />}
             />
+
+            {/* Diagnostic Test Directory & Reports (No auth required) */}
+            <Route path="/TestDirectoryForm" element={<TestDirectoryForm />} />
+            <Route path="/TestDirectoryForm/:id" element={<TestDirectoryForm />} />
+            <Route path="/TestDirectoryReport" element={<TestDirectoryReport />} />
+            <Route path="/TestDirectory" element={<TestDirectoryReport />} />
+            <Route path="/pathology-test/:id" element={<TestMonographView />} />
+            <Route path="/test/:id" element={<TestMonographView />} />
 
 
             <Route
