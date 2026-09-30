@@ -1573,6 +1573,8 @@ const PatientOverview = () => {
         yPos += 3;
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
         return yPos;
       };
       const addSignatures = () => {
@@ -1819,8 +1821,12 @@ const PatientOverview = () => {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
               yPos = checkForNewPage(yPos, 4);
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
               doc.text("(Outsourced)", leftMargin, yPos);
               yPos += 4;
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
             }
             if (!test.parameters || test.parameters.length === 0) {
               if (test.comment && test.comment.trim() !== "") {
@@ -1828,6 +1834,8 @@ const PatientOverview = () => {
                 doc.setFontSize(8);
                 const commentLines = wrapTextAndGetLines(doc, `Comment: ${test.comment}`, contentWidth);
                 yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
                 const commentHeight = renderWrappedText(
                   doc,
                   `Comment: ${test.comment}`,
@@ -1837,12 +1845,16 @@ const PatientOverview = () => {
                   3.5,
                 );
                 yPos += commentHeight + 2;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
               }
               if (test.notes && test.notes.trim() !== "") {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
                 const notesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
                 yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
                 const notesHeight = renderWrappedText(
                   doc,
                   `Notes: ${test.notes}`,
@@ -1852,6 +1864,8 @@ const PatientOverview = () => {
                   3.5,
                 );
                 yPos += notesHeight + 2;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
               }
             }
             doc.setFont("helvetica", "normal");
@@ -1976,6 +1990,8 @@ const PatientOverview = () => {
                     contentWidth
                   );
                   yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
                   const paramCommentHeight = renderWrappedText(
                     doc,
                     `Comment: ${currentTest.comment}`,
@@ -1985,12 +2001,16 @@ const PatientOverview = () => {
                     3.5,
                   );
                   yPos += paramCommentHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
                 }
                 if (currentTest.notes && currentTest.notes.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
                   const notesLines = wrapTextAndGetLines(doc, `Notes: ${currentTest.notes}`, contentWidth);
                   yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
                   const notesHeight = renderWrappedText(
                     doc,
                     `Notes: ${currentTest.notes}`,
@@ -2000,6 +2020,8 @@ const PatientOverview = () => {
                     3.5,
                   );
                   yPos += notesHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
                 }
                 yPos += 1;
                 doc.setFont("helvetica", "normal");
@@ -2013,6 +2035,8 @@ const PatientOverview = () => {
               doc.setFontSize(8);
               const testNotesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
               yPos = checkForNewPage(yPos, testNotesLines.length * 3.5 + 2);
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
               const testNotesHeight = renderWrappedText(
                 doc,
                 `Notes: ${test.notes}`,
@@ -2022,6 +2046,8 @@ const PatientOverview = () => {
                 3.5,
               );
               yPos += testNotesHeight + 2;
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
             }
 
             if (

@@ -1269,6 +1269,8 @@ const TestSorting = ({ patient, onClose }) => {
         yPos += 3;
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
         return yPos;
       };
 
@@ -1680,8 +1682,13 @@ const TestSorting = ({ patient, onClose }) => {
               if (test.outsourced === true) {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
+                yPos = checkForNewPage(yPos, 4);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
                 doc.text("(Outsourced)", leftMargin, yPos);
                 yPos += 4;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
               }
 
               if (!test.parameters || test.parameters.length === 0) {
@@ -1690,6 +1697,8 @@ const TestSorting = ({ patient, onClose }) => {
                   doc.setFontSize(8);
                   const commentLines = wrapTextAndGetLines(doc, `Comment: ${test.comment}`, contentWidth);
                   yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
                   const commentHeight = renderWrappedText(
                     doc,
                     `Comment: ${test.comment}`,
@@ -1699,12 +1708,16 @@ const TestSorting = ({ patient, onClose }) => {
                     3.5,
                   );
                   yPos += commentHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
                 }
                 if (test.notes && test.notes.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
                   const notesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
                   yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
                   const notesHeight = renderWrappedText(
                     doc,
                     `Notes: ${test.notes}`,
@@ -1714,6 +1727,8 @@ const TestSorting = ({ patient, onClose }) => {
                     3.5,
                   );
                   yPos += notesHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
                 }
               }
 
@@ -1856,6 +1871,8 @@ const TestSorting = ({ patient, onClose }) => {
                     doc.setFontSize(8);
                     const commentLines = wrapTextAndGetLines(doc, `Comment: ${currentTest.comment}`, contentWidth);
                     yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
                     const paramCommentHeight = renderWrappedText(
                       doc,
                       `Comment: ${currentTest.comment}`,
@@ -1865,6 +1882,8 @@ const TestSorting = ({ patient, onClose }) => {
                       3.5,
                     );
                     yPos += paramCommentHeight + 2;
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
                   }
                   if (
                     currentTest.notes &&
@@ -1874,6 +1893,8 @@ const TestSorting = ({ patient, onClose }) => {
                     doc.setFontSize(8);
                     const notesLines = wrapTextAndGetLines(doc, `Notes: ${currentTest.notes}`, contentWidth);
                     yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
                     const notesHeight = renderWrappedText(
                       doc,
                       `Notes: ${currentTest.notes}`,
@@ -1883,6 +1904,8 @@ const TestSorting = ({ patient, onClose }) => {
                       3.5,
                     );
                     yPos += notesHeight + 2;
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
                   }
                   yPos += 1;
                   doc.setFont("helvetica", "normal");
@@ -1896,6 +1919,8 @@ const TestSorting = ({ patient, onClose }) => {
                 doc.setFontSize(8);
                 const testNotesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
                 yPos = checkForNewPage(yPos, testNotesLines.length * 3.5 + 2);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
                 const testNotesHeight = renderWrappedText(
                   doc,
                   `Notes: ${test.notes}`,
@@ -1905,6 +1930,8 @@ const TestSorting = ({ patient, onClose }) => {
                   3.5,
                 );
                 yPos += testNotesHeight + 2;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
               }
 
               if (
