@@ -258,6 +258,74 @@ const FilterSelect = styled.select`
   }
 `;
 
+const DateFilterGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  padding: 4px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+
+  &:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+  }
+`;
+
+const DateLabel = styled.label`
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+
+  svg {
+    color: #667eea;
+    font-size: 13px;
+  }
+`;
+
+const DateInput = styled.input`
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d3748;
+  font-family: inherit;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 0;
+
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.4) sepia(1) saturate(5) hue-rotate(210deg);
+  }
+`;
+
+const TodayButton = styled.button`
+  background: #f1f5f9;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #cbd5e1;
+  }
+`;
+
 const TableCard = styled(GradientCard)`
   background: #ffffff;
   border-radius: 16px;
@@ -413,8 +481,15 @@ const FranchiseHomeCollection = () => {
 
   const getCurrentDate = () => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
+
+  const currentDate = getCurrentDate();
+  const [fromDate, setFromDate] = useState(currentDate);
+  const [toDate, setToDate] = useState(currentDate);
 
   const [collections, setCollections] = useState([]);
   const [franchises, setFranchises] = useState([]);
@@ -436,7 +511,10 @@ const FranchiseHomeCollection = () => {
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    fetchCollections();
+    fetchCollections(fromDate, toDate);
+  }, [fromDate, toDate]);
+
+  useEffect(() => {
     fetchFranchises();
   }, []);
 
@@ -448,10 +526,15 @@ const FranchiseHomeCollection = () => {
     }, 4000);
   };
 
-  const fetchCollections = async () => {
+  const fetchCollections = async (from = fromDate, to = toDate) => {
     try {
       setLoading(true);
-      const response = await apiRequest(`${Labbaseurl}franchise-home-collection/`, 'GET');
+      const queryParams = new URLSearchParams();
+      if (from) queryParams.append('from_date', from);
+      if (to) queryParams.append('to_date', to);
+      const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
+      const response = await apiRequest(`${Labbaseurl}franchise-home-collection/${queryString}`, 'GET');
       if (response.success && Array.isArray(response.data)) {
         setCollections(response.data);
       } else {
@@ -526,7 +609,7 @@ const FranchiseHomeCollection = () => {
           franchise_id: '',
           status: 'Assigned',
         });
-        fetchCollections();
+        fetchCollections(fromDate, toDate);
       } else {
         showToast(response.error || 'Failed to save home collection request', 'error');
       }
@@ -565,6 +648,16 @@ const FranchiseHomeCollection = () => {
   };
 
   const filteredCollections = collections.filter((item) => {
+    // Client-side date check
+    const rawDate = item.date || item.created_date;
+    if (rawDate) {
+      const itemDateStr = typeof rawDate === 'string' ? rawDate.substring(0, 10) : '';
+      if (itemDateStr) {
+        if (fromDate && itemDateStr < fromDate) return false;
+        if (toDate && itemDateStr > toDate) return false;
+      }
+    }
+
     const matchesSearch =
       (item.patient_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.franchise_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -579,9 +672,9 @@ const FranchiseHomeCollection = () => {
   });
 
   const stats = {
-    total: collections.length,
-    assigned: collections.filter((c) => (c.status || '').toLowerCase() === 'assigned').length,
-    accepted: collections.filter((c) => (c.status || '').toLowerCase() === 'accepted').length,
+    total: filteredCollections.length,
+    assigned: filteredCollections.filter((c) => (c.status || '').toLowerCase() === 'assigned').length,
+    accepted: filteredCollections.filter((c) => (c.status || '').toLowerCase() === 'accepted').length,
   };
 
   return (
@@ -742,6 +835,39 @@ const FranchiseHomeCollection = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </SearchInputWrapper>
+
+          <DateFilterGroup>
+            <DateLabel>
+              <FaCalendarAlt /> From Date:
+            </DateLabel>
+            <DateInput
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+          </DateFilterGroup>
+
+          <DateFilterGroup>
+            <DateLabel>
+              <FaCalendarAlt /> To Date:
+            </DateLabel>
+            <DateInput
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
+          </DateFilterGroup>
+
+          <TodayButton
+            type="button"
+            onClick={() => {
+              const today = getCurrentDate();
+              setFromDate(today);
+              setToDate(today);
+            }}
+          >
+            Today
+          </TodayButton>
 
           <FilterSelect
             value={statusFilter}
