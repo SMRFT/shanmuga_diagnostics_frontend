@@ -1265,7 +1265,7 @@ const HMSPatientOverview = () => {
         pdf_name: pdfName,
         patient_id: patient.patient_id,
         barcode: patient.barcode || "",
-        template_name: "hms_report_pdf",
+        template_name: "hms_report_new",
       });
 
       if (res.data.success) {
