@@ -21,6 +21,7 @@ import NABLImage from "../Images/NABL.png";
 import Muhsina from "../Images/Muhsina.png";
 import drarun from "../Images/drarun.png";
 import DRPS from "../Images/DRPS.png";
+import Shanmuga360QR from "../Images/Shanmuga360QR.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
 import JSZip from "jszip";
@@ -1119,6 +1120,30 @@ const CHCReport = () => {
       }
     };
 
+    const getHighLowStatus = (value, reference) => {
+      if (!value || !reference) return null;
+      const cleanVal = String(value).trim().replace(/[^0-9.-]/g, "");
+      const numValue = Number.parseFloat(cleanVal);
+      if (isNaN(numValue)) return null;
+      const ref = String(reference).trim();
+      if (ref.includes("-") || ref.toLowerCase().includes(" to ")) {
+        const parts = ref.includes("-") ? ref.split("-") : ref.toLowerCase().split(" to ");
+        const min = Number.parseFloat(parts[0]);
+        const max = Number.parseFloat(parts[1]);
+        if (!isNaN(min) && !isNaN(max)) {
+          if (numValue < min) return "L";
+          if (numValue > max) return "H";
+        }
+      } else if (ref.includes("<")) {
+        const max = Number.parseFloat(ref.replace(/[^0-9.]/g, ""));
+        if (!isNaN(max) && numValue > max) return "H";
+      } else if (ref.includes(">")) {
+        const min = Number.parseFloat(ref.replace(/[^0-9.]/g, ""));
+        if (!isNaN(min) && numValue < min) return "L";
+      }
+      return null;
+    };
+
     const addHeaderFooter = (withNabl = false) => {
       if (withLetterpad) {
         doc.addImage(
@@ -1155,13 +1180,66 @@ const CHCReport = () => {
 
     const checkForNewPage = (yPos, estimatedHeight) => {
       const pageHeight = doc.internal.pageSize.height;
-      if (yPos + estimatedHeight >= pageHeight - footerHeight - 30) {
+      if (yPos + estimatedHeight >= pageHeight - footerHeight - 8) {
         doc.addPage();
         pageCount++;
         addHeaderFooter(false);
         return headerHeight + 10;
       }
       return yPos;
+    };
+
+    const renderAppPromoCard = (yPos, checkPage = true) => {
+      const cardW = contentWidth;
+      const cardH = 22;
+      if (checkPage) {
+        yPos = checkForNewPage(yPos, cardH);
+      }
+      const x = leftMargin;
+
+      doc.setDrawColor(67, 97, 238);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, yPos, cardW, cardH, 2, 2);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(67, 97, 238);
+      doc.text("Your Health, Our Priority!", x + 4, yPos + 5);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(50, 50, 50);
+      const promoText =
+        "For any queries regarding your test report, connect with our doctor through the Shanmuga 360 App and avail a ONE-TIME Free CONSULTATION for report-related clarification.";
+      const promoLines = doc.splitTextToSize(promoText, cardW - 30);
+      doc.text(promoLines, x + 4, yPos + 9);
+
+      const bottomY = yPos + 18.5;
+      doc.setDrawColor(67, 97, 238);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x + 4, bottomY - 3.5, 3, 4.8, 0.5, 0.5);
+      doc.circle(x + 5.5, bottomY + 0.3, 0.3);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(20, 20, 20);
+      doc.text("Scan the QR Code to download the app.", x + 9, bottomY);
+
+      const qrSize = 18;
+      const qrX = x + cardW - qrSize - 3;
+      const qrY = yPos + (cardH - qrSize) / 2;
+      if (Shanmuga360QR) {
+        try {
+          doc.addImage(Shanmuga360QR, "PNG", qrX, qrY, qrSize, qrSize);
+        } catch (e) {
+          console.error("Error adding Shanmuga360QR to PDF:", e);
+        }
+      }
+
+      // CRITICAL: Always reset draw color, text color, and line width to default black
+      doc.setTextColor(0, 0, 0);
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.2);
+      return yPos + cardH + 4;
     };
 
     const addMedicalExaminationHeader = (yPos) => {
@@ -1225,6 +1303,53 @@ const CHCReport = () => {
     };
 
     const addMedicalHistory = (yPos) => {
+      const isValidValue = (v) => {
+        if (!v) return false;
+        const s = String(v).trim();
+        return s !== "" && !["N/A", "NA", "NULL", "UNDEFINED"].includes(s.toUpperCase());
+      };
+
+      const historyItems = [];
+      if (isValidValue(patientDetails.department)) {
+        historyItems.push({
+          label: "Department",
+          value: patientDetails.department.trim(),
+        });
+      }
+
+      if (isValidValue(patientDetails.doj)) {
+        try {
+          const d = new Date(patientDetails.doj);
+          if (!isNaN(d.getTime())) {
+            const formattedDoj = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+            historyItems.push({
+              label: "DOJ",
+              value: formattedDoj,
+            });
+          }
+        } catch (e) {}
+      }
+
+      if (isValidValue(patientDetails.employee_type)) {
+        historyItems.push({
+          label: "Employment Type",
+          value: patientDetails.employee_type.trim(),
+        });
+      }
+
+      const medHistory = patientDetails.medical_history?.patient_history;
+      if (isValidValue(medHistory)) {
+        historyItems.push({
+          label: "Medical History",
+          value: medHistory.trim(),
+        });
+      }
+
+      const hasDynamicFields = patientDetails.dynamic_fields?.length > 0;
+      if (historyItems.length === 0 && !hasDynamicFields) {
+        return yPos;
+      }
+
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -1236,34 +1361,9 @@ const CHCReport = () => {
       );
       yPos += 10;
       doc.setFontSize(10);
-      const historyItems = [
-        { label: "Department", value: patientDetails.department || "N/A" },
-        {
-          label: "DOJ",
-          value: patientDetails.doj
-            ? (() => {
-              try {
-                const d = new Date(patientDetails.doj);
-                if (isNaN(d.getTime())) return "N/A";
-                return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-              } catch {
-                return "N/A";
-              }
-            })()
-            : "N/A",
-        },
-        {
-          label: "Employment Type",
-          value: patientDetails.employee_type || "N/A",
-        },
-        {
-          label: "Medical History",
-          value:
-            patientDetails.medical_history?.patient_history ||
-            "Nil Significant",
-        },
-      ];
+
       historyItems.forEach((item) => {
+        yPos = checkForNewPage(yPos, 8);
         doc.setFont("helvetica", "bold");
         doc.text(item.label, leftMargin, yPos);
         doc.text(":", leftMargin + 50, yPos);
@@ -1280,50 +1380,330 @@ const CHCReport = () => {
 
       if (patientDetails.dynamic_fields?.length > 0) {
         yPos += 5;
+
+        const isFemale = (patientDetails.gender || "")
+          .toLowerCase()
+          .startsWith("f");
+        const patientAge = parseFloat(
+          String(patientDetails.age || "").replace(/[^0-9.]/g, ""),
+        );
+        const isAgeForMuscle =
+          !isNaN(patientAge) && patientAge >= 18 && patientAge < 40;
+
+        const muscleRange = isAgeForMuscle
+          ? (isFemale ? "24 - 30%" : "33 - 39%")
+          : "";
+
+        const getMuscleStatus = (num) => {
+          if (!isAgeForMuscle || num === null || num === undefined || isNaN(num))
+            return "";
+          const n = parseFloat(num);
+          if (isFemale) {
+            if (n < 24) return "L";
+            if (n <= 30) return "";
+            return "H";
+          } else {
+            if (n < 33) return "L";
+            if (n <= 39) return "";
+            return "H";
+          }
+        };
+
+        const fatRangeLines = isFemale
+          ? ["Normal: 20-30%", "High: 30-35%", "Very High: > 35%"]
+          : ["Normal: 10-20%", "High: 20-25%", "Very High: > 25%"];
+
+        const getFatStatus = (num) => {
+          if (num === null || num === undefined || isNaN(num)) return "";
+          const n = parseFloat(num);
+          if (isFemale) {
+            if (n < 20) return "L";
+            if (n <= 30) return "";
+            if (n <= 35) return "H";
+            return "VH";
+          } else {
+            if (n < 10) return "L";
+            if (n <= 20) return "";
+            if (n <= 25) return "H";
+            return "VH";
+          }
+        };
+
+        let trunkMuscle = null, trunkFat = null;
+        let armMuscle = null, armFat = null;
+        let legMuscle = null, legFat = null;
+        let waistValStr = "", hipValStr = "";
+        let waistNum = null, hipNum = null;
+
+        patientDetails.dynamic_fields.forEach((df) => {
+          const name = (df.field_name || "").toLowerCase();
+          const id = (df.field_id || "").toUpperCase();
+          (df.field_values || []).forEach((fv) => {
+            const k = (fv.key || "").trim().toLowerCase();
+            const vStr = String(fv.value || "").trim();
+            const v = parseFloat(vStr.replace(/[^0-9.]/g, ""));
+
+            if (name.includes("trunk") || id === "CHCDY005") {
+              if (k.includes("muscle") && !isNaN(v)) trunkMuscle = v;
+              if (k.includes("fat") && !isNaN(v)) trunkFat = v;
+            } else if (name.includes("arm") || id === "CHCDY006") {
+              if (k.includes("muscle") && !isNaN(v)) armMuscle = v;
+              if (k.includes("fat") && !isNaN(v)) armFat = v;
+            } else if (name.includes("leg") || id === "CHCDY007") {
+              if (k.includes("muscle") && !isNaN(v)) legMuscle = v;
+              if (k.includes("fat") && !isNaN(v)) legFat = v;
+            }
+
+            if (k.includes("waist")) {
+              waistValStr = vStr;
+              if (!isNaN(v)) waistNum = v;
+            } else if (k.includes("hip")) {
+              hipValStr = vStr;
+              if (!isNaN(v)) hipNum = v;
+            }
+          });
+        });
+
+        const hasMuscleVals = trunkMuscle !== null && armMuscle !== null && legMuscle !== null;
+        const muscleAvg = hasMuscleVals ? ((trunkMuscle + armMuscle + legMuscle) / 3).toFixed(1) : null;
+
+        const hasFatVals = trunkFat !== null && armFat !== null && legFat !== null;
+        const fatAvg = hasFatVals ? ((trunkFat + armFat + legFat) / 3).toFixed(1) : null;
+
+        const waistRange = isFemale ? "<80 cm" : "<90 cm";
+        const whrRange = isFemale ? "<0.80" : "<0.90";
+
+        const waistStatus = waistNum !== null
+          ? (isFemale ? (waistNum >= 80 ? "H" : "") : (waistNum >= 90 ? "H" : ""))
+          : "";
+
+        let whrVal = null;
+        let whrStatus = "";
+        if (waistNum !== null && hipNum !== null && hipNum > 0) {
+          whrVal = (waistNum / hipNum).toFixed(2);
+          const whrNum = parseFloat(whrVal);
+          if (isFemale) {
+            if (whrNum >= 0.80) whrStatus = "H";
+            else if (whrNum < 0.70) whrStatus = "L";
+          } else {
+            if (whrNum >= 0.90) whrStatus = "H";
+            else if (whrNum < 0.80) whrStatus = "L";
+          }
+        }
+
+        const drawUniformTableRow = (startX, y, widths, rowH, isHeader = false) => {
+          doc.setLineWidth(0.2);
+          doc.setDrawColor(0, 0, 0);
+          const tWidth = widths.reduce((a, b) => a + b, 0);
+          if (isHeader) {
+            doc.line(startX, y, startX + tWidth, y);
+          }
+          doc.line(startX, y + rowH, startX + tWidth, y + rowH);
+          doc.line(startX, y, startX, y + rowH);
+          doc.line(startX + tWidth, y, startX + tWidth, y + rowH);
+          let currX = startX;
+          for (let c = 0; c < widths.length - 1; c++) {
+            currX += widths[c];
+            doc.line(currX, y, currX, y + rowH);
+          }
+        };
+
         patientDetails.dynamic_fields.forEach((field) => {
-          yPos = checkForNewPage(yPos, 15);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text(field.field_name || "Clinical Findings", leftMargin, yPos);
-          yPos += 7;
-          doc.setFontSize(10);
-          if (field.field_values?.length > 0) {
-            const colWidths = [55, contentWidth - 55];
-            const tableStartX = leftMargin;
-            const rowHeight = 8;
-            const tableWidth = colWidths[0] + colWidths[1];
-            doc.rect(tableStartX, yPos, tableWidth, rowHeight);
-            doc.line(
-              tableStartX + colWidths[0],
-              yPos,
-              tableStartX + colWidths[0],
-              yPos + rowHeight,
+          const validValues = (field.field_values || []).filter(
+            (fv) =>
+              fv &&
+              fv.value !== undefined &&
+              fv.value !== null &&
+              String(fv.value).trim() !== "",
+          );
+          if (validValues.length === 0) return;
+
+          const isCircumference =
+            (field.field_id || "").toUpperCase() === "CHCDY008" ||
+            validValues.some(
+              (fv) =>
+                (fv.key || "").toLowerCase().includes("waist") ||
+                (fv.key || "").toLowerCase().includes("hip"),
             );
+
+          if (isCircumference) {
+            if (!waistValStr && !whrVal) return;
+            const title = (field.field_name || "Circumference").trim();
+            yPos = checkForNewPage(yPos, 25);
             doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text(`${title} :`, leftMargin, yPos);
+            yPos += 4;
+
+            const colWidths = [55, 45, contentWidth - 100];
+            const tableStartX = leftMargin;
+            const rowHeight = 7;
+
+            drawUniformTableRow(tableStartX, yPos, colWidths, rowHeight, true);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
             doc.text("Parameter", tableStartX + 2, yPos + 5);
             doc.text("Finding", tableStartX + colWidths[0] + 2, yPos + 5);
+            doc.text("Reference Value", tableStartX + colWidths[0] + colWidths[1] + 2, yPos + 5);
             yPos += rowHeight;
+
             doc.setFont("helvetica", "normal");
-            field.field_values.forEach((fv) => {
+            if (waistValStr) {
               yPos = checkForNewPage(yPos, rowHeight);
-              const valueLines = doc.splitTextToSize(
-                fv.value || "",
-                colWidths[1] - 4,
-              );
-              const rowH = Math.max(rowHeight, valueLines.length * 5 + 3);
-              doc.rect(tableStartX, yPos, tableWidth, rowH);
-              doc.line(
-                tableStartX + colWidths[0],
-                yPos,
-                tableStartX + colWidths[0],
-                yPos + rowH,
-              );
+              drawUniformTableRow(tableStartX, yPos, colWidths, rowHeight, false);
               doc.setFont("helvetica", "bold");
-              doc.text(fv.key || "", tableStartX + 2, yPos + 5);
+              doc.text("Waist Circumference", tableStartX + 2, yPos + 5);
               doc.setFont("helvetica", "normal");
-              doc.text(valueLines, tableStartX + colWidths[0] + 2, yPos + 5);
-              yPos += rowH;
-            });
+              const waistDisplay = waistValStr.toLowerCase().includes("cm")
+                ? waistValStr
+                : `${waistValStr} cm`;
+              doc.text(waistDisplay, tableStartX + colWidths[0] + 2, yPos + 5);
+              if (waistStatus) {
+                const wWidth = doc.getTextWidth(waistDisplay);
+                doc.setFont("helvetica", "bold");
+                doc.text(`  ${waistStatus}`, tableStartX + colWidths[0] + 2 + wWidth, yPos + 5);
+                doc.setFont("helvetica", "normal");
+              }
+              doc.text(
+                waistRange,
+                tableStartX + colWidths[0] + colWidths[1] + 2,
+                yPos + 5,
+              );
+              yPos += rowHeight;
+            }
+            if (whrVal !== null) {
+              yPos = checkForNewPage(yPos, rowHeight);
+              drawUniformTableRow(tableStartX, yPos, colWidths, rowHeight, false);
+              doc.setFont("helvetica", "bold");
+              doc.text("Waist Hip Ratio", tableStartX + 2, yPos + 5);
+              doc.setFont("helvetica", "normal");
+              const whrDisplay = `${whrVal}`;
+              doc.text(whrDisplay, tableStartX + colWidths[0] + 2, yPos + 5);
+              if (whrStatus) {
+                const whrWidth = doc.getTextWidth(whrDisplay);
+                doc.setFont("helvetica", "bold");
+                doc.text(`  ${whrStatus}`, tableStartX + colWidths[0] + 2 + whrWidth, yPos + 5);
+                doc.setFont("helvetica", "normal");
+              }
+              doc.text(
+                whrRange,
+                tableStartX + colWidths[0] + colWidths[1] + 2,
+                yPos + 5,
+              );
+              yPos += rowHeight;
+            }
+            yPos += 4;
+            return;
+          }
+
+          const title = field.field_name?.trim() || "";
+          if (title) {
+            yPos = checkForNewPage(yPos, 15);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text(`${title} :`, leftMargin, yPos);
+            yPos += 4;
+          } else {
+            yPos = checkForNewPage(yPos, 10);
+          }
+
+          doc.setFontSize(10);
+          const colWidths = [55, contentWidth - 55];
+          const tableStartX = leftMargin;
+          const rowHeight = 7;
+
+          drawUniformTableRow(tableStartX, yPos, colWidths, rowHeight, true);
+          doc.setFont("helvetica", "bold");
+          doc.text("Parameter", tableStartX + 2, yPos + 5);
+          doc.text("Finding", tableStartX + colWidths[0] + 2, yPos + 5);
+          yPos += rowHeight;
+          doc.setFont("helvetica", "normal");
+
+          validValues.forEach((fv) => {
+            const valueText = String(fv.value || "");
+            const valueLines = doc.splitTextToSize(valueText, colWidths[1] - 4);
+            const rowH = Math.max(rowHeight, valueLines.length * 5 + 2);
+            yPos = checkForNewPage(yPos, rowH);
+
+            drawUniformTableRow(tableStartX, yPos, colWidths, rowH, false);
+            doc.setFont("helvetica", "bold");
+            doc.text(fv.key || "", tableStartX + 2, yPos + 5);
+            doc.setFont("helvetica", "normal");
+            doc.text(valueLines, tableStartX + colWidths[0] + 2, yPos + 5);
+            yPos += rowH;
+          });
+          yPos += 4;
+
+          const isLeg =
+            (field.field_id || "").toUpperCase() === "CHCDY007" ||
+            title.toLowerCase().includes("leg");
+
+          if (isLeg && (muscleAvg !== null || fatAvg !== null)) {
+            yPos = checkForNewPage(yPos, 25);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Average :", leftMargin, yPos);
+            yPos += 4;
+
+            const avgColWidths = [55, 45, contentWidth - 100];
+            const avgRowH = 7;
+            drawUniformTableRow(tableStartX, yPos, avgColWidths, avgRowH, true);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text("Parameter", tableStartX + 2, yPos + 5);
+            doc.text("Finding", tableStartX + avgColWidths[0] + 2, yPos + 5);
+            doc.text("Reference Value", tableStartX + avgColWidths[0] + avgColWidths[1] + 2, yPos + 5);
+            yPos += avgRowH;
+
+            doc.setFont("helvetica", "normal");
+            if (muscleAvg !== null) {
+              yPos = checkForNewPage(yPos, avgRowH);
+              drawUniformTableRow(tableStartX, yPos, avgColWidths, avgRowH, false);
+              doc.setFont("helvetica", "bold");
+              doc.text("Muscle Average", tableStartX + 2, yPos + 5);
+              doc.setFont("helvetica", "normal");
+              const mVal = `${muscleAvg}%`;
+              doc.text(mVal, tableStartX + avgColWidths[0] + 2, yPos + 5);
+              const mStat = getMuscleStatus(muscleAvg);
+              if (mStat) {
+                const mWidth = doc.getTextWidth(mVal);
+                doc.setFont("helvetica", "bold");
+                doc.text(`  ${mStat}`, tableStartX + avgColWidths[0] + 2 + mWidth, yPos + 5);
+                doc.setFont("helvetica", "normal");
+              }
+              doc.text(
+                muscleRange,
+                tableStartX + avgColWidths[0] + avgColWidths[1] + 2,
+                yPos + 5,
+              );
+              yPos += avgRowH;
+            }
+            if (fatAvg !== null) {
+              const fatLineHeight = 4.5;
+              const fatRowH = Math.max(avgRowH, fatRangeLines.length * fatLineHeight + 2);
+              yPos = checkForNewPage(yPos, fatRowH);
+              drawUniformTableRow(tableStartX, yPos, avgColWidths, fatRowH, false);
+              doc.setFont("helvetica", "bold");
+              doc.text("Fat Average", tableStartX + 2, yPos + 5);
+              doc.setFont("helvetica", "normal");
+              const fVal = `${fatAvg}%`;
+              doc.text(fVal, tableStartX + avgColWidths[0] + 2, yPos + 5);
+              const fStat = getFatStatus(fatAvg);
+              if (fStat) {
+                const fWidth = doc.getTextWidth(fVal);
+                doc.setFont("helvetica", "bold");
+                doc.text(`  ${fStat}`, tableStartX + avgColWidths[0] + 2 + fWidth, yPos + 5);
+                doc.setFont("helvetica", "normal");
+              }
+              fatRangeLines.forEach((line, idx) => {
+                doc.text(
+                  line,
+                  tableStartX + avgColWidths[0] + avgColWidths[1] + 2,
+                  yPos + 4.5 + idx * fatLineHeight,
+                );
+              });
+              yPos += fatRowH;
+            }
             yPos += 4;
           }
         });
@@ -1656,11 +2036,12 @@ const CHCReport = () => {
       ) {
         yPos = checkForNewPage(yPos, 15);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
+        doc.setFontSize(10);
         doc.text("Lab Investigations", leftMargin, yPos);
-        doc.text(":", leftMargin + 50, yPos);
+        doc.text(":", leftMargin + 40, yPos);
         doc.setFont("helvetica", "normal");
-        doc.text("Enclosed", leftMargin + 55, yPos);
+        doc.setFontSize(10);
+        doc.text("Enclosed", leftMargin + 45, yPos);
         return yPos + 10;
       }
       const getHighLowStatus = (value, reference) => {
@@ -1798,25 +2179,25 @@ const CHCReport = () => {
         return addCHC012LabSummary(yPos);
       yPos = checkForNewPage(yPos, 15);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
+      doc.setFontSize(10);
       doc.text("Lab Investigations", leftMargin, yPos);
-      doc.text(":", leftMargin + 50, yPos);
+      doc.text(":", leftMargin + 40, yPos);
       doc.setFont("helvetica", "normal");
-      doc.text("Enclosed", leftMargin + 55, yPos);
+      doc.setFontSize(10);
+      doc.text("Enclosed", leftMargin + 45, yPos);
       return yPos + 10;
     };
 
     const addFinalAssessment = (yPos) => {
-      yPos = checkForNewPage(yPos, 30);
+      yPos = checkForNewPage(yPos, 20);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       const impression =
-        patientDetails.final_assessment?.impression ||
+        patientDetails.final_assessment?.impression?.trim() ||
         "Reports within Normal Limits.";
       const remarks =
-        patientDetails.final_assessment?.remarks ||
-        "The above candidate was examined and found Medically Fit for the Job.";
-      if (impression?.trim()) {
+        patientDetails.final_assessment?.remarks?.trim() || "";
+      if (impression) {
         const impressionLines = [
           ...new Set(
             impression
@@ -1825,47 +2206,59 @@ const CHCReport = () => {
               .filter((l) => l),
           ),
         ];
-        doc.setFont("helvetica", "bold");
-        doc.text("Impression", leftMargin, yPos);
-        doc.text(":", leftMargin + 30, yPos);
-        doc.setFont("helvetica", "normal");
-        impressionLines.forEach((line) => {
-          const wrapped = doc.splitTextToSize(line, contentWidth - 40);
-          wrapped.forEach((wl) => {
-            doc.text(wl, leftMargin + 35, yPos);
-            yPos += 6;
+        if (impressionLines.length > 0) {
+          yPos = checkForNewPage(yPos, 15);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text("Impression", leftMargin, yPos);
+          doc.text(":", leftMargin + 40, yPos);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          impressionLines.forEach((line) => {
+            const wrapped = doc.splitTextToSize(line, contentWidth - 48);
+            wrapped.forEach((wl) => {
+              yPos = checkForNewPage(yPos, 6);
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
+              doc.text(wl, leftMargin + 45, yPos);
+              yPos += 6;
+            });
           });
-        });
-        doc.setFont("helvetica", "bold");
-        yPos += 4;
+          doc.setFont("helvetica", "bold");
+          yPos += 4;
+        }
       }
-      if (remarks?.trim()) {
+      if (remarks) {
         yPos += 4;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
-        doc.text(remarks, leftMargin, yPos);
+        const wrappedRemarks = doc.splitTextToSize(remarks, contentWidth);
+        wrappedRemarks.forEach((line) => {
+          yPos = checkForNewPage(yPos, 6);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text(line, leftMargin, yPos);
+          yPos += 6;
+        });
       }
-      yPos += 8;
-      const pageHeight = doc.internal.pageSize.height;
-      if (yPos + 40 >= pageHeight - footerHeight) {
-        doc.addPage();
-        pageCount++;
-        addHeaderFooter(false);
-        yPos = headerHeight + 10;
-      }
+      yPos += 3;
+      // Signature + promo card combined height is ~52mm
+      yPos = checkForNewPage(yPos, 52);
       const signatureX = leftMargin + 120;
-      if (DRPS) doc.addImage(DRPS, "PNG", signatureX, yPos, 35, 25);
-      yPos += 25;
+      if (DRPS) doc.addImage(DRPS, "PNG", signatureX, yPos, 32, 15);
+      yPos += 16;
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
+      doc.setFontSize(9.5);
       doc.text("Dr. P. PRABU SANKAR, MS, MRCS.", signatureX, yPos);
-      yPos += 5;
+      yPos += 3.8;
       doc.text("GENERAL SURGEON", signatureX, yPos);
-      yPos += 5;
+      yPos += 3.8;
       doc.text("Reg No. 80709", signatureX, yPos);
-      yPos += 5;
+      yPos += 3.8;
       doc.text("Shanmuga Hospital Ltd, Salem-7.", signatureX, yPos);
-      return yPos + 10;
+      yPos += 4;
+      yPos = renderAppPromoCard(yPos, false);
+      return yPos;
     };
 
     // ORIGINAL addInvestigationFiles — used by single handlePrint (converts on the fly)
@@ -2209,6 +2602,8 @@ const CHCReport = () => {
         0,
       ];
       const drawTableHeader = (yPos) => {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
         doc.setFontSize(10);
@@ -2228,8 +2623,12 @@ const CHCReport = () => {
           xPos += colWidths[i];
         });
         yPos += 3;
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
         doc.line(leftMargin, yPos, rightMargin, yPos);
         yPos += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
         return yPos;
       };
       const addLabReportHeader = (yPos) => {
@@ -2398,6 +2797,8 @@ const CHCReport = () => {
               doc.text(department.toUpperCase(), centerX, yPos, {
                 align: "center",
               });
+              doc.setDrawColor(0, 0, 0);
+              doc.setLineWidth(0.2);
               doc.line(
                 centerX - textWidth / 2,
                 yPos + 2,
@@ -2512,8 +2913,12 @@ const CHCReport = () => {
               doc.setFont("helvetica", "italic");
               doc.setFontSize(8);
               yPos = checkForNewPageLab(yPos, 4);
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
               doc.text("(Outsourced)", leftMargin, yPos);
               yPos += 4;
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
             }
 
             if (!test.parameters || test.parameters.length === 0) {
@@ -2522,6 +2927,8 @@ const CHCReport = () => {
                 doc.setFontSize(8);
                 const commentLines = wrapTextAndGetLines(doc, `Comment: ${test.comment}`, contentWidth);
                 yPos = checkForNewPageLab(yPos, commentLines.length * 3.5 + 2);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
                 const commentHeight = renderWrappedText(
                   doc,
                   `Comment: ${test.comment}`,
@@ -2531,12 +2938,16 @@ const CHCReport = () => {
                   3.5,
                 );
                 yPos += commentHeight + 2;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
               }
               if (test.notes && test.notes.trim() !== "") {
                 doc.setFont("helvetica", "italic");
                 doc.setFontSize(8);
                 const notesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
                 yPos = checkForNewPageLab(yPos, notesLines.length * 3.5 + 2);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
                 const notesHeight = renderWrappedText(
                   doc,
                   `Notes: ${test.notes}`,
@@ -2546,6 +2957,8 @@ const CHCReport = () => {
                   3.5,
                 );
                 yPos += notesHeight + 2;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
               }
             }
 
@@ -2665,6 +3078,8 @@ const CHCReport = () => {
                   doc.setFontSize(8);
                   const commentLines = wrapTextAndGetLines(doc, `Comment: ${currentTest.comment}`, contentWidth);
                   yPos = checkForNewPageLab(yPos, commentLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
                   const paramCommentHeight = renderWrappedText(
                     doc,
                     `Comment: ${currentTest.comment}`,
@@ -2674,12 +3089,16 @@ const CHCReport = () => {
                     3.5,
                   );
                   yPos += paramCommentHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
                 }
                 if (currentTest.notes && currentTest.notes.trim() !== "") {
                   doc.setFont("helvetica", "italic");
                   doc.setFontSize(8);
                   const notesLines = wrapTextAndGetLines(doc, `Notes: ${currentTest.notes}`, contentWidth);
                   yPos = checkForNewPageLab(yPos, notesLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
                   const notesHeight = renderWrappedText(
                     doc,
                     `Notes: ${currentTest.notes}`,
@@ -2689,6 +3108,8 @@ const CHCReport = () => {
                     3.5,
                   );
                   yPos += notesHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
                 }
                 yPos += 1;
                 doc.setFont("helvetica", "normal");
@@ -2702,6 +3123,8 @@ const CHCReport = () => {
               doc.setFontSize(8);
               const testNotesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
               yPos = checkForNewPageLab(yPos, testNotesLines.length * 3.5 + 2);
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(8);
               const testNotesHeight = renderWrappedText(
                 doc,
                 `Notes: ${test.notes}`,
@@ -2711,6 +3134,8 @@ const CHCReport = () => {
                 3.5,
               );
               yPos += testNotesHeight + 2;
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
             }
 
             if (hasMultipleVerifiers && test.verified_by?.trim()) {
