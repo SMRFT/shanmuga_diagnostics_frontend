@@ -455,7 +455,7 @@ const StatusBadgeHl = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
   color: ${(props) =>
     props.$high ? "#b91c1c" : props.$low ? "#1e3a8a" : "#555"};
@@ -483,6 +483,7 @@ const OphthalmologyTd = styled.td`
   text-align: center;
   font-size: 14px;
 `;
+
 
 const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
   // ── State ────────────────────────────────────────────────────────────────
@@ -767,7 +768,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
         console.error("Error fetching patient details:", result.error);
         alert(
           "Failed to fetch patient details: " +
-            (result.error || "Unknown error"),
+          (result.error || "Unknown error"),
         );
         return;
       }
@@ -833,6 +834,15 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                 visual_acuity: null,
               };
             }
+          }
+
+          // Dynamic fields
+          if (
+            (!merged.dynamic_fields || merged.dynamic_fields.length === 0) &&
+            inv.dynamic_fields &&
+            inv.dynamic_fields.length > 0
+          ) {
+            merged.dynamic_fields = inv.dynamic_fields;
           }
 
           if (merged.vitals && Object.keys(merged.vitals).length > 0) {
@@ -976,19 +986,23 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
 
   const getHighLowStatus = (value, reference) => {
     if (!value || !reference) return null;
-    const numValue = Number.parseFloat(value);
+    const cleanVal = String(value).trim().replace(/[^0-9.-]/g, "");
+    const numValue = Number.parseFloat(cleanVal);
     if (isNaN(numValue)) return null;
-    if (reference.includes("-")) {
-      const [min, max] = reference.split("-").map((v) => Number.parseFloat(v));
+    const ref = String(reference).trim();
+    if (ref.includes("-") || ref.toLowerCase().includes(" to ")) {
+      const parts = ref.includes("-") ? ref.split("-") : ref.toLowerCase().split(" to ");
+      const min = Number.parseFloat(parts[0]);
+      const max = Number.parseFloat(parts[1]);
       if (!isNaN(min) && !isNaN(max)) {
         if (numValue < min) return "L";
         if (numValue > max) return "H";
       }
-    } else if (reference.includes("<")) {
-      const max = Number.parseFloat(reference.replace("<", ""));
+    } else if (ref.includes("<")) {
+      const max = Number.parseFloat(ref.replace(/[^0-9.]/g, ""));
       if (!isNaN(max) && numValue > max) return "H";
-    } else if (reference.includes(">")) {
-      const min = Number.parseFloat(reference.replace(">", ""));
+    } else if (ref.includes(">")) {
+      const min = Number.parseFloat(ref.replace(/[^0-9.]/g, ""));
       if (!isNaN(min) && numValue < min) return "L";
     }
     return null;
@@ -1523,28 +1537,28 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     )}
                   </>
                 ) : /* Image file — construct proper data URI */
-                rawData ? (
-                  <FileImage
-                    src={
-                      rawData.startsWith("data:")
-                        ? rawData
-                        : `data:${imgMime};base64,${rawData}`
-                    }
-                    alt={`${label || entry.label} file ${fileIdx + 1}`}
-                    onError={(e) => {
-                      console.error("Image load error for", fileKey, e);
-                      e.target.style.display = "none";
-                      e.target.insertAdjacentHTML(
-                        "afterend",
-                        "<div style='color:#c53030;font-size:13px'>⚠️ Image failed to load</div>",
-                      );
-                    }}
-                  />
-                ) : (
-                  <div style={{ color: "#888", fontSize: 13 }}>
-                    No file data available
-                  </div>
-                )}
+                  rawData ? (
+                    <FileImage
+                      src={
+                        rawData.startsWith("data:")
+                          ? rawData
+                          : `data:${imgMime};base64,${rawData}`
+                      }
+                      alt={`${label || entry.label} file ${fileIdx + 1}`}
+                      onError={(e) => {
+                        console.error("Image load error for", fileKey, e);
+                        e.target.style.display = "none";
+                        e.target.insertAdjacentHTML(
+                          "afterend",
+                          "<div style='color:#c53030;font-size:13px'>⚠️ Image failed to load</div>",
+                        );
+                      }}
+                    />
+                  ) : (
+                    <div style={{ color: "#888", fontSize: 13 }}>
+                      No file data available
+                    </div>
+                  )}
               </div>
             );
           })}
@@ -1689,32 +1703,233 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                     );
                   })()}
                 {/* Dynamic Fields */}
-                {patientDetails.dynamic_fields?.length > 0 &&
-                  patientDetails.dynamic_fields.map((field, idx) => (
-                    <ReportSection key={`dynamic-${idx}`}>
-                      <SectionTitle>{field.field_name}</SectionTitle>
-                      <DynamicFieldTable>
-                        <thead>
-                          <tr>
-                            <DynamicFieldTh>Parameter</DynamicFieldTh>
-                            <DynamicFieldTh>Finding</DynamicFieldTh>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {field.field_values.map((fv, fvIdx) => (
-                            <tr key={fvIdx}>
-                              <DynamicFieldTd
-                                style={{ fontWeight: 600, color: "#555" }}
-                              >
-                                {fv.key}
-                              </DynamicFieldTd>
-                              <DynamicFieldTd>{fv.value}</DynamicFieldTd>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </DynamicFieldTable>
-                    </ReportSection>
-                  ))}
+                {/* Dynamic Fields */}
+                {(() => {
+                  if (!patientDetails.dynamic_fields || patientDetails.dynamic_fields.length === 0) return null;
+                  const isFemale = (patientDetails.gender || "").toLowerCase().startsWith("f");
+                  const patientAge = parseFloat(String(patientDetails.age || "").replace(/[^0-9.]/g, ""));
+                  const isAgeForMuscle = !isNaN(patientAge) && patientAge >= 18 && patientAge < 40;
+                  const muscleRange = isAgeForMuscle ? (isFemale ? "24 - 30%" : "33 - 39%") : "";
+                  const fatRange = isFemale ? "20% - 30%" : "10% - 20%";
+
+                  const getMuscleStatusBadge = (num) => {
+                    if (!isAgeForMuscle || num === null || num === undefined || isNaN(num)) return null;
+                    const n = parseFloat(num);
+                    if (isFemale) {
+                      if (n < 24) return <StatusBadgeHl $low> ▼ L</StatusBadgeHl>;
+                      if (n <= 30) return null;
+                      return <StatusBadgeHl $high> ▲ H</StatusBadgeHl>;
+                    } else {
+                      if (n < 33) return <StatusBadgeHl $low> ▼ L</StatusBadgeHl>;
+                      if (n <= 39) return null;
+                      return <StatusBadgeHl $high> ▲ H</StatusBadgeHl>;
+                    }
+                  };
+
+                  const getFatStatusBadge = (num) => {
+                    if (num === null || num === undefined || isNaN(num)) return null;
+                    const n = parseFloat(num);
+                    if (isFemale) {
+                      if (n < 20) return <StatusBadgeHl $low> ▼ L</StatusBadgeHl>;
+                      if (n <= 30) return null;
+                      if (n <= 35) return <StatusBadgeHl $high> ▲ H</StatusBadgeHl>;
+                      return <StatusBadgeHl $high style={{ fontWeight: 700, color: "#991b1b" }}> ▲▲ VH</StatusBadgeHl>;
+                    } else {
+                      if (n < 10) return <StatusBadgeHl $low> ▼ L</StatusBadgeHl>;
+                      if (n <= 20) return null;
+                      if (n <= 25) return <StatusBadgeHl $high> ▲ H</StatusBadgeHl>;
+                      return <StatusBadgeHl $high style={{ fontWeight: 700, color: "#991b1b" }}> ▲▲ VH</StatusBadgeHl>;
+                    }
+                  };
+
+                  let trunkMuscle = null, trunkFat = null;
+                  let armMuscle = null, armFat = null;
+                  let legMuscle = null, legFat = null;
+                  let waistValStr = "", hipValStr = "";
+                  let waistNum = null, hipNum = null;
+
+                  patientDetails.dynamic_fields.forEach((df) => {
+                    const name = (df.field_name || "").toLowerCase();
+                    const id = (df.field_id || "").toUpperCase();
+                    (df.field_values || []).forEach((fv) => {
+                      const k = (fv.key || "").trim().toLowerCase();
+                      const vStr = String(fv.value || "").trim();
+                      const v = parseFloat(vStr.replace(/[^0-9.]/g, ""));
+
+                      if (name.includes("trunk") || id === "CHCDY005") {
+                        if (k.includes("muscle") && !isNaN(v)) trunkMuscle = v;
+                        if (k.includes("fat") && !isNaN(v)) trunkFat = v;
+                      } else if (name.includes("arm") || id === "CHCDY006") {
+                        if (k.includes("muscle") && !isNaN(v)) armMuscle = v;
+                        if (k.includes("fat") && !isNaN(v)) armFat = v;
+                      } else if (name.includes("leg") || id === "CHCDY007") {
+                        if (k.includes("muscle") && !isNaN(v)) legMuscle = v;
+                        if (k.includes("fat") && !isNaN(v)) legFat = v;
+                      }
+
+                      if (k.includes("waist")) {
+                        waistValStr = vStr;
+                        if (!isNaN(v)) waistNum = v;
+                      } else if (k.includes("hip")) {
+                        hipValStr = vStr;
+                        if (!isNaN(v)) hipNum = v;
+                      }
+                    });
+                  });
+
+                  const hasMuscleVals = trunkMuscle !== null && armMuscle !== null && legMuscle !== null;
+                  const muscleAvg = hasMuscleVals ? ((trunkMuscle + armMuscle + legMuscle) / 3).toFixed(1) : null;
+
+                  const hasFatVals = trunkFat !== null && armFat !== null && legFat !== null;
+                  const fatAvg = hasFatVals ? ((trunkFat + armFat + legFat) / 3).toFixed(1) : null;
+
+                  const waistRange = isFemale ? "<80 cm" : "<90 cm";
+                  const whrRange = isFemale ? "<0.80" : "<0.90";
+
+                  let whrVal = null;
+                  let whrStatusBadge = null;
+                  if (waistNum !== null && hipNum !== null && hipNum > 0) {
+                    whrVal = (waistNum / hipNum).toFixed(2);
+                    const whrNum = parseFloat(whrVal);
+                    if (isFemale) {
+                      if (whrNum >= 0.80) whrStatusBadge = <StatusBadgeHl $high> ▲ H</StatusBadgeHl>;
+                      else if (whrNum < 0.70) whrStatusBadge = <StatusBadgeHl $low> ▼ L</StatusBadgeHl>;
+                    } else {
+                      if (whrNum >= 0.90) whrStatusBadge = <StatusBadgeHl $high> ▲ H</StatusBadgeHl>;
+                      else if (whrNum < 0.80) whrStatusBadge = <StatusBadgeHl $low> ▼ L</StatusBadgeHl>;
+                    }
+                  }
+
+                  const waistStatusBadge = waistNum !== null
+                    ? (isFemale
+                        ? (waistNum >= 80 ? <StatusBadgeHl $high> ▲ H</StatusBadgeHl> : null)
+                        : (waistNum >= 90 ? <StatusBadgeHl $high> ▲ H</StatusBadgeHl> : null))
+                    : null;
+
+                  return (
+                    <>
+                      {patientDetails.dynamic_fields.map((field, idx) => {
+                        const validValues = (field.field_values || []).filter(
+                          (fv) => fv && fv.value !== undefined && fv.value !== null && String(fv.value).trim() !== "",
+                        );
+                        if (validValues.length === 0) return null;
+
+                        const isCircumference =
+                          (field.field_id || "").toUpperCase() === "CHCDY008" ||
+                          validValues.some((fv) => (fv.key || "").toLowerCase().includes("waist") || (fv.key || "").toLowerCase().includes("hip"));
+
+                        if (isCircumference) {
+                          if (!waistValStr && !whrVal) return null;
+                          const title = (field.field_name || "Circumference").trim();
+                          return (
+                            <ReportSection key={`dynamic-${field.field_id || idx}`}>
+                              {title && <SectionTitle>{title} :</SectionTitle>}
+                              <DynamicFieldTable>
+                                <thead>
+                                  <tr>
+                                    <DynamicFieldTh>Parameter</DynamicFieldTh>
+                                    <DynamicFieldTh>Finding</DynamicFieldTh>
+                                    <DynamicFieldTh>Reference Value</DynamicFieldTh>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {waistValStr && (
+                                    <tr>
+                                      <DynamicFieldTd style={{ fontWeight: 600, color: "#555" }}>Waist Circumference</DynamicFieldTd>
+                                      <DynamicFieldTd>
+                                        <span>{waistValStr.toLowerCase().includes("cm") ? waistValStr : `${waistValStr} cm`}</span>
+                                        {waistStatusBadge}
+                                      </DynamicFieldTd>
+                                      <DynamicFieldTd>{waistRange}</DynamicFieldTd>
+                                    </tr>
+                                  )}
+                                  {whrVal !== null && (
+                                    <tr>
+                                      <DynamicFieldTd style={{ fontWeight: 600, color: "#555" }}>Waist Hip Ratio</DynamicFieldTd>
+                                      <DynamicFieldTd>
+                                        <span>{whrVal}</span>
+                                        {whrStatusBadge}
+                                      </DynamicFieldTd>
+                                      <DynamicFieldTd>{whrRange}</DynamicFieldTd>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </DynamicFieldTable>
+                            </ReportSection>
+                          );
+                        }
+
+                        const title = field.field_name?.trim() || "";
+                        const isLeg = (field.field_id || "").toUpperCase() === "CHCDY007" || title.toLowerCase().includes("leg");
+
+                        return (
+                          <div key={`dynamic-${field.field_id || idx}`}>
+                            <ReportSection>
+                              {title && <SectionTitle>{title} :</SectionTitle>}
+                              <DynamicFieldTable>
+                                <thead>
+                                  <tr>
+                                    <DynamicFieldTh>Parameter</DynamicFieldTh>
+                                    <DynamicFieldTh>Finding</DynamicFieldTh>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {validValues.map((fv, fvIdx) => (
+                                    <tr key={fvIdx}>
+                                      <DynamicFieldTd style={{ fontWeight: 600, color: "#555" }}>{fv.key}</DynamicFieldTd>
+                                      <DynamicFieldTd>{fv.value}</DynamicFieldTd>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </DynamicFieldTable>
+                            </ReportSection>
+
+                            {isLeg && (muscleAvg !== null || fatAvg !== null) && (
+                              <ReportSection>
+                                <SectionTitle>Average :</SectionTitle>
+                                <DynamicFieldTable>
+                                  <thead>
+                                    <tr>
+                                      <DynamicFieldTh>Parameter</DynamicFieldTh>
+                                      <DynamicFieldTh>Finding</DynamicFieldTh>
+                                      <DynamicFieldTh>Reference Value</DynamicFieldTh>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {muscleAvg !== null && (
+                                      <tr>
+                                        <DynamicFieldTd style={{ fontWeight: 600, color: "#555" }}>Muscle Average</DynamicFieldTd>
+                                        <DynamicFieldTd>
+                                          <span>{muscleAvg}%</span>
+                                          {getMuscleStatusBadge(muscleAvg)}
+                                        </DynamicFieldTd>
+                                        <DynamicFieldTd>{muscleRange}</DynamicFieldTd>
+                                      </tr>
+                                    )}
+                                    {fatAvg !== null && (
+                                      <tr>
+                                        <DynamicFieldTd style={{ fontWeight: 600, color: "#555" }}>Fat Average</DynamicFieldTd>
+                                        <DynamicFieldTd>
+                                          <span>{fatAvg}%</span>
+                                          {getFatStatusBadge(fatAvg)}
+                                        </DynamicFieldTd>
+                                        <DynamicFieldTd style={{ lineHeight: "1.5" }}>
+                                          <div>Normal: {isFemale ? "20-30%" : "10-20%"}</div>
+                                          <div>High: {isFemale ? "30-35%" : "20-25%"}</div>
+                                          <div>Very High: {isFemale ? "> 35%" : "> 25%"}</div>
+                                        </DynamicFieldTd>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </DynamicFieldTable>
+                              </ReportSection>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
 
                 {/* Medical History */}
                 {patientDetails.medical_history && (
@@ -1730,7 +1945,7 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                 {/* Miscellaneous Investigations */}
                 {patientDetails.investigation_notes &&
                   Object.keys(patientDetails.investigation_notes).length >
-                    0 && (
+                  0 && (
                     <ReportSection>
                       <SectionTitle>Miscellaneous Investigations</SectionTitle>
                       {patientDetails.investigation_notes.ecg_notes && (
@@ -1819,32 +2034,32 @@ const CHCApproval = ({ patient, onClose, onApprovalSaved }) => {
                      and legacy investigation_file_ids (fallback) */}
                 {(Object.keys(chcInvestigationFiles).length > 0 ||
                   Object.keys(investigationFiles).length > 0) && (
-                  <ReportSection>
-                    <SectionTitle>Investigation Reports & Files</SectionTitle>
+                    <ReportSection>
+                      <SectionTitle>Investigation Reports & Files</SectionTitle>
 
-                    {/* New: render each CHC test's files grouped by test */}
-                    {Object.keys(chcInvestigationFiles).length > 0 ? (
-                      Object.entries(chcInvestigationFiles).map(
-                        ([testId, entry]) =>
-                          renderChcTestFiles(testId, entry.label),
-                      )
-                    ) : (
-                      /* Fallback: old-style single-file-per-key */
-                      <>
-                        {renderFilePreview("xrayfilm_file", "X-Ray Film")}
-                        {renderFilePreview("ecg_file", "ECG Report")}
-                        {renderFilePreview(
-                          "pft_file",
-                          "Pulmonary Function Test (PFT)",
-                        )}
-                        {renderFilePreview(
-                          "audiometric_file",
-                          "Audiometry Report",
-                        )}
-                      </>
-                    )}
-                  </ReportSection>
-                )}
+                      {/* New: render each CHC test's files grouped by test */}
+                      {Object.keys(chcInvestigationFiles).length > 0 ? (
+                        Object.entries(chcInvestigationFiles).map(
+                          ([testId, entry]) =>
+                            renderChcTestFiles(testId, entry.label),
+                        )
+                      ) : (
+                        /* Fallback: old-style single-file-per-key */
+                        <>
+                          {renderFilePreview("xrayfilm_file", "X-Ray Film")}
+                          {renderFilePreview("ecg_file", "ECG Report")}
+                          {renderFilePreview(
+                            "pft_file",
+                            "Pulmonary Function Test (PFT)",
+                          )}
+                          {renderFilePreview(
+                            "audiometric_file",
+                            "Audiometry Report",
+                          )}
+                        </>
+                      )}
+                    </ReportSection>
+                  )}
 
                 {/* Ophthalmology — handles both CHC (distance/nearVision/colourVision keys)
                      and legacy (visual_acuity nested) structures */}
