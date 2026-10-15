@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import styled, {
   createGlobalStyle,
@@ -19,6 +19,7 @@ import {
   Calendar,
   Tag,
   Activity,
+  Keyboard,
 } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
@@ -456,6 +457,48 @@ const ModalHeader = styled.div`
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
+  flex-wrap: wrap;
+  gap: 0.75rem;
+`;
+
+const ShortcutHintBar = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #f5f3ff;
+  border: 1px solid #c7d2fe;
+  padding: 0.35rem 0.75rem;
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  font-size: 0.8125rem;
+  color: #3730a3;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
+const ShortcutBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+`;
+
+const Kbd = styled.kbd`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.45rem;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #1e1b4b;
+  background-color: #ffffff;
+  border: 1px solid #a5b4fc;
+  border-radius: ${(props) => props.theme.borderRadius.sm};
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.12);
 `;
 
 const ModalTitle = styled.h2`
@@ -715,8 +758,22 @@ const SampleStatusUpdate = () => {
   const [outsourceLabs, setOutsourceLabs] = useState([]);
   const [selectedOutsourceLab, setSelectedOutsourceLab] = useState({});
   const [selectedTests, setSelectedTests] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
   const storedName = localStorage.getItem("name");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  // Refs for keyboard shortcuts
+  const selectAllTestsRef = useRef();
+  const updateAllTestsRef = useRef();
+  const isSavingRef = useRef(false);
+
+  selectAllTestsRef.current = () => {
+    if (selectedPatient?.barcode) {
+      selectAllTests(selectedPatient.barcode);
+    }
+  };
+  updateAllTestsRef.current = () => updateAllTests();
+  isSavingRef.current = isSaving;
 
   // Add this inside the component, before the useEffects
   const fetchSampleCollected = async () => {
@@ -785,6 +842,64 @@ const SampleStatusUpdate = () => {
   useEffect(() => {
     fetchSampleCollected();
   }, [fromDate, toDate]);
+
+  // Keyboard shortcut listener for Modal (Shift+A to select all, Enter to save, Esc to close)
+  useEffect(() => {
+    if (!selectedPatient) return;
+
+    const handleKeyDown = (e) => {
+      // Shift + A to select/deselect all test checkboxes
+      if (
+        e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        (e.key === "A" || e.key === "a" || e.code === "KeyA")
+      ) {
+        e.preventDefault();
+        if (!isSavingRef.current) {
+          selectAllTestsRef.current?.();
+        }
+        return;
+      }
+
+      // Enter to update all tests
+      if (
+        e.key === "Enter" &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey
+      ) {
+        if (
+          e.target &&
+          e.target.closest &&
+          e.target.closest("[data-modal-close='true']")
+        ) {
+          return;
+        }
+        e.preventDefault();
+        if (!isSavingRef.current) {
+          updateAllTestsRef.current?.();
+        }
+        return;
+      }
+
+      // Esc to close modal
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (!isSavingRef.current) {
+          closeModal();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedPatient]);
 
   // ✅ All handlers use barcode as key (same as HMS)
   const handleStatusChange = (barcode, testIndex, newStatus) => {
@@ -863,6 +978,9 @@ const SampleStatusUpdate = () => {
   };
 
   const updateAllTests = async () => {
+    if (isSavingRef.current) return;
+    setIsSaving(true);
+    isSavingRef.current = true;
     const barcode = selectedPatient.barcode;
     const testsToUpdate = [];
     let hasErrors = false;
@@ -968,6 +1086,9 @@ const SampleStatusUpdate = () => {
       setError("An unexpected error occurred while updating sample status");
       setTimeout(() => setError(null), 3000);
       console.error("Unexpected error:", err);
+    } finally {
+      setIsSaving(false);
+      isSavingRef.current = false;
     }
   };
 
@@ -1215,9 +1336,41 @@ const SampleStatusUpdate = () => {
                   <FileText size={20} />
                   Sample Details
                 </ModalTitle>
-                <CloseButton onClick={closeModal}>
-                  <X size={20} />
-                </CloseButton>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <ShortcutHintBar>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Keyboard size={15} /> Shortcuts:
+                    </span>
+                    <ShortcutBadge>
+                      <Kbd>Shift + A</Kbd> Select All
+                    </ShortcutBadge>
+                    <span style={{ color: "#a5b4fc" }}>•</span>
+                    <ShortcutBadge>
+                      <Kbd>Enter</Kbd> Save
+                    </ShortcutBadge>
+                  </ShortcutHintBar>
+                  <CloseButton
+                    onClick={closeModal}
+                    data-modal-close="true"
+                    title="Close modal (Esc)"
+                  >
+                    <X size={20} />
+                  </CloseButton>
+                </div>
               </ModalHeader>
 
               {successMessage && (
@@ -1310,7 +1463,7 @@ const SampleStatusUpdate = () => {
                       <Th>Sample Collector</Th>
                       <Th>Outsource Lab</Th>
                       <Th>Reason for Rejection</Th>
-                      <Th>
+                      <Th title="Select all (Shift + A)">
                         {/* ✅ selectAllTests uses barcode */}
                         <Checkbox
                           checked={
@@ -1443,9 +1596,25 @@ const SampleStatusUpdate = () => {
                   justifyContent: "flex-end",
                 }}
               >
-                <Button success onClick={updateAllTests}>
+                <Button
+                  success
+                  onClick={updateAllTests}
+                  disabled={isSaving}
+                  title="Update All Tests (Enter)"
+                >
                   <CheckCircle size={16} />
-                  Update All Tests
+                  {isSaving ? "Updating..." : "Update All Tests"}
+                  <Kbd
+                    style={{
+                      marginLeft: "0.35rem",
+                      background: "rgba(255, 255, 255, 0.2)",
+                      color: "white",
+                      borderColor: "rgba(255, 255, 255, 0.35)",
+                      boxShadow: "none",
+                    }}
+                  >
+                    Enter
+                  </Kbd>
                 </Button>
               </div>
             </ModalContent>

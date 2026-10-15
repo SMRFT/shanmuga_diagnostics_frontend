@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
 import apiRequest from "../Auth/apiRequest";
@@ -23,6 +23,7 @@ import {
   Activity,
   AlertCircle,
   Tag,
+  Keyboard,
 } from "lucide-react";
 
 const GlobalStyle = createGlobalStyle`
@@ -606,6 +607,46 @@ const ModalHeader = styled.div`
   }
 `;
 
+const ShortcutHintBar = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #f5f3ff;
+  border: 1px solid #c7d2fe;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #3730a3;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
+const ShortcutBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+`;
+
+const Kbd = styled.kbd`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.45rem;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #1e1b4b;
+  background-color: #ffffff;
+  border: 1px solid #a5b4fc;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.12);
+`;
+
 const ModalBody = styled.div`
   padding: 2rem;
 
@@ -850,6 +891,74 @@ const CorporateBatchApproval = () => {
   const storedName = localStorage.getItem("name");
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  // Refs for keyboard shortcuts
+  const handleSelectAllReceivedRef = useRef();
+  const bulkUpdateAllTestsRef = useRef();
+  const bulkUpdateInProgressRef = useRef(bulkUpdateInProgress);
+
+  handleSelectAllReceivedRef.current = () => handleSelectAllReceived();
+  bulkUpdateAllTestsRef.current = () => bulkUpdateAllTests();
+  bulkUpdateInProgressRef.current = bulkUpdateInProgress;
+
+  // Keyboard shortcut listener for Sample Details Modal (Shift+A to select all, Enter to save, Esc to close)
+  useEffect(() => {
+    if (!showSampleDetails || !selectedBatch) return;
+
+    const handleKeyDown = (e) => {
+      // Shift + A to Mark All as Received / toggle
+      if (
+        e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        (e.key === "A" || e.key === "a" || e.code === "KeyA")
+      ) {
+        e.preventDefault();
+        if (!bulkUpdateInProgressRef.current) {
+          handleSelectAllReceivedRef.current?.();
+        }
+        return;
+      }
+
+      // Enter to update all selected tests
+      if (
+        e.key === "Enter" &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey
+      ) {
+        if (
+          e.target &&
+          e.target.closest &&
+          (e.target.closest("[data-modal-close='true']") ||
+            e.target.tagName === "TEXTAREA")
+        ) {
+          return;
+        }
+        e.preventDefault();
+        if (!bulkUpdateInProgressRef.current) {
+          bulkUpdateAllTestsRef.current?.();
+        }
+        return;
+      }
+
+      // Esc to close modal if not locked
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (!bulkUpdateInProgressRef.current && !selectAllReceived) {
+          closeModal();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showSampleDetails, selectedBatch, selectAllReceived]);
 
   // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -1788,7 +1897,35 @@ const CorporateBatchApproval = () => {
             <Modal>
               <ModalContent>
                 <ModalHeader>
-                  <h2>Sample Details - Batch #{selectedBatch.batch_number}</h2>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <h2>Sample Details - Batch #{selectedBatch.batch_number}</h2>
+                    <ShortcutHintBar>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.3rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Keyboard size={15} /> Shortcuts:
+                      </span>
+                      <ShortcutBadge>
+                        <Kbd>Shift + A</Kbd> Select All
+                      </ShortcutBadge>
+                      <span style={{ color: "#a5b4fc" }}>•</span>
+                      <ShortcutBadge>
+                        <Kbd>Enter</Kbd> Save
+                      </ShortcutBadge>
+                    </ShortcutHintBar>
+                  </div>
 
                   {/* Lock hint shown when modal cannot be closed */}
                   {isModalLocked && (
@@ -1803,6 +1940,7 @@ const CorporateBatchApproval = () => {
                   <button
                     onClick={closeModal}
                     disabled={isModalLocked}
+                    data-modal-close="true"
                     title={
                       isModalLocked
                         ? "Complete or cancel the update before closing"
@@ -1867,6 +2005,7 @@ const CorporateBatchApproval = () => {
                               color: "#374151",
                               cursor: "pointer",
                             }}
+                            title="Mark all as received (Shift + A)"
                           >
                             <input
                               type="checkbox"
@@ -1889,11 +2028,23 @@ const CorporateBatchApproval = () => {
                               bulkUpdateInProgress ||
                               Object.keys(statusChanges).length === 0
                             }
+                            title="Update all selected (Enter)"
                           >
                             <Activity size={16} />
                             {bulkUpdateInProgress
                               ? "Updating..."
                               : "Update All Selected"}
+                            <Kbd
+                              style={{
+                                marginLeft: "0.35rem",
+                                background: "rgba(255, 255, 255, 0.2)",
+                                color: "white",
+                                borderColor: "rgba(255, 255, 255, 0.35)",
+                                boxShadow: "none",
+                              }}
+                            >
+                              Enter
+                            </Kbd>
                           </ActionButton>
                         </div>
                       </div>
