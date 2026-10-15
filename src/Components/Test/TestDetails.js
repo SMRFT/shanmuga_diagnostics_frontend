@@ -1182,7 +1182,20 @@ function TestDetails() {
             parametersBySubtitle: {},
             specimen_options: test.specimen_options || [],
             comment_options: test.comment_options || [],
+            value_option: test.value_option || [],
+            is_value_edit: Boolean(test.is_value_edit),
           };
+        } else if (test.is_value_edit) {
+          groupedTests[tName].is_value_edit = true;
+        }
+
+        if (
+          test.value_option &&
+          test.value_option.length > 0 &&
+          (!groupedTests[tName].value_option ||
+            groupedTests[tName].value_option.length === 0)
+        ) {
+          groupedTests[tName].value_option = test.value_option;
         }
 
         if (
@@ -1209,7 +1222,10 @@ function TestDetails() {
             high: test.high || "",
             method: test.method,
             value: test.test_value,
-            value_option: test.value_option || [],
+            value_option:
+              test.value_option && test.value_option.length > 0
+                ? test.value_option
+                : groupedTests[tName].value_option || [],
             comment_options: test.comment_options || [],
             sub_title: subtitle,
             processing_status: test.processing_status,
@@ -1390,8 +1406,95 @@ function TestDetails() {
   }, []);
   // ── Handlers ──────────────────────────────────────────────────────────────
 
+  const getMachineTestValue = (param, uniqueKey) => {
+    const extractVal = (val) => {
+      if (!val || typeof val !== "string") return "";
+      const trimmed = val.trim();
+      if (!trimmed) return "";
+      const match = trimmed.match(/\(([^)]+)\)/);
+      if (match && match[1].trim()) return match[1].trim();
+      return trimmed;
+    };
+
+    // 1. Initial values from load (API test value)
+    const initVal = initialValues[uniqueKey];
+    if (initVal) {
+      const extracted = extractVal(initVal);
+      if (extracted) return extracted;
+    }
+
+    // 2. Direct param or test object value from API
+    if (param?.value) {
+      const extracted = extractVal(param.value);
+      if (extracted) return extracted;
+    }
+
+    // 3. Current value state (if it has parenthesized value or is numeric)
+    const currVal = values[uniqueKey];
+    if (currVal && typeof currVal === "string") {
+      const match = currVal.match(/\(([^)]+)\)/);
+      if (match && match[1].trim()) return match[1].trim();
+      if (/^-?\d+(\.\d+)?$/.test(currVal.trim())) {
+        return currVal.trim();
+      }
+    }
+
+    return "";
+  };
+
+  const mergeOptionWithValue = (option, machineVal) => {
+    if (!option) return "";
+    if (!machineVal || !String(machineVal).trim()) {
+      return option.replace(/\s*\(\s*\)/g, "").trim();
+    }
+    const cleanVal = String(machineVal).trim();
+
+    // 1. If option explicitly has empty parentheses like "Reactive ()"
+    if (/\(\s*\)/.test(option)) {
+      return option.replace(/\(\s*\)/, `(${cleanVal})`).trim();
+    }
+
+    // 2. If option already has parentheses with content like "Present (+)" or "Reactive (0.010)"
+    if (/\([^)]+\)/.test(option)) {
+      return option;
+    }
+
+    // 3. If option is purely numeric (e.g. "6.0", "7.5", "1.020"), do not append
+    if (/^-?\d+(\.\d+)?$/.test(option.trim())) {
+      return option.trim();
+    }
+
+    // 4. If machine value is identical to option (e.g. option="Nil", machineVal="Nil"), don't make it "Nil (Nil)"
+    if (option.trim().toLowerCase() === cleanVal.toLowerCase()) {
+      return option.trim();
+    }
+
+    // 5. Qualitative options like "Reactive", "Non - Reactive", "Positive", "Negative"
+    return `${option.trim()} (${cleanVal})`;
+  };
+
   const handleValueChange = (testname, event) => {
-    const newVal = event.target.value;
+    let newVal = event.target.value;
+    const currentTest = testDetails.find((t) => t.testname === testname);
+
+    if (currentTest?.is_value_edit) {
+      const machineVal = getMachineTestValue(null, testname);
+      if (machineVal) {
+        if (/\(\s*\)/.test(newVal)) {
+          newVal = newVal.replace(/\(\s*\)/, `(${machineVal})`).trim();
+        } else if (
+          currentTest?.value_option &&
+          currentTest.value_option.some(
+            (opt) =>
+              opt.replace(/\s*\(\s*\)/g, "").trim().toLowerCase() ===
+              newVal.trim().toLowerCase(),
+          )
+        ) {
+          newVal = mergeOptionWithValue(newVal, machineVal);
+        }
+      }
+    }
+
     setValues((prev) => ({ ...prev, [testname]: newVal }));
 
     // Debounced critical check — fires only after typing stops for 600 ms.
@@ -1440,15 +1543,36 @@ function TestDetails() {
   };
 
   const handleParameterValueChange = (testname, paramName, event) => {
-    const { value } = event.target;
+    let { value } = event.target;
     const uniqueKey = `${testname}_${paramName}`;
 
-    // Normalize "neg" → "Negative" on user input for test_id 429
     const currentTestForNorm = testDetails.find((t) => t.testname === testname);
-    const normalizedValue =
-      currentTestForNorm?.test_id === 429
-        ? normalizeDisplayValue(value)
-        : value;
+    const param = Object.values(currentTestForNorm?.parametersBySubtitle || {})
+      .flat()
+      .find((p) => (p.name || p.test_name) === paramName);
+
+    if (currentTestForNorm?.is_value_edit) {
+      const machineVal = getMachineTestValue(param, uniqueKey);
+      if (machineVal) {
+        if (/\(\s*\)/.test(value)) {
+          value = value.replace(/\(\s*\)/, `(${machineVal})`).trim();
+        } else if (
+          param?.value_option &&
+          param.value_option.some(
+            (opt) =>
+              opt.replace(/\s*\(\s*\)/g, "").trim().toLowerCase() ===
+              value.trim().toLowerCase(),
+          )
+        ) {
+          value = mergeOptionWithValue(value, machineVal);
+        }
+      }
+    }
+
+    // Normalize "neg" → "Negative" on user input for is_value_edit
+    const normalizedValue = currentTestForNorm?.is_value_edit
+      ? normalizeDisplayValue(value)
+      : value;
 
     setValues((prevValues) => {
       const newValues = { ...prevValues, [uniqueKey]: normalizedValue };
@@ -1850,9 +1974,9 @@ function TestDetails() {
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
-  const isParamDisabled = (param, uniqueKey, testId) => {
-    // test_id 429 — all params always editable, machine value is just pre-filled
-    if (testId === 429) return false;
+  const isParamDisabled = (param, uniqueKey, testId, isValueEdit) => {
+    // is_value_edit: true — all params always editable, machine value is just pre-filled
+    if (isValueEdit) return false;
     if (ALL_CALCULATED_FIELDS.includes(param.test_code)) return false;
     if (ALWAYS_EDITABLE_FIELDS.includes(param.test_code)) return false;
     return !!(
@@ -2166,10 +2290,22 @@ function TestDetails() {
                       <FormGroup>
                         <Label>
                           Value{" "}
-                          {(!initialValues[test.testname] ||
+                          {(test.is_value_edit ||
+                            !initialValues[test.testname] ||
                             initialValues[test.testname].trim() === "") && (
                               <span style={{ color: "red" }}>*</span>
                             )}
+                          {test.is_value_edit && (
+                            <span
+                              style={{
+                                color: "var(--secondary)",
+                                fontSize: "0.75rem",
+                                marginLeft: "0.4rem",
+                              }}
+                            >
+                              (editable)
+                            </span>
+                          )}
                           {(() => {
                             const flag = getHLFlag(
                               values[test.testname],
@@ -2190,12 +2326,17 @@ function TestDetails() {
                               onChange={(e) =>
                                 handleValueChange(test.testname, e)
                               }
+                              onClick={(e) => e.target.select()}
                               placeholder="Select or type value"
                             />
                             <datalist id={`options-${test.testname}`}>
-                              {test.value_option.map((option, optIndex) => (
-                                <option key={optIndex} value={option} />
-                              ))}
+                              {test.value_option.map((option, optIndex) => {
+                                const merged = mergeOptionWithValue(
+                                  option,
+                                  getMachineTestValue(null, test.testname),
+                                );
+                                return <option key={optIndex} value={merged} />;
+                              })}
                             </datalist>
                           </div>
                         ) : (
@@ -2204,20 +2345,23 @@ function TestDetails() {
                             type="text"
                             value={values[test.testname] || ""}
                             onChange={
+                              test.is_value_edit ||
                               !initialValues[test.testname] ||
-                                initialValues[test.testname].trim() === ""
+                              initialValues[test.testname].trim() === ""
                                 ? (e) => handleValueChange(test.testname, e)
                                 : undefined
                             }
                             disabled={
+                              !test.is_value_edit &&
                               !!(
                                 initialValues[test.testname] &&
                                 initialValues[test.testname].trim() !== ""
                               )
                             }
                             placeholder={
+                              test.is_value_edit ||
                               !initialValues[test.testname] ||
-                                initialValues[test.testname].trim() === ""
+                              initialValues[test.testname].trim() === ""
                                 ? "Enter value"
                                 : "Value available"
                             }
@@ -2401,11 +2545,13 @@ function TestDetails() {
                                 param,
                                 uniqueKey,
                                 test.test_id,
+                                test.is_value_edit,
                               );
                               const isAlwaysEditable =
                                 ALWAYS_EDITABLE_FIELDS.includes(
                                   param.test_code,
-                                ) || test.test_id === 429;
+                                ) ||
+                                Boolean(test.is_value_edit);
 
                               // Critical reads from criticalKeys (debounced) not values (live)
                               const critical = !!criticalKeys[uniqueKey];
@@ -2491,6 +2637,10 @@ function TestDetails() {
                                         }
 
                                         if (isSingleSelect) {
+                                          const machineVal = getMachineTestValue(
+                                            param,
+                                            uniqueKey,
+                                          );
                                           return (
                                             <div
                                               style={{ position: "relative" }}
@@ -2507,6 +2657,7 @@ function TestDetails() {
                                                     e,
                                                   )
                                                 }
+                                                onClick={(e) => e.target.select()}
                                                 disabled={disabled}
                                                 placeholder="Select or type value"
                                                 style={
@@ -2524,12 +2675,19 @@ function TestDetails() {
                                                 id={`options-${uniqueKey}`}
                                               >
                                                 {param.value_option.map(
-                                                  (option, optIndex) => (
-                                                    <option
-                                                      key={optIndex}
-                                                      value={option}
-                                                    />
-                                                  ),
+                                                  (option, optIndex) => {
+                                                    const merged =
+                                                      mergeOptionWithValue(
+                                                        option,
+                                                        machineVal,
+                                                      );
+                                                    return (
+                                                      <option
+                                                        key={optIndex}
+                                                        value={merged}
+                                                      />
+                                                    );
+                                                  },
                                                 )}
                                               </datalist>
                                             </div>

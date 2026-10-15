@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import styled, {
   createGlobalStyle,
@@ -13,6 +13,7 @@ import {
   X,
   AlertCircle,
   CheckCircle,
+  Keyboard,
 } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
@@ -432,11 +433,53 @@ const ModalHeader = styled.div`
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
+  flex-wrap: wrap;
+  gap: 0.75rem;
 `;
 
 const ModalTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;
+`;
+
+const ShortcutHintBar = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #f5f3ff;
+  border: 1px solid #c7d2fe;
+  padding: 0.35rem 0.75rem;
+  border-radius: ${(props) => props.theme.borderRadius.md};
+  font-size: 0.8125rem;
+  color: #3730a3;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
+const ShortcutBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+`;
+
+const Kbd = styled.kbd`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.45rem;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #1e1b4b;
+  background-color: #ffffff;
+  border: 1px solid #a5b4fc;
+  border-radius: ${(props) => props.theme.borderRadius.sm};
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.12);
 `;
 
 const CloseButton = styled.button`
@@ -630,6 +673,21 @@ const SampleStatus = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  // Refs to always access fresh state in keyboard event listeners
+  const selectAllTestsRef = useRef();
+  const saveAllTestsRef = useRef();
+  const isSavingRef = useRef(isSaving);
+  const isSavedRef = useRef(isSaved);
+  const selectedTestsRef = useRef(selectedTests);
+  const currentPatientTestsRef = useRef(currentPatientTests);
+
+  selectAllTestsRef.current = () => selectAllTests();
+  saveAllTestsRef.current = () => saveAllTestsForPatient();
+  isSavingRef.current = isSaving;
+  isSavedRef.current = isSaved;
+  selectedTestsRef.current = selectedTests;
+  currentPatientTestsRef.current = currentPatientTests;
   // Add this function inside the component, before the useEffects
   const fetchPatientsByDate = async () => {
     setLoading(true);
@@ -680,29 +738,93 @@ const SampleStatus = () => {
     fetchPatientsByDate();
   }, [fromDate, toDate, Labbaseurl]);
 
+  // Keyboard shortcut listener for Modal (Shift+A to select all, Enter to save, Esc to close)
+  useEffect(() => {
+    if (!showModal) return;
+
+    const handleKeyDown = (e) => {
+      // Shift + A to select/deselect all test checkboxes
+      if (
+        e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        (e.key === "A" || e.key === "a" || e.code === "KeyA")
+      ) {
+        e.preventDefault();
+        if (!isSavingRef.current && !isSavedRef.current) {
+          selectAllTestsRef.current?.();
+        }
+        return;
+      }
+
+      // Enter to save tests
+      if (
+        e.key === "Enter" &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey
+      ) {
+        if (
+          e.target &&
+          e.target.closest &&
+          e.target.closest("[data-modal-close='true']")
+        ) {
+          return;
+        }
+        e.preventDefault();
+        if (!isSavingRef.current && !isSavedRef.current) {
+          saveAllTestsRef.current?.();
+        }
+        return;
+      }
+
+      // Esc to close modal
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (!isSavingRef.current) {
+          closeModal();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showModal]);
+
   const handleStatusChange = (testId, status) => {
-    setCurrentPatientTests((prevTests) =>
-      prevTests.map((test) =>
+    setCurrentPatientTests((prevTests) => {
+      const updated = prevTests.map((test) =>
         test.test_id === testId ? { ...test, status } : test,
-      ),
-    );
+      );
+      currentPatientTestsRef.current = updated;
+      return updated;
+    });
   };
 
   const toggleSelectTest = (testId) => {
     const isCurrentlySelected = selectedTests.includes(testId);
+    let newSelected;
     if (isCurrentlySelected) {
-      setSelectedTests((prevSelected) =>
-        prevSelected.filter((id) => id !== testId),
-      );
+      newSelected = selectedTests.filter((id) => id !== testId);
+      setSelectedTests(newSelected);
       handleStatusChange(testId, "Pending");
     } else {
-      setSelectedTests((prevSelected) => [...prevSelected, testId]);
+      newSelected = [...selectedTests, testId];
+      setSelectedTests(newSelected);
       handleStatusChange(testId, "Sample Collected");
     }
+    selectedTestsRef.current = newSelected;
   };
 
   const saveAllTestsForPatient = async () => {
+    if (isSavingRef.current || isSavedRef.current) return;
     setIsSaving(true);
+    isSavingRef.current = true;
     try {
       const patient = patients.find(
         (p) =>
@@ -715,8 +837,17 @@ const SampleStatus = () => {
         return;
       }
 
+      const activeSelectedTests =
+        selectedTestsRef.current && selectedTestsRef.current.length > 0
+          ? selectedTestsRef.current
+          : selectedTests;
+      const activePatientTests =
+        currentPatientTestsRef.current && currentPatientTestsRef.current.length > 0
+          ? currentPatientTestsRef.current
+          : currentPatientTests;
+
       // Check if at least one test is selected
-      if (selectedTests.length === 0) {
+      if (activeSelectedTests.length === 0) {
         setError("Please select at least one test to collect sample");
         setSuccessMessage(null);
         setTimeout(() => setError(null), 3000);
@@ -866,25 +997,36 @@ const SampleStatus = () => {
       setTimeout(() => setError(null), 5000);
     } finally {
       setIsSaving(false);
+      isSavingRef.current = false;
     }
   };
 
   const selectAllTests = () => {
-    const allSelected = currentPatientTests.every((test) =>
-      selectedTests.includes(test.test_id),
-    );
+    const allSelected =
+      currentPatientTests.length > 0 &&
+      currentPatientTests.every((test) =>
+        selectedTests.includes(test.test_id),
+      );
 
     if (allSelected) {
       setSelectedTests([]);
-      setCurrentPatientTests((prevTests) =>
-        prevTests.map((test) => ({ ...test, status: "Pending" })),
-      );
+      selectedTestsRef.current = [];
+      const updated = currentPatientTests.map((test) => ({
+        ...test,
+        status: "Pending",
+      }));
+      setCurrentPatientTests(updated);
+      currentPatientTestsRef.current = updated;
     } else {
       const allTestIds = currentPatientTests.map((test) => test.test_id);
       setSelectedTests(allTestIds);
-      setCurrentPatientTests((prevTests) =>
-        prevTests.map((test) => ({ ...test, status: "Sample Collected" })),
-      );
+      selectedTestsRef.current = allTestIds;
+      const updated = currentPatientTests.map((test) => ({
+        ...test,
+        status: "Sample Collected",
+      }));
+      setCurrentPatientTests(updated);
+      currentPatientTestsRef.current = updated;
     }
   };
 
@@ -893,8 +1035,11 @@ const SampleStatus = () => {
     setSelectedBarcode(barcode);
     setShowModal(true);
     setSelectedTests([]);
+    selectedTestsRef.current = [];
     setIsSaving(false);
+    isSavingRef.current = false;
     setIsSaved(false);
+    isSavedRef.current = false;
 
     try {
       const patient = patients.find(
@@ -904,6 +1049,7 @@ const SampleStatus = () => {
       if (!patient || !patient.testdetails) {
         setError("No test details found for the selected patient and barcode");
         setCurrentPatientTests([]);
+        currentPatientTestsRef.current = [];
         return;
       }
 
@@ -920,10 +1066,12 @@ const SampleStatus = () => {
       }));
 
       setCurrentPatientTests(allTests);
+      currentPatientTestsRef.current = allTests;
     } catch (err) {
       console.error("Error in openModal:", err);
       setError("Error loading test details: " + err.message);
       setCurrentPatientTests([]);
+      currentPatientTestsRef.current = [];
     }
   };
 
@@ -935,8 +1083,12 @@ const SampleStatus = () => {
     setSuccessMessage(null);
     setSelectedTests([]);
     setCurrentPatientTests([]);
+    selectedTestsRef.current = [];
+    currentPatientTestsRef.current = [];
     setIsSaving(false);
+    isSavingRef.current = false;
     setIsSaved(false);
+    isSavedRef.current = false;
   };
 
   const filteredPatients = (patients || []).filter((patient) => {
@@ -1187,9 +1339,41 @@ const SampleStatus = () => {
                 <ModalTitle>
                   {getCurrentPatient()?.patientname || "Patient"} - Test Details
                 </ModalTitle>
-                <CloseButton onClick={closeModal}>
-                  <X size={20} />
-                </CloseButton>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <ShortcutHintBar>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Keyboard size={15} /> Shortcuts:
+                    </span>
+                    <ShortcutBadge>
+                      <Kbd>Shift + A</Kbd> Select All
+                    </ShortcutBadge>
+                    <span style={{ color: "#a5b4fc" }}>•</span>
+                    <ShortcutBadge>
+                      <Kbd>Enter</Kbd> Save
+                    </ShortcutBadge>
+                  </ShortcutHintBar>
+                  <CloseButton
+                    onClick={closeModal}
+                    data-modal-close="true"
+                    title="Close modal (Esc)"
+                  >
+                    <X size={20} />
+                  </CloseButton>
+                </div>
               </ModalHeader>
 
               {error && (
@@ -1230,7 +1414,7 @@ const SampleStatus = () => {
                           <Th>Container Type</Th>
                           <Th>Department</Th>
                           <Th>Status</Th>
-                          <Th>
+                          <Th title="Select all (Shift + A)">
                             <Checkbox
                               checked={
                                 currentPatientTests.length > 0 &&
@@ -1292,9 +1476,21 @@ const SampleStatus = () => {
                       success
                       onClick={saveAllTestsForPatient}
                       disabled={isSaving || isSaved}
+                      title="Save (Enter)"
                     >
                       <Check size={16} />
                       {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}
+                      <Kbd
+                        style={{
+                          marginLeft: "0.35rem",
+                          background: "rgba(255, 255, 255, 0.2)",
+                          color: "white",
+                          borderColor: "rgba(255, 255, 255, 0.35)",
+                          boxShadow: "none",
+                        }}
+                      >
+                        Enter
+                      </Kbd>
                     </Button>
                   </ButtonGroup>
                 </div>
