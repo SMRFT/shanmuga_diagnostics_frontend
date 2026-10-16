@@ -808,21 +808,24 @@ const HMSBarcodeTestDetails = () => {
   };
 
   const handleBack = () => {
-    const currentGeneratedBarcode =
-      (testDetails && testDetails.find((t) => t.barcode)?.barcode) ||
-      selectedPatient?.barcode ||
+    const rawBarcode =
       extractBarcodeFromBillNo(
         bill_no,
         selectedPatient?.BillType || bill_type
       ) ||
+      selectedPatient?.barcode ||
       searchTerm ||
+      (testDetails && testDetails.find((t) => t.barcode)?.barcode) ||
       "";
+
+    // Clean any tube suffix like -F, -E, etc. so it returns the base barcode
+    const cleanBarcode = String(rawBarcode).replace(/-[A-Za-z0-9]+$/, "").trim();
 
     navigate("/HMSBarcodeGeneration", {
       state: {
         fromDate: fromDateParam || new Date().toISOString().split("T")[0],
         toDate: toDateParam || new Date().toISOString().split("T")[0],
-        searchTerm: currentGeneratedBarcode,
+        searchTerm: cleanBarcode,
       },
     });
   };

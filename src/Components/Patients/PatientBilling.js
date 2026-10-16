@@ -700,6 +700,8 @@ const PatientBilling = () => {
           phone: p.phone || p.mobile || "N/A",
           segment: p.segment || "N/A",
           date: p.date || p.created_date || new Date().toISOString(),
+          bill_date: p.bill_date || null,
+          bill_no: p.bill_no || "",
           lab_id: p.lab_id || "N/A",
           B2B: p.B2B || "N/A",
           refby: p.refby || "SELF",
@@ -902,7 +904,7 @@ const PatientBilling = () => {
   }
 
   /* ── PRINT ── */
-  const handlePrint = (newBillNo = null) => {
+  const handlePrint = (newBillNo = null, newBillDate = null) => {
     const fmtDT = (iso) => {
       if (!iso) return "NIL"
       return new Date(iso).toLocaleString("en-IN", {
@@ -1036,8 +1038,8 @@ const PatientBilling = () => {
       </div>
       <div class="details"><table>
         <tr>
-          <td><strong>Bill Date:</strong> ${fmtDT(selectedPatient.bill_date || selectedPatient.date || new Date().toISOString())}</td>
-          <td><strong>Bill No:</strong> ${newBillNo || selectedPatient.bill_no || "NIL"}</td>
+          <td><strong>Bill Date:</strong> ${fmtDT(newBillDate || selectedPatient?.bill_date || new Date().toISOString())}</td>
+          <td><strong>Bill No:</strong> ${newBillNo || selectedPatient?.bill_no || "NIL"}</td>
         </tr>
         <tr>
           <td><strong>Patient ID:</strong> ${selectedPatient.patient_id || "NIL"}</td>
@@ -1134,9 +1136,11 @@ const PatientBilling = () => {
       }
       const response = await apiRequest(`${Labbaseurl}update_bill/`, "PUT", updateData)
       if (response && response.success !== false) {
-        const actualBillNo = response.data?.bill_no || response.bill_no
+        const actualBillNo = response.bill_no || response.data?.bill_no
+        const actualBillDate = response.bill_date || response.data?.bill_date || new Date().toISOString()
+        setSelectedPatient(prev => (prev ? { ...prev, bill_no: actualBillNo, bill_date: actualBillDate, status: "Billed" } : prev))
         toast.success(`Bill updated! ${actualBillNo ? "Bill No: " + actualBillNo : ""}`)
-        setTimeout(() => handlePrint(actualBillNo), 1000)
+        setTimeout(() => handlePrint(actualBillNo, actualBillDate), 1000)
         setTimeout(() => {
           setSelectedPatient(null); resetBillingData(); setSearchValue(""); setCurrentPage("list")
           if (dateFilters.fromDate && dateFilters.toDate) fetchPatientsByDate()

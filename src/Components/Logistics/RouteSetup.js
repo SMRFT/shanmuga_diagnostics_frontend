@@ -3,9 +3,59 @@ import Select from "react-select"
 import styled from "styled-components"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { FaRoute, FaTruck, FaClock, FaFlask, FaHospital, FaSave, FaEdit, FaTrash, FaEye, FaTimes } from "react-icons/fa"
+import { FaRoute, FaTruck, FaClock, FaFlask, FaHospital, FaSave, FaEdit, FaTrash, FaEye, FaTimes, FaCalendarAlt, FaChevronLeft, FaChevronRight } from "react-icons/fa"
 import apiRequest from "../Auth/apiRequest"
 import { format } from "date-fns"
+
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+`
+
+const PaginationControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`
+
+const PageButton = styled.button`
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid ${(props) => (props.active ? "#667eea" : "#e2e8f0")};
+  background: ${(props) =>
+    props.active
+      ? "linear-gradient(135deg, #667eea, #764ba2)"
+      : props.disabled
+      ? "#f8fafc"
+      : "#ffffff"};
+  color: ${(props) =>
+    props.active ? "#ffffff" : props.disabled ? "#cbd5e1" : "#4a5568"};
+  font-weight: ${(props) => (props.active ? "700" : "500")};
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+
+  &:hover:not(:disabled) {
+    border-color: #667eea;
+    color: ${(props) => (props.active ? "#ffffff" : "#4f46e5")};
+    background: ${(props) =>
+      props.active
+        ? "linear-gradient(135deg, #667eea, #764ba2)"
+        : "#f5f7ff"};
+  }
+`
 
 const ActionButton = styled.button`
   background: ${(props) =>
@@ -454,8 +504,10 @@ const RouteSetup = () => {
   const [loadingOptions, setLoadingOptions] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const todayDate = new Date().toISOString().split("T")[0]
-  const [selectedDate, setSelectedDate] = useState(todayDate)
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
   const [routesList, setRoutesList] = useState([])
   const [loadingRoutes, setLoadingRoutes] = useState(false)
   const [expandedRoutes, setExpandedRoutes] = useState({})
@@ -470,15 +522,32 @@ const RouteSetup = () => {
 
   useEffect(() => {
     fetchRoutes()
-  }, [selectedDate])
+  }, [fromDate, toDate])
 
   const fetchRoutes = async () => {
     setLoadingRoutes(true)
     try {
-      const res = await apiRequest(`${Labbaseurl}routesetup/?date=${selectedDate}`, "GET")
-      setRoutesList(res?.data || res || [])
+      let url = `${Labbaseurl}routesetup/`
+      const params = []
+      if (fromDate) params.push(`from_date=${fromDate}`)
+      if (toDate) params.push(`to_date=${toDate}`)
+      if (params.length > 0) {
+        url += `?${params.join("&")}`
+      }
+      const res = await apiRequest(url, "GET")
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.data?.results)
+        ? res.data.results
+        : Array.isArray(res?.results)
+        ? res.results
+        : Array.isArray(res)
+        ? res
+        : []
+      setRoutesList(list)
     } catch (error) {
       console.error("Error fetching routes list:", error.message)
+      setRoutesList([])
     } finally {
       setLoadingRoutes(false)
     }
@@ -659,6 +728,48 @@ const RouteSetup = () => {
     }
   }
 
+  // Sort latest entered data first
+  const validRoutesList = Array.isArray(routesList) ? routesList : []
+  const sortedRoutes = [...validRoutesList].sort((a, b) => {
+    if (a.created_date && b.created_date) {
+      const diff = new Date(b.created_date) - new Date(a.created_date)
+      if (diff !== 0) return diff
+    }
+    return (Number(b.id) || 0) - (Number(a.id) || 0)
+  })
+
+  // Date filtering fallback
+  const filteredRoutes = sortedRoutes.filter((r) => {
+    if (!fromDate && !toDate) return true
+    if (!r.created_date) return true
+    const itemDate = r.created_date.split("T")[0]
+    if (fromDate && itemDate < fromDate) return false
+    if (toDate && itemDate > toDate) return false
+    return true
+  })
+
+  const totalItems = filteredRoutes.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedRoutes = filteredRoutes.slice(startIndex, endIndex)
+
+  const getPageNumbers = () => {
+    const pages = []
+    const maxButtons = 5
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      let start = Math.max(1, currentPage - 2)
+      let end = Math.min(totalPages, start + maxButtons - 1)
+      if (end - start < maxButtons - 1) {
+        start = Math.max(1, end - maxButtons + 1)
+      }
+      for (let i = start; i <= end; i++) pages.push(i)
+    }
+    return pages
+  }
+
   return (
     <PageContainer>
       <FormCard>
@@ -798,104 +909,245 @@ const RouteSetup = () => {
       </FormCard>
 
       <ListCard>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <StyledTitle style={{ margin: 0, fontSize: '1.8rem' }}>Assigned Routes</StyledTitle>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FaClock color="#667eea" />
-            <input 
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: "1px solid #e1e8ff",
-                fontFamily: "'Poppins', sans-serif",
-                outline: "none"
-              }}
-            />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+          <div>
+            <StyledTitle style={{ margin: 0, fontSize: '1.8rem', textAlign: 'left' }}>Assigned Routes</StyledTitle>
+            <span style={{ fontSize: '12px', color: '#718096' }}>
+              {totalItems} total routes assigned
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* From Date */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4c51bf', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <FaCalendarAlt size={12} /> From:
+              </label>
+              <input 
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value)
+                  setCurrentPage(1)
+                }}
+                max={toDate || undefined}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #e1e8ff",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "13px",
+                  outline: "none"
+                }}
+              />
+            </div>
+
+            {/* To Date */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4c51bf', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <FaCalendarAlt size={12} /> To:
+              </label>
+              <input 
+                type="date"
+                value={toDate}
+                min={fromDate || undefined}
+                onChange={(e) => {
+                  setToDate(e.target.value)
+                  setCurrentPage(1)
+                }}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #e1e8ff",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "13px",
+                  outline: "none"
+                }}
+              />
+            </div>
+
+            {(fromDate || toDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFromDate("")
+                  setToDate("")
+                  setCurrentPage(1)
+                }}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                  background: "#f1f5f9",
+                  color: "#4a5568",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Clear
+              </button>
+            )}
+
+            {/* Show up to dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#4c51bf' }}>
+                Show up to:
+              </label>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #e1e8ff",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "#4c51bf",
+                  background: "#fff",
+                  cursor: "pointer",
+                  outline: "none"
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {loadingRoutes ? (
-          <p style={{ textAlign: 'center', color: '#a0aec0' }}>Loading routes...</p>
-        ) : routesList.length > 0 ? (
+          <p style={{ textAlign: 'center', color: '#a0aec0', padding: '30px 0' }}>Loading routes...</p>
+        ) : paginatedRoutes.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <TableContainer>
-            <Table>
-              <thead>
-                <tr>
-                  <th>Route Name</th>
-                  <th>Sample Collector</th>
-                  <th>Time Window</th>
-                  <th>Clinical/Lab Names</th>
-                  <th style={{ textAlign: "center" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {routesList.map((r) => {
-                  const collectorName = collectorOptions.find(opt => opt.value === r.logistics_mapping)?.label || r.logistics_mapping;
-                  return (
-                    <tr key={r.id}>
-                      <td><strong>{r.route_name}</strong></td>
-                      <td>{collectorName}</td>
-                      <td>{r.start_time} - {r.end_time}</td>
-                      <td>
-                        <button 
-                          onClick={() => setExpandedRoutes(prev => ({ ...prev, [r.id]: !prev[r.id] }))}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "#667eea",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            padding: "4px 8px",
-                            borderRadius: "4px",
-                            textDecoration: "underline"
-                          }}
-                        >
-                          {expandedRoutes[r.id] ? "Hide Labs" : `${r.clinical_name_display?.length || 0} Labs`}
-                        </button>
-                        
-                        {expandedRoutes[r.id] && (
-                          <div style={{ marginTop: "8px", fontSize: "13px", color: "#4a5568", background: "#f7fafc", padding: "8px", borderRadius: "8px" }}>
-                            {r.clinical_name_display?.map((c, i) => (
-                              <div key={i} style={{ marginBottom: "4px" }}>
-                                • {c.clinicalname || c.referrerCode}
-                                {c.referrerCode && c.referrerCode !== c.clinicalname && (
-                                  <span style={{ color: "#a0aec0", fontSize: "11px", marginLeft: "4px" }}>
-                                    ({c.referrerCode})
-                                  </span>
-                                )}
-                              </div>
-                            ))}
+              <Table>
+                <thead>
+                  <tr>
+                    <th># / Created Date</th>
+                    <th>Route Name</th>
+                    <th>Sample Collector</th>
+                    <th>Time Window</th>
+                    <th>Assigned Labs</th>
+                    <th style={{ textAlign: "center" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedRoutes.map((r) => {
+                    const collectorName = collectorOptions.find(opt => opt.value === r.logistics_mapping)?.label || r.logistics_mapping;
+                    return (
+                      <tr key={r.id}>
+                        <td>
+                          <strong style={{ color: "#4c51bf" }}>#{r.id}</strong>
+                          <div style={{ fontSize: "11px", color: "#a0aec0" }}>
+                            {r.created_date ? format(new Date(r.created_date), "dd-MM-yyyy") : "-"}
                           </div>
-                        )}
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: "8px", justifyContent: "center", alignItems: "center" }}>
-                          <ActionButton variant="view" onClick={() => setViewingRoute(r)} title="View route details">
-                            <FaEye /> View
-                          </ActionButton>
+                        </td>
+                        <td><strong>{r.route_name}</strong></td>
+                        <td>{collectorName}</td>
+                        <td>{r.start_time} - {r.end_time}</td>
+                        <td>
+                          <button 
+                            onClick={() => setExpandedRoutes(prev => ({ ...prev, [r.id]: !prev[r.id] }))}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#667eea",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              textDecoration: "underline"
+                            }}
+                          >
+                            {expandedRoutes[r.id] ? "Hide Labs" : `${r.clinical_name_display?.length || 0} Labs`}
+                          </button>
+                          
+                          {expandedRoutes[r.id] && (
+                            <div style={{ marginTop: "8px", fontSize: "13px", color: "#4a5568", background: "#f7fafc", padding: "8px", borderRadius: "8px" }}>
+                              {r.clinical_name_display?.map((c, i) => (
+                                <div key={i} style={{ marginBottom: "4px" }}>
+                                  • {c.clinicalname || c.referrerCode}
+                                  {c.referrerCode && c.referrerCode !== c.clinicalname && (
+                                    <span style={{ color: "#a0aec0", fontSize: "11px", marginLeft: "4px" }}>
+                                      ({c.referrerCode})
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", gap: "8px", justifyContent: "center", alignItems: "center" }}>
+                            <ActionButton variant="view" onClick={() => setViewingRoute(r)} title="View route details">
+                              <FaEye /> View
+                            </ActionButton>
 
-                          <ActionButton variant="edit" onClick={() => handleEditRoute(r)} title="Edit route setup">
-                            <FaEdit /> Edit
-                          </ActionButton>
+                            <ActionButton variant="edit" onClick={() => handleEditRoute(r)} title="Edit route setup">
+                              <FaEdit /> Edit
+                            </ActionButton>
 
-                          <ActionButton variant="delete" onClick={() => handleDeleteRoute(r.id)} title="Delete route setup">
-                            <FaTrash /> Delete
-                          </ActionButton>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </Table>
+                            <ActionButton variant="delete" onClick={() => handleDeleteRoute(r.id)} title="Delete route setup">
+                              <FaTrash /> Delete
+                            </ActionButton>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </Table>
             </TableContainer>
+
+            <PaginationContainer>
+              <div>
+                Showing <strong>{totalItems === 0 ? 0 : startIndex + 1}</strong> to{" "}
+                <strong>{Math.min(endIndex, totalItems)}</strong> of{" "}
+                <strong>{totalItems}</strong> routes
+              </div>
+
+              {totalPages > 1 && (
+                <PaginationControls>
+                  <PageButton
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    title="Previous page"
+                  >
+                    <FaChevronLeft size={11} />
+                  </PageButton>
+
+                  {getPageNumbers().map((pageNum) => (
+                    <PageButton
+                      key={pageNum}
+                      active={pageNum === currentPage}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </PageButton>
+                  ))}
+
+                  <PageButton
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    title="Next page"
+                  >
+                    <FaChevronRight size={11} />
+                  </PageButton>
+                </PaginationControls>
+              )}
+            </PaginationContainer>
           </div>
         ) : (
-          <p style={{ textAlign: 'center', color: '#a0aec0' }}>No routes found for this date.</p>
+          <p style={{ textAlign: 'center', color: '#a0aec0', padding: '30px 0' }}>
+            {fromDate || toDate ? "No routes found for the selected date range." : "No routes assigned yet."}
+          </p>
         )}
       </ListCard>
 

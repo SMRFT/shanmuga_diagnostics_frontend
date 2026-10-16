@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import styled from "styled-components";
 import { ToastContainer } from "react-toastify";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import Sidebar from "./Components/Navbar/Sidebar";
@@ -173,7 +174,8 @@ function App() {
         navigate("/PatientList");
         break;
       case "Sales Executive":
-        navigate("/SalesVisitLog");
+      case "Sales Person":
+        navigate("/SalesVisit");
         break;
       case "HR":
         navigate("/LogisticsTracking");
@@ -269,6 +271,7 @@ function App() {
       "/FeedbackGrievance": "Feedback & Grievance",
       "/FeedbackGrievanceReport": "Feedback & Grievance Report",
       "/SalesVisit": "Sales Visit Log",
+      "/SalesVisitLog": "Sales Visit Log",
       "/SalesDashboard": "Sales Dashboard",
       "/SalesDetailsEdit": "Sales Details Edit",
       "/SalesVisitLogReport": "Sales Visit Log Report",
@@ -568,6 +571,7 @@ function App() {
 
             {/* Sales */}
             <Route path="/SalesVisit" element={<SalesVisitLog />} />
+            <Route path="/SalesVisitLog" element={<SalesVisitLog />} />
             <Route path="/SalesDashboard" element={<SalesDashboard />} />
             <Route path="/SalesDetailsEdit" element={<SalesDetailsEdit />} />
             <Route
@@ -779,10 +783,13 @@ function App() {
 }
 
 export default function AppWrapper() {
+  const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "";
   return (
-    <Router basename={process.env.PUBLIC_URL}>
-      <App />
-    </Router>
+    <APIProvider apiKey={googleMapsApiKey}>
+      <Router basename={process.env.PUBLIC_URL}>
+        <App />
+      </Router>
+    </APIProvider>
   );
 }
 

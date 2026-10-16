@@ -939,10 +939,6 @@ const Sidebar = () => {
                   >
                     Logistics Approval
                   </SubLink>
-                </DropdownContent>
-
-
-                <DropdownContent isOpen={dropdowns.logisticsDetails}>
                   <SubLink
                     to="/Busfare"
                     onClick={() => setIsSidebarOpen(false)}
@@ -1549,12 +1545,6 @@ const Sidebar = () => {
                     Diagnostics Billing
                   </SubLink>
                   <SubLink
-                    to="/HmsBilling"
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    HMS Billing
-                  </SubLink>
-                  <SubLink
                     to="/PrintBill"
                     onClick={() => setIsSidebarOpen(false)}
                   >
@@ -1582,12 +1572,6 @@ const Sidebar = () => {
                   >
                     Diagnostics Barcode Generation
                   </SubLink>
-                  <SubLink
-                    to="/HMSBarcodeGeneration"
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    HMS Barcode Generation
-                  </SubLink>
                 </DropdownContent>
 
                 <DropdownHeader
@@ -1609,12 +1593,6 @@ const Sidebar = () => {
                     onClick={() => setIsSidebarOpen(false)}
                   >
                     Diagnostics Sample Collection
-                  </SubLink>
-                  <SubLink
-                    to="/Hmssamplestatus"
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    HMS Sample Collection
                   </SubLink>
                 </DropdownContent>
 
@@ -2649,9 +2627,6 @@ const Sidebar = () => {
                   >
                     Tracking History
                   </SubLink>
-                </DropdownContent>
-
-                <DropdownContent isOpen={dropdowns.logisticsDetails}>
                   <SubLink
                     to="/Busfare"
                     onClick={() => setIsSidebarOpen(false)}

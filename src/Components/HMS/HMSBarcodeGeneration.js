@@ -359,7 +359,8 @@ const HMSBarcodeGeneration = () => {
   const [fromDate, setFromDate] = useState(() => parseDateToYYYYMMDD(location?.state?.fromDate));
   const [toDate, setToDate] = useState(() => parseDateToYYYYMMDD(location?.state?.toDate));
   const [searchTerm, setSearchTerm] = useState(() => {
-    return location?.state?.searchTerm || "";
+    const raw = location?.state?.searchTerm || "";
+    return raw.replace(/-[A-Za-z0-9]+$/, "").trim();
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -374,7 +375,8 @@ const HMSBarcodeGeneration = () => {
   // Add search stepping logic like HMSPatientOverview
   const handleBarcodeStep = (delta) => {
     setSearchTerm((prev) => {
-      const match = prev.match(/^(.*?)(\d+)$/);
+      const cleaned = prev.replace(/-[A-Za-z0-9]+$/, "").trim();
+      const match = cleaned.match(/^(.*?)(\d+)$/);
       if (match) {
         const prefix = match[1];
         const num = parseInt(match[2], 10);
@@ -382,7 +384,7 @@ const HMSBarcodeGeneration = () => {
         const next = Math.max(0, num + delta);
         return prefix + String(next).padStart(padLength, "0");
       }
-      return delta > 0 ? prev + "1" : prev;
+      return delta > 0 ? cleaned + "1" : cleaned;
     });
   };
 
@@ -445,11 +447,17 @@ const HMSBarcodeGeneration = () => {
       String(d.getDate()).padStart(2, "0"),
     ].join("-");
 
-    const computedBarcode =
+    const baseBarcode = extractBarcodeFromBillNo(
+      patient.bill_no,
+      patient.BillType || patient.IPOPType
+    );
+    const effectiveSearchTerm = (
+      searchTerm.trim() ||
       patient.barcode ||
-      (patient.testdetails && patient.testdetails.find((t) => t.barcode)?.barcode) ||
-      extractBarcodeFromBillNo(patient.bill_no, patient.BillType || patient.IPOPType);
-    const effectiveSearchTerm = searchTerm.trim() || computedBarcode || patient.bill_no || "";
+      baseBarcode ||
+      patient.bill_no ||
+      ""
+    ).replace(/-[A-Za-z0-9]+$/, "").trim();
 
     navigate("/HMSBarcodeTestDetails", {
       state: {
@@ -491,26 +499,37 @@ const HMSBarcodeGeneration = () => {
     let filtered = allPatients;
 
     if (searchTerm.trim() !== "") {
-      const searchLower = searchTerm.toLowerCase().trim();
+      const searchRaw = searchTerm.trim();
+      const searchLower = searchRaw.toLowerCase();
+      const searchClean = searchLower.replace(/-[a-z0-9]+$/, "");
+
       filtered = filtered.filter((patient) => {
-        const computedBarcode = (
-          patient.barcode ||
-          (patient.testdetails && patient.testdetails.find((t) => t.barcode)?.barcode) ||
-          extractBarcodeFromBillNo(patient.bill_no, patient.BillType || patient.IPOPType)
-        )?.toLowerCase() || "";
-        const testBarcodes = (patient.testdetails || [])
-          .map((t) => (t.barcode || "").toLowerCase())
-          .join(" ");
+        const baseBarcode = (
+          extractBarcodeFromBillNo(patient.bill_no, patient.BillType || patient.IPOPType) || ""
+        ).toLowerCase();
+        const patientBarcode = (patient.barcode || "").toLowerCase();
+
+        // Include any test suffixed barcodes
+        const testBarcodes = (patient.testdetails || []).map((t) => {
+          const suffix = t.suffix ? `-${t.suffix.toLowerCase()}` : "";
+          const tBarcode = (t.barcode || "").toLowerCase();
+          return tBarcode || (baseBarcode ? `${baseBarcode}${suffix}` : "");
+        });
+        const testBarcodesStr = testBarcodes.join(" ");
 
         return (
           patient.patientname?.toLowerCase().includes(searchLower) ||
           patient.patient_id?.toLowerCase().includes(searchLower) ||
           patient.bill_no?.toString().toLowerCase().includes(searchLower) ||
+          patient.bill_no?.toString().toLowerCase().includes(searchClean) ||
           patient.age?.toString().includes(searchLower) ||
           patient.gender?.toLowerCase().includes(searchLower) ||
-          computedBarcode.includes(searchLower) ||
-          testBarcodes.includes(searchLower) ||
-          (patient.barcode && patient.barcode.toLowerCase().includes(searchLower))
+          baseBarcode.includes(searchLower) ||
+          baseBarcode.includes(searchClean) ||
+          patientBarcode.includes(searchLower) ||
+          patientBarcode.includes(searchClean) ||
+          testBarcodesStr.includes(searchLower) ||
+          testBarcodesStr.includes(searchClean)
         );
       });
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
+import { Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { 
   Users, RefreshCw, Navigation, Maximize2, Play, Pause, 
   MapPin, Clock, Search, ArrowRight, Crosshair, CheckCircle2,
@@ -271,7 +271,27 @@ const StatusChip = styled.span`
   align-items: center;
   gap: 4px;
   font-weight: 600;
-  color: ${props => props.$active ? '#16a34a' : '#64748b'};
+  font-size: 11px;
+  color: ${props => {
+    if (props.$type === 'moving') return '#16a34a';
+    if (props.$type === 'stationary') return '#b45309';
+    if (props.$type === 'no_data') return '#64748b';
+    return '#64748b';
+  }};
+  background: ${props => {
+    if (props.$type === 'moving') return '#ecfdf5';
+    if (props.$type === 'stationary') return '#fffbeb';
+    if (props.$type === 'no_data') return '#f8fafc';
+    return '#f1f5f9';
+  }};
+  padding: 2px 7px;
+  border-radius: 12px;
+  border: 1px solid ${props => {
+    if (props.$type === 'moving') return '#a7f3d0';
+    if (props.$type === 'stationary') return '#fde68a';
+    if (props.$type === 'no_data') return '#e2e8f0';
+    return '#e2e8f0';
+  }};
 `;
 
 const MapContainer = styled.div`
@@ -394,35 +414,59 @@ const getStartMarkerIcon = (color = '#10B981') => ({
   anchor: (window.google?.maps) ? new window.google.maps.Point(13, 13) : undefined,
 });
 
-// Swiggy / Zomato style Vehicle Delivery Bike with heading rotation
-const getDeliveryVehicleMarkerIcon = (heading = 0, color = '#2563EB') => ({
+// Swiggy / Zomato style Vehicle Delivery Bike with heading rotation and idle stoppage indicator
+const getDeliveryVehicleMarkerIcon = (heading = 0, color = '#2563EB', isStationary = false) => {
+  const haloColor = isStationary ? '#F59E0B' : color;
+  const badgeColor = isStationary ? '#D97706' : color;
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
+        <defs>
+          <filter id="bike-shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
+          </filter>
+        </defs>
+        <!-- Outer Pulsing Halo -->
+        <circle cx="19" cy="19" r="18" fill="${haloColor}" fill-opacity="${isStationary ? '0.35' : '0.22'}"/>
+        <!-- Solid Badge Circle -->
+        <circle cx="19" cy="19" r="14" fill="${badgeColor}" stroke="#FFFFFF" stroke-width="2" filter="url(#bike-shadow)"/>
+        <!-- Delivery Scooter Graphic -->
+        <g transform="rotate(${heading}, 19, 19)">
+          <rect x="10.5" y="15.5" width="4" height="4" rx="0.8" fill="#FFFFFF" fill-opacity="0.95"/>
+          <circle cx="13.5" cy="23" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+          <circle cx="24.5" cy="23" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+          <path d="M13.5 23 L18 23 L20.5 16.5 L23.5 16.5 M24.5 23 L22.5 16.5 L24.5 14" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="18.5" cy="13" r="1.8" fill="#FFFFFF"/>
+        </g>
+        ${isStationary ? `
+          <!-- Idle / Parked Stoppage Indicator -->
+          <circle cx="28" cy="10" r="6" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.5"/>
+          <rect x="26" y="8" width="1.5" height="4" rx="0.5" fill="#FFFFFF"/>
+          <rect x="29" y="8" width="1.5" height="4" rx="0.5" fill="#FFFFFF"/>
+        ` : ''}
+      </svg>
+    `),
+    scaledSize: (window.google?.maps) ? new window.google.maps.Size(38, 38) : undefined,
+    anchor: (window.google?.maps) ? new window.google.maps.Point(19, 19) : undefined,
+  };
+};
+
+// Stoppage Pin Marker for Stops >= 8 mins
+const getStoppageMarkerIcon = () => ({
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
       <defs>
-        <filter id="bike-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
+        <filter id="stop-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.3"/>
         </filter>
       </defs>
-      <!-- Outer Pulsing Halo -->
-      <circle cx="18" cy="18" r="17" fill="${color}" fill-opacity="0.22"/>
-      <!-- Solid Badge Circle -->
-      <circle cx="18" cy="18" r="14" fill="${color}" stroke="#FFFFFF" stroke-width="2" filter="url(#bike-shadow)"/>
-      <!-- Swiggy/Zomato style Delivery Scooter Graphic -->
-      <g transform="rotate(${heading}, 18, 18)">
-        <!-- Delivery sample box on carrier -->
-        <rect x="9.5" y="14.5" width="4" height="4" rx="0.8" fill="#FFFFFF" fill-opacity="0.95"/>
-        <!-- Rear & Front Wheels -->
-        <circle cx="12.5" cy="22" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
-        <circle cx="23.5" cy="22" r="2.2" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
-        <!-- Scooter Chassis / Handlebar -->
-        <path d="M12.5 22 L17 22 L19.5 15.5 L22.5 15.5 M23.5 22 L21.5 15.5 L23.5 13" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Rider Helmet -->
-        <circle cx="17.5" cy="12" r="1.8" fill="#FFFFFF"/>
-      </g>
+      <circle cx="14" cy="14" r="12" fill="#D97706" stroke="#FFFFFF" stroke-width="2.2" filter="url(#stop-glow)"/>
+      <rect x="9.5" y="8.5" width="3" height="11" rx="1" fill="#FFFFFF"/>
+      <rect x="15.5" y="8.5" width="3" height="11" rx="1" fill="#FFFFFF"/>
     </svg>
   `),
-  scaledSize: (window.google?.maps) ? new window.google.maps.Size(36, 36) : undefined,
-  anchor: (window.google?.maps) ? new window.google.maps.Point(18, 18) : undefined,
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(24, 24) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(12, 12) : undefined,
 });
 
 // Distinct Ended / Shift Completed Marker
@@ -565,14 +609,18 @@ const TrackedPolyline = ({ points, color = '#2563EB', isSelected }) => {
     }
 
     return () => {
-      if (casingRef.current) {
-        casingRef.current.setMap(null);
-        casingRef.current = null;
-      }
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null);
-        polylineRef.current = null;
-      }
+      try {
+        if (casingRef.current) {
+          casingRef.current.setMap(null);
+          casingRef.current = null;
+        }
+      } catch (e) {}
+      try {
+        if (polylineRef.current) {
+          polylineRef.current.setMap(null);
+          polylineRef.current = null;
+        }
+      } catch (e) {}
     };
   }, [map, pathCoordinates, color, isSelected]);
 
@@ -600,6 +648,19 @@ const LiveTravellingMarker = ({ points, collector, color, isLive, onClick }) => 
     return parsedPoints.length > 0 ? parsedPoints[parsedPoints.length - 1] : null;
   }, [parsedPoints]);
 
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!lastPoint) return;
 
@@ -626,14 +687,17 @@ const LiveTravellingMarker = ({ points, collector, color, isLive, onClick }) => 
     const duration = 10000;
 
     const step = (timestamp) => {
+      if (!isMountedRef.current) return;
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
       const nextLat = startLat + (destLat - startLat) * progress;
       const nextLng = startLng + (destLng - startLng) * progress;
 
-      setCurrentPos({ lat: nextLat, lng: nextLng });
+      if (isMountedRef.current) {
+        setCurrentPos({ lat: nextLat, lng: nextLng });
+      }
 
-      if (progress < 1) {
+      if (progress < 1 && isMountedRef.current) {
         animFrameRef.current = requestAnimationFrame(step);
       } else {
         prevTargetRef.current = lastPoint;
@@ -644,21 +708,31 @@ const LiveTravellingMarker = ({ points, collector, color, isLive, onClick }) => 
     animFrameRef.current = requestAnimationFrame(step);
 
     return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
     };
   }, [lastPoint]);
 
   if (!currentPos && !lastPoint) return null;
 
   const position = currentPos || lastPoint;
-  const markerIcon = isLive ? getDeliveryVehicleMarkerIcon(heading, color) : getCompletedMarkerIcon('#EF4444');
+  const isStationary = isLive && (collector.trackingStatus === 'stationary' || (collector.idleMinutes && collector.idleMinutes >= 5));
+  const markerIcon = isLive ? getDeliveryVehicleMarkerIcon(heading, color, isStationary) : getCompletedMarkerIcon('#EF4444');
+
+  const statusText = !isLive 
+    ? 'Shift Ended' 
+    : isStationary 
+    ? `⏸️ Stationary (${Math.round(collector.idleMinutes || 0)}m)` 
+    : 'Live Moving';
 
   return (
     <Marker
       position={position}
       icon={markerIcon}
       onClick={onClick}
-      title={`${collector.sampleCollector} (${isLive ? 'Live Travelling' : 'Shift Ended'})`}
+      title={`${collector.sampleCollector} (${statusText})`}
     />
   );
 };
@@ -672,6 +746,7 @@ const LogisticsTracking = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState('all'); // 'all' | 'active' | 'completed'
 
+  const [selectedStoppage, setSelectedStoppage] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -732,18 +807,45 @@ const LogisticsTracking = () => {
   const filteredCollectors = useMemo(() => {
     return collectors.filter(c => {
       const matchesSearch = c.sampleCollector.toLowerCase().includes(searchQuery.toLowerCase());
-      if (filterTab === 'active') return matchesSearch && c.isActive;
-      if (filterTab === 'completed') return matchesSearch && !c.isActive;
+      if (filterTab === 'moving') {
+        return matchesSearch && c.isActive && c.trackingStatus === 'moving';
+      }
+      if (filterTab === 'stationary') {
+        return matchesSearch && c.isActive && (c.trackingStatus === 'stationary' || (c.idleMinutes && c.idleMinutes >= 5));
+      }
+      if (filterTab === 'completed') {
+        return matchesSearch && (!c.isActive || c.trackingStatus === 'completed');
+      }
       return matchesSearch;
     });
   }, [collectors, searchQuery, filterTab]);
 
-  const activeCount = useMemo(() => collectors.filter(c => c.isActive).length, [collectors]);
-  const completedCount = useMemo(() => collectors.filter(c => !c.isActive).length, [collectors]);
+  const movingCount = useMemo(() => collectors.filter(c => c.isActive && c.trackingStatus === 'moving').length, [collectors]);
+  const stationaryCount = useMemo(() => collectors.filter(c => c.isActive && (c.trackingStatus === 'stationary' || (c.idleMinutes && c.idleMinutes >= 5))).length, [collectors]);
+  const completedCount = useMemo(() => collectors.filter(c => !c.isActive || c.trackingStatus === 'completed').length, [collectors]);
 
   const handleSelectCollector = (collector) => {
     setSelectedCollector(collector);
     setNavigationTarget(collector);
+  };
+
+  const renderStatusChip = (c) => {
+    if (!c.isActive || c.endTime || c.trackingStatus === 'completed') {
+      return <StatusChip $type="completed">✓ Shift Ended</StatusChip>;
+    }
+    if (c.trackingStatus === 'no_data' || !c.currentLatitude || c.currentLatitude === "0") {
+      return <StatusChip $type="no_data">⚪ No Location Data</StatusChip>;
+    }
+    if (c.trackingStatus === 'stationary' || (c.idleMinutes && c.idleMinutes >= 5)) {
+      const mins = Math.round(c.idleMinutes || 0);
+      const timeText = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+      return (
+        <StatusChip $type="stationary" title={`Stationary at same place for ${timeText}`}>
+          ⏸️ Stopped {timeText}
+        </StatusChip>
+      );
+    }
+    return <StatusChip $type="moving">🟢 Live Moving</StatusChip>;
   };
 
   return (
@@ -799,10 +901,16 @@ const LogisticsTracking = () => {
               All ({collectors.length})
             </TabButton>
             <TabButton 
-              $active={filterTab === 'active'} 
-              onClick={() => setFilterTab('active')}
+              $active={filterTab === 'moving'} 
+              onClick={() => setFilterTab('moving')}
             >
-              🟢 Moving ({activeCount})
+              🟢 Moving ({movingCount})
+            </TabButton>
+            <TabButton 
+              $active={filterTab === 'stationary'} 
+              onClick={() => setFilterTab('stationary')}
+            >
+              ⏸️ Stopped ({stationaryCount})
             </TabButton>
             <TabButton 
               $active={filterTab === 'completed'} 
@@ -834,15 +942,13 @@ const LogisticsTracking = () => {
                       <ColorPill $color={personColor} />
                       <span>{c.sampleCollector}</span>
                     </NameTag>
-                    <DistanceBadge>
+                    <DistanceBadge title="Verified Accurate Travelled Distance">
                       {formatDistance(c.distance_travelled)}
                     </DistanceBadge>
                   </ItemHeader>
 
                   <ItemMeta>
-                    <StatusChip $active={c.isActive}>
-                      {c.isActive ? '● Live Moving' : '✓ Shift Ended'}
-                    </StatusChip>
+                    {renderStatusChip(c)}
                     <span>
                       {c.startTime ? `Started: ${new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                     </span>
@@ -855,14 +961,14 @@ const LogisticsTracking = () => {
 
         {/* --- RIGHT GOOGLE MAP --- */}
         <MapContainer>
-          <APIProvider apiKey={API_KEY}>
-            <Map
-              defaultCenter={{ lat: 11.6735, lng: 78.1525 }}
-              defaultZoom={12}
-              mapId="bf50a69a05151240"
-              gestureHandling={'greedy'}
-              disableDefaultUI={false}
-            >
+          <Map
+            defaultCenter={{ lat: 11.6735, lng: 78.1525 }}
+            defaultZoom={12}
+            mapId="bf50a69a05151240"
+            gestureHandling={'greedy'}
+            disableDefaultUI={false}
+            reuseMaps={true}
+          >
               <MapViewController 
                 targetCollector={navigationTarget} 
                 fitAllTrigger={fitAllTrigger} 
@@ -920,9 +1026,55 @@ const LogisticsTracking = () => {
                       isLive={collector.isActive}
                       onClick={() => handleSelectCollector(collector)}
                     />
+
+                    {/* Stoppage Markers (where collector stopped >= 8 mins) */}
+                    {collector.stoppages && collector.stoppages.map((stop, sIdx) => {
+                      const sLat = parseFloat(stop.lat);
+                      const sLng = parseFloat(stop.lng);
+                      if (isNaN(sLat) || isNaN(sLng) || sLat === 0 || sLng === 0) return null;
+                      return (
+                        <Marker
+                          key={`stop-${collector.id}-${sIdx}`}
+                          position={{ lat: sLat, lng: sLng }}
+                          icon={getStoppageMarkerIcon()}
+                          onClick={() => setSelectedStoppage({ ...stop, collectorName: collector.sampleCollector })}
+                          title={`Stoppage: ${stop.durationMinutes} mins at ${new Date(stop.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                        />
+                      );
+                    })}
                   </React.Fragment>
                 );
               })}
+
+              {/* Stoppage Info Window Popup */}
+              {selectedStoppage && (
+                <InfoWindow
+                  position={{ lat: parseFloat(selectedStoppage.lat), lng: parseFloat(selectedStoppage.lng) }}
+                  onCloseClick={() => setSelectedStoppage(null)}
+                >
+                  <div style={{ color: '#1e293b', minWidth: '180px', padding: '4px' }}>
+                    <div style={{ fontWeight: '700', fontSize: '13px', color: '#d97706', marginBottom: '4px' }}>
+                      ⏸️ Stopped for {selectedStoppage.durationMinutes} mins
+                    </div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#0f172a' }}>
+                      {selectedStoppage.collectorName}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                      Arrived: {new Date(selectedStoppage.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </div>
+                    {selectedStoppage.endTime && (
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>
+                        Departed: {new Date(selectedStoppage.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </div>
+                    )}
+                    {selectedStoppage.isCurrent && (
+                      <div style={{ fontSize: '10px', color: '#dc2626', fontWeight: '700', marginTop: '6px' }}>
+                        ● Currently Parked / Idle Here
+                      </div>
+                    )}
+                  </div>
+                </InfoWindow>
+              )}
 
               {/* FLOATING MAP CONTROLS */}
               <MapOverlayControls>
@@ -941,8 +1093,10 @@ const LogisticsTracking = () => {
                         <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>
                           {selectedCollector.sampleCollector}
                         </h3>
-                        <span style={{ fontSize: '12px', color: selectedCollector.isActive ? '#16a34a' : '#64748b', fontWeight: '600' }}>
-                          {selectedCollector.isActive ? '🟢 Currently Travelling On Duty' : '🏁 Shift Completed'}
+                        <span style={{ fontSize: '12px', color: selectedCollector.trackingStatus === 'stationary' ? '#d97706' : selectedCollector.isActive ? '#16a34a' : '#64748b', fontWeight: '600' }}>
+                          {selectedCollector.trackingStatus === 'stationary'
+                            ? `⏸️ Stationary for ${Math.round(selectedCollector.idleMinutes || 0)} mins`
+                            : selectedCollector.isActive ? '🟢 Currently Travelling On Duty' : '🏁 Shift Completed'}
                         </span>
                       </div>
                     </div>
@@ -958,9 +1112,10 @@ const LogisticsTracking = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', marginBottom: '12px' }}>
                     <div>
                       <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Distance Travelled</div>
-                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#4338ca' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '800', color: '#4338ca' }}>
                         {formatDistance(selectedCollector.distance_travelled)}
                       </div>
+                      <div style={{ fontSize: '10px', color: '#059669', fontWeight: '600' }}>✓ Verified Accurate</div>
                     </div>
 
                     <div>
@@ -978,6 +1133,24 @@ const LogisticsTracking = () => {
                         </div>
                       </div>
                     )}
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Current State</div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: selectedCollector.trackingStatus === 'stationary' ? '#d97706' : selectedCollector.isActive ? '#16a34a' : '#64748b' }}>
+                        {selectedCollector.trackingStatus === 'stationary'
+                          ? `⏸️ Stopped (${Math.round(selectedCollector.idleMinutes || 0)}m)`
+                          : selectedCollector.isActive ? '🟢 On the Move' : '🏁 Completed'}
+                      </div>
+                    </div>
+
+                    {selectedCollector.stoppages && selectedCollector.stoppages.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Stops (>8 min)</div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#d97706' }}>
+                          {selectedCollector.stoppages.length} stops ({Math.round(selectedCollector.stoppages.reduce((acc, s) => acc + (s.durationMinutes || 0), 0))}m)
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -988,7 +1161,6 @@ const LogisticsTracking = () => {
                 </BottomDetailCard>
               )}
             </Map>
-          </APIProvider>
         </MapContainer>
       </MainGrid>
     </Container>
