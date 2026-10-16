@@ -146,7 +146,7 @@ const TableWrapper = styled.div`
 
 const ModernTable = styled.table`
   width: 100%;
-  min-width: 1100px;
+  min-width: 1200px;
   border-collapse: collapse;
   font-size: 14px;
   margin-top: 15px;
@@ -601,10 +601,20 @@ const TestEdit = () => {
     const query = e.target.value
     setSearchQuery(query)
 
+    const q = query.trim().toLowerCase()
+    if (!q) {
+      setFilteredTestDetails(testDetails)
+      setEditingRow(null)
+      setFocusedRow(null)
+      return
+    }
+
     const filteredData = testDetails.filter(
       (test) =>
-        (test.test_name && test.test_name.toLowerCase().includes(query.toLowerCase())) ||
-        (test.shortcut && test.shortcut.toLowerCase().includes(query.toLowerCase())),
+        (test.test_id && test.test_id.toString().toLowerCase().includes(q)) ||
+        (test.test_name && test.test_name.toLowerCase().includes(q)) ||
+        (test.shortcut && test.shortcut.toLowerCase().includes(q)) ||
+        (test.test_code && test.test_code.toString().toLowerCase().includes(q)),
     )
 
     setFilteredTestDetails(filteredData)
@@ -848,11 +858,16 @@ const TestEdit = () => {
         )
         setTestDetails(updatedAll)
 
-        const filtered = updatedAll.filter(
-          (t) =>
-            (t.test_name && t.test_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (t.shortcut && t.shortcut.toLowerCase().includes(searchQuery.toLowerCase())),
-        )
+        const q = searchQuery.trim().toLowerCase()
+        const filtered = q
+          ? updatedAll.filter(
+              (t) =>
+                (t.test_id && t.test_id.toString().toLowerCase().includes(q)) ||
+                (t.test_name && t.test_name.toLowerCase().includes(q)) ||
+                (t.shortcut && t.shortcut.toLowerCase().includes(q)) ||
+                (t.test_code && t.test_code.toString().toLowerCase().includes(q)),
+            )
+          : updatedAll
         setFilteredTestDetails(filtered)
 
         setLastEditedTestId(selectedTestId)
@@ -1041,7 +1056,7 @@ const TestEdit = () => {
             <SearchIcon />
             <SearchInput
               type="text"
-              placeholder="Search Test Name or Shortcut"
+              placeholder="Search Test ID, Name, Shortcut or Code"
               value={searchQuery}
               onChange={handleSearchChange}
             />
@@ -1056,6 +1071,7 @@ const TestEdit = () => {
           <ModernTable>
             <thead>
               <tr>
+                <th>Test ID</th>
                 <th>Test Name</th>
                 <th>Shortcut</th>
                 <th>Department</th>
@@ -1085,6 +1101,9 @@ const TestEdit = () => {
                       ref={(el) => (rowRefs.current[globalIndex] = el)}
                       className={focusedRow === globalIndex ? "focused-row" : ""}
                     >
+                      <td style={{ fontWeight: 600, color: "#4f46e5", whiteSpace: "nowrap" }}>
+                        {test.test_id ?? "-"}
+                      </td>
                       <td>
                         {editingRow === globalIndex ? (
                           <Input
@@ -1223,7 +1242,7 @@ const TestEdit = () => {
                 })
               ) : (
                 <tr>
-                  <EmptyMessage colSpan="11">No test details available.</EmptyMessage>
+                  <EmptyMessage colSpan="12">No test details available.</EmptyMessage>
                 </tr>
               )}
             </tbody>
@@ -1257,7 +1276,9 @@ const TestEdit = () => {
         <ModalOverlay>
           <ModalContent>
             <ModalHeader>
-              <ModalTitle>Edit Parameters — {selectedTestName}</ModalTitle>
+              <ModalTitle>
+                Edit Parameters — {selectedTestName} {selectedTestId ? `(ID: ${selectedTestId})` : ""}
+              </ModalTitle>
               <ModalCloseButton onClick={handleCloseModal}>
                 <FaTimes />
               </ModalCloseButton>

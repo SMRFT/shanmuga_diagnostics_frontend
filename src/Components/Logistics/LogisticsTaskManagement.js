@@ -705,6 +705,11 @@ const LogisticsTaskManagement = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude, accuracy } = position.coords;
+          if (!latitude || !longitude || (latitude === 0 && longitude === 0)) {
+            setError('Unable to acquire valid GPS fix. Please ensure GPS is enabled and try again.');
+            setActionLoading(prev => ({ ...prev, startLocation: false }));
+            return;
+          }
           const startTime = new Date();
           const today = new Date().toISOString().split('T')[0];
 
@@ -771,7 +776,8 @@ const LogisticsTaskManagement = () => {
           console.error('Geolocation error:', error);
           setError('Unable to get your location. Please enable location services.');
           setActionLoading(prev => ({ ...prev, startLocation: false }));
-        }
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     } catch (err) {
       setError('Failed to start location tracking');
@@ -899,7 +905,7 @@ const LogisticsTaskManagement = () => {
             setActionLoading(prev => ({ ...prev, endLocation: false }));
           }
         },
-        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     } catch (err) {
       setError('Failed to end location tracking');
@@ -997,6 +1003,15 @@ const LogisticsTaskManagement = () => {
         async (position) => {
           const { latitude, longitude, accuracy } = position.coords;
 
+          // Reject zero or empty coordinates
+          if (!latitude || !longitude || (latitude === 0 && longitude === 0)) return;
+
+          // Filter out cell-tower triangulations (>80m accuracy) to keep distance accurate
+          if (accuracy && accuracy > 80) {
+            console.warn(`[GPS Filter] Discarded inaccurate fix (${Math.round(accuracy)}m)`);
+            return;
+          }
+
           // Update session storage
           const sessionKey = `location_history_${today}`;
           const locationHistory = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
@@ -1046,7 +1061,7 @@ const LogisticsTaskManagement = () => {
         (err) => {
           console.error('Geolocation error:', err);
         },
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
       );
       watchIdRef.current = id;
     }

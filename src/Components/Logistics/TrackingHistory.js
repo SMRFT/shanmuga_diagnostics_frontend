@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
+import { Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { Calendar, Download, Search, MapPin, Clock, Users, Filter } from 'lucide-react';
 import styled from 'styled-components';
 import apiRequest from '../Auth/apiRequest';
@@ -199,8 +199,8 @@ const StatusBadge = styled.span`
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  background: ${props => props.active ? '#dcfce7' : '#f1f5f9'};
-  color: ${props => props.active ? '#166534' : '#64748b'};
+  background: ${props => props.$active ? '#dcfce7' : '#f1f5f9'};
+  color: ${props => props.$active ? '#166534' : '#64748b'};
 `;
 
 const EmptyState = styled.div`
@@ -270,6 +270,23 @@ const END_MARKER_ICON = {
   anchor: (window.google?.maps) ? new window.google.maps.Point(13, 13) : undefined,
 };
 
+const getStoppageMarkerIcon = () => ({
+  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+      <defs>
+        <filter id="hist-stop-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      <circle cx="14" cy="14" r="12" fill="#D97706" stroke="#FFFFFF" stroke-width="2.2" filter="url(#hist-stop-glow)"/>
+      <rect x="9.5" y="8.5" width="3" height="11" rx="1" fill="#FFFFFF"/>
+      <rect x="15.5" y="8.5" width="3" height="11" rx="1" fill="#FFFFFF"/>
+    </svg>
+  `),
+  scaledSize: (window.google?.maps) ? new window.google.maps.Size(24, 24) : undefined,
+  anchor: (window.google?.maps) ? new window.google.maps.Point(12, 12) : undefined,
+});
+
 // Swiggy / Zomato style Delivery Vehicle Bike Marker
 const getDeliveryVehicleMarkerIcon = (color = '#2563EB') => ({
   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
@@ -301,6 +318,11 @@ const TrackedPath = ({ collectorId, points, color = '#2563EB', onDistanceCalcula
   const map = useMap();
   const polylineRef = useRef(null);
   const shadowPolylineRef = useRef(null);
+  const onDistanceCalculatedRef = useRef(onDistanceCalculated);
+
+  useEffect(() => {
+    onDistanceCalculatedRef.current = onDistanceCalculated;
+  });
 
   const pathCoordinates = useMemo(() => {
     if (!points || !Array.isArray(points)) return [];
@@ -314,8 +336,14 @@ const TrackedPath = ({ collectorId, points, color = '#2563EB', onDistanceCalcula
 
   useEffect(() => {
     if (!map || !window.google?.maps || pathCoordinates.length < 2) {
-      if (shadowPolylineRef.current) { shadowPolylineRef.current.setMap(null); shadowPolylineRef.current = null; }
-      if (polylineRef.current) { polylineRef.current.setMap(null); polylineRef.current = null; }
+      if (shadowPolylineRef.current) {
+        try { shadowPolylineRef.current.setMap(null); } catch (e) {}
+        shadowPolylineRef.current = null;
+      }
+      if (polylineRef.current) {
+        try { polylineRef.current.setMap(null); } catch (e) {}
+        polylineRef.current = null;
+      }
       return;
     }
 
@@ -353,8 +381,8 @@ const TrackedPath = ({ collectorId, points, color = '#2563EB', onDistanceCalcula
       });
     }
 
-    // Compute distance
-    if (onDistanceCalculated && collectorId) {
+    // Compute distance once path changes
+    if (onDistanceCalculatedRef.current && collectorId) {
       let totalMeters = 0;
       for (let i = 0; i < pathCoordinates.length - 1; i++) {
         const p1 = new window.google.maps.LatLng(pathCoordinates[i].lat, pathCoordinates[i].lng);
@@ -372,20 +400,24 @@ const TrackedPath = ({ collectorId, points, color = '#2563EB', onDistanceCalcula
           totalMeters += R * c;
         }
       }
-      onDistanceCalculated(collectorId, (totalMeters / 1000).toFixed(2));
+      onDistanceCalculatedRef.current(collectorId, (totalMeters / 1000).toFixed(2));
     }
 
     return () => {
-      if (shadowPolylineRef.current) {
-        shadowPolylineRef.current.setMap(null);
-        shadowPolylineRef.current = null;
-      }
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null);
-        polylineRef.current = null;
-      }
+      try {
+        if (shadowPolylineRef.current) {
+          shadowPolylineRef.current.setMap(null);
+          shadowPolylineRef.current = null;
+        }
+      } catch (e) {}
+      try {
+        if (polylineRef.current) {
+          polylineRef.current.setMap(null);
+          polylineRef.current = null;
+        }
+      } catch (e) {}
     };
-  }, [map, pathCoordinates, color, collectorId, onDistanceCalculated]);
+  }, [map, pathCoordinates, color, collectorId]);
 
   return null;
 };
@@ -465,6 +497,7 @@ const TrackingHistory = () => {
   const [mapLoading, setMapLoading] = useState(false);
   const [selectedMapCollector, setSelectedMapCollector] = useState(null);
   const [accurateDistances, setAccurateDistances] = useState({});
+  const [selectedHistoryStoppage, setSelectedHistoryStoppage] = useState(null);
 
   // Table filters
   const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
@@ -475,6 +508,13 @@ const TrackingHistory = () => {
   const [allCollectors, setAllCollectors] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [locationNames, setLocationNames] = useState({});
+
+  const handleDistanceCalculated = useCallback((id, dist) => {
+    setAccurateDistances(prev => {
+      if (prev[id] === dist) return prev;
+      return { ...prev, [id]: dist };
+    });
+  }, []);
 
   const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
   const BASE_URL = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -502,11 +542,14 @@ const TrackingHistory = () => {
       const dataArray = Array.isArray(res) ? res : (res?.data || res?.results || []);
       setTableData(dataArray);
 
-      // Build unique collector names
-      const names = [...new Set(dataArray.map(d => d.sampleCollector))].sort();
+      // Build unique collector names keeping object structure
+      const names = [...new Set(dataArray.map(d => d.sampleCollector).filter(Boolean))].sort();
       setAllCollectors(prev => {
-        const merged = [...new Set([...prev, ...names])];
-        return merged.sort();
+        const existingIds = new Set(prev.map(p => p.employeeId || p.employeeName));
+        const newItems = names
+          .filter(n => !existingIds.has(n))
+          .map(n => ({ employeeId: n, employeeName: n }));
+        return [...prev, ...newItems];
       });
     } catch (err) {
       console.error("Table data error:", err);
@@ -569,17 +612,25 @@ const TrackingHistory = () => {
   const handleDownloadExcel = () => {
     if (tableData.length === 0) return;
 
-    const rows = tableData.map(row => ({
-      'Date': formatDate(row.date),
-      'Sample Collector': row.sampleCollector,
-      'Start Time': formatTime(row.startTime),
-      'Start Location': locationNames[row.id]?.start || (row.latitudeStart ? `${row.latitudeStart}, ${row.longitudeStart}` : '-'),
-      'End Time': formatTime(row.endTime),
-      'End Location': locationNames[row.id]?.end || (row.latitudeEnd ? `${row.latitudeEnd}, ${row.longitudeEnd}` : '-'),
-      'Distance (km)': accurateDistances[row.id] || formatDistance(row.distance_travelled),
-      'Duration': formatDuration(row.totalDuration),
-      'Status': row.isActive ? 'Active' : 'Completed'
-    }));
+    const rows = tableData.map(row => {
+      const stopsCount = (row.stoppages && row.stoppages.length) || 0;
+      const totalStopMins = stopsCount > 0 
+        ? Math.round(row.stoppages.reduce((acc, s) => acc + (s.durationMinutes || 0), 0))
+        : 0;
+
+      return {
+        'Date': formatDate(row.date),
+        'Sample Collector': row.sampleCollector,
+        'Start Time': formatTime(row.startTime),
+        'Start Location': locationNames[row.id]?.start || (row.latitudeStart ? `${row.latitudeStart}, ${row.longitudeStart}` : '-'),
+        'End Time': formatTime(row.endTime),
+        'End Location': locationNames[row.id]?.end || (row.latitudeEnd ? `${row.latitudeEnd}, ${row.longitudeEnd}` : '-'),
+        'Verified Distance (km)': accurateDistances[row.id] || formatDistance(row.distance_travelled),
+        'Duration': formatDuration(row.totalDuration),
+        'Stoppages': stopsCount > 0 ? `${stopsCount} stops (${totalStopMins} mins)` : 'None',
+        'Status': row.isActive ? 'Active' : 'Completed'
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -637,14 +688,14 @@ const TrackingHistory = () => {
       </div>
 
       <MapSection>
-        <APIProvider apiKey={API_KEY}>
-          <Map
-            defaultCenter={{ lat: 11.6735, lng: 78.1525 }}
-            defaultZoom={11}
-            mapId="bf50a69a05151240"
-            gestureHandling={'greedy'}
-            disableDefaultUI={false}
-          >
+        <Map
+          defaultCenter={{ lat: 11.6735, lng: 78.1525 }}
+          defaultZoom={11}
+          mapId="bf50a69a05151240"
+          gestureHandling={'greedy'}
+          disableDefaultUI={false}
+          reuseMaps={true}
+        >
             {mapData.map((collector, index) => {
               const history = (collector.routePoints && collector.routePoints.length > 0)
                 ? collector.routePoints
@@ -669,7 +720,7 @@ const TrackingHistory = () => {
                     collectorId={collector.id}
                     points={history} 
                     color={collector.isActive ? (personColor || '#2563EB') : '#64748B'} 
-                    onDistanceCalculated={(id, dist) => setAccurateDistances(prev => ({...prev, [id]: dist}))}
+                    onDistanceCalculated={handleDistanceCalculated}
                   />
                   
                   {/* Start Location Marker */}
@@ -691,6 +742,21 @@ const TrackingHistory = () => {
                       title={`${collector.isActive ? 'Live Delivery Vehicle' : 'End Location'} - ${collector.sampleCollector}`}
                     />
                   )}
+                  {/* Stoppage / Idle markers */}
+                  {Array.isArray(collector.stoppages) && collector.stoppages.map((stop, sIdx) => {
+                    const sLat = parseFloat(stop.latitude);
+                    const sLng = parseFloat(stop.longitude);
+                    if (isNaN(sLat) || isNaN(sLng) || sLat === 0 || sLng === 0) return null;
+                    return (
+                      <Marker
+                        key={`stop-${collector.id}-${sIdx}`}
+                        position={{ lat: sLat, lng: sLng }}
+                        icon={getStoppageMarkerIcon()}
+                        onClick={() => setSelectedHistoryStoppage({ ...stop, collectorName: collector.sampleCollector })}
+                        title={`Stoppage: ${Math.round(stop.durationMinutes || 0)} mins (${collector.sampleCollector})`}
+                      />
+                    );
+                  })}
                 </React.Fragment>
               );
             })}
@@ -733,6 +799,34 @@ const TrackingHistory = () => {
                 </div>
               </InfoWindow>
             )}
+
+            {selectedHistoryStoppage && (
+              <InfoWindow
+                position={{
+                  lat: parseFloat(selectedHistoryStoppage.latitude),
+                  lng: parseFloat(selectedHistoryStoppage.longitude)
+                }}
+                onCloseClick={() => setSelectedHistoryStoppage(null)}
+              >
+                <div style={{ padding: '4px', minWidth: '180px', fontFamily: 'sans-serif' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '15px' }}>⏸️</span>
+                    <strong style={{ fontSize: '13px', color: '#92400e' }}>
+                      Stationary Stop ({Math.round(selectedHistoryStoppage.durationMinutes || 0)} mins)
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#1e293b', marginBottom: '4px', fontWeight: '600' }}>
+                    {selectedHistoryStoppage.collectorName}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                    Arrived: {formatTime(selectedHistoryStoppage.startTime)}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                    Departed: {formatTime(selectedHistoryStoppage.endTime)}
+                  </div>
+                </div>
+              </InfoWindow>
+            )}
           </Map>
 
           {mapData.length > 0 && (
@@ -743,7 +837,6 @@ const TrackingHistory = () => {
               </span>
             </MapOverlay>
           )}
-        </APIProvider>
       </MapSection>
 
       {/* ---- FILTER SECTION ---- */}
@@ -776,9 +869,15 @@ const TrackingHistory = () => {
               onChange={(e) => setCollectorFilter(e.target.value)}
             >
               <option value="">All Collectors</option>
-              {allCollectors.map(collector => (
-                <option key={collector.employeeId} value={collector.employeeId}>{collector.employeeName}</option>
-              ))}
+              {allCollectors.map((collector, idx) => {
+                const keyVal = collector.employeeId || collector.employeeName || idx;
+                const displayVal = collector.employeeName || collector.employeeId || keyVal;
+                return (
+                  <option key={keyVal} value={collector.employeeId || collector.employeeName}>
+                    {displayVal}
+                  </option>
+                );
+              })}
             </Select>
           </FilterGroup>
           <PrimaryButton onClick={fetchTableData} disabled={tableLoading}>
@@ -809,13 +908,14 @@ const TrackingHistory = () => {
                 <Th>End Location</Th>
                 <Th>Distance</Th>
                 <Th>Duration</Th>
+                <Th>Stoppages</Th>
                 <Th>Status</Th>
               </tr>
             </thead>
             <tbody>
               {tableData.length === 0 ? (
                 <tr>
-                  <Td colSpan={9}>
+                  <Td colSpan={10}>
                     <EmptyState>
                       <Calendar size={32} color="#cbd5e1" />
                       <div style={{ marginTop: '8px' }}>No tracking records found. Adjust filters and search.</div>
@@ -825,6 +925,11 @@ const TrackingHistory = () => {
               ) : (
                 tableData.map((row, idx) => {
                   const personColor = getRouteColor(idx, row.sampleCollector);
+                  const stopsCount = (row.stoppages && row.stoppages.length) || 0;
+                  const totalStopMins = stopsCount > 0 
+                    ? Math.round(row.stoppages.reduce((acc, s) => acc + (s.durationMinutes || 0), 0))
+                    : 0;
+
                   return (
                     <Tr
                       key={row.id || idx}
@@ -861,10 +966,21 @@ const TrackingHistory = () => {
                           ? locationNames[row.id].end
                           : row.latitudeEnd ? '⏳ Loading...' : '-'}
                       </Td>
-                      <Td style={{ fontWeight: '600' }}>{formatDistance(accurateDistances[row.id] || row.distance_travelled)}</Td>
+                      <Td style={{ fontWeight: '700', color: '#4338ca' }}>
+                        {formatDistance(accurateDistances[row.id] || row.distance_travelled)}
+                      </Td>
                       <Td>{formatDuration(row.totalDuration)}</Td>
                       <Td>
-                        <StatusBadge active={row.isActive}>
+                        {stopsCount > 0 ? (
+                          <span style={{ color: '#d97706', fontWeight: '600', fontSize: '12px' }} title={`${stopsCount} stops > 8 mins`}>
+                            ⏸️ {stopsCount} stop{stopsCount > 1 ? 's' : ''} ({totalStopMins}m)
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '12px' }}>Continuous</span>
+                        )}
+                      </Td>
+                      <Td>
+                        <StatusBadge $active={row.isActive}>
                           {row.isActive ? '● Active' : '✓ Done'}
                         </StatusBadge>
                       </Td>

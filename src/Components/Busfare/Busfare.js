@@ -6,207 +6,425 @@ import apiRequest from "../Auth/apiRequest";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import {
+  FaBus,
+  FaPlus,
+  FaCalendarAlt,
+  FaRupeeSign,
+  FaFileExcel,
+  FaFilePdf,
+  FaTimes,
+  FaCamera,
+  FaUpload,
+  FaMapMarkerAlt,
+  FaClock,
+  FaUser,
+} from "react-icons/fa";
 
-// ---------------------------------------------------------------------
-// NOTE ON ASSUMPTIONS (please adjust to match your actual project setup):
-// 1. `apiRequest(url, method, body, isMultipart)` is assumed to exist at
-//    ../utils/apiRequest and to treat the FULL 2xx range as success
-//    (not just 200) — this mirrors the fix needed elsewhere in the app.
-// 2. GET /logistics_by_collector/ is assumed to return an array of
-//    collector objects. This component reads `collector.name` (falling
-//    back to `collector.username`/`collector.assignedby` or the raw
-//    string) — tweak `getCollectorLabel()` below if the real shape
-//    differs.
-// 3. `bustphoto` is captured via an "Upload Photo" or "Use Camera" button
-//    (native <input type="file" capture="environment">), sent as
-//    multipart/form-data, stored server-side in GridFS, and displayed
-//    from GET /bus_fare_photo/?file_id=<file_id> — make sure that URL is
-//    wired up in urls.py (defined in logistic.py per your routing).
-// 4. All endpoints are prefixed with Labbaseurl, read from
-//    process.env.REACT_APP_BACKEND_LAB_BASE_URL — make sure that env
-//    var is set (e.g. in .env / .env.local) and does NOT end in a
-//    trailing slash, since it's concatenated directly onto "/bus_fare/".
-//
-// RESPONSIVENESS NOTES (added):
-// - Breakpoints: >=1024px desktop, 768-1023px tablet, <768px phone,
-//   <420px small phone (fine-tuned paddings/font-sizes only).
-// - The results table becomes a stacked "card" list below 768px using
-//   the `data-label` attribute on each <td> + CSS ::before, so no columns
-//   get clipped or require horizontal scrolling on a phone.
-// - The Add-Bus-Fare modal becomes a full-height bottom sheet on phones
-//   instead of a centered fixed-width box.
-// ---------------------------------------------------------------------
+// ─── Styled Components ────────────────────────────────────────────────────────
 
-const TEAL_DARK = "#7c5cc4";
-const TEAL = "#9f7ae6";
+const PageContainer = styled.div`
+  min-height: 100vh;
+  padding: 24px 20px;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #f5f7ff 0%, #ede9fe 100%);
+  box-sizing: border-box;
 
-// ---------------------------------------------------------------------
-// Toast (success / error banner)
-// ---------------------------------------------------------------------
+  @media (max-width: 768px) {
+    padding: 16px 12px;
+  }
+`;
+
+const ContentCard = styled.div`
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.08);
+  border-radius: 20px;
+  padding: 28px;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 18px 14px;
+    border-radius: 16px;
+  }
+`;
+
 const Toast = styled.div`
   position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 2000;
-  padding: 14px 20px;
-  border-radius: 8px;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  padding: 14px 22px;
+  border-radius: 12px;
   color: #fff;
   font-weight: 600;
   font-size: 14px;
-  line-height: 1.4;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
-  background: ${(props) => (props.$type === "error" ? "#d64545" : "#3fae6a")};
-  max-width: 380px;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+  background: ${(props) =>
+    props.$type === "error"
+      ? "linear-gradient(135deg, #ef4444, #dc2626)"
+      : "linear-gradient(135deg, #10b981, #059669)"};
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  animation: slideIn 0.3s ease;
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(-15px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 
   @media (max-width: 480px) {
-    left: 12px;
-    right: 12px;
-    top: 12px;
+    left: 14px;
+    right: 14px;
+    top: 14px;
     max-width: none;
   }
 `;
 
-// Pulls a human-readable message out of a backend error response, no
-// matter whether it came from apiRequest (axios-style err.response.data)
-// or from a raw axios call made directly (like the multipart upload in
-// handleSave). Falls back to a sensible default if nothing usable is found.
-const getErrorMessage = (err, fallback = "Something went wrong. Please try again.") => {
-  const data = err?.response?.data || err?.data || err;
-  if (!data || typeof data !== "object") {
-    return (typeof data === "string" && data) || err?.message || fallback;
-  }
-  if (data.message) return data.message;
-  if (data.error) return data.error;
-  if (data.errors && typeof data.errors === "object") {
-    const firstKey = Object.keys(data.errors)[0];
-    const firstVal = data.errors[firstKey];
-    const detail = Array.isArray(firstVal) ? firstVal[0] : firstVal;
-    return firstKey ? `${firstKey}: ${detail}` : fallback;
-  }
-  return err?.message || fallback;
-};
-
-const Wrapper = styled.div`
-  padding: 24px;
-  font-family: "Segoe UI", Arial, sans-serif;
-
-  @media (max-width: 768px) {
-    padding: 16px;
-  }
-
-  @media (max-width: 420px) {
-    padding: 12px;
-  }
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
 `;
 
-const Header = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  margin-bottom: 20px;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
+const TitleWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
 const Title = styled.h2`
-  color: ${TEAL_DARK};
+  background: linear-gradient(135deg, #f093fb, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin: 0;
-  grid-column: 2;
-  text-align: center;
-  font-size: 22px;
+  font-size: 26px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 
   @media (max-width: 640px) {
-    grid-column: 1;
-    font-size: 19px;
+    font-size: 22px;
   }
 `;
 
+const Subtitle = styled.span`
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 400;
+`;
+
 const AddButton = styled.button`
-  grid-column: 3;
-  justify-self: end;
-  background: ${TEAL};
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border: none;
-  padding: 10px 18px;
-  border-radius: 6px;
+  padding: 11px 22px;
+  border-radius: 12px;
   font-weight: 600;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   cursor: pointer;
-  transition: background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);
+  transition: all 0.25s ease;
   white-space: nowrap;
 
   &:hover {
-    background: ${TEAL_DARK};
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   @media (max-width: 640px) {
-    grid-column: 1;
-    justify-self: stretch;
     width: 100%;
-    padding: 12px 18px;
+    justify-content: center;
   }
+`;
+
+const ControlsSection = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 18px 20px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const FilterField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const DateInput = styled.input`
+  padding: 9px 13px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #1e293b;
+  background: #fff;
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+  }
+`;
+
+const TotalCard = styled.div`
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.12) 100%);
+  border: 1.5px solid rgba(102, 126, 234, 0.2);
+  border-radius: 14px;
+  padding: 10px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  @media (max-width: 768px) {
+    justify-content: space-between;
+  }
+`;
+
+const TotalIconBox = styled.div`
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.25);
+`;
+
+const TotalDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const TotalLabel = styled.span`
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+`;
+
+const TotalValue = styled.span`
+  font-size: 22px;
+  font-weight: 700;
+  color: #4338ca;
+  letter-spacing: -0.5px;
+`;
+
+const ActionBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+`;
+
+const ExportGroup = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const ExportExcelBtn = styled.button`
+  background: #ecfdf5;
+  color: #059669;
+  border: 1.5px solid #a7f3d0;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #059669;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ExportPdfBtn = styled.button`
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #dc2626;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const EntryCountBadge = styled.span`
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
 `;
 
 const TableWrapper = styled.div`
   overflow-x: auto;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  background: #fff;
 
   @media (max-width: 768px) {
-    overflow-x: visible;
+    border: none;
     box-shadow: none;
-    border-radius: 0;
+    background: transparent;
+    overflow-x: visible;
   }
 `;
 
 const Table = styled.table`
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: #fff;
+  font-size: 13.5px;
 
-  th,
-  td {
-    padding: 12px 14px;
+  th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 14px 16px;
+    border-bottom: 2px solid #e2e8f0;
     text-align: left;
-    font-size: 14px;
-    border-bottom: 1px solid #eef2f2;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
     white-space: nowrap;
   }
 
-  th {
-    background: ${TEAL_DARK};
-    color: #fff;
-    position: sticky;
-    top: 0;
+  tbody tr {
+    transition: background 0.15s ease;
+    &:hover {
+      background: #f8faff;
+    }
+    &:last-child td {
+      border-bottom: none;
+    }
   }
 
-  tbody tr:hover {
-    background: #f2fbfb;
-  }
-
-  /* --- Phone: convert table to stacked cards --- */
   @media (max-width: 768px) {
     thead {
       display: none;
     }
 
-    tbody,
-    tr,
-    td {
+    tbody, tr, td {
       display: block;
       width: 100%;
+      box-sizing: border-box;
     }
 
     tr {
       background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-      margin-bottom: 14px;
-      padding: 6px 4px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      margin-bottom: 16px;
+      padding: 8px 12px;
     }
 
     td {
@@ -216,8 +434,9 @@ const Table = styled.table`
       gap: 12px;
       white-space: normal;
       text-align: right;
-      border-bottom: 1px solid #f4f7f7;
-      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      padding: 10px 8px;
+      font-size: 13px;
     }
 
     td:last-child {
@@ -226,10 +445,10 @@ const Table = styled.table`
 
     td::before {
       content: attr(data-label);
-      font-weight: 600;
-      color: ${TEAL_DARK};
+      font-weight: 700;
+      color: #64748b;
       text-align: left;
-      font-size: 12px;
+      font-size: 11.5px;
       text-transform: uppercase;
       letter-spacing: 0.03em;
       flex-shrink: 0;
@@ -237,157 +456,184 @@ const Table = styled.table`
   }
 `;
 
-const EmptyState = styled.div`
-  padding: 40px;
-  text-align: center;
-  color: #7a8a8a;
+const AmountBadge = styled.span`
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1fae5;
+  display: inline-block;
+`;
 
-  @media (max-width: 480px) {
-    padding: 28px 16px;
+const LocationBadge = styled.span`
+  font-weight: 600;
+  color: #4338ca;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+`;
+
+const RowSelect = styled.select`
+  padding: 7px 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+  min-width: 160px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+  }
+
+  &:disabled {
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
+    opacity: 0.9;
+  }
+
+  @media (max-width: 768px) {
+    min-width: 0;
+    width: 100%;
+    max-width: 190px;
     font-size: 14px;
   }
 `;
 
-const FilterBar = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 18px;
-  padding: 14px 16px;
-  background: #f7f5fc;
+const PhotoThumb = styled.img`
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
   border-radius: 8px;
-
-  @media (max-width: 640px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const ExportBar = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-
-  @media (max-width: 640px) {
-    flex-direction: column;
-  }
-`;
-
-const ExportButton = styled.button`
-  background: #fff;
-  color: ${TEAL_DARK};
-  border: 1.5px solid ${TEAL_DARK};
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 13px;
+  border: 2px solid #e2e8f0;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-  &:hover:not(:disabled) {
-    background: ${TEAL_DARK};
-    color: #fff;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
   }
 `;
 
-const FilterGroup = styled.div`
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-  }
-`;
-
-const FilterField = styled.div`
+const EmptyState = styled.div`
+  padding: 48px 20px;
+  text-align: center;
+  color: #64748b;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
 `;
 
-const FilterLabel = styled.label`
-  font-size: 12px;
-  font-weight: 600;
-  color: ${TEAL_DARK};
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-`;
-
-const DateInput = styled.input`
-  padding: 8px 10px;
-  border: 1px solid #d5dede;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #333;
+const SummaryWrapper = styled.div`
+  margin-top: 28px;
   background: #fff;
-
-  &:focus {
-    outline: none;
-    border-color: ${TEAL};
-  }
+  border-radius: 16px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  max-width: 520px;
 `;
 
-const TotalBox = styled.div`
-  text-align: right;
+const SummaryHeaderBox = styled.div`
+  background: linear-gradient(135deg, #f8fafc 0%, #ede9fe 100%);
+  padding: 14px 18px;
+  border-bottom: 1.5px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
 
-  @media (max-width: 640px) {
+const SummaryHeading = styled.h3`
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #4338ca;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const SummaryTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 11px 18px;
     text-align: left;
   }
+
+  th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  td {
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+  }
+
+  tr:hover td {
+    background: #faf5ff;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
 `;
 
-const TotalLabel = styled.div`
-  font-size: 12px;
-  color: #7a8a8a;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-`;
-
-const TotalValue = styled.div`
-  font-size: 22px;
-  font-weight: 700;
-  color: ${TEAL_DARK};
-`;
+// ─── Modal Styled Components ──────────────────────────────────────────────────
 
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10000;
+  padding: 16px;
 
   @media (max-width: 640px) {
     align-items: flex-end;
+    padding: 0;
   }
 `;
 
 const ModalBox = styled.div`
   background: #fff;
-  width: 460px;
-  max-width: 92vw;
+  width: 480px;
+  max-width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  border-radius: 10px;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  padding: 26px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  font-family: 'Poppins', sans-serif;
 
   @media (max-width: 640px) {
     width: 100%;
-    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px));
     max-height: 92vh;
-    border-radius: 14px 14px 0 0;
-    padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   }
 `;
 
@@ -395,34 +641,45 @@ const ModalHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
 `;
 
 const ModalTitle = styled.h3`
-  color: ${TEAL_DARK};
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const CloseButton = styled.button`
-  background: transparent;
+  background: #f1f5f9;
   border: none;
-  font-size: 22px;
-  line-height: 1;
-  color: #7a8a8a;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 14px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #eef2f2;
-    color: ${TEAL_DARK};
+    background: #e2e8f0;
+    color: #0f172a;
   }
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
 `;
@@ -430,54 +687,53 @@ const FormGroup = styled.div`
 const Label = styled.label`
   font-size: 13px;
   font-weight: 600;
-  color: #444;
+  color: #334155;
   margin-bottom: 6px;
 `;
 
 const Input = styled.input`
-  padding: 9px 10px;
-  border: 1px solid #d5dede;
-  border-radius: 6px;
-  font-size: 16px; /* 16px+ prevents iOS Safari auto-zoom on focus */
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.2s ease;
 
   &:focus {
     outline: none;
-    border-color: ${TEAL};
-  }
-
-  @media (min-width: 641px) {
-    font-size: 14px;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
   }
 `;
 
 const Select = styled.select`
-  padding: 9px 10px;
-  border: 1px solid #d5dede;
-  border-radius: 6px;
-  font-size: 16px; /* 16px+ prevents iOS Safari auto-zoom on focus */
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   background: #fff;
+  transition: all 0.2s ease;
 
   &:focus {
     outline: none;
-    border-color: ${TEAL};
-  }
-
-  @media (min-width: 641px) {
-    font-size: 14px;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
   }
 `;
 
 const ErrorText = styled.span`
-  color: #c0392b;
+  color: #ef4444;
   font-size: 12px;
   margin-top: 4px;
+  font-weight: 500;
 `;
 
 const ModalActions = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 22px;
 
   @media (max-width: 480px) {
     flex-direction: column-reverse;
@@ -489,34 +745,20 @@ const ModalActions = styled.div`
 `;
 
 const CancelBtn = styled.button`
-  background: #eef2f2;
-  color: #333;
+  background: #f1f5f9;
+  color: #475569;
   border: none;
-  padding: 9px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-
-  @media (max-width: 480px) {
-    padding: 12px 16px;
-  }
-`;
-
-const SaveBtn = styled.button`
-  background: ${TEAL};
-  color: #fff;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 6px;
-  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: 10px;
   font-weight: 600;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  &:hover:not(:disabled) {
-    background: ${TEAL_DARK};
+  &:hover {
+    background: #e2e8f0;
+    color: #1e293b;
   }
 
   @media (max-width: 480px) {
@@ -524,94 +766,42 @@ const SaveBtn = styled.button`
   }
 `;
 
+const SaveBtn = styled.button`
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.25s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 22px;
+  }
+`;
+
 const TimeRow = styled.div`
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 
   select {
     flex: 1;
     min-width: 0;
-  }
-`;
-
-const RowSelect = styled.select`
-  padding: 6px 8px;
-  border: 1px solid #d5dede;
-  border-radius: 6px;
-  font-size: 13px;
-  background: #fff;
-  min-width: 150px;
-
-  &:focus {
-    outline: none;
-    border-color: ${TEAL};
-  }
-
-  &:disabled {
-    background: #f1f3f5;
-    color: #495057;
-    cursor: not-allowed;
-    border-color: #d5dede;
-    opacity: 0.85;
-  }
-
-  @media (max-width: 768px) {
-    min-width: 0;
-    width: 100%;
-    max-width: 190px;
-    font-size: 16px; /* avoid iOS zoom */
-    padding: 8px;
-  }
-`;
-
-const SummaryWrapper = styled.div`
-  margin-top: 24px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #eef2f2;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  max-width: 500px;
-`;
-
-const SummaryHeaderBox = styled.div`
-  background: #f8f6fc;
-  padding: 12px 16px;
-  border-bottom: 1px solid #eef2f2;
-`;
-
-const SummaryHeading = styled.h3`
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: ${TEAL_DARK};
-`;
-
-const SummaryTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-
-  th,
-  td {
-    padding: 10px 16px;
-    text-align: left;
-  }
-
-  th {
-    background: #fafafa;
-    color: #555;
-    font-weight: 600;
-    border-bottom: 1px solid #eef2f2;
-  }
-
-  td {
-    border-bottom: 1px solid #f0f0f0;
-    color: #333;
-  }
-
-  tr:last-child td {
-    border-bottom: none;
   }
 `;
 
@@ -628,19 +818,20 @@ const PhotoButton = styled.label`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #eef2f2;
-  color: ${TEAL_DARK};
-  border: 1px solid #d5dede;
-  padding: 9px 14px;
-  border-radius: 6px;
+  background: #f8fafc;
+  color: #4338ca;
+  border: 1.5px dashed #cbd5e1;
+  padding: 11px 16px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.2s ease;
   flex: 1;
 
   &:hover {
-    background: #e2ecec;
+    background: #ede9fe;
+    border-color: #667eea;
   }
 
   @media (max-width: 420px) {
@@ -658,8 +849,8 @@ const PhotoPreview = styled.img`
   width: 100%;
   max-height: 180px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #d5dede;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
   display: block;
 `;
 
@@ -671,10 +862,9 @@ const RemovePhotoButton = styled.button`
   height: 28px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   color: #fff;
-  font-size: 16px;
-  line-height: 1;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -682,20 +872,29 @@ const RemovePhotoButton = styled.button`
   transition: background 0.15s ease;
 
   &:hover {
-    background: #d64545;
+    background: #ef4444;
   }
 `;
 
-const PhotoThumb = styled.img`
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #d5dede;
-  cursor: pointer;
-`;
+// ─── Helpers & Business Logic ─────────────────────────────────────────────────
 
 const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+const getErrorMessage = (err, fallback = "Something went wrong. Please try again.") => {
+  const data = err?.response?.data || err?.data || err;
+  if (!data || typeof data !== "object") {
+    return (typeof data === "string" && data) || err?.message || fallback;
+  }
+  if (data.message) return data.message;
+  if (data.error) return data.error;
+  if (data.errors && typeof data.errors === "object") {
+    const firstKey = Object.keys(data.errors)[0];
+    const firstVal = data.errors[firstKey];
+    const detail = Array.isArray(firstVal) ? firstVal[0] : firstVal;
+    return firstKey ? `${firstKey}: ${detail}` : fallback;
+  }
+  return err?.message || fallback;
+};
 
 const getTodayDate = () => {
   const d = new Date();
@@ -737,7 +936,6 @@ const getCollectorNameById = (collectors, id) => {
 const computeLocationSummary = (rows) => {
   if (!Array.isArray(rows) || rows.length === 0) return [];
 
-  // Group rows by date
   const byDate = {};
   rows.forEach((row) => {
     const d = row.date || "Unknown";
@@ -750,8 +948,8 @@ const computeLocationSummary = (rows) => {
 
   sortedDates.forEach((dateKey) => {
     const dayRows = byDate[dateKey];
-    const locCounts = new Map(); // Canonical name -> count
-    const keyMap = new Map(); // Lowercase -> Canonical name
+    const locCounts = new Map();
+    const keyMap = new Map();
 
     dayRows.forEach((row) => {
       if (!row.location || typeof row.location !== "string") return;
@@ -761,7 +959,6 @@ const computeLocationSummary = (rows) => {
         .filter(Boolean);
 
       parts.forEach((part) => {
-        // Strip any existing (count) if user typed e.g. "Kakapalayam(1)"
         const match = part.match(/^(.+?)\s*\(\s*\d+\s*\)$/);
         const name = match ? match[1].trim() : part.trim();
         if (!name) return;
@@ -813,6 +1010,7 @@ function TimeSelect({ value, onChange }) {
           </option>
         ))}
       </Select>
+      <span style={{ fontWeight: 700, color: "#94a3b8" }}>:</span>
       <Select value={m} onChange={(e) => update("m", e.target.value)}>
         <option value="">MM</option>
         {MINUTES.map((mm) => (
@@ -825,6 +1023,8 @@ function TimeSelect({ value, onChange }) {
   );
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 function Busfare() {
   const [busfares, setBusfares] = useState([]);
   const [collectors, setCollectors] = useState([]);
@@ -835,7 +1035,7 @@ function Busfare() {
   const [saving, setSaving] = useState(false);
   const [pickingUpId, setPickingUpId] = useState(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState(null);
-  const [toast, setToast] = useState(null); // { type: "success" | "error", message }
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -843,8 +1043,6 @@ function Busfare() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Date range filter — defaults to "today" for both ends so the table
-  // initially shows just the current date's entries.
   const [fromDate, setFromDate] = useState(getTodayDate());
   const [toDate, setToDate] = useState(getTodayDate());
 
@@ -882,7 +1080,6 @@ function Busfare() {
   const loadCollectors = useCallback(async () => {
     try {
       const res = await apiRequest(`${Labbaseurl}get_b2b_employees/`, "GET");
-      console.log("get_b2b_employees raw response:", res);
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
@@ -894,7 +1091,6 @@ function Busfare() {
         : Array.isArray(res?.data?.results)
         ? res.data.results
         : [];
-      console.log("collectors list resolved to:", list);
       setCollectors(list);
     } catch (err) {
       console.error("Failed to load collectors:", err);
@@ -903,133 +1099,132 @@ function Busfare() {
   }, []);
 
   useEffect(() => {
+    loadBusfares(fromDate, toDate);
+  }, [loadBusfares, fromDate, toDate]);
+
+  useEffect(() => {
     loadCollectors();
   }, [loadCollectors]);
 
-  useEffect(() => {
-    loadBusfares(fromDate, toDate);
-  }, [fromDate, toDate, loadBusfares]);
-
   const openModal = () => {
-    setFormData({ ...emptyForm, date: getTodayDate() });
+    setFormData(emptyForm);
     setErrors({});
     setPhotoPreviewUrl(null);
     setShowModal(true);
   };
 
   const closeModal = () => {
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-    setPhotoPreviewUrl(null);
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
     setShowModal(false);
+    setFormData(emptyForm);
+    setErrors({});
+    setPhotoPreviewUrl(null);
   };
 
   const handleChange = (field) => (e) => {
-    const value = field === "bustphoto" ? e.target.files?.[0] || null : e.target.value;
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const val = e.target.value;
+    setFormData((prev) => ({ ...prev, [field]: val }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
+    }
+  };
+
+  const handleTimeChange = (field) => (val) => {
+    setFormData((prev) => ({ ...prev, [field]: val }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
+    }
   };
 
   const handlePhotoChange = (e) => {
-    const file = e.target.files?.[0] || null;
-    setFormData((prev) => ({ ...prev, bustphoto: file }));
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
 
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-
-    if (file) {
-      setPhotoPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setPhotoPreviewUrl(null);
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
     }
 
-    // Allow re-selecting the same file (upload then camera, or vice versa)
+    setFormData((prev) => ({ ...prev, bustphoto: file }));
+    setPhotoPreviewUrl(URL.createObjectURL(file));
+
     e.target.value = "";
   };
 
-  // Clears whatever photo is currently staged (uploaded or captured) so the
-  // person can pick "Upload Photo" / "Use Camera" again if it was the wrong
-  // shot.
   const handleRemovePhoto = () => {
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-    setPhotoPreviewUrl(null);
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
     setFormData((prev) => ({ ...prev, bustphoto: null }));
-  };
-
-  const handleTimeChange = (field) => (value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setPhotoPreviewUrl(null);
   };
 
   const validate = () => {
-    const newErrors = {};
-    if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.location.trim()) newErrors.location = "Location is required";
-    if (!formData.amount || Number(formData.amount) <= 0)
-      newErrors.amount = "Enter a valid amount";
-    if (!formData.collectedby) newErrors.collectedby = "Please select who collected this";
-    if (!isCompleteTime(formData.pickuptime))
-      newErrors.pickuptime = "Pickup time is required";
-    if (!isCompleteTime(formData.busreachedtime))
-      newErrors.busreachedtime = "Bus reached time is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const errs = {};
+    if (!formData.date) errs.date = "Date is required";
+    if (!formData.location || !formData.location.trim())
+      errs.location = "Location is required";
+    if (
+      !formData.amount ||
+      isNaN(formData.amount) ||
+      parseFloat(formData.amount) <= 0
+    ) {
+      errs.amount = "Enter a valid amount";
+    }
+    if (!formData.collectedby)
+      errs.collectedby = "Please select a collector";
+    if (!formData.pickuptime || !isCompleteTime(formData.pickuptime))
+      errs.pickuptime = "Pickup time is required (HH:MM)";
+    if (!formData.busreachedtime || !isCompleteTime(formData.busreachedtime))
+      errs.busreachedtime = "Bus reached time is required (HH:MM)";
+    return errs;
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
 
     setSaving(true);
     try {
-      const cleanAmount = Number(formData.amount).toFixed(2);
-      const baseData = { ...formData, amount: cleanAmount };
+      const baseData = {
+        date: formData.date,
+        location: formData.location.trim(),
+        amount: parseFloat(formData.amount),
+        collectedby: formData.collectedby,
+        pickuptime: formData.pickuptime,
+        busreachedtime: formData.busreachedtime,
+      };
 
-      console.log("handleSave: formData.bustphoto =", formData.bustphoto);
-
-      if (baseData.bustphoto) {
-        // ── Multipart branch ────────────────────────────────────────
-        // apiRequest hardcodes "Content-Type: application/json" on every
-        // request and has no way to opt out of that, which breaks file
-        // uploads (axios needs to set its own multipart/form-data header
-        // with a boundary — a manually-set Content-Type here, JSON or
-        // otherwise, prevents that and the backend sees an empty
-        // request.FILES). So this one call goes straight through axios
-        // instead of apiRequest, reusing the same auth/branch headers.
-        const payload = new FormData();
-        Object.entries(baseData).forEach(([key, value]) => {
-          if (value !== null && value !== "") payload.append(key, value);
-        });
-        console.log(
-          "handleSave: sending multipart, bustphoto entry =",
-          payload.get("bustphoto")
-        );
+      if (formData.bustphoto instanceof File) {
+        const body = new FormData();
+        Object.entries(baseData).forEach(([k, v]) => body.append(k, v));
+        body.append("bustphoto", formData.bustphoto);
 
         const token = localStorage.getItem("access_token");
         const branch = localStorage.getItem("selected_branch");
+        const url = `${Labbaseurl}bus_fare/`;
 
-        const response = await axios.post(`${Labbaseurl}bus_fare/`, payload, {
+        const res = await axios.post(url, body, {
           headers: {
             Authorization: token,
             "Branch-Code": branch,
-            // Intentionally NOT setting Content-Type — axios must set it
-            // itself (multipart/form-data; boundary=...) for FormData.
           },
-          validateStatus: () => true,
         });
 
-        if (response.status < 200 || response.status >= 300) {
-          console.error("Failed to save bus fare:", response.data);
+        if (res.status >= 200 && res.status < 300) {
           setToast({
-            type: "error",
-            message: getErrorMessage({ response }, "Failed to save bus fare entry."),
+            type: "success",
+            message: res?.data?.message || "Bus fare entry saved successfully.",
           });
-          return;
+        } else {
+          throw res;
         }
-
-        setToast({
-          type: "success",
-          message: response.data?.message || "Bus fare entry saved successfully.",
-        });
       } else {
-        // No photo selected — plain JSON, apiRequest handles this fine.
         const { bustphoto, ...rest } = baseData;
-        console.log("handleSave: no photo selected, sending JSON without bustphoto");
         const res = await apiRequest(`${Labbaseurl}bus_fare/`, "POST", rest);
         setToast({
           type: "success",
@@ -1050,9 +1245,6 @@ function Busfare() {
     }
   };
 
-  // Sum of "amount" across whatever rows are currently loaded — since
-  // loadBusfares() is always called with the active fromDate/toDate range,
-  // this total naturally reflects just the filtered rows on screen.
   const totalAmount = (Array.isArray(busfares) ? busfares : []).reduce(
     (sum, row) => sum + (parseFloat(row.amount) || 0),
     0
@@ -1063,8 +1255,6 @@ function Busfare() {
     [busfares]
   );
 
-  // Builds the row data shared by both export formats, in display order,
-  // using the same lookups the table already uses for collector names.
   const buildExportRows = () =>
     (Array.isArray(busfares) ? busfares : []).map((row) => ({
       Date: row.date || "",
@@ -1080,7 +1270,6 @@ function Busfare() {
     const rows = buildExportRows();
     if (rows.length === 0) return;
 
-    // Total row
     rows.push({
       Date: "",
       Location: "Total",
@@ -1091,7 +1280,6 @@ function Busfare() {
       "Picked Up By": "",
     });
 
-    // One blank row below Total
     rows.push({
       Date: "",
       Location: "",
@@ -1102,18 +1290,6 @@ function Busfare() {
       "Picked Up By": "",
     });
 
-    // Location Summary Header
-    rows.push({
-      Date: "Date",
-      Location: "Location",
-      Amount: "Count",
-      "Collected By": "",
-      "Pickup Time": "",
-      "Bus Reached Time": "",
-      "Picked Up By": "",
-    });
-
-    // Location Summary Data
     locationSummary.forEach((item) => {
       rows.push({
         Date: item.date,
@@ -1148,232 +1324,324 @@ function Busfare() {
 
     const doc = new jsPDF({ orientation: "landscape" });
 
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.text("Bus Sample Summary", 14, 16);
+
     doc.setFontSize(10);
-    doc.setTextColor(120);
-    doc.text(`${fromDate} to ${toDate}`, 14, 22);
-    doc.setTextColor(0);
+    doc.text(`From: ${fromDate}   To: ${toDate}`, 14, 23);
+    doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, 14, 29);
+
+    const headers = [
+      "Date",
+      "Location",
+      "Amount",
+      "Collected By",
+      "Pickup Time",
+      "Bus Reached Time",
+      "Picked Up By",
+    ];
+
+    const body = rows.map((r) => [
+      r.Date,
+      r.Location,
+      r.Amount,
+      r["Collected By"],
+      r["Pickup Time"],
+      r["Bus Reached Time"],
+      r["Picked Up By"],
+    ]);
+
+    body.push(["", "Total", totalAmount.toFixed(2), "", "", "", ""]);
 
     autoTable(doc, {
-      head: [Object.keys(rows[0])],
-      body: rows.map((row) => Object.values(row)),
-      startY: 28,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [124, 92, 196], textColor: 255 },
-      alternateRowStyles: { fillColor: [247, 245, 252] },
+      head: [headers],
+      body,
+      startY: 34,
+      theme: "grid",
+      headStyles: { fillColor: [102, 126, 234], textColor: 255 },
+      styles: { fontSize: 9 },
     });
 
-    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 28;
-    doc.setFontSize(11);
-    doc.setFont(undefined, "bold");
-    doc.text(`Total Amount: Rs.${totalAmount.toFixed(2)}`, 14, finalY + 8);
-
     if (locationSummary.length > 0) {
-      doc.setFontSize(11);
-      doc.text("Location Summary:", 14, finalY + 18);
+      const summaryStartY = (doc.lastAutoTable?.finalY || 34) + 12;
+
+      doc.setFontSize(12);
+      doc.text("Location Summary", 14, summaryStartY);
+
+      const sumHeaders = ["Date", "Location", "Count"];
+      const sumBody = locationSummary.map((item) => [
+        item.date,
+        item.location,
+        String(item.count),
+      ]);
 
       autoTable(doc, {
-        head: [["Date", "Location", "Count"]],
-        body: locationSummary.map((item) => [item.date, item.location, item.count]),
-        startY: finalY + 22,
+        head: [sumHeaders],
+        body: sumBody,
+        startY: summaryStartY + 4,
         theme: "grid",
-        styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: [124, 92, 196], textColor: 255 },
-        alternateRowStyles: { fillColor: [247, 245, 252] },
-        tableWidth: 100,
+        headStyles: { fillColor: [118, 75, 162], textColor: 255 },
+        styles: { fontSize: 9 },
       });
     }
 
     doc.save(`bus-fares_${fromDate}_to_${toDate}.pdf`);
   };
 
-  const handlePickedUpChange = async (busfareId, pickedupby) => {
-    if (!pickedupby) return;
+  const handlePickedUpChange = async (busfareId, newPickedUpBy) => {
+    if (!newPickedUpBy) return;
+
     setPickingUpId(busfareId);
-
-    // Optimistic update so the dropdown reflects the choice immediately.
-    setBusfares((prev) =>
-      prev.map((row) =>
-        row.busfare_id === busfareId ? { ...row, pickedupby } : row
-      )
-    );
-
     try {
-      const res = await apiRequest(`${Labbaseurl}bus_fare/`, "PATCH", {
-        busfare_id: busfareId,
-        pickedupby,
-      });
+      const res = await apiRequest(
+        `${Labbaseurl}bus_fare/${busfareId}/pickedup/`,
+        "PATCH",
+        { pickedupby: newPickedUpBy }
+      );
       setToast({
         type: "success",
-        message: res?.message || res?.data?.message || "Pickup details updated successfully.",
+        message: res?.message || res?.data?.message || "Picked-up collector assigned.",
       });
-      loadBusfares(fromDate, toDate);
+      setBusfares((prev) =>
+        prev.map((row) =>
+          (row.busfare_id || row.id) === busfareId
+            ? { ...row, pickedupby: newPickedUpBy }
+            : row
+        )
+      );
     } catch (err) {
-      console.error("Failed to update pickedupby:", err);
+      console.error("Failed to update picked-up collector:", err);
       setToast({
         type: "error",
-        message: getErrorMessage(err, "Failed to update pickup details."),
+        message: getErrorMessage(err, "Failed to update picked-up collector."),
       });
-      loadBusfares(fromDate, toDate); // revert to server state on failure
     } finally {
       setPickingUpId(null);
     }
   };
 
   return (
-    <Wrapper>
+    <PageContainer>
       {toast && <Toast $type={toast.type}>{toast.message}</Toast>}
 
-      <Header>
-        <Title>Bus Sample Summary</Title>
-        <AddButton onClick={openModal}>+ Add Bus Fare</AddButton>
-      </Header>
+      <ContentCard>
+        <Header>
+          <TitleWrapper>
+            <Title>
+              <FaBus style={{ color: "#667eea" }} /> Bus Sample Summary
+            </Title>
+            <Subtitle>Track and manage bus sample collection fares and handover details</Subtitle>
+          </TitleWrapper>
+          <AddButton onClick={openModal}>
+            <FaPlus size={13} /> Add Bus Fare
+          </AddButton>
+        </Header>
 
-      <FilterBar>
-        <FilterGroup>
-          <FilterField>
-            <FilterLabel htmlFor="busfare-from-date">From</FilterLabel>
-            <DateInput
-              id="busfare-from-date"
-              type="date"
-              value={fromDate}
-              max={toDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </FilterField>
-          <FilterField>
-            <FilterLabel htmlFor="busfare-to-date">To</FilterLabel>
-            <DateInput
-              id="busfare-to-date"
-              type="date"
-              value={toDate}
-              min={fromDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </FilterField>
-        </FilterGroup>
-        <TotalBox>
-          <TotalLabel>Total Amount</TotalLabel>
-          <TotalValue>₹{totalAmount.toFixed(2)}</TotalValue>
-        </TotalBox>
-      </FilterBar>
+        <ControlsSection>
+          <FilterGroup>
+            <FilterField>
+              <FilterLabel htmlFor="busfare-from-date">
+                <FaCalendarAlt size={12} color="#667eea" /> From Date
+              </FilterLabel>
+              <DateInput
+                id="busfare-from-date"
+                type="date"
+                value={fromDate}
+                max={toDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </FilterField>
+            <FilterField>
+              <FilterLabel htmlFor="busfare-to-date">
+                <FaCalendarAlt size={12} color="#667eea" /> To Date
+              </FilterLabel>
+              <DateInput
+                id="busfare-to-date"
+                type="date"
+                value={toDate}
+                min={fromDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </FilterField>
+          </FilterGroup>
 
-      <ExportBar>
-        <ExportButton
-          onClick={handleExportExcel}
-          disabled={!Array.isArray(busfares) || busfares.length === 0}
-        >
-          ⬇ Export Excel
-        </ExportButton>
-        <ExportButton
-          onClick={handleExportPDF}
-          disabled={!Array.isArray(busfares) || busfares.length === 0}
-        >
-          ⬇ Export PDF
-        </ExportButton>
-      </ExportBar>
+          <TotalCard>
+            <TotalIconBox>
+              <FaRupeeSign />
+            </TotalIconBox>
+            <TotalDetails>
+              <TotalLabel>Total Bus Fare</TotalLabel>
+              <TotalValue>₹{totalAmount.toFixed(2)}</TotalValue>
+            </TotalDetails>
+          </TotalCard>
+        </ControlsSection>
 
-      <TableWrapper>
-        <Table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Location</th>
-              <th>Amount</th>
-              <th>Collected By</th>
-              <th>Pickup Time</th>
-              <th>Bus Reached Time</th>
-              <th>Picked Up By</th>
-              <th>Photo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(Array.isArray(busfares) ? busfares : []).map((row) => (
-              <tr key={row.busfare_id || row.id}>
-                <td data-label="Date">{row.date}</td>
-                <td data-label="Location">{row.location}</td>
-                <td data-label="Amount">{row.amount}</td>
-                <td data-label="Collected By">
-                  {getCollectorNameById(collectors, row.collectedby)}
-                </td>
-                <td data-label="Pickup Time">{row.pickuptime}</td>
-                <td data-label="Bus Reached">{row.busreachedtime}</td>
-                <td data-label="Picked Up By">
-                  <RowSelect
-                    value={row.pickedupby || ""}
-                    onChange={(e) => handlePickedUpChange(row.busfare_id, e.target.value)}
-                    disabled={pickingUpId === row.busfare_id || Boolean(row.pickedupby)}
-                    title={row.pickedupby ? "Picked Up By is finalized" : "Select collector"}
-                  >
-                    <option value="">Select collector</option>
-                    {(Array.isArray(collectors) ? collectors : []).map((collector, idx) => (
-                      <option key={idx} value={getCollectorValue(collector)}>
-                        {getCollectorLabel(collector)}
-                      </option>
-                    ))}
-                  </RowSelect>
-                </td>
-                <td data-label="Photo">
-                  {row.bustphoto ? (
-                    <a
-                      href={`${Labbaseurl}bus_fare_photo/?file_id=${row.bustphoto}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <PhotoThumb
-                        src={`${Labbaseurl}bus_fare_photo/?file_id=${row.bustphoto}`}
-                        alt="Bus photo"
-                      />
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-        {!loading && (!Array.isArray(busfares) || busfares.length === 0) && (
-          <EmptyState>No bus fare entries yet. Add one to get started.</EmptyState>
-        )}
-        {loading && <EmptyState>Loading...</EmptyState>}
-      </TableWrapper>
+        <ActionBar>
+          <ExportGroup>
+            <ExportExcelBtn
+              onClick={handleExportExcel}
+              disabled={!Array.isArray(busfares) || busfares.length === 0}
+            >
+              <FaFileExcel size={14} /> Export Excel
+            </ExportExcelBtn>
+            <ExportPdfBtn
+              onClick={handleExportPDF}
+              disabled={!Array.isArray(busfares) || busfares.length === 0}
+            >
+              <FaFilePdf size={14} /> Export PDF
+            </ExportPdfBtn>
+          </ExportGroup>
+          <EntryCountBadge>
+            Showing {Array.isArray(busfares) ? busfares.length : 0} {busfares.length === 1 ? "entry" : "entries"}
+          </EntryCountBadge>
+        </ActionBar>
 
-      {!loading && locationSummary.length > 0 && (
-        <SummaryWrapper>
-          <SummaryHeaderBox>
-            <SummaryHeading>Location Summary</SummaryHeading>
-          </SummaryHeaderBox>
-          <SummaryTable>
+        <TableWrapper>
+          <Table>
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Location</th>
-                <th>Count</th>
+                <th>Amount</th>
+                <th>Collected By</th>
+                <th>Pickup Time</th>
+                <th>Bus Reached Time</th>
+                <th>Picked Up By</th>
+                <th>Photo</th>
               </tr>
             </thead>
             <tbody>
-              {locationSummary.map((item, idx) => (
-                <tr key={idx}>
-                  <td>{item.date}</td>
-                  <td>{item.location}</td>
-                  <td>{item.count}</td>
+              {(Array.isArray(busfares) ? busfares : []).map((row) => (
+                <tr key={row.busfare_id || row.id}>
+                  <td data-label="Date">
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>{row.date}</span>
+                  </td>
+                  <td data-label="Location">
+                    <LocationBadge>
+                      <FaMapMarkerAlt size={12} /> {row.location}
+                    </LocationBadge>
+                  </td>
+                  <td data-label="Amount">
+                    <AmountBadge>₹{Number(row.amount || 0).toFixed(2)}</AmountBadge>
+                  </td>
+                  <td data-label="Collected By">
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 500 }}>
+                      <FaUser size={11} color="#6366f1" />
+                      {getCollectorNameById(collectors, row.collectedby)}
+                    </span>
+                  </td>
+                  <td data-label="Pickup Time">
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#475569" }}>
+                      <FaClock size={11} color="#94a3b8" /> {row.pickuptime || "-"}
+                    </span>
+                  </td>
+                  <td data-label="Bus Reached Time">
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#475569" }}>
+                      <FaClock size={11} color="#94a3b8" /> {row.busreachedtime || "-"}
+                    </span>
+                  </td>
+                  <td data-label="Picked Up By">
+                    <RowSelect
+                      value={row.pickedupby || ""}
+                      onChange={(e) => handlePickedUpChange(row.busfare_id, e.target.value)}
+                      disabled={pickingUpId === row.busfare_id || Boolean(row.pickedupby)}
+                      title={row.pickedupby ? "Picked Up By is finalized" : "Select collector"}
+                    >
+                      <option value="">Select collector</option>
+                      {(Array.isArray(collectors) ? collectors : []).map((collector, idx) => (
+                        <option key={idx} value={getCollectorValue(collector)}>
+                          {getCollectorLabel(collector)}
+                        </option>
+                      ))}
+                    </RowSelect>
+                  </td>
+                  <td data-label="Photo">
+                    {row.bustphoto ? (
+                      <a
+                        href={`${Labbaseurl}bus_fare_photo/?file_id=${row.bustphoto}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Click to view full photo"
+                      >
+                        <PhotoThumb
+                          src={`${Labbaseurl}bus_fare_photo/?file_id=${row.bustphoto}`}
+                          alt="Bus photo"
+                        />
+                      </a>
+                    ) : (
+                      <span style={{ color: "#94a3b8", fontSize: 12 }}>No photo</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
-          </SummaryTable>
-        </SummaryWrapper>
-      )}
+          </Table>
+
+          {!loading && (!Array.isArray(busfares) || busfares.length === 0) && (
+            <EmptyState>
+              <FaBus size={44} style={{ color: "#cbd5e1", marginBottom: 12 }} />
+              <div style={{ fontWeight: 600, fontSize: 16, color: "#475569" }}>No bus fare entries found</div>
+              <div style={{ color: "#94a3b8", fontSize: 13, marginTop: 4 }}>
+                Add an entry or adjust the date filter to see records.
+              </div>
+            </EmptyState>
+          )}
+
+          {loading && (
+            <EmptyState>
+              <div style={{ fontWeight: 600, color: "#667eea", fontSize: 15 }}>
+                Loading bus fare records...
+              </div>
+            </EmptyState>
+          )}
+        </TableWrapper>
+
+        {!loading && locationSummary.length > 0 && (
+          <SummaryWrapper>
+            <SummaryHeaderBox>
+              <SummaryHeading>
+                <FaMapMarkerAlt size={15} /> Location Summary
+              </SummaryHeading>
+            </SummaryHeaderBox>
+            <SummaryTable>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Location</th>
+                  <th style={{ textAlign: "right" }}>Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locationSummary.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>{item.date}</td>
+                    <td>
+                      <LocationBadge>
+                        <FaMapMarkerAlt size={11} /> {item.location}
+                      </LocationBadge>
+                    </td>
+                    <td style={{ textAlign: "right", fontWeight: 700, color: "#4338ca" }}>
+                      {item.count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </SummaryTable>
+          </SummaryWrapper>
+        )}
+      </ContentCard>
 
       {showModal &&
         ReactDOM.createPortal(
           <Overlay onClick={closeModal}>
             <ModalBox onClick={(e) => e.stopPropagation()}>
               <ModalHeader>
-                <ModalTitle>Add Bus Fare</ModalTitle>
+                <ModalTitle>
+                  <FaBus size={18} style={{ color: "#667eea" }} />
+                  Add Bus Fare
+                </ModalTitle>
                 <CloseButton onClick={closeModal} aria-label="Close">
-                  ×
+                  <FaTimes size={14} />
                 </CloseButton>
               </ModalHeader>
 
@@ -1387,7 +1655,7 @@ function Busfare() {
                 <Label>Location</Label>
                 <Input
                   type="text"
-                  placeholder="Enter location"
+                  placeholder="Enter location (e.g. Mettur)"
                   value={formData.location}
                   onChange={handleChange("location")}
                 />
@@ -1395,7 +1663,7 @@ function Busfare() {
               </FormGroup>
 
               <FormGroup>
-                <Label>Amount</Label>
+                <Label>Amount (₹)</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -1441,7 +1709,7 @@ function Busfare() {
                 <Label>Bus Photo (optional)</Label>
                 <PhotoActions>
                   <PhotoButton htmlFor="bustphoto-upload">
-                    Upload Photo
+                    <FaUpload size={13} style={{ marginRight: 6 }} /> Upload Photo
                     <input
                       id="bustphoto-upload"
                       type="file"
@@ -1451,7 +1719,7 @@ function Busfare() {
                     />
                   </PhotoButton>
                   <PhotoButton htmlFor="bustphoto-camera">
-                    Use Camera
+                    <FaCamera size={13} style={{ marginRight: 6 }} /> Use Camera
                     <input
                       id="bustphoto-camera"
                       type="file"
@@ -1471,7 +1739,7 @@ function Busfare() {
                       aria-label="Remove photo"
                       title="Remove photo"
                     >
-                      ×
+                      <FaTimes size={13} />
                     </RemovePhotoButton>
                   </PhotoPreviewWrapper>
                 )}
@@ -1480,14 +1748,14 @@ function Busfare() {
               <ModalActions>
                 <CancelBtn onClick={closeModal}>Cancel</CancelBtn>
                 <SaveBtn onClick={handleSave} disabled={saving}>
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? "Saving..." : "Save Bus Fare"}
                 </SaveBtn>
               </ModalActions>
             </ModalBox>
           </Overlay>,
           document.body
         )}
-    </Wrapper>
+    </PageContainer>
   );
 }
 
