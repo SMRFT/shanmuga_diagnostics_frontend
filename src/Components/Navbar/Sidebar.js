@@ -934,10 +934,10 @@ const Sidebar = () => {
 
                 <DropdownContent isOpen={dropdowns.logisticsDetails}>
                   <SubLink
-                    to="/LogisticsTaskManagement"
+                    to="/LogisticsTaskAssign"
                     onClick={() => setIsSidebarOpen(false)}
                   >
-                    Logistics Approval
+                    Logistics Task Assigning
                   </SubLink>
                   <SubLink
                     to="/Busfare"
@@ -961,6 +961,12 @@ const Sidebar = () => {
                 </DropdownHeader>
 
                 <DropdownContent isOpen={dropdowns.routeDetails}>
+                  <SubLink
+                    to="/RouteAnalysisDashboard"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    Route Analysis Dashboard
+                  </SubLink>
                   <SubLink
                     to="/RouteAnalysis"
                     onClick={() => setIsSidebarOpen(false)}
@@ -1479,7 +1485,8 @@ const Sidebar = () => {
               </>
             )}
 
-            {(role === "Sales Executive" || role === "Sales Person") && (
+            {/* Replaced by full General Manager access below */}
+            {false && (role === "Sales Executive" || role === "Sales Person") && (
               <>
                 <DropdownHeader
                   isOpen={dropdowns.patientDetails}
@@ -2325,7 +2332,11 @@ const Sidebar = () => {
               </>
             )}
 
-            {(role === "Diagnostics General Manager" || role === "General Manager" || role === "GM") && (
+            {(role === "Diagnostics General Manager" ||
+              role === "General Manager" ||
+              role === "GM" ||
+              role === "Sales Executive" ||
+              role === "Sales Person") && (
               <>
                 <SidebarNavLink
                   to="/MDashboard"
@@ -2716,6 +2727,13 @@ const Sidebar = () => {
                     onClick={() => setIsSidebarOpen(false)}
                   >
                     Salessummary
+                  </SubLink>
+
+                  <SubLink
+                    to="/SalesindividualReport"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    Sales Individual Report
                   </SubLink>
 
 

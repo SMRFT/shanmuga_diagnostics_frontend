@@ -1145,7 +1145,7 @@ const LogisticsTracking = () => {
 
                     {selectedCollector.stoppages && selectedCollector.stoppages.length > 0 && (
                       <div>
-                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Stops (>8 min)</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Stops (8+ min)</div>
                         <div style={{ fontSize: '13px', fontWeight: '700', color: '#d97706' }}>
                           {selectedCollector.stoppages.length} stops ({Math.round(selectedCollector.stoppages.reduce((acc, s) => acc + (s.durationMinutes || 0), 0))}m)
                         </div>

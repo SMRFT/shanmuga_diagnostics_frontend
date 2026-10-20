@@ -419,7 +419,10 @@ const RouteAnalysisDashboard = () => {
   const todayDate = new Date().toISOString().split("T")[0]
 
   const userRole = localStorage.getItem("role") || ""
-  const isSampleCollector = userRole === "Sample Collector"
+  const isSampleCollector =
+    userRole === "Sample Collector" ||
+    userRole?.toLowerCase().includes("sample collector") ||
+    userRole?.toLowerCase() === "collector"
   const userEmployeeId = localStorage.getItem("employeeId") || localStorage.getItem("employee_id") || ""
   const userName = localStorage.getItem("name") || ""
   
@@ -603,7 +606,9 @@ const RouteAnalysisDashboard = () => {
   return (
     <PageContainer>
       <DashboardHeader>
-        <h2>Route Analysis Dashboard</h2>
+        <h2>
+          Route Analysis Dashboard {isSampleCollector && <span style={{ fontSize: "1.1rem", fontWeight: "500", color: "#6366f1" }}>— My Routes</span>}
+        </h2>
         
         <FiltersContainer>
           <FilterGroup>
