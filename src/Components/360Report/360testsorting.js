@@ -1532,12 +1532,16 @@ const TestSorting = ({ patient, onClose }) => {
         }
       };
 
-      // // Sort orderedTests by the selection order FIRST
-      // orderedTests.sort((a, b) => {
-      //   const indexA = selectedTests.findIndex((t) => t.test_id === a.test_id);
-      //   const indexB = selectedTests.findIndex((t) => t.test_id === b.test_id);
-      //   return indexA - indexB;
-      // });
+      // Sort orderedTests by the selection order
+      orderedTests.sort((a, b) => {
+        const indexA = selectedTests.findIndex(
+          (t) => String(t.test_id) === String(a.test_id)
+        );
+        const indexB = selectedTests.findIndex(
+          (t) => String(t.test_id) === String(b.test_id)
+        );
+        return indexA - indexB;
+      });
 
       addHeaderFooter(showNablLogo); // showNablLogo is false here, will be corrected below
       let currentYPosition = addPatientInfo(contentYStart);
@@ -1591,17 +1595,23 @@ const TestSorting = ({ patient, onClose }) => {
             return acc;
           }, {});
 
-          const sortedDepts = Object.keys(testsByDept).sort((a, b) => {
-            const iA = departmentOrder.indexOf(a);
-            const iB = departmentOrder.indexOf(b);
-            if (iA !== -1 && iB !== -1) return iA - iB;
-            if (iA !== -1) return -1;
-            if (iB !== -1) return 1;
-            return a.localeCompare(b);
+          // Order departments by their first appearance in testsToRender
+          // (preserves the user's selected sequence, and preserves DEPARTMENT_ORDER in default)
+          const sortedDepts = [];
+          testsToRender.forEach((test) => {
+            const dept = test.department || "";
+            if (dept && !sortedDepts.includes(dept)) {
+              sortedDepts.push(dept);
+            }
+          });
+          Object.keys(testsByDept).forEach((dept) => {
+            if (!sortedDepts.includes(dept)) {
+              sortedDepts.push(dept);
+            }
           });
 
           sortedDepts.forEach((department) => {
-            const deptTests = [...testsByDept[department]].sort(compareTestsByOrderId);
+            const deptTests = testsByDept[department] || [];
             const verifiedBySet = new Set();
             deptTests.forEach((test) => {
               if (test.verified_by && test.verified_by.trim() !== "")
