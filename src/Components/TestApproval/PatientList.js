@@ -6,6 +6,7 @@ import styled, { createGlobalStyle, keyframes } from "styled-components";
 import {
   Search,
   Calendar,
+  Clock,
   Eye,
   AlertCircle,
   ChevronLeft,
@@ -13,6 +14,7 @@ import {
   Filter,
   AlertTriangle,
   Printer,
+  RotateCcw,
 } from "lucide-react";
 import { format } from "date-fns";
 import JsBarcode from "jsbarcode";
@@ -90,6 +92,60 @@ const Card = styled.div`
   box-shadow: var(--box-shadow);
   overflow: hidden;
 `;
+
+const SectionContainer = styled.div`
+  margin-top: 1.5rem;
+  &:first-of-type {
+    margin-top: 0;
+  }
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: ${(props) => (props.backlog ? "#fffbeb" : "#f8f9fa")};
+  border-bottom: 1px solid var(--gray-light);
+  border-left: 4px solid
+    ${(props) => (props.backlog ? "var(--warning)" : "var(--primary)")};
+`;
+
+const SectionTitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${(props) => (props.backlog ? "#92400e" : "var(--primary-dark)")};
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const SectionSubtitle = styled.span`
+  font-size: 0.8rem;
+  color: var(--gray);
+  font-weight: normal;
+`;
+
+const SectionBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: ${(props) =>
+    props.backlog ? "rgba(248, 150, 30, 0.15)" : "rgba(67, 97, 238, 0.1)"};
+  color: ${(props) => (props.backlog ? "var(--warning)" : "var(--primary)")};
+`;
+
 const Header = styled.div`
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
@@ -497,7 +553,8 @@ function PatientList() {
   const [toDate, setToDate] = useState(initialTo);
   const [emergencyFilter, setEmergencyFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
-  const [patientList, setPatientList] = useState([]);
+  const [currentDatePatients, setCurrentDatePatients] = useState([]);
+  const [backlogPatients, setBacklogPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleBarcodeStep = (delta) => {
@@ -516,6 +573,7 @@ function PatientList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [backlogPage, setBacklogPage] = useState(1);
   const [printingBarcode, setPrintingBarcode] = useState(null);
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -536,6 +594,7 @@ function PatientList() {
     if (location.state?.barcode) {
       setSearchQuery(location.state.barcode);
       setCurrentPage(1);
+      setBacklogPage(1);
     }
   }, [location.state]);
 
@@ -556,6 +615,8 @@ function PatientList() {
       queryParams.append("to_date", toDateParam.toLocaleDateString("en-CA"));
     if (emergency && emergency !== "all")
       queryParams.append("emergency", emergency);
+    queryParams.append("scope", "split");
+
     const queryString = queryParams.toString();
     const url = `${Labbaseurl}test-values/${queryString ? `?${queryString}` : ""}`;
     try {
@@ -564,14 +625,56 @@ function PatientList() {
         throw new Error(
           patientResponse.error || "Failed to fetch patient data",
         );
-      const patientData = Array.isArray(patientResponse.data)
-        ? patientResponse.data
-        : [];
-      setPatientList(patientData);
+
+      let currentData = [];
+      let backlogData = [];
+
+      let rawData = patientResponse.data;
+      if (
+        rawData &&
+        rawData.data &&
+        (rawData.data.selected_date !== undefined ||
+          rawData.data.all_days !== undefined ||
+          Array.isArray(rawData.data))
+      ) {
+        rawData = rawData.data;
+      }
+
+      if (
+        rawData &&
+        (rawData.selected_date !== undefined || rawData.all_days !== undefined)
+      ) {
+        currentData = rawData.selected_date || [];
+        backlogData = rawData.all_days || [];
+      } else if (Array.isArray(rawData)) {
+        const fromStr = fromDateParam
+          ? formatYmd(fromDateParam)
+          : formatYmd(today);
+        const toStr = toDateParam ? formatYmd(toDateParam) : formatYmd(today);
+        rawData.forEach((p) => {
+          let pDate = "";
+          if (p.date) {
+            try {
+              pDate = formatYmd(new Date(p.date));
+            } catch {
+              pDate = String(p.date).slice(0, 10);
+            }
+          }
+          if (pDate >= fromStr && pDate <= toStr) {
+            currentData.push(p);
+          } else {
+            backlogData.push(p);
+          }
+        });
+      }
+
+      setCurrentDatePatients(currentData);
+      setBacklogPatients(backlogData);
       setLoading(false);
     } catch (err) {
       setError(err.message);
-      setPatientList([]);
+      setCurrentDatePatients([]);
+      setBacklogPatients([]);
       setLoading(false);
     }
   };
@@ -584,14 +687,23 @@ function PatientList() {
   const handleFilter = () => {
     fetchPatientData(fromDate, toDate, emergencyFilter);
     setCurrentPage(1);
+    setBacklogPage(1);
   };
   const handleClearFilter = () => {
     setFromDate(today);
     setToDate(today);
+    setSearchQuery("");
     setEmergencyFilter("all");
     setLocationFilter("all");
+    try {
+      sessionStorage.removeItem("patient_from");
+      sessionStorage.removeItem("patient_to");
+    } catch (e) {
+      console.error(e);
+    }
     fetchPatientData(today, today, "all");
     setCurrentPage(1);
+    setBacklogPage(1);
   };
 
   const handleViewDetails = (patient) => {
@@ -1233,79 +1345,268 @@ function PatientList() {
       <NormalBadge>Normal</NormalBadge>
     );
 
-  // ── Grouping ──
-  const safePatientList = Array.isArray(patientList) ? patientList : [];
-  const groupedByBarcode = safePatientList.reduce((acc, patient) => {
-    const barcode = patient.barcode;
-    if (!acc[barcode]) {
-      acc[barcode] = {
-        ...patient,
-        testdetails: patient.testdetails
-          ? patient.testdetails.map((test) => ({
-            ...test,
-            created_date: patient.created_date,
-          }))
-          : [],
-        is_emergency: patient.is_emergency || false,
-        patient_history: patient.patient_history || "",
-        age_type: patient.age_type || "",
-        gender: patient.gender || "",
-        phone: patient.phone || "",
-        ref_doctor: patient.ref_doctor || "",
-      };
-    } else {
-      const testsWithCreatedDate = patient.testdetails
-        ? patient.testdetails.map((test) => ({
-          ...test,
-          created_date: patient.created_date,
-        }))
-        : [];
-      acc[barcode].testdetails = [
-        ...acc[barcode].testdetails,
-        ...testsWithCreatedDate,
-      ];
-    }
-    return acc;
-  }, {});
-  const uniquePatients = Object.values(groupedByBarcode);
+  // ── Grouping and Filtering ──
+  const groupPatients = (list) => {
+    const safeList = Array.isArray(list) ? list : [];
+    const grouped = safeList.reduce((acc, patient) => {
+      if (!patient) return acc;
+      const barcode = String(patient.barcode || "");
+      if (!barcode) return acc;
+
+      let rawTests = patient.testdetails;
+      if (typeof rawTests === "string") {
+        try {
+          rawTests = JSON.parse(rawTests);
+        } catch {
+          rawTests = [];
+        }
+      }
+      const testList = Array.isArray(rawTests) ? rawTests : [];
+      const testsWithCreatedDate = testList.map((test) => ({
+        ...test,
+        created_date: patient.created_date,
+      }));
+
+      if (!acc[barcode]) {
+        acc[barcode] = {
+          ...patient,
+          locationId: patient.locationId || patient.location_id || "",
+          testdetails: testsWithCreatedDate,
+          is_emergency: Boolean(patient.is_emergency),
+          patient_history: patient.patient_history || "",
+          age_type: patient.age_type || "",
+          gender: patient.gender || "",
+          phone: patient.phone || "",
+          ref_doctor: patient.ref_doctor || "",
+        };
+      } else {
+        const existingTestIds = new Set(
+          acc[barcode].testdetails.map((t) => String(t.test_id)),
+        );
+        const newTests = testsWithCreatedDate.filter(
+          (t) => !existingTestIds.has(String(t.test_id)),
+        );
+        acc[barcode].testdetails = [
+          ...acc[barcode].testdetails,
+          ...newTests,
+        ];
+      }
+      return acc;
+    }, {});
+    return Object.values(grouped);
+  };
+
+  const filterPatients = (patients) => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    return patients.filter((p) => {
+      const matchesSearch =
+        !q ||
+        String(p.patientname || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.patient_id || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.barcode || "")
+          .toLowerCase()
+          .includes(q);
+      const loc = p.locationId || p.location_id || "";
+      const matchesLocation =
+        locationFilter === "all" || loc === locationFilter;
+      const matchesEmergency =
+        emergencyFilter === "all" ||
+        (emergencyFilter === "emergency" && p.is_emergency) ||
+        (emergencyFilter === "normal" && !p.is_emergency);
+      return matchesSearch && matchesLocation && matchesEmergency;
+    });
+  };
+
+  const uniqueCurrentPatients = useMemo(
+    () => groupPatients(currentDatePatients),
+    [currentDatePatients],
+  );
+  const uniqueBacklogPatients = useMemo(
+    () => groupPatients(backlogPatients),
+    [backlogPatients],
+  );
+
+  const filteredCurrentPatients = useMemo(
+    () => filterPatients(uniqueCurrentPatients),
+    [uniqueCurrentPatients, searchQuery, locationFilter, emergencyFilter],
+  );
+  const filteredBacklogPatients = useMemo(
+    () => filterPatients(uniqueBacklogPatients),
+    [uniqueBacklogPatients, searchQuery, locationFilter, emergencyFilter],
+  );
 
   const uniqueLocations = useMemo(() => {
-    const locations = uniquePatients
-      .map((p) => p.locationId)
-      .filter((loc) => loc && loc.trim() !== "");
+    const all = [...uniqueCurrentPatients, ...uniqueBacklogPatients];
+    const locations = all
+      .map((p) => p.locationId || p.location_id)
+      .filter((loc) => loc && String(loc).trim() !== "");
     return [...new Set(locations)].sort();
-  }, [uniquePatients]);
-
-  const filteredPatients = uniquePatients.filter((p) => {
-    const matchesSearch =
-      p.patientname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLocation =
-      locationFilter === "all" || p.locationId === locationFilter;
-    return matchesSearch && matchesLocation;
-  });
+  }, [uniqueCurrentPatients, uniqueBacklogPatients]);
 
   const patientsPerPage = 10;
-  const indexOfLastPatient = currentPage * patientsPerPage;
-  const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
-  const currentPatients = filteredPatients.slice(
-    indexOfFirstPatient,
-    indexOfLastPatient,
+
+  // Pagination for Current Date table
+  const indexOfLastCurrent = currentPage * patientsPerPage;
+  const indexOfFirstCurrent = indexOfLastCurrent - patientsPerPage;
+  const paginatedCurrentPatients = filteredCurrentPatients.slice(
+    indexOfFirstCurrent,
+    indexOfLastCurrent,
   );
-  const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
-  const nextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
-  const prevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  const totalCurrentPages =
+    Math.ceil(filteredCurrentPatients.length / patientsPerPage) || 1;
+
+  // Pagination for Backlog table
+  const indexOfLastBacklog = backlogPage * patientsPerPage;
+  const indexOfFirstBacklog = indexOfLastBacklog - patientsPerPage;
+  const paginatedBacklogPatients = filteredBacklogPatients.slice(
+    indexOfFirstBacklog,
+    indexOfLastBacklog,
+  );
+  const totalBacklogPages =
+    Math.ceil(filteredBacklogPatients.length / patientsPerPage) || 1;
+
+  // ── Reusable Table Renderer ──
+  const renderPatientTable = (
+    patients,
+    paginatedList,
+    page,
+    setPage,
+    totalPages,
+    emptyMessage,
+  ) => {
+    return (
+      <>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <tr>
+                <th>Date</th>
+                <th>Patient ID</th>
+                <th>Patient Name</th>
+                <th>Location</th>
+                <th>Barcode</th>
+                <th>Age</th>
+                <th>Priority Status</th>
+                <th>Test Name</th>
+                <th>Actions</th>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={10}
+                    style={{ textAlign: "center", padding: "2rem" }}
+                  >
+                    Loading patient data...
+                  </td>
+                </tr>
+              ) : paginatedList.length > 0 ? (
+                paginatedList.map((patient, index) => (
+                  <tr key={`${patient.barcode}-${index}`}>
+                    <td>
+                      {patient.date
+                        ? new Date(patient.date).toLocaleDateString()
+                        : "Invalid Date"}
+                    </td>
+                    <td>{patient.patient_id}</td>
+                    <td>{patient.patientname}</td>
+                    <td>{patient.locationId || patient.location_id || "-"}</td>
+                    <td>{patient.barcode}</td>
+                    <td>{patient.age}</td>
+                    <td>{getPriorityBadge(patient.is_emergency)}</td>
+                    <td>
+                      <TestList>
+                        {patient.testdetails &&
+                        patient.testdetails.length > 0 ? (
+                          patient.testdetails.map((test, idx) => (
+                            <TestItem key={idx}>
+                              <span>
+                                {test.test_id} -{" "}
+                                {test.test_name || test.testname || "Test"}
+                              </span>
+                              {test.outsourced && (
+                                <OutsourcedBadge>Outsourced</OutsourcedBadge>
+                              )}
+                            </TestItem>
+                          ))
+                        ) : (
+                          <TestItem>No tests available</TestItem>
+                        )}
+                      </TestList>
+                    </td>
+
+                    <td>
+                      <ActionButtonsContainer>
+                        <ViewButton onClick={() => handleViewDetails(patient)}>
+                          <Eye size={14} /> View
+                        </ViewButton>
+                        <PrintButton
+                          onClick={() => handlePrint(patient)}
+                          disabled={printingBarcode === patient.barcode}
+                          title="Print preliminary report"
+                        >
+                          <Printer size={14} />
+                          {printingBarcode === patient.barcode
+                            ? "Printing…"
+                            : "Print"}
+                        </PrintButton>
+                      </ActionButtonsContainer>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <NoData colSpan={10}>
+                    {emptyMessage ||
+                      "No patient data available for the selected criteria."}
+                  </NoData>
+                </tr>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {patients.length > 10 && (
+          <PaginationContainer>
+            <PaginationButton
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft size={16} />
+            </PaginationButton>
+            <PaginationInfo>
+              Page {page} of {totalPages}
+            </PaginationInfo>
+            <PaginationButton
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              <ChevronRight size={16} />
+            </PaginationButton>
+          </PaginationContainer>
+        )}
+        <div
+          style={{
+            padding: "0.75rem 1.5rem",
+            textAlign: "right",
+            color: "var(--gray)",
+            fontSize: "0.85rem",
+            borderTop: "1px solid var(--gray-light)",
+          }}
+        >
+          Showing {patients.length}{" "}
+          {patients.length === 1 ? "entry" : "entries"}
+        </div>
+      </>
+    );
   };
 
-  const showClear =
-    (fromDate && formatYmd(fromDate) !== formatYmd(today)) ||
-    (toDate && formatYmd(toDate) !== formatYmd(today)) ||
-    emergencyFilter !== "all" ||
-    locationFilter !== "all";
+
 
   if (error) {
     return (
@@ -1432,129 +1733,67 @@ function PatientList() {
             <FilterButton onClick={handleFilter}>
               <Filter size={16} /> Apply Filter
             </FilterButton>
-            {showClear && (
-              <ClearButton onClick={handleClearFilter}>Clear All</ClearButton>
-            )}
+            <ClearButton
+              onClick={handleClearFilter}
+              title="Clear all filters and reset to today"
+            >
+              <RotateCcw size={16} /> Clear Filters
+            </ClearButton>
           </FiltersContainer>
         </Header>
 
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <tr>
-                <th>Date</th>
-                <th>Patient ID</th>
-                <th>Patient Name</th>
-                <th>Location</th>
-                <th>Barcode</th>
-                <th>Age</th>
-                <th>Priority Status</th>
-                <th>Test Name</th>
-                <th>Actions</th>
-              </tr>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={10}
-                    style={{ textAlign: "center", padding: "2rem" }}
-                  >
-                    Loading patient data...
-                  </td>
-                </tr>
-              ) : currentPatients.length > 0 ? (
-                currentPatients.map((patient, index) => (
-                  <tr key={`${patient.barcode}-${index}`}>
-                    <td>
-                      {patient.date
-                        ? new Date(patient.date).toLocaleDateString()
-                        : "Invalid Date"}
-                    </td>
-                    <td>{patient.patient_id}</td>
-                    <td>{patient.patientname}</td>
-                    <td>{patient.locationId}</td>
-                    <td>{patient.barcode}</td>
-                    <td>{patient.age}</td>
-                    <td>{getPriorityBadge(patient.is_emergency)}</td>
-                    <td>
-                      <TestList>
-                        {patient.testdetails &&
-                          patient.testdetails.length > 0 ? (
-                          patient.testdetails.map((test, idx) => (
-                            <TestItem key={idx}>
-                              <span>
-                                {test.test_id} - {test.test_name}
-                              </span>
-                              {test.outsourced && (
-                                <OutsourcedBadge>Outsourced</OutsourcedBadge>
-                              )}
-                            </TestItem>
-                          ))
-                        ) : (
-                          <TestItem>No tests available</TestItem>
-                        )}
-                      </TestList>
-                    </td>
+        {/* ── TABLE 1: Current Date Data ── */}
+        <SectionContainer>
+          <SectionHeader>
+            <SectionTitleGroup>
+              <SectionTitle>
+                <Calendar size={18} />
+                Current Date Pending Approvals
+              </SectionTitle>
+              <SectionSubtitle>
+                ({fromDate ? format(fromDate, "MMM dd, yyyy") : ""} to{" "}
+                {toDate ? format(toDate, "MMM dd, yyyy") : ""})
+              </SectionSubtitle>
+            </SectionTitleGroup>
+            <SectionBadge>
+              {filteredCurrentPatients.length} Patients
+            </SectionBadge>
+          </SectionHeader>
+          {renderPatientTable(
+            filteredCurrentPatients,
+            paginatedCurrentPatients,
+            currentPage,
+            setCurrentPage,
+            totalCurrentPages,
+            "No pending approvals found for the selected date.",
+          )}
+        </SectionContainer>
 
-                    <td>
-                      <ActionButtonsContainer>
-                        <ViewButton onClick={() => handleViewDetails(patient)}>
-                          <Eye size={14} /> View
-                        </ViewButton>
-                        <PrintButton
-                          onClick={() => handlePrint(patient)}
-                          disabled={printingBarcode === patient.barcode}
-                          title="Print preliminary report"
-                        >
-                          <Printer size={14} />
-                          {printingBarcode === patient.barcode
-                            ? "Printing…"
-                            : "Print"}
-                        </PrintButton>
-                      </ActionButtonsContainer>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <NoData colSpan={10}>
-                    No patient data available for the selected criteria.
-                  </NoData>
-                </tr>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {filteredPatients.length > 10 && (
-          <PaginationContainer>
-            <PaginationButton onClick={prevPage} disabled={currentPage === 1}>
-              <ChevronLeft size={16} />
-            </PaginationButton>
-            <PaginationInfo>
-              Page {currentPage} of {totalPages}
-            </PaginationInfo>
-            <PaginationButton
-              onClick={nextPage}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight size={16} />
-            </PaginationButton>
-          </PaginationContainer>
-        )}
-        <div
-          style={{
-            padding: "1rem 1.5rem",
-            textAlign: "right",
-            color: "var(--gray)",
-            fontSize: "0.875rem",
-            borderTop: "1px solid var(--gray-light)",
-          }}
-        >
-          Showing {filteredPatients.length}{" "}
-          {filteredPatients.length === 1 ? "entry" : "entries"}
-        </div>
+        {/* ── TABLE 2: All Pending Approvals (Backlog) ── */}
+        <SectionContainer style={{ marginTop: "2rem" }}>
+          <SectionHeader backlog>
+            <SectionTitleGroup>
+              <SectionTitle backlog>
+                <Clock size={18} />
+                Waiting for Approval - All Days Backlog
+              </SectionTitle>
+              <SectionSubtitle>
+                (Pending approvals from previous days / other dates)
+              </SectionSubtitle>
+            </SectionTitleGroup>
+            <SectionBadge backlog>
+              {filteredBacklogPatients.length} Backlog Patients
+            </SectionBadge>
+          </SectionHeader>
+          {renderPatientTable(
+            filteredBacklogPatients,
+            paginatedBacklogPatients,
+            backlogPage,
+            setBacklogPage,
+            totalBacklogPages,
+            "No pending approvals found from other days.",
+          )}
+        </SectionContainer>
       </Card>
     </Container>
   );

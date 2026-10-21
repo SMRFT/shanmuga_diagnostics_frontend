@@ -141,14 +141,19 @@ const CheckboxContainer = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border: 2px solid ${(props) => (props.checked ? "#DB9BB9" : "#d1d1d1")};
   border-radius: 6px;
   margin-right: 15px;
   transition: all 0.2s;
   background: ${(props) => (props.checked ? "#DB9BB9" : "transparent")};
   cursor: pointer;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  user-select: none;
 
   &:hover {
     border-color: #db9bb9;
@@ -329,6 +334,67 @@ const PreliminaryBadge = styled.span`
   margin-left: 8px;
 `;
 
+const SequenceBadgeWrapper = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+`;
+
+const SequenceBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fdf2f7;
+  color: #a44d78;
+  border: 1px solid #db9bb9;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+`;
+
+const ReorderButtons = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+`;
+
+const ReorderBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: #f7f7f7;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #db9bb9;
+    color: white;
+    border-color: #db9bb9;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const Subtitle = styled.div`
+  margin-top: 4px;
+  font-size: 13px;
+  color: #777;
+  font-weight: 400;
+`;
+
 const FranchiseMBTestSorting = ({ patient, onClose }) => {
   const [tests, setTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -403,6 +469,21 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
       return isSelected
         ? prev.filter((t) => t.record_id !== test.record_id)
         : [...prev, test];
+    });
+  };
+
+  const handleMoveTest = (recordId, direction, e) => {
+    if (e) e.stopPropagation();
+    setSelectedTests((prev) => {
+      const idx = prev.findIndex((t) => t.record_id === recordId);
+      if (idx === -1) return prev;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const newArr = [...prev];
+      const temp = newArr[idx];
+      newArr[idx] = newArr[targetIdx];
+      newArr[targetIdx] = temp;
+      return newArr;
     });
   };
 
@@ -1195,7 +1276,12 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
           </LoadingOverlay>
         )}
         <ModalHeader>
-          <Title>Sort and Select Microbiology Tests</Title>
+          <div>
+            <Title>Sort and Select Microbiology Tests</Title>
+            <Subtitle>
+              Select tests in desired print order. The sequence numbers (Seq #) indicate the order tests will appear in the report.
+            </Subtitle>
+          </div>
         </ModalHeader>
 
         <SearchContainer>
@@ -1232,18 +1318,20 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
             </div>
           ) : (
             filteredTests.map((test) => {
-              const isSelected = selectedTests.some(
+              const selectedIndex = selectedTests.findIndex(
                 (t) => t.record_id === test.record_id,
               );
+              const isSelected = selectedIndex !== -1;
+              const sequenceNumber = isSelected ? selectedIndex + 1 : null;
 
               return (
                 <TestItem
-                  key={test.test_id}
+                  key={test.record_id || test.test_id}
                   onClick={() => handleSelectTest(test)}
                 >
                   <TestInfo>
                     <CheckboxContainer checked={isSelected}>
-                      {isSelected && <Check size={14} color="white" />}
+                      {isSelected && sequenceNumber}
                     </CheckboxContainer>
                     <TestName selected={isSelected}>
                       {test.testname}
@@ -1252,6 +1340,31 @@ const FranchiseMBTestSorting = ({ patient, onClose }) => {
                         <PreliminaryBadge>Preliminary</PreliminaryBadge>
                       )}
                     </TestName>
+                    {isSelected && (
+                      <SequenceBadgeWrapper onClick={(e) => e.stopPropagation()}>
+                        <SequenceBadge title={`Selected print sequence: ${sequenceNumber}`}>
+                          Seq #{sequenceNumber}
+                        </SequenceBadge>
+                        {selectedTests.length > 1 && (
+                          <ReorderButtons>
+                            <ReorderBtn
+                              disabled={selectedIndex === 0}
+                              onClick={(e) => handleMoveTest(test.record_id, -1, e)}
+                              title="Move up in print order"
+                            >
+                              <ChevronUp size={12} />
+                            </ReorderBtn>
+                            <ReorderBtn
+                              disabled={selectedIndex === selectedTests.length - 1}
+                              onClick={(e) => handleMoveTest(test.record_id, 1, e)}
+                              title="Move down in print order"
+                            >
+                              <ChevronDown size={12} />
+                            </ReorderBtn>
+                          </ReorderButtons>
+                        )}
+                      </SequenceBadgeWrapper>
+                    )}
                   </TestInfo>
                 </TestItem>
               );
