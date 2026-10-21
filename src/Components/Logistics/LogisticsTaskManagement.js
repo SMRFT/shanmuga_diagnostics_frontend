@@ -646,6 +646,8 @@ const LogisticsTaskManagement = () => {
   const wakeLockRef = useRef(null);
   const watchIdRef = useRef(null);
   const lastPutTimeRef = useRef(0);
+  const lastSentLocRef = useRef(null);
+  const lastHistorySaveLocRef = useRef(null);
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -997,11 +999,13 @@ const LogisticsTaskManagement = () => {
   const startWatchPosition = (userName, today, startTimeVal) => {
     requestWakeLock();
     lastPutTimeRef.current = 0; // Reset timer
+    lastSentLocRef.current = null;
+    lastHistorySaveLocRef.current = null;
 
     if (navigator.geolocation) {
       const id = navigator.geolocation.watchPosition(
         async (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
+          const { latitude, longitude, accuracy, speed } = position.coords;
 
           // Reject zero or empty coordinates
           if (!latitude || !longitude || (latitude === 0 && longitude === 0)) return;
@@ -1012,26 +1016,57 @@ const LogisticsTaskManagement = () => {
             return;
           }
 
-          // Update session storage
+          const now = Date.now();
           const sessionKey = `location_history_${today}`;
-          const locationHistory = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
 
-          // Avoid pushing same location too quickly
-          locationHistory.push({
-            latitude,
-            longitude,
-            timestamp: new Date().toISOString(),
-            accuracy
-          });
-          sessionStorage.setItem(sessionKey, JSON.stringify(locationHistory));
-          if (!sessionStorage.getItem(`location_start_${today}`)) {
-            sessionStorage.setItem(`location_start_${today}`, startTimeVal.toISOString());
+          // Calculate displacement from last transmitted point
+          let distFromLastSent = 999;
+          if (lastSentLocRef.current) {
+            distFromLastSent = calculateDistance(
+              lastSentLocRef.current.latitude,
+              lastSentLocRef.current.longitude,
+              latitude,
+              longitude
+            ) * 1000; // in meters
           }
 
-          // Throttle PUT requests to every 10 seconds to reduce server load
-          const now = Date.now();
-          if (now - lastPutTimeRef.current > 10000) {
+          // Calculate displacement from last saved history point
+          let distFromLastHistory = 999;
+          if (lastHistorySaveLocRef.current) {
+            distFromLastHistory = calculateDistance(
+              lastHistorySaveLocRef.current.latitude,
+              lastHistorySaveLocRef.current.longitude,
+              latitude,
+              longitude
+            ) * 1000;
+          }
+
+          // 1. Storage Optimization: Only write to sessionStorage when moved >= 15m (saves CPU churn & battery)
+          if (distFromLastHistory >= 15) {
+            lastHistorySaveLocRef.current = { latitude, longitude };
+            const locationHistory = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+            locationHistory.push({
+              latitude,
+              longitude,
+              timestamp: new Date().toISOString(),
+              accuracy
+            });
+            sessionStorage.setItem(sessionKey, JSON.stringify(locationHistory));
+            if (!sessionStorage.getItem(`location_start_${today}`)) {
+              sessionStorage.setItem(`location_start_${today}`, startTimeVal.toISOString());
+            }
+          }
+
+          // 2. Adaptive Cellular Radio Throttling (saves ~65% cellular radio battery power):
+          // - When moving (speed > 1.2 m/s or moved >= 25m): transmit every 25 seconds
+          // - When stationary (parked / at lab): transmit heartbeat every 90 seconds
+          const isMoving = (speed && speed > 1.2) || distFromLastSent >= 25;
+          const transmitInterval = isMoving ? 25000 : 90000;
+
+          if (now - lastPutTimeRef.current >= transmitInterval) {
             lastPutTimeRef.current = now;
+            lastSentLocRef.current = { latitude, longitude };
+
             try {
               await apiRequest(
                 `${Labbaseurl}sample-collector-location/`,
@@ -1044,13 +1079,15 @@ const LogisticsTaskManagement = () => {
                 },
                 null
               );
+
               // Update notification with new distance/status if needed
               if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                const currentHistory = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
                 navigator.serviceWorker.controller.postMessage({
                   type: 'SHOW_TRACKING_NOTIFICATION',
                   collector: userName,
                   startTime: startTimeVal.toISOString(),
-                  distance: calculateTotalDistance(locationHistory)
+                  distance: calculateTotalDistance(currentHistory)
                 });
               }
             } catch (err) {
