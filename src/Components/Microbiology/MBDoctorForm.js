@@ -597,7 +597,7 @@ const handleTestApprove = async (recordIndex, testIndex, approve_by) => {
         approve_by,
         approve_time: approveTime,
         barcode: test.barcode,
-        created_date: testDetail.created_date,
+        created_date: testDetail.created_date || test.created_date,
         test_id: testDetail.test_id,
       }
     );
@@ -693,7 +693,7 @@ const handleTestRerun = async (recordIndex, testIndex) => {
         rerun_by,
         rerun_time: rerunTime,
         barcode: test.barcode,
-        created_date: testDetail.created_date,
+        created_date: testDetail.created_date || test.created_date,
         test_id: testDetail.test_id,
       }
     );

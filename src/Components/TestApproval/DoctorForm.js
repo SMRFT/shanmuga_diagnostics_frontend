@@ -780,7 +780,7 @@ function DoctorForm() {
         approve_by,
         approve_time: approveTime,
         barcode: test.barcode,
-        created_date: testDetail.created_date,
+        created_date: testDetail.created_date || test.created_date,
         test_id: testDetail.test_id,
       };
       if (isCHC) {
@@ -880,7 +880,7 @@ function DoctorForm() {
           rerun_by,
           rerun_time: rerunTime,
           barcode: test.barcode,
-          created_date: testDetail.created_date,
+          created_date: testDetail.created_date || test.created_date,
           test_id: testDetail.test_id,
         },
       );
