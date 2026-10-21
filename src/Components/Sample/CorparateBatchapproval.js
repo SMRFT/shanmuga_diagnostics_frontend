@@ -901,7 +901,7 @@ const CorporateBatchApproval = () => {
   bulkUpdateAllTestsRef.current = () => bulkUpdateAllTests();
   bulkUpdateInProgressRef.current = bulkUpdateInProgress;
 
-  // Keyboard shortcut listener for Sample Details Modal (Shift+A to select all, Enter to save, Esc to close)
+  // Keyboard shortcut listener for Sample Details Modal (Shift+A to select all, Shift+S to save, Esc to close)
   useEffect(() => {
     if (!showSampleDetails || !selectedBatch) return;
 
@@ -921,13 +921,13 @@ const CorporateBatchApproval = () => {
         return;
       }
 
-      // Enter to update all selected tests
+      // Shift + S to update all selected tests
       if (
-        e.key === "Enter" &&
-        !e.shiftKey &&
+        e.shiftKey &&
         !e.ctrlKey &&
         !e.altKey &&
-        !e.metaKey
+        !e.metaKey &&
+        (e.key === "S" || e.key === "s" || e.code === "KeyS")
       ) {
         if (
           e.target &&
@@ -1922,7 +1922,7 @@ const CorporateBatchApproval = () => {
                       </ShortcutBadge>
                       <span style={{ color: "#a5b4fc" }}>•</span>
                       <ShortcutBadge>
-                        <Kbd>Enter</Kbd> Save
+                        <Kbd>Shift + S</Kbd> Save
                       </ShortcutBadge>
                     </ShortcutHintBar>
                   </div>
@@ -2028,7 +2028,7 @@ const CorporateBatchApproval = () => {
                               bulkUpdateInProgress ||
                               Object.keys(statusChanges).length === 0
                             }
-                            title="Update all selected (Enter)"
+                            title="Update all selected (Shift + S)"
                           >
                             <Activity size={16} />
                             {bulkUpdateInProgress
@@ -2043,7 +2043,7 @@ const CorporateBatchApproval = () => {
                                 boxShadow: "none",
                               }}
                             >
-                              Enter
+                              Shift + S
                             </Kbd>
                           </ActionButton>
                         </div>

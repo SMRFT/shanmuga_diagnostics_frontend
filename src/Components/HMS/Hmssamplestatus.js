@@ -751,7 +751,7 @@ const HmsSampleStatus = () => {
     fetchPatientsByDate();
   }, [fromDate, toDate, Labbaseurl]);
 
-  // Keyboard shortcut listener for Modal (Shift+A to select all, Enter to save, Esc to close)
+  // Keyboard shortcut listener for Modal (Shift+A to select all, Shift+S to save, Esc to close)
   useEffect(() => {
     if (!showModal) return;
 
@@ -771,13 +771,13 @@ const HmsSampleStatus = () => {
         return;
       }
 
-      // Enter to save tests
+      // Shift + S to save tests
       if (
-        e.key === "Enter" &&
-        !e.shiftKey &&
+        e.shiftKey &&
         !e.ctrlKey &&
         !e.altKey &&
-        !e.metaKey
+        !e.metaKey &&
+        (e.key === "S" || e.key === "s" || e.code === "KeyS")
       ) {
         if (
           e.target &&
@@ -1345,7 +1345,7 @@ const HmsSampleStatus = () => {
                     </ShortcutBadge>
                     <span style={{ color: "#a5b4fc" }}>•</span>
                     <ShortcutBadge>
-                      <Kbd>Enter</Kbd> Save
+                      <Kbd>Shift + S</Kbd> Save
                     </ShortcutBadge>
                   </ShortcutHintBar>
                   <CloseButton
@@ -1463,7 +1463,7 @@ const HmsSampleStatus = () => {
                       success
                       onClick={saveAllTestsForPatient}
                       disabled={isSaving || isSaved}
-                      title="Save (Enter)"
+                      title="Save (Shift + S)"
                     >
                       <Check size={16} />
                       {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}
@@ -1476,7 +1476,7 @@ const HmsSampleStatus = () => {
                           boxShadow: "none",
                         }}
                       >
-                        Enter
+                        Shift + S
                       </Kbd>
                     </Button>
                   </ButtonGroup>

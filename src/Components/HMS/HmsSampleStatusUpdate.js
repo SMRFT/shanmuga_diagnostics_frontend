@@ -752,11 +752,13 @@ const HmsSampleStatusUpdate = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [opIpFilter, setopIPFilter] = useState("All");
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   // Refs for keyboard shortcuts
   const selectAllTestsRef = useRef();
   const updateAllTestsRef = useRef();
   const isSavingRef = useRef(false);
+  const isSavedRef = useRef(false);
 
   selectAllTestsRef.current = () => {
     if (selectedPatient?.barcode) {
@@ -765,6 +767,7 @@ const HmsSampleStatusUpdate = () => {
   };
   updateAllTestsRef.current = () => updateAllTests();
   isSavingRef.current = isSaving;
+  isSavedRef.current = isSaved;
 
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
@@ -859,7 +862,7 @@ const HmsSampleStatusUpdate = () => {
     }
   }, [Labbaseurl]);
 
-  // Keyboard shortcut listener for Modal (Shift+A to select all, Enter to save, Esc to close)
+  // Keyboard shortcut listener for Modal (Shift+A to select all, Shift+S to save, Esc to close)
   useEffect(() => {
     if (!selectedPatient) return;
 
@@ -873,19 +876,19 @@ const HmsSampleStatusUpdate = () => {
         (e.key === "A" || e.key === "a" || e.code === "KeyA")
       ) {
         e.preventDefault();
-        if (!isSavingRef.current) {
+        if (!isSavingRef.current && !isSavedRef.current) {
           selectAllTestsRef.current?.();
         }
         return;
       }
 
-      // Enter to update all tests
+      // Shift + S to update all tests
       if (
-        e.key === "Enter" &&
-        !e.shiftKey &&
+        e.shiftKey &&
         !e.ctrlKey &&
         !e.altKey &&
-        !e.metaKey
+        !e.metaKey &&
+        (e.key === "S" || e.key === "s" || e.code === "KeyS")
       ) {
         if (
           e.target &&
@@ -895,7 +898,7 @@ const HmsSampleStatusUpdate = () => {
           return;
         }
         e.preventDefault();
-        if (!isSavingRef.current) {
+        if (!isSavingRef.current && !isSavedRef.current) {
           updateAllTestsRef.current?.();
         }
         return;
@@ -1008,7 +1011,7 @@ const HmsSampleStatusUpdate = () => {
   };
 
   const updateAllTests = async () => {
-    if (isSavingRef.current) return;
+    if (isSavingRef.current || isSavedRef.current) return;
     setIsSaving(true);
     isSavingRef.current = true;
     const barcode = selectedPatient.barcode;
@@ -1065,6 +1068,8 @@ const HmsSampleStatusUpdate = () => {
     if (hasErrors) {
       setError(errorMessage);
       setTimeout(() => setError(null), 3000);
+      setIsSaving(false);
+      isSavingRef.current = false;
       return;
     }
 
@@ -1072,6 +1077,8 @@ const HmsSampleStatusUpdate = () => {
     if (testsToUpdate.length === 0) {
       setError("Please select a status for at least one test before updating.");
       setTimeout(() => setError(null), 3000);
+      setIsSaving(false);
+      isSavingRef.current = false;
       return;
     }
 
@@ -1089,6 +1096,9 @@ const HmsSampleStatusUpdate = () => {
         setSuccessMessage(
           `Successfully updated ${testsToUpdate.length} test(s)!`,
         );
+        setError(null);
+        setIsSaved(true);
+        isSavedRef.current = true;
         setTimeout(() => {
           setSuccessMessage(null);
           closeModal();
@@ -1133,6 +1143,10 @@ const HmsSampleStatusUpdate = () => {
   };
 
   const openModal = (barcode) => {
+    setIsSaving(false);
+    isSavingRef.current = false;
+    setIsSaved(false);
+    isSavedRef.current = false;
     const patient = samples.find((sample) => sample.barcode === barcode);
     if (patient) {
       setSelectedPatient(patient);
@@ -1149,6 +1163,10 @@ const HmsSampleStatusUpdate = () => {
     setSelectedOutsourceLab({});
     setError(null);
     setSuccessMessage(null);
+    setIsSaving(false);
+    isSavingRef.current = false;
+    setIsSaved(false);
+    isSavedRef.current = false;
     fetchSampleCollected(); // ← refetch with current dates instead of reloading
   };
 
@@ -1423,7 +1441,7 @@ const HmsSampleStatusUpdate = () => {
                     </ShortcutBadge>
                     <span style={{ color: "#a5b4fc" }}>•</span>
                     <ShortcutBadge>
-                      <Kbd>Enter</Kbd> Save
+                      <Kbd>Shift + S</Kbd> Save
                     </ShortcutBadge>
                   </ShortcutHintBar>
                   <CloseButton
@@ -1539,6 +1557,7 @@ const HmsSampleStatusUpdate = () => {
                             onChange={() =>
                               selectAllTests(selectedPatient.barcode)
                             }
+                            disabled={isSaving || isSaved}
                           />
                         </Th>
                       </tr>
@@ -1564,6 +1583,7 @@ const HmsSampleStatusUpdate = () => {
                                   e.target.value,
                                 )
                               }
+                              disabled={isSaving || isSaved}
                             >
                               <option value="">Select Status</option>
                               <option value="Received">Received</option>
@@ -1589,6 +1609,7 @@ const HmsSampleStatusUpdate = () => {
                                       e.target.value,
                                     )
                                   }
+                                  disabled={isSaving || isSaved}
                                 >
                                   <option value="">Select Outsource Lab</option>
                                   {Array.isArray(outsourceLabs) &&
@@ -1628,6 +1649,7 @@ const HmsSampleStatusUpdate = () => {
                                   )
                                 }
                                 placeholder="Enter rejection reason"
+                                disabled={isSaving || isSaved}
                               />
                             )}
                           </Td>
@@ -1642,6 +1664,7 @@ const HmsSampleStatusUpdate = () => {
                                   testIndex,
                                 )
                               }
+                              disabled={isSaving || isSaved}
                             />
                           </Td>
                         </Tr>
@@ -1661,11 +1684,11 @@ const HmsSampleStatusUpdate = () => {
                   <Button
                     success
                     onClick={updateAllTests}
-                    disabled={isSaving}
-                    title="Update All Tests (Enter)"
+                    disabled={isSaving || isSaved}
+                    title="Update All Tests (Shift + S)"
                   >
                     <CheckCircle size={16} />
-                    {isSaving ? "Updating..." : "Update All Tests"}
+                    {isSaving ? "Updating..." : isSaved ? "Updated" : "Update All Tests"}
                     <Kbd
                       style={{
                         marginLeft: "0.35rem",
@@ -1675,7 +1698,7 @@ const HmsSampleStatusUpdate = () => {
                         boxShadow: "none",
                       }}
                     >
-                      Enter
+                      Shift + S
                     </Kbd>
                   </Button>
                 </div>
