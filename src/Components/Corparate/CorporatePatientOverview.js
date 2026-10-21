@@ -10,6 +10,11 @@ import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
 import CorporateTestSorting from "./CorporateTestSorting";
 import {
+  DEPARTMENT_ORDER,
+  sortTestsWithDepartmentAndOrder,
+  compareTestsByOrderId,
+} from "../Report/reportOrderUtils";
+import {
   Calendar,
   Search,
   Printer,
@@ -1037,9 +1042,12 @@ const CorporatePatientOverview = () => {
       // Keep a copy of all fetched tests (including Molecular Biology) for unapproved tests comparison
       const allFetchedTests = [...(patientDetails.testdetails || [])];
 
-      // Skip Molecular Biology tests from the printed report
-      patientDetails.testdetails = patientDetails.testdetails.filter(
-        (test) => test.department !== "Molecular Biology",
+      // Skip Molecular Biology tests from the printed report and sort tests
+      patientDetails.testdetails = sortTestsWithDepartmentAndOrder(
+        patientDetails.testdetails.filter(
+          (test) => test.department !== "Molecular Biology",
+        ),
+        DEPARTMENT_ORDER,
       );
 
       if (patientDetails.testdetails.length === 0) {
@@ -1568,14 +1576,15 @@ const CorporatePatientOverview = () => {
         );
 
         sortedDepartments.forEach((department) => {
+          const deptTests = [...testsByDepartment[department]].sort(compareTestsByOrderId);
           const verifiedBySet = new Set();
-          testsByDepartment[department].forEach((test) => {
+          deptTests.forEach((test) => {
             if (test.verified_by && test.verified_by.trim() !== "")
               verifiedBySet.add(test.verified_by);
           });
           const hasMultipleVerifiers = verifiedBySet.size > 1;
 
-          testsByDepartment[department].forEach((test, testIndex) => {
+          deptTests.forEach((test, testIndex) => {
             if (testIndex === 0) {
               yPos = checkForNewPage(yPos, 15);
               doc.setFont("helvetica", "bold");
@@ -1604,8 +1613,6 @@ const CorporatePatientOverview = () => {
               });
             }
 
-            yPos = checkForNewPage(yPos, 20);
-            doc.setFontSize(10);
             const testNameText = test.testname;
             const valueText = test.value || "";
             const methodText = (test.method || "")
@@ -1617,6 +1624,11 @@ const CorporatePatientOverview = () => {
               doc,
               testNameText,
               testNameWidth,
+            );
+            const specimenLines = wrapTextAndGetLines(
+              doc,
+              test.specimen_type || "",
+              colWidths[1] - 2,
             );
             const valueLines = wrapTextAndGetLines(
               doc,
@@ -1631,13 +1643,34 @@ const CorporatePatientOverview = () => {
             );
             const maxLines = Math.max(
               testNameLines.length,
+              specimenLines.length,
               valueLines.length,
               refMethodLines.length,
             );
             const lineHeight = 4.5;
             const actualRowHeight = maxLines * lineHeight + 2;
 
-            yPos = checkForNewPage(yPos, actualRowHeight);
+            let requiredHeight = actualRowHeight;
+            if (hasParameters) {
+              const firstParam = test.parameters[0];
+              const pMethod = (firstParam?.method || "").replace(/\bMethod\b/i, "").trim();
+              const pRefMethod = [firstParam?.reference_range, pMethod].filter(p => p && p.trim() !== "").join(" / ");
+              const pLines = Math.max(
+                wrapTextAndGetLines(doc, firstParam?.name || "", colWidths[0] - 2).length,
+                wrapTextAndGetLines(doc, firstParam?.specimen_type || "", colWidths[1] - 2).length,
+                wrapTextAndGetLines(doc, firstParam?.value || "", colWidths[3] - 2).length,
+                wrapTextAndGetLines(doc, pRefMethod, colWidths[5] - 2).length,
+                1,
+              );
+              const firstParamRowHeight = pLines * lineHeight + 2;
+              const subtitleHeight = (firstParam?.sub_title && firstParam.sub_title.trim() !== "") ? 8 : 0;
+              requiredHeight = actualRowHeight + (hasParameters ? 1.5 : 3.5) + subtitleHeight + firstParamRowHeight + 4;
+            } else if (test.notes && test.notes.trim() !== "") {
+              requiredHeight += 10;
+            }
+
+            yPos = checkForNewPage(yPos, requiredHeight);
+            doc.setFontSize(10);
             let xPos = leftMargin;
             doc.setFont("helvetica", "bold");
             renderWrappedText(
@@ -1765,7 +1798,18 @@ const CorporatePatientOverview = () => {
 
             Object.keys(parametersBySubtitle).forEach((subtitle) => {
               if (subtitle && subtitle.trim() !== "") {
-                yPos = checkForNewPage(yPos, 25);
+                const firstSubParam = parametersBySubtitle[subtitle]?.[0];
+                const spMethod = (firstSubParam?.method || "").replace(/\bMethod\b/i, "").trim();
+                const spRefMethod = [firstSubParam?.reference_range, spMethod].filter(p => p && p.trim() !== "").join(" / ");
+                const spLines = Math.max(
+                  wrapTextAndGetLines(doc, firstSubParam?.name || "", colWidths[0] - 2).length,
+                  wrapTextAndGetLines(doc, firstSubParam?.specimen_type || "", colWidths[1] - 2).length,
+                  wrapTextAndGetLines(doc, firstSubParam?.value || "", colWidths[3] - 2).length,
+                  wrapTextAndGetLines(doc, spRefMethod, colWidths[5] - 2).length,
+                  1,
+                );
+                const firstSubParamRowHeight = spLines * 4.5 + 2;
+                yPos = checkForNewPage(yPos, 6 + firstSubParamRowHeight + 2);
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(9);
                 doc.text(subtitle, leftMargin, yPos);
@@ -2026,9 +2070,36 @@ const CorporatePatientOverview = () => {
       });
       currentYPosition += 6;
 
-      const allTestStatuses = patient.test_statuses || [];
+      const allTestStatuses = patient.test_statuses || (patientDetails && patientDetails.test_statuses) || [];
+      const rawSampleStatus = (patientDetails && patientDetails.sample_status) || (patient && patient.sample_status) || [];
+      const sampleStatusList = typeof rawSampleStatus === "string"
+        ? (() => { try { return JSON.parse(rawSampleStatus); } catch (e) { return []; } })()
+        : Array.isArray(rawSampleStatus) ? rawSampleStatus : [];
+
       const unapprovedTests = allTestStatuses.filter((hmsTest) => {
-        return !allFetchedTests.some((fetchedTest) => fetchedTest.test_id === hmsTest.test_id);
+        const isReportedTest = allFetchedTests.some(
+          (fetchedTest) => String(fetchedTest.test_id) === String(hmsTest.test_id)
+        );
+        if (isReportedTest) return false;
+
+        let samplestatus = hmsTest.samplestatus || "";
+        if (!samplestatus && sampleStatusList.length > 0) {
+          const matchSample = sampleStatusList.find(
+            (s) => String(s.test_id) === String(hmsTest.test_id)
+          );
+          if (matchSample) {
+            samplestatus = matchSample.samplestatus || "";
+          }
+        }
+
+        const isPending =
+          String(samplestatus).trim().toLowerCase() === "pending" ||
+          String(samplestatus).trim().toLowerCase() === "sample pending" ||
+          String(hmsTest.status).trim().toLowerCase() === "pending";
+
+        if (isPending) return false;
+
+        return true;
       });
 
       if (unapprovedTests.length > 0) {

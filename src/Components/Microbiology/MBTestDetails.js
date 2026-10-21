@@ -1033,12 +1033,14 @@ function MBTestDetails() {
     const barcode = location.state?.barcode;
     const stateFromDate = location.state?.fromDate;
     const stateToDate = location.state?.toDate;
+    const activeTab = location.state?.activeTab;
 
     navigate("/MBPatientDetails", {
       state: {
         barcode: barcode,
         fromDate: stateFromDate || new Date(),
         toDate: stateToDate || new Date(),
+        activeTab: activeTab,
       },
     });
   };

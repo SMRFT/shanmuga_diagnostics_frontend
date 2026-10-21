@@ -21,6 +21,11 @@ import FooterImage from "../Images/Footer.png";
 import Dhana from "../Images/Dhana.png";
 import Brindha from "../Images/Brindha.png";
 import JsBarcode from "jsbarcode";
+import {
+    DEPARTMENT_ORDER,
+    sortTestsWithDepartmentAndOrder,
+    compareTestsByOrderId,
+} from "../Report/reportOrderUtils";
 
 /* ═══════════════════════════════════════════════
    DESIGN SYSTEM — viewport-locked, no page scroll
@@ -328,6 +333,15 @@ const ClinicalPatientOverview = () => {
                     ...patientDetails[0],
                     testdetails: patientDetails.flatMap((record) => record.testdetails || []),
                 };
+            }
+
+            if (patientDetails?.testdetails) {
+                patientDetails.testdetails = sortTestsWithDepartmentAndOrder(
+                    patientDetails.testdetails.filter(
+                        (test) => test.department !== "Molecular Biology"
+                    ),
+                    DEPARTMENT_ORDER
+                );
             }
 
             console.log("Processed Patient Details:", patientDetails);
@@ -769,8 +783,9 @@ const ClinicalPatientOverview = () => {
                 });
 
                 sortedDepartments.forEach((department) => {
+                    const deptTests = [...testsByDepartment[department]].sort(compareTestsByOrderId);
                     const verifiedBySet = new Set();
-                    testsByDepartment[department].forEach((test) => {
+                    deptTests.forEach((test) => {
                         if (test.verified_by && test.verified_by.trim() !== "") {
                             verifiedBySet.add(test.verified_by);
                         }
@@ -778,7 +793,7 @@ const ClinicalPatientOverview = () => {
 
                     const hasMultipleVerifiers = verifiedBySet.size > 1;
 
-                    testsByDepartment[department].forEach((test, testIndex) => {
+                    deptTests.forEach((test, testIndex) => {
                         if (testIndex === 0) {
                             const departmentHeight = 15;
                             yPos = checkForNewPage(yPos, departmentHeight);
@@ -804,13 +819,10 @@ const ClinicalPatientOverview = () => {
                             });
                         }
 
-                        const testHeaderHeight = 20;
-                        yPos = checkForNewPage(yPos, testHeaderHeight);
-
-                        doc.setFontSize(10);
-
+                        const hasParameters = test.parameters && test.parameters.length > 0;
                         const testNameText = test.testname;
                         const testNameLines = wrapTextAndGetLines(doc, testNameText, colWidths[0] - 2);
+                        const specimenLines = wrapTextAndGetLines(doc, test.specimen_type || "", colWidths[1] - 2);
                         const valueText = test.value || "";
                         const valueLines = wrapTextAndGetLines(doc, valueText, colWidths[3] - 2);
                         const referenceLines = wrapTextAndGetLines(doc, test.reference_range || "", colWidths[5] - 2);
@@ -819,6 +831,7 @@ const ClinicalPatientOverview = () => {
 
                         const maxLines = Math.max(
                             testNameLines.length,
+                            specimenLines.length,
                             valueLines.length,
                             referenceLines.length,
                             methodLines.length
@@ -826,7 +839,27 @@ const ClinicalPatientOverview = () => {
                         const lineHeight = 4;
                         const actualRowHeight = maxLines * lineHeight + 2;
 
-                        yPos = checkForNewPage(yPos, actualRowHeight);
+                        let requiredHeight = actualRowHeight;
+                        if (hasParameters) {
+                            const firstParam = test.parameters[0];
+                            const pMethod = (firstParam?.method || "").replace(/\bMethod\b/i, "").trim();
+                            const pLines = Math.max(
+                                wrapTextAndGetLines(doc, firstParam?.name || "", colWidths[0] - 2).length,
+                                wrapTextAndGetLines(doc, firstParam?.specimen_type || "", colWidths[1] - 2).length,
+                                wrapTextAndGetLines(doc, firstParam?.value || "", colWidths[3] - 2).length,
+                                wrapTextAndGetLines(doc, firstParam?.reference_range || "", colWidths[5] - 2).length,
+                                wrapTextAndGetLines(doc, pMethod, colWidths[6] - 2).length,
+                                1
+                            );
+                            const firstParamRowHeight = pLines * lineHeight + 2;
+                            const subtitleHeight = (firstParam?.sub_title && firstParam.sub_title.trim() !== "") ? 8 : 0;
+                            requiredHeight = actualRowHeight + (hasParameters ? 1.5 : 3.5) + subtitleHeight + firstParamRowHeight + 4;
+                        } else if (test.notes && test.notes.trim() !== "") {
+                            requiredHeight += 10;
+                        }
+
+                        yPos = checkForNewPage(yPos, requiredHeight);
+                        doc.setFontSize(10);
 
                         let xPos = leftMargin;
 
@@ -913,8 +946,18 @@ const ClinicalPatientOverview = () => {
 
                         Object.keys(parametersBySubtitle).forEach((subtitle) => {
                             if (subtitle && subtitle.trim() !== "") {
-                                const subtitleWithParamHeight = 25;
-                                yPos = checkForNewPage(yPos, subtitleWithParamHeight);
+                                const firstSubParam = parametersBySubtitle[subtitle]?.[0];
+                                const spMethod = (firstSubParam?.method || "").replace(/\bMethod\b/i, "").trim();
+                                const spLines = Math.max(
+                                    wrapTextAndGetLines(doc, firstSubParam?.name || "", colWidths[0] - 2).length,
+                                    wrapTextAndGetLines(doc, firstSubParam?.specimen_type || "", colWidths[1] - 2).length,
+                                    wrapTextAndGetLines(doc, firstSubParam?.value || "", colWidths[3] - 2).length,
+                                    wrapTextAndGetLines(doc, firstSubParam?.reference_range || "", colWidths[5] - 2).length,
+                                    wrapTextAndGetLines(doc, spMethod, colWidths[6] - 2).length,
+                                    1
+                                );
+                                const firstSubParamRowHeight = spLines * 4 + 2;
+                                yPos = checkForNewPage(yPos, 6 + firstSubParamRowHeight + 2);
 
                                 doc.setFont("helvetica", "bold");
                                 doc.setFontSize(9);

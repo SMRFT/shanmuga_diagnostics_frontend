@@ -18,6 +18,10 @@ import {
   Search,
   Flag,
 } from "lucide-react";
+import {
+  compareTestsByOrderId,
+  sortTestsWithDepartmentAndOrder,
+} from "../Report/reportOrderUtils";
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -140,14 +144,19 @@ const CheckboxContainer = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border: 2px solid ${(props) => (props.checked ? "#DB9BB9" : "#d1d1d1")};
   border-radius: 6px;
   margin-right: 15px;
   transition: all 0.2s;
   background: ${(props) => (props.checked ? "#DB9BB9" : "transparent")};
   cursor: pointer;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  user-select: none;
 
   &:hover {
     border-color: #db9bb9;
@@ -451,6 +460,67 @@ const ParamCountBadge = styled.span`
   font-weight: 500;
 `;
 
+const SequenceBadgeWrapper = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+`;
+
+const SequenceBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fdf2f7;
+  color: #a44d78;
+  border: 1px solid #db9bb9;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+`;
+
+const ReorderButtons = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+`;
+
+const ReorderBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: #f7f7f7;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #db9bb9;
+    color: white;
+    border-color: #db9bb9;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const Subtitle = styled.div`
+  margin-top: 4px;
+  font-size: 13px;
+  color: #777;
+  font-weight: 400;
+`;
+
 const HMSTestSorting = ({ patient, onClose }) => {
   const [tests, setTests] = useState([]);
   const [selectedTests, setSelectedTests] = useState([]);
@@ -481,16 +551,13 @@ const HMSTestSorting = ({ patient, onClose }) => {
           if (response.data[patient.barcode]) {
             const testDetails =
               response.data[patient.barcode].testdetails || [];
-            const sortedTests = testDetails.sort((a, b) => {
-              const numA = parseInt(a.test_name.match(/\d+/)?.[0]) || 0;
-              const numB = parseInt(b.test_name.match(/\d+/)?.[0]) || 0;
-              return numA - numB;
-            });
+            const sortedTests = sortTestsWithDepartmentAndOrder(testDetails);
 
             const testsWithDispatch = sortedTests.map((test) => ({
               test_id: test.test_id,
               test_name: test.test_name,
               test_code: test.test_code,
+              order_id: test.order_id || "",
               NABL: test.NABL || false,
               dispatched: test.dispatch || false,
               printed: test.printed || false,
@@ -754,6 +821,21 @@ const HMSTestSorting = ({ patient, onClose }) => {
         (t) => t.department !== "Molecular Biology",
       );
       return [...withoutMolBio, testToSelect];
+    });
+  };
+
+  const handleMoveTest = (testId, direction, e) => {
+    if (e) e.stopPropagation();
+    setSelectedTests((prev) => {
+      const idx = prev.findIndex((t) => t.test_id === testId);
+      if (idx === -1) return prev;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const newArr = [...prev];
+      const temp = newArr[idx];
+      newArr[idx] = newArr[targetIdx];
+      newArr[targetIdx] = temp;
+      return newArr;
     });
   };
 
@@ -1629,14 +1711,15 @@ const HMSTestSorting = ({ patient, onClose }) => {
           });
 
           sortedDepts.forEach((department) => {
+            const deptTests = [...testsByDept[department]].sort(compareTestsByOrderId);
             const verifiedBySet = new Set();
-            testsByDept[department].forEach((test) => {
+            deptTests.forEach((test) => {
               if (test.verified_by && test.verified_by.trim() !== "")
                 verifiedBySet.add(test.verified_by);
             });
             const hasMultipleVerifiers = verifiedBySet.size > 1;
 
-            testsByDept[department].forEach((test, testIndex) => {
+            deptTests.forEach((test, testIndex) => {
               if (testIndex === 0) {
                 yPos = checkForNewPage(yPos, 15);
                 doc.setFont("helvetica", "bold");
@@ -1665,7 +1748,6 @@ const HMSTestSorting = ({ patient, onClose }) => {
                 });
               }
 
-              yPos = checkForNewPage(yPos, 20);
               doc.setFontSize(10);
 
               const testNameText = test.testname;
@@ -1701,11 +1783,34 @@ const HMSTestSorting = ({ patient, onClose }) => {
                 specimenLines.length,
                 valueLines.length,
                 refMethodLines.length,
+                1,
               );
               const lineHeight = 4.5;
               const actualRowHeight = maxLines * lineHeight + 2;
 
-              yPos = checkForNewPage(yPos, actualRowHeight);
+              // Ensure that if a test has parameters, the test name header is NEVER displayed alone
+              // on the previous page if its parameter(s) cannot fit. Both the test name header and
+              // at least the first parameter (plus subtitle if present) must fit together; otherwise break to next page now.
+              let requiredHeight = actualRowHeight;
+              if (hasParameters) {
+                const firstParam = test.parameters[0];
+                const pMethod = (firstParam?.method || "").replace(/\bMethod\b/i, "").trim();
+                const pRefMethod = [firstParam?.reference_range, pMethod].filter(p => p && p.trim() !== "").join(" / ");
+                const pLines = Math.max(
+                  wrapTextAndGetLines(doc, firstParam?.name || "", colWidths[0] - 2).length,
+                  wrapTextAndGetLines(doc, firstParam?.specimen_type || "", colWidths[1] - 2).length,
+                  wrapTextAndGetLines(doc, firstParam?.value || "", colWidths[3] - 2).length,
+                  wrapTextAndGetLines(doc, pRefMethod, colWidths[5] - 2).length,
+                  1,
+                );
+                const firstParamRowHeight = pLines * lineHeight + 2;
+                const subtitleHeight = (firstParam?.sub_title && firstParam.sub_title.trim() !== "") ? 8 : 0;
+                requiredHeight = actualRowHeight + 1.5 + subtitleHeight + firstParamRowHeight + 4;
+              } else if (test.notes && test.notes.trim() !== "") {
+                requiredHeight += 10;
+              }
+
+              yPos = checkForNewPage(yPos, requiredHeight);
               let xPos = leftMargin;
 
               doc.setFont("helvetica", "bold");
@@ -1848,7 +1953,18 @@ const HMSTestSorting = ({ patient, onClose }) => {
 
               Object.keys(parametersBySubtitle).forEach((subtitle) => {
                 if (subtitle && subtitle.trim() !== "") {
-                  yPos = checkForNewPage(yPos, 25);
+                  const firstSubParam = parametersBySubtitle[subtitle]?.[0];
+                  const spMethod = (firstSubParam?.method || "").replace(/\bMethod\b/i, "").trim();
+                  const spRefMethod = [firstSubParam?.reference_range, spMethod].filter(p => p && p.trim() !== "").join(" / ");
+                  const spLines = Math.max(
+                    wrapTextAndGetLines(doc, firstSubParam?.name || "", colWidths[0] - 2).length,
+                    wrapTextAndGetLines(doc, firstSubParam?.specimen_type || "", colWidths[1] - 2).length,
+                    wrapTextAndGetLines(doc, firstSubParam?.value || "", colWidths[3] - 2).length,
+                    wrapTextAndGetLines(doc, spRefMethod, colWidths[5] - 2).length,
+                    1,
+                  );
+                  const firstSubParamRowHeight = spLines * 4.5 + 2;
+                  yPos = checkForNewPage(yPos, 6 + firstSubParamRowHeight + 2);
                   doc.setFont("helvetica", "bold");
                   doc.setFontSize(9);
                   doc.text(subtitle, leftMargin, yPos);
@@ -2610,9 +2726,36 @@ const HMSTestSorting = ({ patient, onClose }) => {
       });
       currentYPosition += 6;
 
-      const allTestStatuses = patient.test_statuses || [];
+      const allTestStatuses = patient.test_statuses || (patientDetails && patientDetails.test_statuses) || [];
+      const rawSampleStatus = (patientDetails && patientDetails.sample_status) || (patient && patient.sample_status) || [];
+      const sampleStatusList = typeof rawSampleStatus === "string"
+        ? (() => { try { return JSON.parse(rawSampleStatus); } catch (e) { return []; } })()
+        : Array.isArray(rawSampleStatus) ? rawSampleStatus : [];
+
       const unapprovedTests = allTestStatuses.filter((hmsTest) => {
-        return !tests.some((sortingTest) => sortingTest.test_id === hmsTest.test_id);
+        const isReportedTest = tests.some(
+          (sortingTest) => String(sortingTest.test_id) === String(hmsTest.test_id)
+        );
+        if (isReportedTest) return false;
+
+        let samplestatus = hmsTest.samplestatus || "";
+        if (!samplestatus && sampleStatusList.length > 0) {
+          const matchSample = sampleStatusList.find(
+            (s) => String(s.test_id) === String(hmsTest.test_id)
+          );
+          if (matchSample) {
+            samplestatus = matchSample.samplestatus || "";
+          }
+        }
+
+        const isPending =
+          String(samplestatus).trim().toLowerCase() === "pending" ||
+          String(samplestatus).trim().toLowerCase() === "sample pending" ||
+          String(hmsTest.status).trim().toLowerCase() === "pending";
+
+        if (isPending) return false;
+
+        return true;
       });
 
       if (unapprovedTests.length > 0) {
@@ -2681,7 +2824,12 @@ const HMSTestSorting = ({ patient, onClose }) => {
           </LoadingOverlay>
         )}
         <ModalHeader>
-          <Title>Sort and Select Tests</Title>
+          <div>
+            <Title>Sort and Select Tests</Title>
+            <Subtitle>
+              Select tests in desired print order. The sequence numbers (Seq #) indicate the order tests will appear in the report.
+            </Subtitle>
+          </div>
         </ModalHeader>
 
         <SearchContainer>
@@ -2748,10 +2896,12 @@ const HMSTestSorting = ({ patient, onClose }) => {
             </div>
           ) : (
             filteredTests.map((test) => {
-              const selectedEntry = selectedTests.find(
+              const selectedIndex = selectedTests.findIndex(
                 (t) => t.test_id === test.test_id,
               );
-              const isSelected = !!selectedEntry;
+              const isSelected = selectedIndex !== -1;
+              const sequenceNumber = isSelected ? selectedIndex + 1 : null;
+              const selectedEntry = isSelected ? selectedTests[selectedIndex] : null;
               const isDispatched = dispatchedTests.has(test.test_id);
               const isPrinted = printedTests.has(test.test_id);
               const hasParameters = test.parameters && test.parameters.length > 0;
@@ -2767,12 +2917,37 @@ const HMSTestSorting = ({ patient, onClose }) => {
                   <TestItem onClick={() => handleSelectTest(test)}>
                     <TestInfo>
                       <CheckboxContainer checked={isSelected}>
-                        {isSelected && <Check size={14} color="white" />}
+                        {isSelected && sequenceNumber}
                       </CheckboxContainer>
                       <TestName selected={isSelected}>
                         {test.test_name}
                         {test.NABL && <span className="nabl-asterisk">*</span>}
                       </TestName>
+                      {isSelected && (
+                        <SequenceBadgeWrapper onClick={(e) => e.stopPropagation()}>
+                          <SequenceBadge title={`Selected print sequence: ${sequenceNumber}`}>
+                            Seq #{sequenceNumber}
+                          </SequenceBadge>
+                          {selectedTests.length > 1 && (
+                            <ReorderButtons>
+                              <ReorderBtn
+                                disabled={selectedIndex === 0}
+                                onClick={(e) => handleMoveTest(test.test_id, -1, e)}
+                                title="Move up in print order"
+                              >
+                                <ChevronUp size={12} />
+                              </ReorderBtn>
+                              <ReorderBtn
+                                disabled={selectedIndex === selectedTests.length - 1}
+                                onClick={(e) => handleMoveTest(test.test_id, 1, e)}
+                                title="Move down in print order"
+                              >
+                                <ChevronDown size={12} />
+                              </ReorderBtn>
+                            </ReorderButtons>
+                          )}
+                        </SequenceBadgeWrapper>
+                      )}
                       {hasParameters && (
                         <>
                           <ParamCountBadge>
