@@ -789,40 +789,123 @@ const formatTimeRemaining = (seconds) => {
 };
 
 const HMSPatientOverview = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [patients, setPatients] = useState([]);
   const patientsRef = useRef([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [statuses, setStatuses] = useState({});
   const [commSummary, setCommSummary] = useState({});
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+
+  const [startDate, setStartDate] = useState(() => {
+    const raw = location.state?.fromDate || location.state?.startDate;
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const raw = location.state?.toDate || location.state?.endDate;
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
+  });
+
+  const initialPatientId =
+    location.state?.patientId ||
+    location.state?.patient_id ||
+    location.state?.uhid ||
+    location.state?.searchQuery ||
+    location.state?.barcode ||
+    "";
+
   const [activeDropdownPatientId, setActiveDropdownPatientId] = useState(null);
   const [activeDropdownType, setActiveDropdownType] = useState(null);
   const [refByOptions, setRefByOptions] = useState([]);
-  const [branch, setBranch] = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [refBy, setRefBy] = useState("");
-  const [patientId, setPatientId] = useState("");
-  const [IPNumber, setIPNumber] = useState("");
-  const [patientName, setPatientName] = useState("");
+  const [branch, setBranch] = useState(location.state?.branch || "");
+  const [barcode, setBarcode] = useState(initialPatientId);
+  const [refBy, setRefBy] = useState(location.state?.refBy || "");
+  const [patientId, setPatientId] = useState(initialPatientId);
+  const [IPNumber, setIPNumber] = useState(initialPatientId);
+  const [patientName, setPatientName] = useState(initialPatientId);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [isMBTestModalOpen, setIsMBTestModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [printStatusFilter, setPrintStatusFilter] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("");
-  const [opIpFilter, setopIpFilter] = useState("");
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [statusFilter, setStatusFilter] = useState(
+    location.state?.statusFilter || "",
+  );
+  const [printStatusFilter, setPrintStatusFilter] = useState(
+    location.state?.printStatusFilter || "",
+  );
+  const [departmentFilter, setDepartmentFilter] = useState(
+    location.state?.departmentFilter || "",
+  );
+  const [opIpFilter, setopIpFilter] = useState(
+    location.state?.opIpFilter || "",
+  );
   const [activeTab, setActiveTab] = useState("hms");
   const [isTestStatusModalOpen, setIsTestStatusModalOpen] = useState(false);
   const [selectedPatientForStatus, setSelectedPatientForStatus] =
     useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+
+  // Restore date and patient search from location.state (e.g. returning from WorkList history)
+  useEffect(() => {
+    if (!location.state) return;
+
+    const incomingFrom = location.state.fromDate || location.state.startDate;
+    if (incomingFrom) {
+      const d = new Date(incomingFrom);
+      if (!isNaN(d.getTime())) setStartDate(d);
+    }
+
+    const incomingTo = location.state.toDate || location.state.endDate;
+    if (incomingTo) {
+      const d = new Date(incomingTo);
+      if (!isNaN(d.getTime())) setEndDate(d);
+    }
+
+    const incomingId =
+      location.state.patientId ||
+      location.state.patient_id ||
+      location.state.uhid ||
+      location.state.searchQuery ||
+      location.state.barcode ||
+      "";
+    if (incomingId) {
+      setPatientName(incomingId);
+      setPatientId(incomingId);
+      setIPNumber(incomingId);
+      setBarcode(incomingId);
+    }
+
+    if (location.state.statusFilter !== undefined) {
+      setStatusFilter(location.state.statusFilter);
+    }
+    if (location.state.printStatusFilter !== undefined) {
+      setPrintStatusFilter(location.state.printStatusFilter);
+    }
+    if (location.state.departmentFilter !== undefined) {
+      setDepartmentFilter(location.state.departmentFilter);
+    }
+    if (location.state.opIpFilter !== undefined) {
+      setopIpFilter(location.state.opIpFilter);
+    }
+    if (location.state.refBy !== undefined) {
+      setRefBy(location.state.refBy);
+    }
+    if (location.state.branch !== undefined) {
+      setBranch(location.state.branch);
+    }
+  }, [location.state]);
 
   // Set active tab based on current route
   useEffect(() => {
@@ -863,9 +946,32 @@ const HMSPatientOverview = () => {
     navigate("/WorkList", {
       state: {
         uhid: patientUhid,
+        patientId: patientUhid,
+        patient_id: patientUhid,
+        searchQuery: patientUhid,
+        barcode: patientUhid,
         returnPath: "/HMSPatientOverview",
         fromDate: startDate ? startDate.toISOString() : null,
         toDate: endDate ? endDate.toISOString() : null,
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
+        returnState: {
+          fromDate: startDate ? startDate.toISOString() : null,
+          toDate: endDate ? endDate.toISOString() : null,
+          startDate: startDate ? startDate.toISOString() : null,
+          endDate: endDate ? endDate.toISOString() : null,
+          patientId: patientUhid,
+          patient_id: patientUhid,
+          uhid: patientUhid,
+          searchQuery: patientUhid,
+          barcode: patientUhid,
+          statusFilter,
+          printStatusFilter,
+          departmentFilter,
+          opIpFilter,
+          refBy,
+          branch,
+        },
       },
     });
   };
@@ -1233,6 +1339,9 @@ const HMSPatientOverview = () => {
     setDepartmentFilter("");
     setopIpFilter("");
     setFilteredPatients(patients);
+    if (location.state) {
+      window.history.replaceState({}, document.title);
+    }
   };
 
   const handleBarcodeStep = (delta) => {
@@ -3052,14 +3161,6 @@ const HMSPatientOverview = () => {
                       </td>
                       <td>
                         <ActionContainer>
-                          {patient.patient_id && (
-                            <ActionButton
-                              onClick={() => handleHistoryClick(patient.patient_id)}
-                              title={`View Patient History (${patient.patient_id})`}
-                            >
-                              <History size={16} />
-                            </ActionButton>
-                          )}
                           <ActionButton
                             onClick={() => openMBTestModal(patient)}
                             title={

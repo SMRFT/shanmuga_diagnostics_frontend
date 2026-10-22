@@ -433,7 +433,7 @@ const ApproveButton = styled(Button)`
 
   &:hover {
     background-color: ${(props) =>
-      props.disabled ? "var(--gray-light)" : "var(--info)"};
+    props.disabled ? "var(--gray-light)" : "var(--info)"};
   }
 `;
 
@@ -446,7 +446,7 @@ const RerunButton = styled(Button)`
 
   &:hover {
     background-color: ${(props) =>
-      props.disabled ? "var(--gray-light)" : "#f9844a"};
+    props.disabled ? "var(--gray-light)" : "#f9844a"};
   }
 `;
 
@@ -561,7 +561,7 @@ const RadioLabel = styled.label`
 
   input[type="radio"] {
     accent-color: ${(props) =>
-      props.value === "Normal" ? "#2d8a4e" : "#c0392b"};
+    props.value === "Normal" ? "#2d8a4e" : "#c0392b"};
     width: 14px;
     height: 14px;
     cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
@@ -847,15 +847,15 @@ function DoctorForm() {
               testdetails: record.testdetails.map((detail) =>
                 detail.test_id === testDetail.test_id
                   ? {
-                      ...detail,
-                      approve: true,
-                      approve_by,
-                      approve_time: approveTime,
-                      ...(isCHC && {
-                        status:
-                          testStatusMap[statusKey(recordIndex, testIndex)],
-                      }),
-                    }
+                    ...detail,
+                    approve: true,
+                    approve_by,
+                    approve_time: approveTime,
+                    ...(isCHC && {
+                      status:
+                        testStatusMap[statusKey(recordIndex, testIndex)],
+                    }),
+                  }
                   : detail,
               ),
             };
@@ -1529,10 +1529,10 @@ function DoctorForm() {
                 fontSize: "0.72rem",
                 ...(!isHMS
                   ? {
-                      opacity: 0.4,
-                      cursor: "not-allowed",
-                      pointerEvents: "none",
-                    }
+                    opacity: 0.4,
+                    cursor: "not-allowed",
+                    pointerEvents: "none",
+                  }
                   : {}),
               }}
             >
@@ -1582,10 +1582,10 @@ function DoctorForm() {
                   fontSize: "0.75rem",
                   ...(!isHMS
                     ? {
-                        opacity: 0.4,
-                        cursor: "not-allowed",
-                        pointerEvents: "none",
-                      }
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                      pointerEvents: "none",
+                    }
                     : {}),
                 }}
               >
@@ -1619,10 +1619,10 @@ function DoctorForm() {
                   fontSize: "0.75rem",
                   ...(!isHMS
                     ? {
-                        opacity: 0.4,
-                        cursor: "not-allowed",
-                        pointerEvents: "none",
-                      }
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                      pointerEvents: "none",
+                    }
                     : {}),
                 }}
               >
