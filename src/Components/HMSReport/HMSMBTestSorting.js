@@ -852,7 +852,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 10,
+                rightValueX + doc.getTextWidth(right.value) - 21,
                 patientInfoY + 4,
                 25,
                 10,
