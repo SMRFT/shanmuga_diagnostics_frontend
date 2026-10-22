@@ -2088,10 +2088,10 @@ function TestDetails() {
               style={
                 !isHMS
                   ? {
-                      opacity: 0.4,
-                      cursor: "not-allowed",
-                      pointerEvents: "none",
-                    }
+                    opacity: 0.4,
+                    cursor: "not-allowed",
+                    pointerEvents: "none",
+                  }
                   : {}
               }
             >
@@ -2125,10 +2125,10 @@ function TestDetails() {
                 fontSize: "0.72rem",
                 ...(!isHMS
                   ? {
-                      opacity: 0.4,
-                      cursor: "not-allowed",
-                      pointerEvents: "none",
-                    }
+                    opacity: 0.4,
+                    cursor: "not-allowed",
+                    pointerEvents: "none",
+                  }
                   : {}),
               }}
             >
@@ -2446,8 +2446,8 @@ function TestDetails() {
                             value={values[test.testname] || ""}
                             onChange={
                               test.is_value_edit ||
-                              !initialValues[test.testname] ||
-                              initialValues[test.testname].trim() === ""
+                                !initialValues[test.testname] ||
+                                initialValues[test.testname].trim() === ""
                                 ? (e) => handleValueChange(test.testname, e)
                                 : undefined
                             }
@@ -2460,8 +2460,8 @@ function TestDetails() {
                             }
                             placeholder={
                               test.is_value_edit ||
-                              !initialValues[test.testname] ||
-                              initialValues[test.testname].trim() === ""
+                                !initialValues[test.testname] ||
+                                initialValues[test.testname].trim() === ""
                                 ? "Enter value"
                                 : "Value available"
                             }
