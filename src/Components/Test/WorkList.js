@@ -911,8 +911,39 @@ const WorkList = () => {
     }
   };
 
-  // ── Back navigation — sends uhid as searchQuery so PatientDetails restores it
+  // ── Back navigation — sends uhid as searchQuery so referring page restores it
   const handleBack = () => {
+    if (routerLocation.state?.returnPath) {
+      navigate(routerLocation.state.returnPath, {
+        state: {
+          ...(routerLocation.state.returnState || {}),
+          fromDate:
+            routerLocation.state?.fromDate ||
+            routerLocation.state?.returnState?.fromDate ||
+            null,
+          toDate:
+            routerLocation.state?.toDate ||
+            routerLocation.state?.returnState?.toDate ||
+            null,
+          startDate:
+            routerLocation.state?.fromDate ||
+            routerLocation.state?.startDate ||
+            routerLocation.state?.returnState?.startDate ||
+            null,
+          endDate:
+            routerLocation.state?.toDate ||
+            routerLocation.state?.endDate ||
+            routerLocation.state?.returnState?.endDate ||
+            null,
+          searchQuery: uhid,
+          barcode: uhid,
+          patientId: uhid,
+          patient_id: uhid,
+          uhid: uhid,
+        },
+      });
+      return;
+    }
     navigate("/PatientDetails", {
       state: {
         fromDate: routerLocation.state?.fromDate || null,

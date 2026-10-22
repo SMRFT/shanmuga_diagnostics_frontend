@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
-import { ArrowLeft, Save, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown, History } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
 const GlobalStyle = createGlobalStyle`
@@ -37,6 +37,38 @@ const Header = styled.header`
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+`;
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+const HistoryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  border: 1px solid var(--primary, #4361ee)60;
+  background: var(--primary, #4361ee)10;
+  color: var(--primary, #4361ee);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  &:hover:not(:disabled) {
+    background: var(--primary, #4361ee);
+    color: white;
+    border-color: var(--primary, #4361ee);
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.35);
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 `;
 const Title = styled.h1`
@@ -1972,6 +2004,24 @@ function TestDetails() {
     });
   };
 
+  const isHMS =
+    !locationId ||
+    locationId.toLowerCase().includes("hms") ||
+    (location.state?.locationId || "").toLowerCase().includes("hms");
+
+  const handleHistoryClick = () => {
+    if (!patientId) return;
+    navigate("/WorkList", {
+      state: {
+        uhid: patientId,
+        returnPath: `${location.pathname}${location.search}`,
+        returnState: location.state,
+        fromDate: date || location.state?.fromDate || null,
+        toDate: date || location.state?.toDate || null,
+      },
+    });
+  };
+
   // ── Render helpers ────────────────────────────────────────────────────────
 
   const isParamDisabled = (param, uniqueKey, testId, isValueEdit) => {
@@ -2025,16 +2075,66 @@ function TestDetails() {
       <GlobalStyle />
       <Header>
         <Title>Test Details</Title>
-        <BackButton onClick={handleBack}>
-          <ArrowLeft size={18} />
-          Back to Patient Details
-        </BackButton>
+        <HeaderActions>
+          {patientId && (
+            <HistoryButton
+              onClick={handleHistoryClick}
+              title={
+                !isHMS
+                  ? "History only available for HMS patients"
+                  : `View full history for ${patientname || patientId}`
+              }
+              disabled={!isHMS}
+              style={
+                !isHMS
+                  ? {
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                      pointerEvents: "none",
+                    }
+                  : {}
+              }
+            >
+              <History size={14} />
+              History
+            </HistoryButton>
+          )}
+          <BackButton onClick={handleBack}>
+            <ArrowLeft size={18} />
+            Back to Patient Details
+          </BackButton>
+        </HeaderActions>
       </Header>
 
       {patientId && (
         <PatientInfoBar>
-          <InfoItem>
-            <span>Patient ID:</span> {patientId}
+          <InfoItem style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+            <div>
+              <span>Patient ID:</span> {patientId}
+            </div>
+            <HistoryButton
+              onClick={handleHistoryClick}
+              title={
+                !isHMS
+                  ? "History only available for HMS patients"
+                  : `View full history for ${patientname || patientId}`
+              }
+              disabled={!isHMS}
+              style={{
+                padding: "0.2rem 0.6rem",
+                fontSize: "0.72rem",
+                ...(!isHMS
+                  ? {
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                      pointerEvents: "none",
+                    }
+                  : {}),
+              }}
+            >
+              <History size={12} />
+              History
+            </HistoryButton>
           </InfoItem>
           {patientname && (
             <InfoItem>
