@@ -9,6 +9,7 @@ import {
   RotateCcw,
   FileText,
   ChevronLeft,
+  History,
 } from "lucide-react";
 import apiRequest from "../Auth/apiRequest";
 
@@ -150,6 +151,42 @@ const Footer = styled.footer`
     align-items: flex-start;
     gap: 1rem;
   }
+`;
+
+const HistoryButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  border: 1px solid var(--primary, #4361ee)60;
+  background: var(--primary, #4361ee)10;
+  color: var(--primary, #4361ee);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  &:hover:not(:disabled) {
+    background: var(--primary, #4361ee);
+    color: white;
+    border-color: var(--primary, #4361ee);
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.35);
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+`;
+
+const HistoryHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 `;
 
 const Title = styled.h1`
@@ -974,6 +1011,30 @@ function DoctorForm() {
   };
 
   const handleBack = () => navigate("/PatientList");
+
+  const rawLoc =
+    (testValues.length > 0 ? testValues[0].locationId : "") ||
+    location.state?.patientData?.locationId ||
+    "";
+  const isHMS =
+    !rawLoc ||
+    rawLoc.toLowerCase().includes("hms");
+
+  const handleHistoryClick = () => {
+    if (!patientId) {
+      toast.warning("No patient ID available");
+      return;
+    }
+    navigate("/WorkList", {
+      state: {
+        uhid: patientId,
+        returnPath: `${location.pathname}${location.search}`,
+        returnState: location.state,
+        fromDate: selectedDate || null,
+        toDate: selectedDate || null,
+      },
+    });
+  };
   const toggleExpand = (key) => {
     setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -1450,8 +1511,35 @@ function DoctorForm() {
       </Header>
 
       <PatientInfo>
-        <InfoItem>
-          <span>Patient ID:</span> {patientId}
+        <InfoItem style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+          <div>
+            <span>Patient ID:</span> {patientId}
+          </div>
+          {patientId && (
+            <HistoryButton
+              onClick={handleHistoryClick}
+              title={
+                !isHMS
+                  ? "History only available for HMS patients"
+                  : `View full history for ${testValues[0]?.patientname || patientId}`
+              }
+              disabled={!isHMS}
+              style={{
+                padding: "0.2rem 0.6rem",
+                fontSize: "0.72rem",
+                ...(!isHMS
+                  ? {
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                      pointerEvents: "none",
+                    }
+                  : {}),
+              }}
+            >
+              <History size={12} />
+              History
+            </HistoryButton>
+          )}
         </InfoItem>
         {selectedDate && (
           <InfoItem>
@@ -1475,20 +1563,74 @@ function DoctorForm() {
 
       {patientHistory && (
         <PatientHistoryCard>
-          <HistoryTitle>
-            <FileText size={18} />
-            Patient History
-          </HistoryTitle>
+          <HistoryHeader>
+            <HistoryTitle style={{ marginBottom: 0 }}>
+              <FileText size={18} />
+              Patient History
+            </HistoryTitle>
+            {patientId && (
+              <HistoryButton
+                onClick={handleHistoryClick}
+                title={
+                  !isHMS
+                    ? "History only available for HMS patients"
+                    : `View full history for ${testValues[0]?.patientname || patientId}`
+                }
+                disabled={!isHMS}
+                style={{
+                  padding: "0.25rem 0.65rem",
+                  fontSize: "0.75rem",
+                  ...(!isHMS
+                    ? {
+                        opacity: 0.4,
+                        cursor: "not-allowed",
+                        pointerEvents: "none",
+                      }
+                    : {}),
+                }}
+              >
+                <History size={13} />
+                View Full Work List / History
+              </HistoryButton>
+            )}
+          </HistoryHeader>
           <HistoryContent>{patientHistory}</HistoryContent>
         </PatientHistoryCard>
       )}
 
       {!patientHistory && testValues.length > 0 && (
         <PatientHistoryCard>
-          <HistoryTitle>
-            <FileText size={18} />
-            Patient History
-          </HistoryTitle>
+          <HistoryHeader>
+            <HistoryTitle style={{ marginBottom: 0 }}>
+              <FileText size={18} />
+              Patient History
+            </HistoryTitle>
+            {patientId && (
+              <HistoryButton
+                onClick={handleHistoryClick}
+                title={
+                  !isHMS
+                    ? "History only available for HMS patients"
+                    : `View full history for ${testValues[0]?.patientname || patientId}`
+                }
+                disabled={!isHMS}
+                style={{
+                  padding: "0.25rem 0.65rem",
+                  fontSize: "0.75rem",
+                  ...(!isHMS
+                    ? {
+                        opacity: 0.4,
+                        cursor: "not-allowed",
+                        pointerEvents: "none",
+                      }
+                    : {}),
+                }}
+              >
+                <History size={13} />
+                View Full Work List / History
+              </HistoryButton>
+            )}
+          </HistoryHeader>
           <NoHistory>No patient history available</NoHistory>
         </PatientHistoryCard>
       )}

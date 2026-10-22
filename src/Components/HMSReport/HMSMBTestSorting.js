@@ -738,9 +738,8 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
         },
         {
           label: "Age/Gender",
-          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${
-            patientDetails.gender || "N/A"
-          }`,
+          value: `${patientDetails.age || "N/A"} ${patientDetails.age_type}/ ${patientDetails.gender || "N/A"
+            }`,
         },
         { label: "Referral", value: patientDetails.refby || "SELF" },
         { label: "Phone", value: patientDetails.phone || "N/A" },
@@ -764,16 +763,16 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
             ) || "N/A",
         },
         ...(patientDetails.testdetails[0].dispatch_time &&
-        patientDetails.testdetails[0].dispatch_time !== "null"
+          patientDetails.testdetails[0].dispatch_time !== "null"
           ? [
-              {
-                label: "Released On",
-                value: format(
-                  new Date(patientDetails.testdetails[0].dispatch_time),
-                  "dd MMM yy / HH:mm",
-                ),
-              },
-            ]
+            {
+              label: "Released On",
+              value: format(
+                new Date(patientDetails.testdetails[0].dispatch_time),
+                "dd MMM yy / HH:mm",
+              ),
+            },
+          ]
           : []),
         {
           label: "Printed On",
@@ -853,7 +852,7 @@ const HMSMBTestSorting = ({ patient, onClose }) => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 21,
+                rightValueX + doc.getTextWidth(right.value) - 10,
                 patientInfoY + 4,
                 25,
                 10,

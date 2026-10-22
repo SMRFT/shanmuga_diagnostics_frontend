@@ -1293,7 +1293,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
               doc.addImage(
                 barcodeImage,
                 "PNG",
-                rightValueX + doc.getTextWidth(right.value) - 21,
+                rightValueX + doc.getTextWidth(right.value) - 6,
                 barcodeY,
                 25,
                 10,
@@ -2786,7 +2786,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
       addSignatures();
 
       const finalPageCount = pageCount;
-      const barcodeX = rightValueX + doc.getTextWidth(patientRefNoNumber) - 21;
+      const barcodeX = rightValueX + doc.getTextWidth(patientRefNoNumber) - 6;
       const pageNumberX = barcodeX + 12.5; // Centered under the barcode
       for (let i = 1; i <= finalPageCount; i++) {
         doc.setPage(i);
@@ -2994,8 +2994,8 @@ const HMSTestSorting = ({ patient, onClose }) => {
                           !isDispatched
                             ? "Dispatch required before printing"
                             : isPrinted
-                            ? "Already Printed"
-                            : "Print Test"
+                              ? "Already Printed"
+                              : "Print Test"
                         }
                       >
                         <Printer size={14} />
