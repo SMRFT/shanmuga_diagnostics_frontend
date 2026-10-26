@@ -855,6 +855,12 @@ const PatientDetails = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const isPathologyTest = (test) => {
+    if (!test) return false;
+    const val = test.is_pathology ?? test.isPathology ?? test.is_Pathology;
+    return val === true || val === "true" || val === 1 || val === "1";
+  };
+
   const parseTatToSeconds = (tatStr) => {
     if (!tatStr || tatStr === "N/A") return null;
     let totalMinutes = 0;
@@ -1117,8 +1123,18 @@ const PatientDetails = () => {
         );
 
         if (res.success && res.data) {
-          const selected = res.data.selected_date || [];
-          const allDays = res.data.all_days || [];
+          const filterOutPathology = (patientList) =>
+            (patientList || [])
+              .map((patient) => ({
+                ...patient,
+                testdetails: (patient.testdetails || []).filter(
+                  (test) => !isPathologyTest(test),
+                ),
+              }))
+              .filter((patient) => (patient.testdetails || []).length > 0);
+
+          const selected = filterOutPathology(res.data.selected_date || []);
+          const allDays = filterOutPathology(res.data.all_days || []);
 
           if (tabToFetch === "technician") {
             setTechSelectedDatePatients(selected);
@@ -1324,7 +1340,8 @@ const PatientDetails = () => {
 
   const groupTestsByDepartment = (testdetails) => {
     const grouped = {};
-    testdetails.forEach((test) => {
+    (testdetails || []).forEach((test) => {
+      if (isPathologyTest(test)) return;
       const dept = test.department || "Other";
       if (!grouped[dept]) grouped[dept] = [];
       grouped[dept].push(test);
@@ -1348,6 +1365,7 @@ const PatientDetails = () => {
         }
       }
       patient.testdetails?.forEach((test) => {
+        if (isPathologyTest(test)) return;
         const testStatus = getTestStatus(test);
         if (testStatus === "Dispatched") return;
         if (
@@ -1445,8 +1463,9 @@ const PatientDetails = () => {
         (emergencyFilter === "normal" && !patient.is_emergency);
       if (!matchesEmergency) return false;
 
-      // Filter tests strictly according to targetTab (never allow dispatched)
+      // Filter tests strictly according to targetTab (never allow dispatched or pathology tests)
       const validTests = (patient.testdetails || []).filter((test) => {
+        if (isPathologyTest(test)) return false;
         const testStatus = getTestStatus(test);
         if (testStatus === "Dispatched") return false;
         if (targetTab === "technician") {
@@ -1653,6 +1672,7 @@ const PatientDetails = () => {
               {patients.map((patient, index) => {
                 const relevantTests = (patient.testdetails || []).filter(
                   (test) => {
+                    if (isPathologyTest(test)) return false;
                     const testStatus = getTestStatus(test);
                     if (testStatus === "Dispatched") return false;
                     if (

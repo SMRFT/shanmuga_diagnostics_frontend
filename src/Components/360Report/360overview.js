@@ -1146,8 +1146,6 @@ const PatientOverview = () => {
         setLoading(false);
         return null;
       }
-      // Keep a copy of all fetched tests (including Molecular Biology) for unapproved tests comparison
-      const allFetchedTests = [...(patientDetails.testdetails || [])];
 
       // Skip Molecular Biology tests from the printed report and sort tests
       patientDetails.testdetails = sortTestsWithDepartmentAndOrder(
@@ -2179,52 +2177,6 @@ const PatientOverview = () => {
       });
       currentYPosition += 6;
 
-      const allTestStatuses = patient.test_statuses || (patientDetails && patientDetails.test_statuses) || [];
-      const rawSampleStatus = (patientDetails && patientDetails.sample_status) || (patient && patient.sample_status) || [];
-      const sampleStatusList = typeof rawSampleStatus === "string"
-        ? (() => { try { return JSON.parse(rawSampleStatus); } catch (e) { return []; } })()
-        : Array.isArray(rawSampleStatus) ? rawSampleStatus : [];
-
-      const unapprovedTests = allTestStatuses.filter((hmsTest) => {
-        const isReportedTest = allFetchedTests.some(
-          (fetchedTest) => String(fetchedTest.test_id) === String(hmsTest.test_id)
-        );
-        if (isReportedTest) return false;
-
-        let samplestatus = hmsTest.samplestatus || "";
-        if (!samplestatus && sampleStatusList.length > 0) {
-          const matchSample = sampleStatusList.find(
-            (s) => String(s.test_id) === String(hmsTest.test_id)
-          );
-          if (matchSample) {
-            samplestatus = matchSample.samplestatus || "";
-          }
-        }
-
-        const isPending =
-          String(samplestatus).trim().toLowerCase() === "pending" ||
-          String(samplestatus).trim().toLowerCase() === "sample pending" ||
-          String(hmsTest.status).trim().toLowerCase() === "pending";
-
-        if (isPending) return false;
-
-        return true;
-      });
-
-      if (unapprovedTests.length > 0) {
-        currentYPosition = checkForNewPage(currentYPosition, 10);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.text("Result/s to follow:", leftMargin, currentYPosition);
-        currentYPosition += 4.5;
-
-        doc.setFont("helvetica", "normal");
-        unapprovedTests.forEach((t) => {
-          currentYPosition = checkForNewPage(currentYPosition, 5);
-          doc.text(`- ${t.test_name}`, leftMargin + 2, currentYPosition);
-          currentYPosition += 4.5;
-        });
-      }
 
       addSignatures();
 
