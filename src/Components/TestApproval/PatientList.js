@@ -508,6 +508,12 @@ const PaginationInfo = styled.div`
 `;
 
 // ===== Helpers =====
+const isPathologyTest = (test) => {
+  if (!test) return false;
+  const val = test.is_pathology ?? test.isPathology ?? test.is_Pathology;
+  return val === true || val === "true" || val === 1 || val === "1";
+};
+
 const formatYmd = (d) => {
   if (!d) return "";
   const y = d.getFullYear();
@@ -640,18 +646,39 @@ function PatientList() {
         rawData = rawData.data;
       }
 
+      const filterOutPathology = (patientList) =>
+        (patientList || [])
+          .map((patient) => {
+            let rawTests = patient.testdetails;
+            if (typeof rawTests === "string") {
+              try {
+                rawTests = JSON.parse(rawTests);
+              } catch {
+                rawTests = [];
+              }
+            }
+            const filtered = (rawTests || []).filter(
+              (test) => !isPathologyTest(test),
+            );
+            return {
+              ...patient,
+              testdetails: filtered,
+            };
+          })
+          .filter((patient) => (patient.testdetails || []).length > 0);
+
       if (
         rawData &&
         (rawData.selected_date !== undefined || rawData.all_days !== undefined)
       ) {
-        currentData = rawData.selected_date || [];
-        backlogData = rawData.all_days || [];
+        currentData = filterOutPathology(rawData.selected_date || []);
+        backlogData = filterOutPathology(rawData.all_days || []);
       } else if (Array.isArray(rawData)) {
         const fromStr = fromDateParam
           ? formatYmd(fromDateParam)
           : formatYmd(today);
         const toStr = toDateParam ? formatYmd(toDateParam) : formatYmd(today);
-        rawData.forEach((p) => {
+        filterOutPathology(rawData).forEach((p) => {
           let pDate = "";
           if (p.date) {
             try {
@@ -729,7 +756,9 @@ function PatientList() {
             date: patient.date,
             locationId: patient.locationId,
             created_date: patient.created_date,
-            testdetails: patient.testdetails || [],
+            testdetails: (patient.testdetails || []).filter(
+              (test) => !isPathologyTest(test),
+            ),
             is_emergency: patient.is_emergency || false,
             patient_history: patient.patient_history || "",
           },
@@ -745,7 +774,10 @@ function PatientList() {
     setPrintingBarcode(patient.barcode);
 
     try {
-      if (!patient.testdetails || patient.testdetails.length === 0) {
+      const validTests = (patient.testdetails || []).filter(
+        (test) => !isPathologyTest(test),
+      );
+      if (validTests.length === 0) {
         toast.error("No test details found for this patient.");
         setPrintingBarcode(null);
         return;
@@ -1145,7 +1177,7 @@ function PatientList() {
       let yPos = addPatientInfo(contentYStart);
       yPos += 10;
 
-      const testsByDept = patient.testdetails.reduce((acc, test) => {
+      const testsByDept = validTests.reduce((acc, test) => {
         const dept = test.department || "Other";
         if (!acc[dept]) acc[dept] = [];
         acc[dept].push(test);
@@ -1362,10 +1394,16 @@ function PatientList() {
         }
       }
       const testList = Array.isArray(rawTests) ? rawTests : [];
-      const testsWithCreatedDate = testList.map((test) => ({
-        ...test,
-        created_date: patient.created_date,
-      }));
+      const testsWithCreatedDate = testList
+        .filter((test) => !isPathologyTest(test))
+        .map((test) => ({
+          ...test,
+          created_date: patient.created_date,
+        }));
+
+      if (testsWithCreatedDate.length === 0 && !acc[barcode]) {
+        return acc;
+      }
 
       if (!acc[barcode]) {
         acc[barcode] = {
@@ -1393,7 +1431,9 @@ function PatientList() {
       }
       return acc;
     }, {});
-    return Object.values(grouped);
+    return Object.values(grouped).filter(
+      (p) => Array.isArray(p.testdetails) && p.testdetails.length > 0,
+    );
   };
 
   const filterPatients = (patients) => {
@@ -1522,18 +1562,20 @@ function PatientList() {
                     <td>
                       <TestList>
                         {patient.testdetails &&
-                        patient.testdetails.length > 0 ? (
-                          patient.testdetails.map((test, idx) => (
-                            <TestItem key={idx}>
-                              <span>
-                                {test.test_id} -{" "}
-                                {test.test_name || test.testname || "Test"}
-                              </span>
-                              {test.outsourced && (
-                                <OutsourcedBadge>Outsourced</OutsourcedBadge>
-                              )}
-                            </TestItem>
-                          ))
+                        patient.testdetails.filter((test) => !isPathologyTest(test)).length > 0 ? (
+                          patient.testdetails
+                            .filter((test) => !isPathologyTest(test))
+                            .map((test, idx) => (
+                              <TestItem key={idx}>
+                                <span>
+                                  {test.test_id} -{" "}
+                                  {test.test_name || test.testname || "Test"}
+                                </span>
+                                {test.outsourced && (
+                                  <OutsourcedBadge>Outsourced</OutsourcedBadge>
+                                )}
+                              </TestItem>
+                            ))
                         ) : (
                           <TestItem>No tests available</TestItem>
                         )}
