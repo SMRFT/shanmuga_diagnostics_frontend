@@ -337,6 +337,26 @@ const DateInput = styled.input`
   }
 `;
 
+const FilterSelect = styled.select`
+  padding: 8px 10px;
+  border: 1px solid #d5dede;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  min-width: 150px;
+
+  &:focus {
+    outline: none;
+    border-color: ${TEAL};
+  }
+
+  @media (max-width: 480px) {
+    width: 100%;
+    min-width: 0;
+  }
+`;
+
 const TotalBox = styled.div`
   text-align: right;
 
@@ -565,49 +585,98 @@ const RowSelect = styled.select`
 `;
 
 const SummaryWrapper = styled.div`
-  margin-top: 24px;
+  margin: 32px auto;
   background: #fff;
   border-radius: 8px;
-  border: 1px solid #eef2f2;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  max-width: 500px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  max-width: 900px;
+  width: 100%;
 `;
 
 const SummaryHeaderBox = styled.div`
   background: #f8f6fc;
-  padding: 12px 16px;
-  border-bottom: 1px solid #eef2f2;
+  padding: 14px 18px;
+  border-bottom: 2px solid ${TEAL_DARK};
+  text-align: center;
 `;
 
 const SummaryHeading = styled.h3`
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: ${TEAL_DARK};
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 `;
 
 const SummaryTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
+  background: #fff;
 
   th,
   td {
-    padding: 10px 16px;
-    text-align: left;
+    padding: 12px 16px;
+    text-align: center;
+    border-bottom: 1px solid #eef2f2;
+    font-weight: 700;
   }
 
   th {
-    background: #fafafa;
-    color: #555;
-    font-weight: 600;
-    border-bottom: 1px solid #eef2f2;
+    background: ${TEAL_DARK};
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
-  td {
-    border-bottom: 1px solid #f0f0f0;
-    color: #333;
+  /* Date column: keep date on a single clean line without breaking */
+  th:nth-child(1),
+  td:nth-child(1) {
+    white-space: nowrap;
+    width: 130px;
+    min-width: 130px;
+  }
+
+  /* Location column: left-aligned, expands and wraps naturally if needed */
+  th:nth-child(2),
+  td:nth-child(2) {
+    text-align: left;
+  }
+
+  /* Count column */
+  th:nth-child(3),
+  td:nth-child(3) {
+    white-space: nowrap;
+    width: 90px;
+    min-width: 90px;
+  }
+
+  /* Amount column */
+  th:nth-child(4),
+  td:nth-child(4) {
+    white-space: nowrap;
+    width: 120px;
+    min-width: 120px;
+  }
+
+  tbody tr:hover {
+    background: #f2fbfb;
+  }
+
+  tfoot tr {
+    background: #f8f6fc;
+  }
+
+  tfoot td {
+    border-top: 2px solid ${TEAL_DARK};
+    border-bottom: none;
+    font-weight: 800;
+    color: ${TEAL_DARK};
+    font-size: 14px;
   }
 
   tr:last-child td {
@@ -705,6 +774,17 @@ const getTodayDate = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const formatDateDMY = (dateStr) => {
+  if (!dateStr) return "-";
+  const clean = String(dateStr).split("T")[0].split(" ")[0];
+  const parts = clean.split("-");
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [yyyy, mm, dd] = parts;
+    return `${dd}-${mm}-${yyyy}`;
+  }
+  return dateStr;
+};
+
 const emptyForm = {
   date: getTodayDate(),
   location: "",
@@ -734,6 +814,35 @@ const getCollectorNameById = (collectors, id) => {
   return match ? getCollectorLabel(match) : id;
 };
 
+const cleanLocationName = (rawName) => {
+  if (!rawName) return "";
+  let name = rawName.trim();
+  // Strip bus stand / stop suffixes like "new busttand", "new bus stand", "bus stand", etc.
+  name = name.replace(/\b(new|old)?\s*(bus\s*stand|busstand|busttand|bustand|bstand)\b/gi, "");
+
+  // If entered as a route "location to location" (e.g. "mettur to salem", "salem to mettur")
+  const toMatch = name.match(/^(.+?)\s+(?:to|->|-)\s+(.+)$/i);
+  if (toMatch) {
+    const loc1 = toMatch[1].trim();
+    const loc2 = toMatch[2].trim();
+    // If one end is Salem (the main central lab), extract the collection branch location
+    if (loc1.toLowerCase() === "salem") {
+      name = loc2;
+    } else {
+      name = loc1;
+    }
+  }
+
+  name = name.replace(/\s+to\s*$/i, "").replace(/^\s*to\s+/i, "");
+  name = name.replace(/[-–—/,\s]+$/, "").replace(/^[-–—/,\s]+/, "").trim();
+
+  // Capitalize first letter cleanly (e.g. "mettur" -> "Mettur")
+  if (name) {
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  return name || rawName.trim();
+};
+
 const computeLocationSummary = (rows) => {
   if (!Array.isArray(rows) || rows.length === 0) return [];
 
@@ -752,8 +861,10 @@ const computeLocationSummary = (rows) => {
     const dayRows = byDate[dateKey];
     const locCounts = new Map(); // Canonical name -> count
     const keyMap = new Map(); // Lowercase -> Canonical name
+    let dayTotalAmount = 0;
 
     dayRows.forEach((row) => {
+      dayTotalAmount += parseFloat(row.amount) || 0;
       if (!row.location || typeof row.location !== "string") return;
       const parts = row.location
         .split(/[,;\n]+/)
@@ -761,28 +872,36 @@ const computeLocationSummary = (rows) => {
         .filter(Boolean);
 
       parts.forEach((part) => {
-        // Strip any existing (count) if user typed e.g. "Kakapalayam(1)"
-        const match = part.match(/^(.+?)\s*\(\s*\d+\s*\)$/);
-        const name = match ? match[1].trim() : part.trim();
+        // Strip or parse existing (count) if user typed e.g. "Kakapalayam(1)" or "Mettur(2)" or "Jalakntapuram1)"
+        const match = part.match(/^(.+?)\s*\(?\s*(\d+)\s*\)?$/);
+        const rawPartName = match ? match[1].trim() : part.trim();
+        const count = match && match[2] ? parseInt(match[2], 10) || 1 : 1;
+        const name = cleanLocationName(rawPartName);
         if (!name) return;
 
         const lower = name.toLowerCase();
         if (keyMap.has(lower)) {
           const canonical = keyMap.get(lower);
-          locCounts.set(canonical, locCounts.get(canonical) + 1);
+          locCounts.set(canonical, locCounts.get(canonical) + count);
         } else {
           keyMap.set(lower, name);
-          locCounts.set(name, 1);
+          locCounts.set(name, count);
         }
       });
     });
 
+    let dayTotalCount = 0;
+    const formattedLocations = [];
     locCounts.forEach((count, locName) => {
-      summary.push({
-        date: dateKey,
-        location: locName,
-        count: count,
-      });
+      dayTotalCount += count;
+      formattedLocations.push(`${locName}(${count})`);
+    });
+
+    summary.push({
+      date: dateKey,
+      location: formattedLocations.join(", ") || "-",
+      count: dayTotalCount,
+      amount: dayTotalAmount,
     });
   });
 
@@ -847,13 +966,17 @@ function Busfare() {
   // initially shows just the current date's entries.
   const [fromDate, setFromDate] = useState(getTodayDate());
   const [toDate, setToDate] = useState(getTodayDate());
+  const [selectedCollector, setSelectedCollector] = useState("");
+  const [selectedPickedUpBy, setSelectedPickedUpBy] = useState("");
 
-  const loadBusfares = useCallback(async (from, to) => {
+  const loadBusfares = useCallback(async (from, to, collectedBy, pickedUpBy) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (from) params.append("from_date", from);
       if (to) params.append("to_date", to);
+      if (collectedBy) params.append("collectedby", collectedBy);
+      if (pickedUpBy) params.append("pickedupby", pickedUpBy);
       const qs = params.toString();
       const res = await apiRequest(
         `${Labbaseurl}bus_fare/${qs ? `?${qs}` : ""}`,
@@ -907,8 +1030,8 @@ function Busfare() {
   }, [loadCollectors]);
 
   useEffect(() => {
-    loadBusfares(fromDate, toDate);
-  }, [fromDate, toDate, loadBusfares]);
+    loadBusfares(fromDate, toDate, selectedCollector, selectedPickedUpBy);
+  }, [fromDate, toDate, selectedCollector, selectedPickedUpBy, loadBusfares]);
 
   const openModal = () => {
     setFormData({ ...emptyForm, date: getTodayDate() });
@@ -1038,7 +1161,7 @@ function Busfare() {
       }
 
       closeModal();
-      loadBusfares(fromDate, toDate);
+      loadBusfares(fromDate, toDate, selectedCollector, selectedPickedUpBy);
     } catch (err) {
       console.error("Failed to save bus fare:", err);
       setToast({
@@ -1050,24 +1173,34 @@ function Busfare() {
     }
   };
 
-  // Sum of "amount" across whatever rows are currently loaded — since
-  // loadBusfares() is always called with the active fromDate/toDate range,
-  // this total naturally reflects just the filtered rows on screen.
-  const totalAmount = (Array.isArray(busfares) ? busfares : []).reduce(
+  const filteredBusfares = useMemo(() => {
+    return (Array.isArray(busfares) ? busfares : []).filter((row) => {
+      if (selectedCollector && String(row.collectedby) !== String(selectedCollector)) {
+        return false;
+      }
+      if (selectedPickedUpBy && String(row.pickedupby) !== String(selectedPickedUpBy)) {
+        return false;
+      }
+      return true;
+    });
+  }, [busfares, selectedCollector, selectedPickedUpBy]);
+
+  // Sum of "amount" across whatever rows are currently displayed (filtered)
+  const totalAmount = filteredBusfares.reduce(
     (sum, row) => sum + (parseFloat(row.amount) || 0),
     0
   );
 
   const locationSummary = useMemo(
-    () => computeLocationSummary(busfares),
-    [busfares]
+    () => computeLocationSummary(filteredBusfares),
+    [filteredBusfares]
   );
 
   // Builds the row data shared by both export formats, in display order,
   // using the same lookups the table already uses for collector names.
   const buildExportRows = () =>
-    (Array.isArray(busfares) ? busfares : []).map((row) => ({
-      Date: row.date || "",
+    filteredBusfares.map((row) => ({
+      Date: formatDateDMY(row.date),
       Location: row.location || "",
       Amount: row.amount || "",
       "Collected By": getCollectorNameById(collectors, row.collectedby),
@@ -1106,8 +1239,8 @@ function Busfare() {
     rows.push({
       Date: "Date",
       Location: "Location",
-      Amount: "Count",
-      "Collected By": "",
+      Amount: "Amount",
+      "Collected By": "Count",
       "Pickup Time": "",
       "Bus Reached Time": "",
       "Picked Up By": "",
@@ -1116,21 +1249,34 @@ function Busfare() {
     // Location Summary Data
     locationSummary.forEach((item) => {
       rows.push({
-        Date: item.date,
+        Date: formatDateDMY(item.date),
         Location: item.location,
-        Amount: item.count,
-        "Collected By": "",
+        Amount: item.amount.toFixed(2),
+        "Collected By": item.count,
         "Pickup Time": "",
         "Bus Reached Time": "",
         "Picked Up By": "",
       });
     });
 
+    // Location Summary Total
+    const totalLocCount = locationSummary.reduce((sum, item) => sum + item.count, 0);
+    const totalLocAmount = locationSummary.reduce((sum, item) => sum + item.amount, 0);
+    rows.push({
+      Date: "Total",
+      Location: "",
+      Amount: totalLocAmount.toFixed(2),
+      "Collected By": totalLocCount,
+      "Pickup Time": "",
+      "Bus Reached Time": "",
+      "Picked Up By": "",
+    });
+
     const worksheet = XLSX.utils.json_to_sheet(rows);
     worksheet["!cols"] = [
       { wch: 14 },
-      { wch: 25 },
-      { wch: 12 },
+      { wch: 45 },
+      { wch: 14 },
       { wch: 18 },
       { wch: 12 },
       { wch: 16 },
@@ -1152,7 +1298,14 @@ function Busfare() {
     doc.text("Bus Sample Summary", 14, 16);
     doc.setFontSize(10);
     doc.setTextColor(120);
-    doc.text(`${fromDate} to ${toDate}`, 14, 22);
+    const subtitleParts = [`${formatDateDMY(fromDate)} to ${formatDateDMY(toDate)}`];
+    if (selectedCollector) {
+      subtitleParts.push(`Collected By: ${getCollectorNameById(collectors, selectedCollector)}`);
+    }
+    if (selectedPickedUpBy) {
+      subtitleParts.push(`Picked Up By: ${getCollectorNameById(collectors, selectedPickedUpBy)}`);
+    }
+    doc.text(subtitleParts.join(" | "), 14, 22);
     doc.setTextColor(0);
 
     autoTable(doc, {
@@ -1162,6 +1315,15 @@ function Busfare() {
       styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [124, 92, 196], textColor: 255 },
       alternateRowStyles: { fillColor: [247, 245, 252] },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 26 },
+        1: { halign: "left" },
+        2: { halign: "right", cellWidth: 24 },
+        3: { halign: "left" },
+        4: { halign: "center", cellWidth: 24 },
+        5: { halign: "center", cellWidth: 26 },
+        6: { halign: "left" },
+      },
     });
 
     const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 28;
@@ -1170,19 +1332,68 @@ function Busfare() {
     doc.text(`Total Amount: Rs.${totalAmount.toFixed(2)}`, 14, finalY + 8);
 
     if (locationSummary.length > 0) {
+      const pageHeight = doc.internal.pageSize.getHeight();
+      // Total required height for summary: title (12mm) + table header (8mm) + rows (7mm * rows) + total row (8mm) + margin (15mm)
+      const summaryHeightNeeded = 28 + (locationSummary.length + 1) * 7;
+      let startY = finalY + 18;
+
+      // Avoid splitting the summary table awkwardly: if remaining space on the page is insufficient, move to new page
+      if (startY + summaryHeightNeeded > pageHeight - 15) {
+        doc.addPage();
+        startY = 20;
+      }
+
       doc.setFontSize(11);
-      doc.text("Location Summary:", 14, finalY + 18);
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(0);
+      doc.text("Location Summary:", 14, startY);
+
+      const totalLocCount = locationSummary.reduce((sum, item) => sum + item.count, 0);
+      const totalLocAmount = locationSummary.reduce((sum, item) => sum + item.amount, 0);
 
       autoTable(doc, {
-        head: [["Date", "Location", "Count"]],
-        body: locationSummary.map((item) => [item.date, item.location, item.count]),
-        startY: finalY + 22,
+        head: [["Date", "Location", "Count", "Amount"]],
+        body: [
+          ...locationSummary.map((item) => [
+            formatDateDMY(item.date),
+            item.location,
+            item.count,
+            `Rs.${item.amount.toFixed(2)}`,
+          ]),
+          ["Total", "", totalLocCount, `Rs.${totalLocAmount.toFixed(2)}`],
+        ],
+        startY: startY + 5,
         theme: "grid",
-        styles: { fontSize: 8, cellPadding: 3 },
+        styles: { fontSize: 8, cellPadding: 3.5 },
         headStyles: { fillColor: [124, 92, 196], textColor: 255 },
         alternateRowStyles: { fillColor: [247, 245, 252] },
-        tableWidth: 100,
+        columnStyles: {
+          0: { cellWidth: 32, halign: "center" },
+          1: { cellWidth: "auto", halign: "left" },
+          2: { cellWidth: 25, halign: "center" },
+          3: { cellWidth: 35, halign: "right" },
+        },
+        didParseCell: (data) => {
+          if (data.row.index === locationSummary.length) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = [240, 236, 250];
+            data.cell.styles.textColor = [124, 92, 196];
+          }
+        },
       });
+    }
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(150);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        doc.internal.pageSize.getWidth() - 25,
+        doc.internal.pageSize.getHeight() - 8
+      );
     }
 
     doc.save(`bus-fares_${fromDate}_to_${toDate}.pdf`);
@@ -1208,14 +1419,14 @@ function Busfare() {
         type: "success",
         message: res?.message || res?.data?.message || "Pickup details updated successfully.",
       });
-      loadBusfares(fromDate, toDate);
+      loadBusfares(fromDate, toDate, selectedCollector, selectedPickedUpBy);
     } catch (err) {
       console.error("Failed to update pickedupby:", err);
       setToast({
         type: "error",
         message: getErrorMessage(err, "Failed to update pickup details."),
       });
-      loadBusfares(fromDate, toDate); // revert to server state on failure
+      loadBusfares(fromDate, toDate, selectedCollector, selectedPickedUpBy); // revert to server state on failure
     } finally {
       setPickingUpId(null);
     }
@@ -1252,6 +1463,36 @@ function Busfare() {
               onChange={(e) => setToDate(e.target.value)}
             />
           </FilterField>
+          <FilterField>
+            <FilterLabel htmlFor="busfare-collectedby-filter">Collected By</FilterLabel>
+            <FilterSelect
+              id="busfare-collectedby-filter"
+              value={selectedCollector}
+              onChange={(e) => setSelectedCollector(e.target.value)}
+            >
+              <option value="">All</option>
+              {(Array.isArray(collectors) ? collectors : []).map((collector, idx) => (
+                <option key={idx} value={getCollectorValue(collector)}>
+                  {getCollectorLabel(collector)}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterField>
+          <FilterField>
+            <FilterLabel htmlFor="busfare-pickedupby-filter">Picked Up By</FilterLabel>
+            <FilterSelect
+              id="busfare-pickedupby-filter"
+              value={selectedPickedUpBy}
+              onChange={(e) => setSelectedPickedUpBy(e.target.value)}
+            >
+              <option value="">All</option>
+              {(Array.isArray(collectors) ? collectors : []).map((collector, idx) => (
+                <option key={idx} value={getCollectorValue(collector)}>
+                  {getCollectorLabel(collector)}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterField>
         </FilterGroup>
         <TotalBox>
           <TotalLabel>Total Amount</TotalLabel>
@@ -1262,13 +1503,13 @@ function Busfare() {
       <ExportBar>
         <ExportButton
           onClick={handleExportExcel}
-          disabled={!Array.isArray(busfares) || busfares.length === 0}
+          disabled={!Array.isArray(filteredBusfares) || filteredBusfares.length === 0}
         >
           ⬇ Export Excel
         </ExportButton>
         <ExportButton
           onClick={handleExportPDF}
-          disabled={!Array.isArray(busfares) || busfares.length === 0}
+          disabled={!Array.isArray(filteredBusfares) || filteredBusfares.length === 0}
         >
           ⬇ Export PDF
         </ExportButton>
@@ -1289,9 +1530,9 @@ function Busfare() {
             </tr>
           </thead>
           <tbody>
-            {(Array.isArray(busfares) ? busfares : []).map((row) => (
+            {filteredBusfares.map((row) => (
               <tr key={row.busfare_id || row.id}>
-                <td data-label="Date">{row.date}</td>
+                <td data-label="Date">{formatDateDMY(row.date)}</td>
                 <td data-label="Location">{row.location}</td>
                 <td data-label="Amount">{row.amount}</td>
                 <td data-label="Collected By">
@@ -1334,7 +1575,7 @@ function Busfare() {
             ))}
           </tbody>
         </Table>
-        {!loading && (!Array.isArray(busfares) || busfares.length === 0) && (
+        {!loading && filteredBusfares.length === 0 && (
           <EmptyState>No bus fare entries yet. Add one to get started.</EmptyState>
         )}
         {loading && <EmptyState>Loading...</EmptyState>}
@@ -1351,17 +1592,27 @@ function Busfare() {
                 <th>Date</th>
                 <th>Location</th>
                 <th>Count</th>
+                <th>Amount</th>
               </tr>
             </thead>
             <tbody>
               {locationSummary.map((item, idx) => (
                 <tr key={idx}>
-                  <td>{item.date}</td>
+                  <td>{formatDateDMY(item.date)}</td>
                   <td>{item.location}</td>
                   <td>{item.count}</td>
+                  <td>₹{item.amount.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr>
+                <td>Total</td>
+                <td>-</td>
+                <td>{locationSummary.reduce((sum, item) => sum + item.count, 0)}</td>
+                <td>₹{locationSummary.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+              </tr>
+            </tfoot>
           </SummaryTable>
         </SummaryWrapper>
       )}
