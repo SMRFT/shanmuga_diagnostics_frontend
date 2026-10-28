@@ -1,0 +1,3345 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import styled from "styled-components";
+import { format } from "date-fns";
+import JsBarcode from "jsbarcode";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import headerImage from "../Images/Header.png";
+import FooterImage from "../Images/Footer.png";
+import NABLImage from "../Images/NABL.png";
+import apiRequest from "../Auth/apiRequest";
+import { toast } from "react-toastify";
+import {
+  X,
+  Printer,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Flag,
+  MessageCircle,
+} from "lucide-react";
+import {
+  compareTestsByOrderId,
+  sortTestsWithDepartmentAndOrder,
+} from "./reportOrderUtils";
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  padding: 30px;
+  width: 70%;
+  max-width: 900px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+`;
+
+const Title = styled.h2`
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+`;
+
+const SearchContainer = styled.div`
+  position: relative;
+  margin-bottom: 15px;
+  width: 100%;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 12px 40px 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #db9bb9;
+    box-shadow: 0 0 0 2px rgba(219, 155, 185, 0.2);
+  }
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+`;
+
+const TestList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  margin: 10px 0;
+  padding-right: 10px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #db9bb9;
+    border-radius: 10px;
+  }
+`;
+
+const TestItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 10px;
+  margin: 8px 0;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f9f0f4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  }
+`;
+
+const TestInfo = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 1;
+`;
+
+const CheckboxContainer = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid ${(props) => (props.checked ? "#DB9BB9" : "#d1d1d1")};
+  border-radius: 6px;
+  margin-right: 15px;
+  transition: all 0.2s;
+  background: ${(props) => (props.checked ? "#DB9BB9" : "transparent")};
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  user-select: none;
+
+  &:hover {
+    border-color: #db9bb9;
+  }
+`;
+
+const TestName = styled.span`
+  font-size: 15px;
+  color: #333;
+  font-weight: ${(props) => (props.selected ? "600" : "400")};
+
+  .nabl-asterisk {
+    color: #db9bb9;
+    font-weight: bold;
+    margin-left: 4px;
+  }
+`;
+
+const DispatchButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  background-color: ${(props) => (props.dispatched ? "#28A745" : "#DB9BB9")};
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 6px;
+  margin-left: 10px;
+
+  &:hover {
+    background-color: ${(props) => (props.dispatched ? "#218838" : "#c985a7")};
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+`;
+
+const SelectAllContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 10px;
+`;
+
+const Button = styled.button`
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  ${(props) =>
+    props.primary &&
+    `
+    background-color: #DB9BB9;
+    color: white;
+    
+    &:hover {
+      background-color: #c985a7;
+      transform: translateY(-2px);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  `}
+
+  ${(props) =>
+    props.secondary &&
+    `
+    background-color: #f5f5f5;
+    color: #333;
+    
+    &:hover {
+      background-color: #e9e9e9;
+      transform: translateY(-2px);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  `}
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const SelectedCount = styled.div`
+  background-color: #f0f0f0;
+  color: #555;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  margin-left: 10px;
+`;
+
+const PrintOptions = styled.div`
+  position: absolute;
+  bottom: 70px;
+  right: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 10;
+  transition: all 0.3s;
+  transform-origin: bottom right;
+  transform: ${(props) => (props.show ? "scale(1)" : "scale(0)")};
+  opacity: ${(props) => (props.show ? "1" : "0")};
+`;
+
+const PrintOption = styled.div`
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &:hover {
+    background: #f9f0f4;
+  }
+`;
+
+const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+  border-radius: 16px;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #db9bb9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingText = styled.p`
+  margin-top: 20px;
+  color: #555;
+  font-size: 16px;
+  font-weight: 500;
+`;
+
+const ParameterListContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: -4px;
+  margin-bottom: 8px;
+  border: 1px solid #eaeaea;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  background: #fdfdfd;
+  padding: 8px 16px 8px 36px;
+`;
+
+const ParameterItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed #eee;
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ParameterInfo = styled.div`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex: 1;
+`;
+
+const ParameterName = styled.span`
+  font-size: 13px;
+  color: #444;
+  font-weight: ${(props) => (props.selected ? "600" : "400")};
+`;
+
+const ParameterCodeBadge = styled.span`
+  font-size: 11px;
+  background: #f0f0f0;
+  color: #666;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+`;
+
+const ExpandButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  color: #777;
+  margin-left: 8px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(219, 155, 185, 0.15);
+    color: #db9bb9;
+  }
+`;
+
+const ParamCountBadge = styled.span`
+  font-size: 11px;
+  background: #f0f0f0;
+  color: #666;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  font-weight: 500;
+`;
+
+const SequenceBadgeWrapper = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+`;
+
+const SequenceBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fdf2f7;
+  color: #a44d78;
+  border: 1px solid #db9bb9;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+`;
+
+const ReorderButtons = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+`;
+
+const ReorderBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: #f7f7f7;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #db9bb9;
+    color: white;
+    border-color: #db9bb9;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const Subtitle = styled.div`
+  margin-top: 4px;
+  font-size: 13px;
+  color: #777;
+  font-weight: 400;
+`;
+
+const PathologyTestSorting = ({ patient, onClose }) => {
+  const [tests, setTests] = useState([]);
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [selectAllChecked, setSelectAllChecked] = useState(false);
+  const [showPrintOptions, setShowPrintOptions] = useState(false);
+  const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const [dispatchedTests, setDispatchedTests] = useState(new Set());
+  const [showWhatsAppOptions, setShowWhatsAppOptions] = useState(false);
+  const [expandedTests, setExpandedTests] = useState(new Set());
+
+  useEffect(() => {
+    const fetchTests = async () => {
+      setIsLoading(true);
+      setLoadingMessage("Loading tests...");
+      try {
+        const response = await apiRequest(
+          `${Labbaseurl}pathology_patient_test_sorting/?barcode=${patient.barcode}&date=${patient.date}`,
+          "GET",
+          null,
+          {},
+          {},
+        );
+
+        if (response.success) {
+          if (response.data[patient.barcode]) {
+            const testDetails =
+              response.data[patient.barcode].testdetails || [];
+            const sortedTests = sortTestsWithDepartmentAndOrder(testDetails);
+
+            const testsWithDispatch = sortedTests.map((test) => ({
+              test_id: test.test_id,
+              test_name: test.test_name,
+              test_code: test.test_code,
+              order_id: test.order_id || "",
+              NABL: test.NABL || false,
+              dispatched: test.dispatch || false,
+              created_date: test.created_date, // Changed from test.dispatched to test.dispatch
+              department: test.department || "",
+              parameters: (test.parameters || []).map((p) => ({
+                test_code: p.test_code,
+                name: p.name || p.test_name || p.test_code || "Parameter",
+                value: p.value || "",
+              })),
+            }));
+
+            setTests(testsWithDispatch);
+
+            // Initialize dispatched tests set
+            const dispatchedSet = new Set();
+            testsWithDispatch.forEach((test) => {
+              if (test.dispatched) {
+                dispatchedSet.add(test.test_id);
+              }
+            });
+            setDispatchedTests(dispatchedSet);
+          } else {
+            console.log("No test data found for this barcode");
+            setTests([]);
+          }
+        } else {
+          console.error(
+            "Error fetching tests:",
+            response.error,
+            response.status,
+          );
+          toast.error("Failed to load tests");
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching tests:", error);
+        toast.error("An error occurred while loading tests");
+      } finally {
+        setIsLoading(false);
+        setLoadingMessage("");
+      }
+    };
+
+    fetchTests();
+  }, [patient.patient_id, patient.barcode, patient.date]);
+
+  const handleDispatchTest = async (test, e) => {
+    e.stopPropagation(); // Prevent test selection when clicking dispatch
+
+    try {
+      const response = await apiRequest(
+        `${Labbaseurl}pathology_update_dispatch_status/${patient.barcode}/`,
+        "PATCH",
+        {
+          test_id: test.test_id,
+          created_date: test.created_date, // Send the created_date to target specific document
+        },
+        {
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.success) {
+        toast.success(`Test "${test.test_name}" dispatched successfully!`);
+
+        // Update the dispatched tests set
+        setDispatchedTests((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(test.test_id);
+          return newSet;
+        });
+
+        // Update the tests array
+        setTests((prev) =>
+          prev.map((t) =>
+            t.test_id === test.test_id ? { ...t, dispatched: true } : t,
+          ),
+        );
+      } else {
+        toast.error(`Failed to dispatch test: ${response.error}`);
+      }
+    } catch (error) {
+      console.error("Error dispatching test:", error);
+      toast.error("Failed to dispatch test");
+    }
+  };
+
+  const handleDispatchAll = async () => {
+    const undispatched = tests.filter((t) => !dispatchedTests.has(t.test_id));
+
+    if (!undispatched.length) {
+      toast.info("All tests are already dispatched.");
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage(`Dispatching ${undispatched.length} test(s)...`);
+
+    let successCount = 0;
+    for (const test of undispatched) {
+      try {
+        const response = await apiRequest(
+          `${Labbaseurl}pathology_update_dispatch_status/${patient.barcode}/`,
+          "PATCH",
+          { test_id: test.test_id, created_date: test.created_date },
+          { "Content-Type": "application/json" },
+        );
+        if (response.success) {
+          successCount++;
+          setDispatchedTests((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(test.test_id);
+            return newSet;
+          });
+          setTests((prev) =>
+            prev.map((t) =>
+              t.test_id === test.test_id ? { ...t, dispatched: true } : t,
+            ),
+          );
+        }
+      } catch (error) {
+        console.error(`Failed to dispatch test ${test.test_name}:`, error);
+      }
+    }
+
+    setIsLoading(false);
+    setLoadingMessage("");
+    toast.success(
+      `${successCount} of ${undispatched.length} test(s) dispatched successfully!`,
+    );
+  };
+
+  const handleToggleExpand = (test_id, e) => {
+    if (e) e.stopPropagation();
+    setExpandedTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(test_id)) {
+        next.delete(test_id);
+      } else {
+        next.add(test_id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectTest = (test) => {
+    const isMolBio = test.department === "Molecular Biology";
+
+    setSelectedTests((prev) => {
+      const isSelected = prev.some((t) => t.test_id === test.test_id);
+
+      if (isSelected) {
+        return prev.filter((t) => t.test_id !== test.test_id);
+      }
+
+      const allParamCodes = test.parameters
+        ? test.parameters.map((p) => p.test_code)
+        : [];
+
+      const testToSelect = {
+        ...test,
+        selectedParamCodes: allParamCodes,
+      };
+
+      if (isMolBio) {
+        // Select this Mol Bio test only — clear everything else
+        return [testToSelect];
+      }
+
+      // Non-Mol Bio selected — clear any Mol Bio and add this one
+      const withoutMolBio = prev.filter(
+        (t) => t.department !== "Molecular Biology",
+      );
+      return [...withoutMolBio, testToSelect];
+    });
+  };
+
+  const handleMoveTest = (testId, direction, e) => {
+    if (e) e.stopPropagation();
+    setSelectedTests((prev) => {
+      const idx = prev.findIndex((t) => t.test_id === testId);
+      if (idx === -1) return prev;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const newArr = [...prev];
+      const temp = newArr[idx];
+      newArr[idx] = newArr[targetIdx];
+      newArr[targetIdx] = temp;
+      return newArr;
+    });
+  };
+
+  const handleSelectParameter = (test, param, e) => {
+    if (e) e.stopPropagation();
+
+    setSelectedTests((prev) => {
+      const existing = prev.find((t) => t.test_id === test.test_id);
+      const allParamCodes = test.parameters
+        ? test.parameters.map((p) => p.test_code)
+        : [];
+
+      let newSelectedParamCodes = [];
+
+      if (!existing) {
+        newSelectedParamCodes = [param.test_code];
+      } else {
+        const currentParamCodes = existing.selectedParamCodes || allParamCodes;
+        if (currentParamCodes.includes(param.test_code)) {
+          newSelectedParamCodes = currentParamCodes.filter((c) => c !== param.test_code);
+        } else {
+          newSelectedParamCodes = [...currentParamCodes, param.test_code];
+        }
+      }
+
+      if (newSelectedParamCodes.length === 0) {
+        return prev.filter((t) => t.test_id !== test.test_id);
+      }
+
+      const updatedTest = {
+        ...(existing || test),
+        selectedParamCodes: newSelectedParamCodes,
+      };
+
+      if (test.department === "Molecular Biology") {
+        return [updatedTest];
+      }
+
+      const withoutMolBio = prev.filter((t) => t.department !== "Molecular Biology");
+      const existingIdx = withoutMolBio.findIndex((t) => t.test_id === test.test_id);
+
+      if (existingIdx !== -1) {
+        const newArr = [...withoutMolBio];
+        newArr[existingIdx] = updatedTest;
+        return newArr;
+      } else {
+        return [...withoutMolBio, updatedTest];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    const nonMolBioTests = tests.filter(
+      (t) => t.department !== "Molecular Biology",
+    );
+    if (selectAllChecked) {
+      setSelectedTests([]);
+    } else {
+      setSelectedTests(
+        nonMolBioTests.map((t) => ({
+          ...t,
+          selectedParamCodes: t.parameters
+            ? t.parameters.map((p) => p.test_code)
+            : [],
+        }))
+      );
+    }
+    setSelectAllChecked(!selectAllChecked);
+  };
+
+  const handlePrint = async (withLetterpad) => {
+    if (!selectedTests.length) {
+      toast.error("Please select at least one test to print.");
+      return;
+    }
+
+    try {
+      console.log("Fetching patient details for barcode:", patient.barcode);
+      const response = await apiRequest(
+        `${Labbaseurl}pathology_get_patient_test_details/?barcode=${patient.barcode}`,
+        "GET",
+      );
+
+      if (!response.success) {
+        console.error("Failed to fetch patient details:", response.error);
+        toast.error(response.error || "Failed to fetch patient details");
+        return;
+      }
+
+      console.log("API Response:", response.data);
+
+      // Extract patient data and signatures from the new response structure
+      let patientDetails;
+      let signaturesData = [];
+
+      if (response.data.patient_data && response.data.signatures) {
+        // New structure with signatures
+        patientDetails = response.data.patient_data;
+        signaturesData = response.data.signatures;
+      } else {
+        // Fallback for old structure
+        patientDetails = response.data;
+      }
+
+      if (Array.isArray(patientDetails)) {
+        patientDetails = {
+          ...patientDetails[0],
+          testdetails: patientDetails.flatMap(
+            (record) => record.testdetails || [],
+          ),
+        };
+      }
+
+      console.log("Processed Patient Details:", patientDetails);
+      console.log("Signatures Data:", signaturesData);
+      console.log("Selected Tests:", selectedTests);
+
+      // Filter tests by test_id and filter their parameters based on selectedParamCodes
+      const orderedTests = selectedTests
+        .map((selectedTest) => {
+          const detail = patientDetails.testdetails.find(
+            (t) => t.test_id === selectedTest.test_id,
+          );
+          if (!detail) return null;
+
+          const testCopy = JSON.parse(JSON.stringify(detail));
+
+          if (
+            testCopy.parameters &&
+            testCopy.parameters.length > 0 &&
+            selectedTest.selectedParamCodes &&
+            Array.isArray(selectedTest.selectedParamCodes)
+          ) {
+            testCopy.parameters = testCopy.parameters.filter((param) =>
+              selectedTest.selectedParamCodes.includes(param.test_code),
+            );
+          }
+
+          return testCopy;
+        })
+        .filter((test) => test && (!test.parameters || test.parameters.length > 0));
+
+      console.log("Ordered Tests:", orderedTests);
+      if (!orderedTests.length) {
+        toast.error("No matching tests found for the selected tests.");
+        return;
+      }
+
+      const unicodeMap = {
+        μ: "µ",
+        α: "α",
+        β: "β",
+        γ: "γ",
+        δ: "δ",
+        Ω: "Ω",
+        "²": "^2",
+        "³": "^3",
+        "⁴": "^4",
+        "°": " deg",
+        "±": "±",
+        "×": "x",
+        "÷": "/",
+        "\\u03bc": "µ",
+        "\\u00b5": "µ",
+        "\\u00b0": " deg",
+        "\\u00b1": "±",
+        "\\u00b2": "^2",
+        "\\u00b3": "^3",
+        "\\u2077": "^7",
+        "\\u2079": "^9",
+        "\\u00ae": "(R)",
+      };
+
+      const processUnicodeText = (text) => {
+        if (!text) return "";
+        let processedText = text;
+
+        // Step 0: Normalize ALL problem characters at codepoint level FIRST
+        processedText = processedText
+          .replace(/\s*[\u00ae®]\s*/g, "^R")
+          .replace(/\s*[\u2122™]\s*/g, "^TM")
+          .replace(/²|\u00b2/g, "^2")
+          .replace(/³|\u00b3/g, "^3")
+          .replace(/⁰|\u2070/g, "^0")
+          .replace(/¹|\u00b9/g, "^1")
+          .replace(/⁴|\u2074/g, "^4")
+          .replace(/⁵|\u2075/g, "^5")
+          .replace(/⁶|\u2076/g, "^6")
+          .replace(/⁷|\u2077/g, "^7")
+          .replace(/⁸|\u2078/g, "^8")
+          .replace(/⁹|\u2079/g, "^9")
+          .replace(/–|\u2013/g, "-")
+          .replace(/—|\u2014/g, "--")
+          .replace(/[\u2018\u2019\u02bc]/g, "'")
+          .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+          .replace(/…|\u2026/g, "...")
+          .replace(/°|\u00b0/g, " deg");
+
+        // Step 1: Handle \\uXXXX escape sequences from raw strings
+        processedText = processedText.replace(
+          /\\u([0-9a-fA-F]{4})/g,
+          (match, hex) => {
+            const char = String.fromCharCode(parseInt(hex, 16));
+            return unicodeMap[char] || char;
+          },
+        );
+
+        // Step 2: Apply unicodeMap for any remaining literal characters
+        Object.keys(unicodeMap).forEach((unicode) => {
+          const regex = new RegExp(unicode, "g");
+          processedText = processedText.replace(regex, unicodeMap[unicode]);
+        });
+
+        // Step 3: Final cleanup
+        processedText = processedText
+          .replace(/\s*\^R\s*/g, "^R")
+          .replace(/\s*\^TM\s*/g, "^TM")
+          .replace(/\n/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        // Step 4: Safety net — catch ANY remaining special chars that survived all steps
+        processedText = processedText
+          .replace(/\s*[\u00ae®]\s*/g, "^R")
+          .replace(/\s*[\u2122™]\s*/g, "^TM")
+          .replace(/[\u00a9©]/g, "(C)")
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+          .replace(/[\u2013]/g, "-")
+          .replace(/[\u2014]/g, "--")
+          .replace(/[\u2026]/g, "...");
+        return processedText;
+      };
+
+      const extractPatientRefNoNumber = (refNo) => {
+        if (!refNo) return "N/A";
+        const numberPart = refNo.split("+")[0];
+        return numberPart;
+      };
+
+      // CORRECTED: Map designation codes to consultant positions
+      const designationMapping = {
+        DESIG101: { position: 0, title: "Consultant Microbiologist" },
+        DESIG100: { position: 1, title: "Consultant Pathologist" },
+        DESIG099: { position: 2, title: "Consultant Biochemist" },
+      };
+
+      // Build consultants array dynamically from signatures data
+      const consultants = [];
+
+      // Initialize with empty slots
+      consultants[0] = null; // Microbiologist
+      consultants[1] = null; // Pathologist
+      consultants[2] = null; // Biochemist
+
+      // Fill in the consultants based on signatures data
+      signaturesData.forEach((sig) => {
+        const mapping = designationMapping[sig.designation];
+        if (mapping) {
+          const signatureImage = sig.signatureBase64
+            ? `data:image/png;base64,${sig.signatureBase64}`
+            : null;
+
+          consultants[mapping.position] = [
+            sig.employeeName,
+            mapping.title,
+            signatureImage,
+          ];
+        }
+      });
+
+      // Filter out null entries (positions without signatures)
+      const activeConsultants = consultants.filter((c) => c !== null);
+
+      console.log("Active Consultants:", activeConsultants);
+
+      const departmentOrder = [
+        "Haematology",
+        "Coagulation",
+        "Biochemistry",
+        "Immunology",
+        "Immunoassay",
+        "Serology",
+        "Clinical Pathology",
+        "Clinical Chemistry",
+        "Cytology",
+        "Genetics",
+        "Histopathology",
+        "Immunohistochemistry",
+        "Microbiology",
+        "Molecular Biology",
+      ];
+
+      const patientRefNo =
+        patientDetails.barcodes?.[0]?.match(/\d+/)?.[0] || "N/A";
+      const patientRefNoNumber = extractPatientRefNoNumber(patientRefNo);
+
+      let barcodeImage = null;
+      if (patientRefNoNumber !== "N/A") {
+        const barcodeCanvas = document.createElement("canvas");
+        JsBarcode(barcodeCanvas, patientRefNoNumber, {
+          format: "CODE128",
+          lineColor: "#000",
+          width: 1.5,
+          height: 10,
+          displayValue: false,
+          margin: 0,
+        });
+        barcodeImage = barcodeCanvas.toDataURL("image/png");
+      }
+
+      const leftMargin = 10;
+      const rightMargin = leftMargin + 190;
+      const contentWidth = rightMargin - leftMargin;
+      const headerHeight = 30;
+      const footerHeight = 20;
+      const contentYStart = headerHeight + 20; // CHANGED from 25 to 20
+      const signatureHeight = 35;
+      const tableHeaderHeight = 10;
+
+      const colWidths = [
+        contentWidth * 0.28,
+        contentWidth * 0.12,
+        contentWidth * 0.05,
+        contentWidth * 0.18,
+        contentWidth * 0.1,
+        contentWidth * 0.27,
+        0,
+      ];
+
+      const leftDetails = [
+        { label: "Patient ID", value: patientDetails.patient_id || "" },
+        {
+          label: "Name",
+          value: patientDetails.patientname || "",
+        },
+        {
+          label: "Age/Gender",
+          value: `${patientDetails.age || ""} ${patientDetails.age_type || ""}/ ${patientDetails.gender || ""}`,
+        },
+        { label: "Referral", value: patientDetails.refby || "SELF" },
+        { label: "Branch", value: patientDetails.branch || "N/A" },
+        { label: "Source", value: patientDetails.B2B || "N/A" },
+      ];
+
+      const safeFormatDate = (dateVal, formatStr = "dd MMM yy / HH:mm") => {
+        if (!dateVal || dateVal === "null" || dateVal === "N/A" || dateVal === "undefined") return "N/A";
+        try {
+          const d = new Date(dateVal);
+          if (isNaN(d.getTime())) return "N/A";
+          return format(d, formatStr);
+        } catch {
+          return "N/A";
+        }
+      };
+
+      const firstTest = (patientDetails.testdetails && patientDetails.testdetails[0]) || {};
+
+      const rightDetails = [
+        {
+          label: "Collected On",
+          value: safeFormatDate(firstTest.samplecollected_time),
+        },
+        {
+          label: "Received On",
+          value: safeFormatDate(firstTest.received_time),
+        },
+        ...(firstTest.dispatch_time &&
+          firstTest.dispatch_time !== "null" &&
+          safeFormatDate(firstTest.dispatch_time) !== "N/A"
+          ? [
+            {
+              label: "Released On",
+              value: safeFormatDate(firstTest.dispatch_time),
+            },
+          ]
+          : []),
+
+        {
+          label: "Printed On",
+          value: format(new Date(), "dd MMM yy / HH:mm"),
+        },
+        { label: "Patient Ref.No", value: patientRefNoNumber },
+      ];
+
+      const calculateMaxLabelWidth = (details) => {
+        const tempDoc = new jsPDF();
+        return Math.max(
+          ...details.map((item) => tempDoc.getTextWidth(item.label)),
+        );
+      };
+
+      const doc = new jsPDF();
+      let pageCount = 1;
+      let isTableStarted = false;
+      let isMolBioSection = false;
+
+      let showNablLogo = false; // will be set per department
+      let patientInfoEndY = 0;
+
+      const leftMaxLabelWidth = calculateMaxLabelWidth(leftDetails);
+      const rightMaxLabelWidth = calculateMaxLabelWidth(rightDetails);
+      const centerPoint = (leftMargin + rightMargin) / 2;
+      const leftLabelX = leftMargin;
+      const leftColonX = leftLabelX + leftMaxLabelWidth + 2;
+      const leftValueX = leftColonX + 3;
+      const rightLabelX = centerPoint + 28;
+      const rightColonX = rightLabelX + rightMaxLabelWidth + 2;
+      const rightValueX = rightColonX + 1;
+
+      const addPatientInfo = (yPos) => {
+        doc.setFontSize(10);
+        let patientInfoY = yPos;
+        let barcodeBottomY = 0;
+
+        // FIX: Use the maximum length of both arrays
+        const maxLength = Math.max(leftDetails.length, rightDetails.length);
+
+        for (let i = 0; i < maxLength; i++) {
+          const left = leftDetails[i];
+          const right = rightDetails[i];
+
+          // Handle left side (only if exists)
+          if (left) {
+            doc.setFont("helvetica", "bold");
+            doc.text(left.label, leftLabelX, patientInfoY);
+            doc.text(":", leftColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
+
+            const maxLeftValueWidth = centerPoint + 25 - leftValueX;
+            const leftValueLines = wrapTextAndGetLines(
+              doc,
+              left.value,
+              maxLeftValueWidth,
+            );
+
+            leftValueLines.forEach((line, lineIndex) => {
+              doc.text(line, leftValueX, patientInfoY + lineIndex * 4);
+            });
+
+            var leftRowHeight = leftValueLines.length * 4;
+          } else {
+            var leftRowHeight = 5; // Default height when no left detail
+          }
+
+          // Handle right side (only if exists)
+          if (right) {
+            doc.setFont("helvetica", "bold");
+            doc.text(right.label, rightLabelX, patientInfoY);
+            doc.text(":", rightColonX, patientInfoY);
+            doc.setFont("helvetica", "normal");
+            doc.text(right.value, rightValueX, patientInfoY);
+
+            if (
+              right.label === "Patient Ref.No" &&
+              patientRefNoNumber !== "N/A" &&
+              barcodeImage
+            ) {
+              const barcodeY = patientInfoY + 4;
+              doc.addImage(
+                barcodeImage,
+                "PNG",
+                rightValueX + doc.getTextWidth(right.value) - 10,
+                barcodeY,
+                25,
+                10,
+              );
+              barcodeBottomY = barcodeY + 10;
+            }
+          }
+
+          // Move to next row
+          patientInfoY += Math.max(leftRowHeight, 5);
+        }
+
+        return Math.max(patientInfoY, barcodeBottomY);
+      };
+
+      const addHeaderFooter = (withNabl = false) => {
+        if (withLetterpad) {
+          doc.addImage(
+            headerImage,
+            "PNG",
+            0,
+            10,
+            doc.internal.pageSize.width,
+            headerHeight,
+          );
+          if (withNabl && NABLImage) {
+            const nablLogoWidth = 20;
+            const nablLogoHeight = 20;
+            const nablLogoX = doc.internal.pageSize.width - 45 - nablLogoWidth;
+            const nablLogoY = 14;
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
+          const footerY = doc.internal.pageSize.height - footerHeight;
+          doc.addImage(
+            FooterImage,
+            "PNG",
+            0,
+            footerY,
+            doc.internal.pageSize.width,
+            footerHeight,
+          );
+        } else {
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(255, 255, 255);
+          doc.text("Header Space", leftMargin, 10);
+          doc.setTextColor(0, 0, 0);
+          if (withNabl && NABLImage) {
+            const nablLogoWidth = 25;
+            const nablLogoHeight = 25;
+            const nablLogoX = doc.internal.pageSize.width - 30 - nablLogoWidth;
+            const nablLogoY = 5;
+            doc.addImage(
+              NABLImage,
+              "PNG",
+              nablLogoX,
+              nablLogoY,
+              nablLogoWidth,
+              nablLogoHeight,
+            );
+          }
+        }
+      };
+
+      const renderUnicodeText = (text, x, y, options = {}) => {
+        const processedText = processUnicodeText(text);
+        if (processedText.includes("µ")) {
+          const parts = processedText.split("µ");
+          let currentX = x;
+          parts.forEach((part, index) => {
+            if (index > 0) {
+              doc.setFont("helvetica", options.fontStyle || "normal");
+              doc.text("µ", currentX, y);
+              currentX += doc.getTextWidth("µ");
+            }
+            if (part) {
+              doc.text(part, currentX, y);
+              currentX += doc.getTextWidth(part);
+            }
+          });
+        } else {
+          doc.text(processedText, x, y);
+        }
+      };
+      const renderValueWithSuperscript = (
+        doc,
+        text,
+        x,
+        y,
+        maxWidth = null,
+        lineHeight = 4,
+      ) => {
+        if (!text) return 0;
+
+        const lines = maxWidth ? doc.splitTextToSize(text, maxWidth) : text.split("\n");
+        let currentY = y;
+        let totalHeight = 0;
+
+        lines.forEach((lineText) => {
+          const superscriptRegex = /(\d+[xX×]?\d*)\^(-?\d+)/;
+          const match = lineText.match(superscriptRegex);
+
+          if (!match) {
+            doc.text(lineText, x, currentY);
+          } else {
+            const before = lineText.slice(0, match.index);
+            const base = match[1].replace(/[xX]/, "×");
+            const exponent = match[2];
+            const after = lineText.slice(match.index + match[0].length);
+
+            let currentX = x;
+            const normalSize = doc.getFontSize();
+
+            if (before) {
+              doc.text(before, currentX, currentY);
+              currentX += doc.getTextWidth(before);
+            }
+
+            doc.text(base, currentX, currentY);
+            currentX += doc.getTextWidth(base);
+
+            doc.setFontSize(7);
+            doc.text(exponent, currentX, currentY - 2);
+            currentX += doc.getTextWidth(exponent);
+            doc.setFontSize(normalSize);
+
+            if (after) {
+              doc.text(after, currentX, currentY);
+            }
+          }
+          currentY += lineHeight;
+          totalHeight += lineHeight;
+        });
+
+        return totalHeight;
+      };
+      const drawTableHeader = (yPos) => {
+        doc.line(leftMargin, yPos, rightMargin, yPos);
+        yPos += 5;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        const headers = [
+          "Test",
+          "Specimen",
+          "",
+          "Result",
+          "Units",
+          "Reference Range / Method",
+          "",
+        ];
+        let xPos = leftMargin;
+        headers.forEach((header, index) => {
+          if (header) {
+            doc.text(header, xPos, yPos);
+          }
+          xPos += colWidths[index];
+        });
+        yPos += 3;
+        doc.line(leftMargin, yPos, rightMargin, yPos);
+        yPos += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        return yPos;
+      };
+
+      const wrapTextAndGetLines = (doc, text, maxWidth) => {
+        if (!text) return [];
+        return doc.splitTextToSize(text, maxWidth);
+      };
+
+      const renderWrappedText = (
+        doc,
+        text,
+        maxWidth,
+        startX,
+        yPos,
+        lineHeight = 4,
+      ) => {
+        if (!text) return 0;
+        const lines = wrapTextAndGetLines(doc, text, maxWidth);
+        lines.forEach((line, index) => {
+          doc.text(line, startX, yPos + index * lineHeight);
+        });
+        return lines.length * lineHeight;
+      };
+      const renderTextWithSuperscripts = (text, x, y, fontSize = 8.5) => {
+        if (!text) return;
+
+        const parts = text.split(/(\^\d+|\^R|\^TM)/);
+        let currentX = x;
+        const superFontSize = fontSize * 0.6;
+        const superRaise = fontSize * 0.25;
+
+        doc.setFontSize(fontSize);
+
+        parts.forEach((part) => {
+          if (part === "^R") {
+            // Draw ® manually: small circle with R inside
+            const circleRadius = superFontSize * 0.18;
+            const circleX = currentX + circleRadius;
+            const circleY = y - superRaise - circleRadius * 0.5;
+
+            // Draw circle
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.2);
+            doc.circle(circleX, circleY, circleRadius, "S");
+
+            // Draw R inside circle
+            doc.setFontSize(superFontSize * 0.7);
+            doc.setFont("helvetica", "normal");
+            const rWidth = doc.getTextWidth("R");
+            doc.text("R", circleX - rWidth / 2, circleY + superFontSize * 0.14);
+
+            doc.setFontSize(fontSize);
+            currentX += circleRadius * 2 + 0.5;
+          } else if (part === "^TM") {
+            doc.setFontSize(superFontSize);
+            doc.text("TM", currentX, y - superRaise);
+            currentX += doc.getTextWidth("TM");
+            doc.setFontSize(fontSize);
+          } else if (/^\^\d+$/.test(part)) {
+            const supText = part.slice(1);
+            doc.setFontSize(superFontSize);
+            doc.text(supText, currentX, y - superRaise);
+            currentX += doc.getTextWidth(supText);
+            doc.setFontSize(fontSize);
+          } else if (part) {
+            doc.text(part, currentX, y);
+            currentX += doc.getTextWidth(part);
+          }
+        });
+
+        doc.setFontSize(fontSize);
+      };
+
+      // UPDATED: addSignatures function - Right-aligned with full name (MATCHING SECOND DOCUMENT)
+      const addSignatures = () => {
+        const pageHeight = doc.internal.pageSize.height;
+        const signaturesY = pageHeight - footerHeight - signatureHeight - 2; // CHANGED from 5 to 2
+        const signatureWidth = 35;
+
+        // Only show signatures if we have active consultants
+        if (activeConsultants.length === 0) return;
+
+        // Calculate spacing based on number of active consultants
+        const totalConsultants = activeConsultants.length;
+
+        // Calculate starting position from RIGHT side
+        const rightEdge = rightMargin;
+        const signatureSpacing = 60; // Fixed spacing between signatures
+
+        // Start from right edge and work backwards
+        const startX = rightEdge - totalConsultants * signatureSpacing;
+
+        activeConsultants.forEach((consultant, index) => {
+          // Position from the calculated start point, moving right
+          const xPosition = startX + index * signatureSpacing;
+
+          // Display signature image if available
+          if (consultant[2]) {
+            doc.addImage(
+              consultant[2],
+              "PNG",
+              xPosition,
+              signaturesY,
+              signatureWidth,
+              15,
+            );
+          }
+
+          // Display full name with credentials
+          const fullName = consultant[0];
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(fullName, xPosition, signaturesY + 20);
+
+          // Display title (Consultant position)
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.text(consultant[1], xPosition, signaturesY + 25);
+        });
+      };
+
+      const checkForNewPage = (yPos, estimatedHeight) => {
+        const pageHeight = doc.internal.pageSize.height;
+        const footerStart = pageHeight - (footerHeight + signatureHeight - 1);
+
+        if (yPos + estimatedHeight >= footerStart) {
+          addSignatures();
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter(showNablLogo);
+          let newYPos = contentYStart;
+          newYPos = addPatientInfo(newYPos);
+          newYPos += 12;
+          // Only draw table header if NOT in mol bio section
+          if (isTableStarted && !isMolBioSection) {
+            newYPos = drawTableHeader(newYPos);
+          }
+          return newYPos;
+        }
+        return yPos;
+      };
+
+      const getHighLowStatus = (value, reference) => {
+        if (!value || !reference) return null;
+        const numValue = Number.parseFloat(value);
+        if (isNaN(numValue)) return null;
+        if (reference.includes("-")) {
+          const [min, max] = reference
+            .split("-")
+            .map((v) => Number.parseFloat(v));
+          if (!isNaN(min) && !isNaN(max)) {
+            if (numValue < min) return "L";
+            if (numValue > max) return "H";
+          }
+        } else if (reference.includes("<")) {
+          const max = Number.parseFloat(reference.replace("<", ""));
+          if (!isNaN(max) && numValue > max) return "H";
+        } else if (reference.includes(">")) {
+          const min = Number.parseFloat(reference.replace(">", ""));
+          if (!isNaN(min) && numValue < min) return "L";
+        }
+        return null;
+      };
+
+      const drawArrowSymbol = (doc, x, y, direction) => {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        if (direction === "up") {
+          doc.line(x, y, x + 1, y - 1);
+          doc.line(x + 1, y - 1, x + 2, y);
+          doc.line(x + 1, y - 1, x + 1, y + 2);
+        } else if (direction === "down") {
+          doc.line(x, y, x + 1, y + 1);
+          doc.line(x + 1, y + 1, x + 2, y);
+          doc.line(x + 1, y + 1, x + 1, y - 2);
+        }
+      };
+
+      // Sort orderedTests by the selection order
+      orderedTests.sort((a, b) => {
+        const indexA = selectedTests.findIndex(
+          (t) => String(t.test_id) === String(a.test_id)
+        );
+        const indexB = selectedTests.findIndex(
+          (t) => String(t.test_id) === String(b.test_id)
+        );
+        return indexA - indexB;
+      });
+
+      // ── Check if this is a specialized morphology pathology report ─────────
+      const isMorphologyReport = orderedTests.some(
+        (t) =>
+          String(t.test_id) === "199" ||
+          (t.testname && t.testname.toLowerCase().includes("peripheral smear")) ||
+          (t.parameters && t.parameters.some((p) => (p.sub_title || "").toUpperCase().includes("BLOOD FILM MORPHOLOGY")))
+      );
+
+      if (isMorphologyReport) {
+        doc.setPage(1);
+        addHeaderFooter(false);
+        let yPos = contentYStart + 2;
+
+        // 1. Department Banner
+        const bannerText = "DEPARTMENT OF LABORATORY MEDICINE";
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        const bannerWidth = doc.getTextWidth(bannerText) + 14;
+        const bannerHeight = 5.2;
+        const bannerX = leftMargin + (contentWidth - bannerWidth) / 2;
+        doc.setFillColor(76, 175, 80);
+        doc.roundedRect(bannerX, yPos, bannerWidth, bannerHeight, 1.2, 1.2, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.text(bannerText, bannerX + bannerWidth / 2, yPos + 3.6, { align: "center" });
+        doc.setTextColor(0, 0, 0);
+        yPos += bannerHeight + 2.5;
+
+        // 2. 3-Row, 4-Column Boxed Patient Details Table
+        const tableX = leftMargin;
+        const tableWidth = contentWidth;
+        const rowHeight = 6.2;
+        const tableHeight = rowHeight * 3;
+        const col1Width = 32;
+        const col2Width = 63;
+        const col3Width = 30;
+        const col4Width = 65;
+
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.25);
+        doc.rect(tableX, yPos, tableWidth, tableHeight);
+        doc.line(tableX, yPos + rowHeight, tableX + tableWidth, yPos + rowHeight);
+        doc.line(tableX, yPos + rowHeight * 2, tableX + tableWidth, yPos + rowHeight * 2);
+        doc.line(tableX + col1Width, yPos, tableX + col1Width, yPos + tableHeight);
+        doc.line(tableX + col1Width + col2Width, yPos, tableX + col1Width + col2Width, yPos + tableHeight);
+        doc.line(tableX + col1Width + col2Width + col3Width, yPos, tableX + col1Width + col2Width + col3Width, yPos + tableHeight);
+
+        const padX = 2;
+        const textOffsetY = 4.3;
+        const labIdVal = patientDetails.lab_id || firstTest.lab_id || "N/A";
+        const reportDateVal = patientDetails.date ? safeFormatDate(patientDetails.date, "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy");
+        const ageSexVal = `${patientDetails.age || ""}${patientDetails.age_type ? patientDetails.age_type.toLowerCase() : "years"}/${(patientDetails.gender || "").toLowerCase()}`;
+
+        // Row 1
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.text("PATIENT NAME", tableX + padX, yPos + textOffsetY);
+        doc.setFont("helvetica", "bold");
+        doc.text((patientDetails.patientname || "N/A").toUpperCase(), tableX + col1Width + padX, yPos + textOffsetY);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("AGE/SEX", tableX + col1Width + col2Width + padX, yPos + textOffsetY);
+        doc.setFont("helvetica", "normal");
+        doc.text(ageSexVal, tableX + col1Width + col2Width + col3Width + padX, yPos + textOffsetY);
+
+        // Row 2
+        doc.setFont("helvetica", "bold");
+        doc.text("PATIENT ID", tableX + padX, yPos + rowHeight + textOffsetY);
+        doc.setFont("helvetica", "normal");
+        doc.text(patientDetails.patient_id || "N/A", tableX + col1Width + padX, yPos + rowHeight + textOffsetY);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("LAB ID", tableX + col1Width + col2Width + padX, yPos + rowHeight + textOffsetY);
+        doc.setFont("helvetica", "bold");
+        doc.text(labIdVal, tableX + col1Width + col2Width + col3Width + padX, yPos + rowHeight + textOffsetY);
+
+        // Row 3
+        doc.setFont("helvetica", "bold");
+        doc.text("REFERRED BY", tableX + padX, yPos + rowHeight * 2 + textOffsetY);
+        doc.setFont("helvetica", "normal");
+        doc.text((patientDetails.refby || "SELF").toUpperCase(), tableX + col1Width + padX, yPos + rowHeight * 2 + textOffsetY);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("REPORT DATE", tableX + col1Width + col2Width + padX, yPos + rowHeight * 2 + textOffsetY);
+        doc.setFont("helvetica", "normal");
+        doc.text(reportDateVal, tableX + col1Width + col2Width + col3Width + padX, yPos + rowHeight * 2 + textOffsetY);
+
+        yPos += tableHeight + 7;
+
+        // 3. Centered Box Title: [ BLOOD FILM MORPHOLOGY ]
+        const morphTest = orderedTests.find((t) => String(t.test_id) === "199" || (t.parameters && t.parameters.length > 0)) || orderedTests[0];
+        const titleText = (morphTest?.parameters?.[0]?.sub_title) || "BLOOD FILM MORPHOLOGY";
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        const titleBoxWidth = doc.getTextWidth(titleText) + 14;
+        const titleBoxHeight = 5.5;
+        const titleBoxX = leftMargin + (contentWidth - titleBoxWidth) / 2;
+        doc.setDrawColor(180, 180, 180);
+        doc.rect(titleBoxX, yPos, titleBoxWidth, titleBoxHeight);
+        doc.text(titleText, leftMargin + contentWidth / 2, yPos + 3.8, { align: "center" });
+        yPos += titleBoxHeight + 7;
+
+        // 4. Morphology Parameters & Narrative Report
+        const params = morphTest.parameters || [];
+        const reportText = (morphTest.value || morphTest.report || morphTest.test_value || "").trim();
+        const lineHeight = 4.5;
+
+        if (params.length > 0) {
+          params.forEach((param) => {
+            const pName = (param.name || param.parameter_name || param.test_name || "").trim();
+            const pVal = (param.value || "").trim();
+            const lowerName = pName.toLowerCase();
+
+            if (lowerName.includes("differential")) {
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9.5);
+              doc.text(`${pName}:`, leftMargin, yPos);
+              yPos += 5;
+
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(9.5);
+              const rawLines = pVal ? pVal.split("\n") : [];
+              rawLines.forEach((rLine) => {
+                const wrapped = doc.splitTextToSize(rLine, contentWidth - 4);
+                wrapped.forEach((wLine) => {
+                  doc.text(wLine, leftMargin, yPos);
+                  yPos += lineHeight;
+                });
+              });
+              yPos += 3;
+            } else if (lowerName.includes("impression")) {
+              yPos += 2;
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(10);
+              doc.text("IMPRESSION:", leftMargin, yPos);
+              const impWidth = doc.getTextWidth("IMPRESSION:");
+              doc.line(leftMargin, yPos + 0.8, leftMargin + impWidth, yPos + 0.8);
+              yPos += 6;
+
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9.5);
+              const rawLines = pVal ? pVal.split("\n") : [];
+              rawLines.forEach((rLine) => {
+                const wrapped = doc.splitTextToSize(rLine, contentWidth - 4);
+                wrapped.forEach((wLine) => {
+                  doc.text(wLine, leftMargin, yPos);
+                  yPos += lineHeight;
+                });
+              });
+              yPos += 3;
+            } else {
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9.5);
+              const labelStr = `${pName}: `;
+              doc.text(labelStr, leftMargin, yPos);
+              const labelWidth = doc.getTextWidth(labelStr);
+
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(9.5);
+              const firstLineAvailableWidth = contentWidth - labelWidth - 2;
+              const rawLines = pVal ? pVal.split("\n") : [];
+
+              if (rawLines.length > 0) {
+                const firstWrapped = doc.splitTextToSize(rawLines[0], firstLineAvailableWidth);
+                doc.text(firstWrapped[0] || "", leftMargin + labelWidth, yPos);
+                yPos += lineHeight;
+
+                for (let i = 1; i < firstWrapped.length; i++) {
+                  doc.text(firstWrapped[i], leftMargin, yPos);
+                  yPos += lineHeight;
+                }
+
+                for (let i = 1; i < rawLines.length; i++) {
+                  const restWrapped = doc.splitTextToSize(rawLines[i], contentWidth - 2);
+                  restWrapped.forEach((rw) => {
+                    doc.text(rw, leftMargin, yPos);
+                    yPos += lineHeight;
+                  });
+                }
+              }
+              yPos += 2.5;
+            }
+          });
+        } else if (reportText) {
+          const lines = reportText.split("\n");
+          let inDifferential = false;
+          let inImpression = false;
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) {
+              yPos += 2;
+              continue;
+            }
+
+            if (line.toUpperCase() === titleText.toUpperCase() || line.toUpperCase() === "BLOOD FILM MORPHOLOGY") {
+              continue;
+            }
+
+            const lower = line.toLowerCase();
+            if (lower.startsWith("impression:") || lower === "impression") {
+              inDifferential = false;
+              inImpression = true;
+              yPos += 2;
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(10);
+              doc.text("IMPRESSION:", leftMargin, yPos);
+              const impWidth = doc.getTextWidth("IMPRESSION:");
+              doc.line(leftMargin, yPos + 0.8, leftMargin + impWidth, yPos + 0.8);
+              yPos += 5.5;
+
+              const colonIdx = line.indexOf(":");
+              const rest = colonIdx !== -1 ? line.substring(colonIdx + 1).trim() : "";
+              if (rest) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9.5);
+                const wrapped = doc.splitTextToSize(rest, contentWidth - 4);
+                wrapped.forEach((w) => {
+                  doc.text(w, leftMargin, yPos);
+                  yPos += lineHeight;
+                });
+              }
+            } else if (lower.startsWith("differential count:") || lower === "differential count") {
+              inDifferential = true;
+              inImpression = false;
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9.5);
+              doc.text("Differential count:", leftMargin, yPos);
+              yPos += 5;
+
+              const colonIdx = line.indexOf(":");
+              const rest = colonIdx !== -1 ? line.substring(colonIdx + 1).trim() : "";
+              if (rest) {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9.5);
+                const wrapped = doc.splitTextToSize(rest, contentWidth - 4);
+                wrapped.forEach((w) => {
+                  doc.text(w, leftMargin, yPos);
+                  yPos += lineHeight;
+                });
+              }
+            } else if (lower.startsWith("rbc:") || lower.startsWith("wbc:") || lower.startsWith("platelets:")) {
+              inDifferential = false;
+              inImpression = false;
+              const colonIdx = line.indexOf(":");
+              const label = line.substring(0, colonIdx + 1) + " ";
+              const val = line.substring(colonIdx + 1).trim();
+
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(9.5);
+              doc.text(label, leftMargin, yPos);
+              const labelWidth = doc.getTextWidth(label);
+
+              if (val) {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9.5);
+                const firstLineWidth = contentWidth - labelWidth - 2;
+                const wrapped = doc.splitTextToSize(val, firstLineWidth);
+                doc.text(wrapped[0] || "", leftMargin + labelWidth, yPos);
+                yPos += lineHeight;
+                for (let k = 1; k < wrapped.length; k++) {
+                  doc.text(wrapped[k], leftMargin, yPos);
+                  yPos += lineHeight;
+                }
+              } else {
+                yPos += lineHeight;
+              }
+              yPos += 1.5;
+            } else {
+              if (inImpression) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9.5);
+              } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9.5);
+              }
+              const wrapped = doc.splitTextToSize(line, contentWidth - 4);
+              wrapped.forEach((w) => {
+                doc.text(w, leftMargin, yPos);
+                yPos += lineHeight;
+              });
+            }
+          }
+        }
+        
+        // 5. Doctor Signature Block at bottom right
+        const pageHeight = doc.internal.pageSize.height;
+        const sigY = pageHeight - footerHeight - 20;
+        const sigRightX = rightMargin - 5;
+
+        const firstSig = (activeConsultants && activeConsultants.length > 0) ? activeConsultants[0] : null;
+        if (firstSig && firstSig[2]) {
+          doc.addImage(firstSig[2], "PNG", sigRightX - 40, sigY - 14, 38, 12);
+        }
+
+        const docName = (firstSig && firstSig[0]) || "DR.S.BRINDHA .M.D";
+        const docDesig = (firstSig && firstSig[1]) || "CONSULTANT PATHOLOGIST";
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text(docName, sigRightX, sigY + 2, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.text(docDesig, sigRightX, sigY + 6, { align: "right" });
+
+        // Generate the PDF as a Blob and open
+        const pdfBlob = doc.output("blob");
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, "_blank");
+        return pdfBlob;
+      }
+
+      // ── Standard tabular report layout ────────────────────────────────────
+      addHeaderFooter(showNablLogo); // showNablLogo is false here, will be corrected below
+      let currentYPosition = addPatientInfo(contentYStart);
+      patientInfoEndY = currentYPosition;
+      currentYPosition += 12;
+
+      if (orderedTests.length) {
+        isTableStarted = true;
+        currentYPosition = checkForNewPage(currentYPosition, tableHeaderHeight);
+        let yPos = currentYPosition;
+
+        const testsByDepartment = orderedTests.reduce((acc, test) => {
+          (acc[test.department] = acc[test.department] || []).push(test);
+          return acc;
+        }, {});
+
+        const sortedDepartments = Object.keys(testsByDepartment).sort(
+          (a, b) => {
+            const indexA = departmentOrder.indexOf(a);
+            const indexB = departmentOrder.indexOf(b);
+
+            if (indexA !== -1 && indexB !== -1) {
+              return indexA - indexB;
+            }
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+          },
+        );
+
+        // ── NABL SPLIT: separate NABL=true and NABL=false tests ──────────────
+        const nablTrueTests = orderedTests.filter((t) => t.NABL === true);
+        const nablFalseTests = orderedTests.filter((t) => t.NABL !== true);
+
+        // Set initial NABL state and redraw page 1 header
+        showNablLogo = nablTrueTests.length > 0;
+        doc.setPage(1);
+        addHeaderFooter(showNablLogo);
+
+        // ── Helper: render a group of tests with fixed NABL logo state ────────
+        const renderDepartmentGroup = (testsToRender) => {
+          if (!testsToRender.length) return;
+
+          let yPos = currentYPosition;
+          isTableStarted = true;
+          yPos = checkForNewPage(yPos, tableHeaderHeight);
+          yPos = drawTableHeader(yPos);
+
+          const testsByDept = testsToRender.reduce((acc, test) => {
+            (acc[test.department] = acc[test.department] || []).push(test);
+            return acc;
+          }, {});
+
+          // Order departments by their first appearance in testsToRender
+          // (preserves the user's selected sequence, and preserves DEPARTMENT_ORDER in default)
+          const sortedDepts = [];
+          testsToRender.forEach((test) => {
+            const dept = test.department || "";
+            if (dept && !sortedDepts.includes(dept)) {
+              sortedDepts.push(dept);
+            }
+          });
+          Object.keys(testsByDept).forEach((dept) => {
+            if (!sortedDepts.includes(dept)) {
+              sortedDepts.push(dept);
+            }
+          });
+
+          sortedDepts.forEach((department) => {
+            const deptTests = testsByDept[department] || [];
+            const verifiedBySet = new Set();
+            deptTests.forEach((test) => {
+              if (test.verified_by && test.verified_by.trim() !== "")
+                verifiedBySet.add(test.verified_by);
+            });
+            const hasMultipleVerifiers = verifiedBySet.size > 1;
+
+            deptTests.forEach((test, testIndex) => {
+              if (testIndex === 0) {
+                yPos = checkForNewPage(yPos, 15);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                const textWidth = doc.getTextWidth(department.toUpperCase());
+                const centerX = leftMargin + contentWidth / 2;
+                doc.text(department.toUpperCase(), centerX, yPos, {
+                  align: "center",
+                });
+                doc.line(
+                  centerX - textWidth / 2,
+                  yPos + 2,
+                  centerX + textWidth / 2,
+                  yPos + 2,
+                );
+                yPos += 10;
+              }
+
+              const parametersBySubtitle = {};
+              if (test.parameters && test.parameters.length > 0) {
+                test.parameters.forEach((param) => {
+                  const subtitle = param.sub_title || "";
+                  if (!parametersBySubtitle[subtitle])
+                    parametersBySubtitle[subtitle] = [];
+                  parametersBySubtitle[subtitle].push(param);
+                });
+              }
+
+              const testNameText = test.testname;
+              const valueText = test.value || "";
+              const methodText = (test.method || "")
+                .replace(/\bMethod\b/i, "")
+                .trim();
+              const hasParameters = test.parameters && test.parameters.length > 0;
+              const testNameWidth = hasParameters ? contentWidth - 2 : colWidths[0] - 2;
+              const testNameLines = wrapTextAndGetLines(
+                doc,
+                testNameText,
+                testNameWidth,
+              );
+              const specimenLines = wrapTextAndGetLines(
+                doc,
+                test.specimen_type || "",
+                colWidths[1] - 2,
+              );
+              const valueLines = wrapTextAndGetLines(
+                doc,
+                valueText,
+                colWidths[3] - 2,
+              );
+              const refMethodText = [test.reference_range, methodText].filter(p => p && p.trim() !== "").join(" / ");
+              const refMethodLines = wrapTextAndGetLines(
+                doc,
+                refMethodText,
+                colWidths[5] - 2,
+              );
+              const maxLines = Math.max(
+                testNameLines.length,
+                specimenLines.length,
+                valueLines.length,
+                refMethodLines.length,
+              );
+              const lineHeight = 4.5;
+              const actualRowHeight = maxLines * lineHeight + 2;
+
+              let requiredHeight = actualRowHeight;
+              if (hasParameters) {
+                const firstParam = test.parameters[0];
+                const pMethod = (firstParam?.method || "").replace(/\bMethod\b/i, "").trim();
+                const pRefMethod = [firstParam?.reference_range, pMethod].filter(p => p && p.trim() !== "").join(" / ");
+                const pLines = Math.max(
+                  wrapTextAndGetLines(doc, firstParam?.name || "", colWidths[0] - 2).length,
+                  wrapTextAndGetLines(doc, firstParam?.specimen_type || "", colWidths[1] - 2).length,
+                  wrapTextAndGetLines(doc, firstParam?.value || "", colWidths[3] - 2).length,
+                  wrapTextAndGetLines(doc, pRefMethod, colWidths[5] - 2).length,
+                  1,
+                );
+                const firstParamRowHeight = pLines * lineHeight + 2;
+                const subtitleHeight = (firstParam?.sub_title && firstParam.sub_title.trim() !== "") ? 8 : 0;
+                requiredHeight = actualRowHeight + (hasParameters ? 1.5 : 3.5) + subtitleHeight + firstParamRowHeight + 4;
+              } else if (test.notes && test.notes.trim() !== "") {
+                requiredHeight += 10;
+              }
+
+              yPos = checkForNewPage(yPos, requiredHeight);
+              doc.setFontSize(10);
+              let xPos = leftMargin;
+
+              doc.setFont("helvetica", "bold");
+              renderWrappedText(
+                doc,
+                testNameText,
+                testNameWidth,
+                xPos,
+                yPos,
+                lineHeight,
+              );
+              xPos += colWidths[0];
+
+              doc.setFont("helvetica", "normal");
+              renderWrappedText(
+                doc,
+                test.specimen_type || "",
+                colWidths[1] - 2,
+                xPos,
+                yPos,
+                lineHeight,
+              );
+              xPos += colWidths[1];
+              xPos += colWidths[2];
+
+              const statusIndicator = test.isHigh
+                ? "H"
+                : test.isLow
+                  ? "L"
+                  : getHighLowStatus(valueText, test.reference_range);
+
+              if (statusIndicator) {
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(
+                  statusIndicator === "H" ? 255 : 0,
+                  0,
+                  statusIndicator === "L" ? 255 : 0,
+                );
+                // For test value (statusIndicator block):
+                renderValueWithSuperscript(
+                  doc,
+                  valueText,
+                  xPos,
+                  yPos,
+                  colWidths[3] - 5,
+                  lineHeight,
+                );
+                const valueWidth = doc.getTextWidth(valueText);
+                if (valueWidth < colWidths[3] - 5)
+                  drawArrowSymbol(
+                    doc,
+                    xPos + valueWidth + 2,
+                    yPos - 1,
+                    statusIndicator === "H" ? "up" : "down",
+                  );
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "normal");
+              } else {
+                // For test value (statusIndicator block):
+                renderValueWithSuperscript(
+                  doc,
+                  valueText,
+                  xPos,
+                  yPos,
+                  colWidths[3] - 5,
+                  lineHeight,
+                );
+              }
+              xPos += colWidths[3];
+              renderUnicodeText(test.unit || "", xPos, yPos);
+              xPos += colWidths[4];
+              renderWrappedText(
+                doc,
+                refMethodText,
+                colWidths[5] - 2,
+                xPos,
+                yPos,
+                lineHeight,
+              );
+              yPos += actualRowHeight + (hasParameters ? 1.5 : 3.5);
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(0, 0, 0);
+
+              if (test.outsourced === true) {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                yPos = checkForNewPage(yPos, 4);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                doc.text("(Outsourced)", leftMargin, yPos);
+                yPos += 4;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+              }
+
+              if (!test.parameters || test.parameters.length === 0) {
+                if (test.comment && test.comment.trim() !== "") {
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
+                  const commentLines = wrapTextAndGetLines(doc, `Comment: ${test.comment}`, contentWidth);
+                  yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
+                  const commentHeight = renderWrappedText(
+                    doc,
+                    `Comment: ${test.comment}`,
+                    contentWidth,
+                    leftMargin,
+                    yPos,
+                    3.5,
+                  );
+                  yPos += commentHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
+                }
+                if (test.notes && test.notes.trim() !== "") {
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
+                  const notesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
+                  yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                  doc.setFont("helvetica", "italic");
+                  doc.setFontSize(8);
+                  const notesHeight = renderWrappedText(
+                    doc,
+                    `Notes: ${test.notes}`,
+                    contentWidth,
+                    leftMargin,
+                    yPos,
+                    3.5,
+                  );
+                  yPos += notesHeight + 2;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
+                }
+              }
+
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
+              doc.setTextColor(0, 0, 0);
+
+              Object.keys(parametersBySubtitle).forEach((subtitle) => {
+                if (subtitle && subtitle.trim() !== "") {
+                  const firstSubParam = parametersBySubtitle[subtitle]?.[0];
+                  const spMethod = (firstSubParam?.method || "").replace(/\bMethod\b/i, "").trim();
+                  const spRefMethod = [firstSubParam?.reference_range, spMethod].filter(p => p && p.trim() !== "").join(" / ");
+                  const spLines = Math.max(
+                    wrapTextAndGetLines(doc, firstSubParam?.name || "", colWidths[0] - 2).length,
+                    wrapTextAndGetLines(doc, firstSubParam?.specimen_type || "", colWidths[1] - 2).length,
+                    wrapTextAndGetLines(doc, firstSubParam?.value || "", colWidths[3] - 2).length,
+                    wrapTextAndGetLines(doc, spRefMethod, colWidths[5] - 2).length,
+                    1,
+                  );
+                  const firstSubParamRowHeight = spLines * 4.5 + 2;
+                  yPos = checkForNewPage(yPos, 6 + firstSubParamRowHeight + 2);
+                  doc.setFont("helvetica", "bold");
+                  doc.setFontSize(9);
+                  doc.text(subtitle, leftMargin, yPos);
+                  yPos += 6;
+                }
+
+                parametersBySubtitle[subtitle].forEach((currentTest) => {
+                  doc.setFontSize(10);
+                  const paramNameText = currentTest.name;
+                  const paramValueText = currentTest.value || "";
+                  const paramMethodText = (currentTest.method || "")
+                    .replace(/\bMethod\b/i, "")
+                    .trim();
+                  const paramNameLines = wrapTextAndGetLines(
+                    doc,
+                    paramNameText,
+                    colWidths[0] - 2,
+                  );
+                  const paramSpecimenLines = wrapTextAndGetLines(
+                    doc,
+                    currentTest.specimen_type || "",
+                    colWidths[1] - 2,
+                  );
+                  const paramValueLines = wrapTextAndGetLines(
+                    doc,
+                    paramValueText,
+                    colWidths[3] - 2,
+                  );
+                  const paramRefMethodText = [currentTest.reference_range, paramMethodText].filter(p => p && p.trim() !== "").join(" / ");
+                  const paramRefMethodLines = wrapTextAndGetLines(
+                    doc,
+                    paramRefMethodText,
+                    colWidths[5] - 2,
+                  );
+                  const paramMaxLines = Math.max(
+                    paramNameLines.length,
+                    paramSpecimenLines.length,
+                    paramValueLines.length,
+                    paramRefMethodLines.length,
+                  );
+                  const paramLineHeight = 4.5;
+                  const paramRowHeight = paramMaxLines * paramLineHeight + 2;
+
+                  yPos = checkForNewPage(yPos, paramRowHeight);
+                  let xPos = leftMargin;
+
+                  doc.setFont("helvetica", "normal");
+                  renderWrappedText(
+                    doc,
+                    paramNameText,
+                    colWidths[0] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
+                  xPos += colWidths[0];
+                  renderWrappedText(
+                    doc,
+                    currentTest.specimen_type || "",
+                    colWidths[1] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
+                  xPos += colWidths[1];
+                  xPos += colWidths[2];
+
+                  const paramStatus = currentTest.isHigh
+                    ? "H"
+                    : currentTest.isLow
+                      ? "L"
+                      : getHighLowStatus(
+                        paramValueText,
+                        currentTest.reference_range,
+                      );
+
+                  if (paramStatus) {
+                    doc.setFont("helvetica", "bold");
+                    doc.setTextColor(
+                      paramStatus === "H" ? 255 : 0,
+                      0,
+                      paramStatus === "L" ? 255 : 0,
+                    );
+                    renderValueWithSuperscript(
+                      doc,
+                      paramValueText,
+                      xPos,
+                      yPos,
+                      colWidths[3] - 5,
+                      paramLineHeight,
+                    );
+                    const paramValueWidth = doc.getTextWidth(paramValueText);
+                    if (paramValueWidth < colWidths[3] - 5)
+                      drawArrowSymbol(
+                        doc,
+                        xPos + paramValueWidth + 2,
+                        yPos - 1,
+                        paramStatus === "H" ? "up" : "down",
+                      );
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont("helvetica", "normal");
+                  } else {
+                    renderValueWithSuperscript(
+                      doc,
+                      paramValueText,
+                      xPos,
+                      yPos,
+                      colWidths[3] - 5,
+                      paramLineHeight,
+                    );
+                  }
+                  xPos += colWidths[3];
+                  renderUnicodeText(currentTest.unit || "", xPos, yPos);
+                  xPos += colWidths[4];
+                  renderWrappedText(
+                    doc,
+                    paramRefMethodText,
+                    colWidths[5] - 2,
+                    xPos,
+                    yPos,
+                    paramLineHeight,
+                  );
+                  yPos += paramRowHeight;
+
+                  if (
+                    currentTest.comment &&
+                    currentTest.comment.trim() !== ""
+                  ) {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const commentLines = wrapTextAndGetLines(doc, `Comment: ${currentTest.comment}`, contentWidth);
+                    yPos = checkForNewPage(yPos, commentLines.length * 3.5 + 2);
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const paramCommentHeight = renderWrappedText(
+                      doc,
+                      `Comment: ${currentTest.comment}`,
+                      contentWidth,
+                      leftMargin,
+                      yPos,
+                      3.5,
+                    );
+                    yPos += paramCommentHeight + 2;
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
+                  }
+                  if (
+                    currentTest.notes &&
+                    currentTest.notes.trim() !== ""
+                  ) {
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const notesLines = wrapTextAndGetLines(doc, `Notes: ${currentTest.notes}`, contentWidth);
+                    yPos = checkForNewPage(yPos, notesLines.length * 3.5 + 2);
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(8);
+                    const notesHeight = renderWrappedText(
+                      doc,
+                      `Notes: ${currentTest.notes}`,
+                      contentWidth,
+                      leftMargin,
+                      yPos,
+                      3.5,
+                    );
+                    yPos += notesHeight + 2;
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(10);
+                  }
+                  yPos += 1;
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(10);
+                  doc.setTextColor(0, 0, 0);
+                });
+              });
+
+              if (test.parameters && test.parameters.length > 0 && test.notes && test.notes.trim() !== "") {
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                const testNotesLines = wrapTextAndGetLines(doc, `Notes: ${test.notes}`, contentWidth);
+                yPos = checkForNewPage(yPos, testNotesLines.length * 3.5 + 2);
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                const testNotesHeight = renderWrappedText(
+                  doc,
+                  `Notes: ${test.notes}`,
+                  contentWidth,
+                  leftMargin,
+                  yPos,
+                  3.5,
+                );
+                yPos += testNotesHeight + 2;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+              }
+
+              if (
+                hasMultipleVerifiers &&
+                test.verified_by &&
+                test.verified_by.trim() !== "" &&
+                department !== "Molecular Biology"
+              ) {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.text(`Verified by: ${test.verified_by}`, leftMargin, yPos);
+                yPos += 5;
+              }
+            });
+
+            if (
+              !hasMultipleVerifiers &&
+              verifiedBySet.size > 0 &&
+              department !== "Molecular Biology"
+            ) {
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(10);
+              doc.text(
+                `Verified by: ${Array.from(verifiedBySet).join(", ")}`,
+                leftMargin,
+                yPos,
+              );
+              yPos += 5;
+            }
+
+            const isLastDept =
+              department === sortedDepts[sortedDepts.length - 1];
+            yPos += isLastDept ? 2 : 4;
+          });
+
+          currentYPosition = yPos;
+        };
+        // ─────────────────────────────────────────────────────────────────────
+
+        // ── Render NABL=true tests (with NABL logo) ───────────────────────────
+        if (nablTrueTests.length > 0) {
+          renderDepartmentGroup(nablTrueTests);
+        }
+
+        // ── Switch to non-NABL section ────────────────────────────────────────
+        if (nablFalseTests.length > 0) {
+          if (nablTrueTests.length > 0) {
+            // Both groups exist: add new page without NABL logo
+            addSignatures();
+            showNablLogo = false;
+            doc.addPage();
+            pageCount++;
+            addHeaderFooter(false);
+            currentYPosition = contentYStart;
+            currentYPosition = addPatientInfo(currentYPosition);
+            currentYPosition += 12;
+          } else {
+            // Only false tests: no logo anywhere
+            showNablLogo = false;
+          }
+          renderDepartmentGroup(nablFalseTests);
+        }
+      }
+      isMolBioSection = true;
+      // ── Render interpretation, critical_range, lod, labels ──────────────────
+      const molBioTests = orderedTests.filter(
+        (test) =>
+          test.department === "Molecular Biology" &&
+          (test.interpretation ||
+            test.critical_range ||
+            test.lod ||
+            test.labels),
+      );
+
+      if (molBioTests.length > 0) {
+        currentYPosition += 4;
+
+        molBioTests.forEach((test) => {
+          // ── Interpretation ─────────────────────────────────────────────────
+          // ── Interpretation ─────────────────────────────────────────────────
+          const interpretation = test.interpretation;
+          if (
+            interpretation &&
+            typeof interpretation === "object" &&
+            Object.keys(interpretation).length > 0
+          ) {
+            currentYPosition = checkForNewPage(currentYPosition, 10);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("INTERPRETATION:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const interpColWidths = [contentWidth * 0.35, contentWidth * 0.65];
+            const interpTableX = leftMargin;
+            const rowH = 7;
+
+            // Header row
+            currentYPosition = checkForNewPage(currentYPosition, rowH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              interpTableX,
+              currentYPosition,
+              interpColWidths[0],
+              rowH,
+              "FD",
+            );
+            doc.rect(
+              interpTableX + interpColWidths[0],
+              currentYPosition,
+              interpColWidths[1],
+              rowH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text("RESULTS", interpTableX + 2, currentYPosition + 4.5);
+            doc.text(
+              "COMMENTS",
+              interpTableX + interpColWidths[0] + 2,
+              currentYPosition + 4.5,
+            );
+            currentYPosition += rowH;
+            doc.setFillColor(255, 255, 255);
+
+            // Data rows
+            doc.setFont("helvetica", "normal");
+            Object.entries(interpretation).forEach(([result, comment]) => {
+              // Process unicode in both result and comment
+              const processedResult = processUnicodeText(result);
+              const processedComment = processUnicodeText(comment);
+
+              const resultLines = wrapTextAndGetLines(
+                doc,
+                processedResult,
+                interpColWidths[0] - 4,
+              );
+              const commentLines = wrapTextAndGetLines(
+                doc,
+                processedComment,
+                interpColWidths[1] - 4,
+              );
+              const rowLines = Math.max(
+                resultLines.length,
+                commentLines.length,
+              );
+              const dataRowH = rowLines * 5 + 3;
+
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.rect(
+                interpTableX,
+                currentYPosition,
+                interpColWidths[0],
+                dataRowH,
+              );
+              doc.rect(
+                interpTableX + interpColWidths[0],
+                currentYPosition,
+                interpColWidths[1],
+                dataRowH,
+              );
+
+              // Render result lines — use superscript renderer if needed
+              resultLines.forEach((line, i) => {
+                const lineY = currentYPosition + 4 + i * 5;
+                if (/\^\d|\^R|\^TM/.test(line)) {
+                  renderTextWithSuperscripts(
+                    line,
+                    interpTableX + 2,
+                    lineY,
+                    8.5,
+                  );
+                } else {
+                  doc.text(line, interpTableX + 2, lineY);
+                }
+              });
+
+              // Render comment lines — use superscript renderer if needed
+              commentLines.forEach((line, i) => {
+                const lineY = currentYPosition + 4 + i * 5;
+                if (/\^\d|\^R|\^TM/.test(line)) {
+                  renderTextWithSuperscripts(
+                    line,
+                    interpTableX + interpColWidths[0] + 2,
+                    lineY,
+                    8.5,
+                  );
+                } else {
+                  doc.text(line, interpTableX + interpColWidths[0] + 2, lineY);
+                }
+              });
+
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+
+          // ── Critical Range ─────────────────────────────────────────────────
+          const criticalRange = test.critical_range;
+          if (
+            criticalRange &&
+            typeof criticalRange === "object" &&
+            Object.keys(criticalRange).length > 0
+          ) {
+            currentYPosition = checkForNewPage(currentYPosition, 10);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("CRITICAL RANGE:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const crColWidths = [contentWidth * 0.35, contentWidth * 0.65];
+            const crTableX = leftMargin;
+            const crRowH = 7;
+
+            // Header row
+            currentYPosition = checkForNewPage(currentYPosition, crRowH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(crTableX, currentYPosition, crColWidths[0], crRowH, "FD");
+            doc.rect(
+              crTableX + crColWidths[0],
+              currentYPosition,
+              crColWidths[1],
+              crRowH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text("RESULT", crTableX + 2, currentYPosition + 4.5);
+            doc.text(
+              "Ct VALUE",
+              crTableX + crColWidths[0] + 2,
+              currentYPosition + 4.5,
+            );
+            currentYPosition += crRowH;
+            doc.setFillColor(255, 255, 255);
+
+            // Data rows
+            doc.setFont("helvetica", "normal");
+            Object.entries(criticalRange).forEach(([result, ctvalue]) => {
+              const resultLines = wrapTextAndGetLines(
+                doc,
+                result,
+                crColWidths[0] - 4,
+              );
+              const valueLines = wrapTextAndGetLines(
+                doc,
+                String(ctvalue),
+                crColWidths[1] - 4,
+              );
+              const rowLines = Math.max(resultLines.length, valueLines.length);
+              const dataRowH = rowLines * 5 + 3;
+
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.rect(crTableX, currentYPosition, crColWidths[0], dataRowH);
+              doc.rect(
+                crTableX + crColWidths[0],
+                currentYPosition,
+                crColWidths[1],
+                dataRowH,
+              );
+
+              resultLines.forEach((line, i) =>
+                doc.text(line, crTableX + 2, currentYPosition + 4 + i * 5),
+              );
+              valueLines.forEach((line, i) =>
+                doc.text(
+                  line,
+                  crTableX + crColWidths[0] + 2,
+                  currentYPosition + 4 + i * 5,
+                ),
+              );
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+
+          // ── LOD ────────────────────────────────────────────────────────────
+          const lod = test.lod;
+          if (lod && typeof lod === "object" && Object.keys(lod).length > 0) {
+            const samples = Object.keys(lod);
+            const maxGenotypes = Math.max(...samples.map((s) => lod[s].length));
+            const genotypeLabels = Array.from(
+              { length: maxGenotypes },
+              (_, i) => `Genotype ${i + 1}`,
+            );
+
+            currentYPosition = checkForNewPage(currentYPosition, 14);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("LOD in IU/ml:", leftMargin, currentYPosition);
+            currentYPosition += 6;
+
+            const totalCols = 1 + maxGenotypes;
+            const lodColWidth = contentWidth / totalCols;
+            const lodTableX = leftMargin;
+            const lodHeaderH = 7;
+
+            // Row 1: blank SAMPLE cell + merged "LOD in IU/ml" header
+            currentYPosition = checkForNewPage(currentYPosition, lodHeaderH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              lodTableX,
+              currentYPosition,
+              lodColWidth,
+              lodHeaderH,
+              "FD",
+            );
+            doc.rect(
+              lodTableX + lodColWidth,
+              currentYPosition,
+              lodColWidth * maxGenotypes,
+              lodHeaderH,
+              "FD",
+            );
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.text(
+              "LOD in IU/ml",
+              lodTableX + lodColWidth + (lodColWidth * maxGenotypes) / 2,
+              currentYPosition + 4.5,
+              { align: "center" },
+            );
+            currentYPosition += lodHeaderH;
+
+            // Row 2: SAMPLE label + genotype sub-headers
+            currentYPosition = checkForNewPage(currentYPosition, lodHeaderH);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(
+              lodTableX,
+              currentYPosition,
+              lodColWidth,
+              lodHeaderH,
+              "FD",
+            );
+            doc.text("SAMPLE", lodTableX + 2, currentYPosition + 4.5);
+            genotypeLabels.forEach((label, i) => {
+              doc.setFillColor(230, 230, 230);
+              doc.rect(
+                lodTableX + lodColWidth * (i + 1),
+                currentYPosition,
+                lodColWidth,
+                lodHeaderH,
+                "FD",
+              );
+              doc.text(
+                label,
+                lodTableX + lodColWidth * (i + 1) + 2,
+                currentYPosition + 4.5,
+              );
+            });
+            currentYPosition += lodHeaderH;
+
+            // Reset fill to white before data rows
+            doc.setFillColor(255, 255, 255);
+            doc.setFont("helvetica", "normal");
+
+            // Data rows
+            samples.forEach((sample) => {
+              const dataRowH = 7;
+              currentYPosition = checkForNewPage(currentYPosition, dataRowH);
+              doc.setFillColor(255, 255, 255);
+              doc.rect(
+                lodTableX,
+                currentYPosition,
+                lodColWidth,
+                dataRowH,
+                "FD",
+              );
+              doc.setFont("helvetica", "bold");
+              doc.text(sample, lodTableX + 2, currentYPosition + 4.5);
+              doc.setFont("helvetica", "normal");
+              lod[sample].forEach((val, i) => {
+                doc.setFillColor(255, 255, 255);
+                doc.rect(
+                  lodTableX + lodColWidth * (i + 1),
+                  currentYPosition,
+                  lodColWidth,
+                  dataRowH,
+                  "FD",
+                );
+                doc.text(
+                  String(val),
+                  lodTableX + lodColWidth * (i + 1) + 2,
+                  currentYPosition + 4.5,
+                );
+              });
+              currentYPosition += dataRowH;
+            });
+            currentYPosition += 4;
+          }
+          // ── Labels ─────────────────────────────────────────────────────────
+          const labels = test.labels;
+          if (Array.isArray(labels) && labels.length > 0) {
+            // Helper: justify a single line of text within maxWidth
+            const justifyLine = (line, x, y, maxWidth, isLastLine) => {
+              if (isLastLine || line.trim() === "") {
+                doc.text(line, x, y);
+                return;
+              }
+              const words = line
+                .trim()
+                .split(" ")
+                .filter((w) => w.length > 0);
+              if (words.length <= 1) {
+                doc.text(line, x, y);
+                return;
+              }
+              const totalTextWidth = words.reduce(
+                (sum, word) => sum + doc.getTextWidth(word),
+                0,
+              );
+              const totalSpaceWidth = maxWidth - totalTextWidth;
+              const spaceWidth = totalSpaceWidth / (words.length - 1);
+
+              // Guard: if spaceWidth is unreasonably large, just left-align
+              if (spaceWidth > 10 || spaceWidth < 0) {
+                doc.text(words.join(" "), x, y);
+                return;
+              }
+
+              let currentX = x;
+              words.forEach((word, i) => {
+                doc.text(word, currentX, y);
+                currentX +=
+                  doc.getTextWidth(word) +
+                  (i < words.length - 1 ? spaceWidth : 0);
+              });
+            };
+
+            labels.forEach((labelObj) => {
+              const sortedKeys = Object.keys(labelObj).sort((a, b) => {
+                const numA = parseInt(a.split("-")[0]) || 0;
+                const numB = parseInt(b.split("-")[0]) || 0;
+                return numA - numB;
+              });
+
+              sortedKeys.forEach((key) => {
+                const rawText = labelObj[key];
+                if (!rawText) return;
+
+                const dashIndex = key.indexOf("-");
+                const orderNum =
+                  dashIndex !== -1 ? key.substring(0, dashIndex) : "";
+                const labelName =
+                  dashIndex !== -1
+                    ? key.substring(dashIndex + 1).toUpperCase()
+                    : key.toUpperCase();
+                const bodyText = processUnicodeText(rawText)
+                  .replace(/\n/g, " ")
+                  .replace(/\s+/g, " ")
+                  .trim();
+                const prefix = `${orderNum}. ${labelName}: `;
+
+                const indentX = leftMargin + 4;
+                const bodyMaxWidth = contentWidth - 8;
+
+                doc.setFontSize(8.5);
+                doc.setFont("helvetica", "normal");
+                const bodyLines = doc.splitTextToSize(bodyText, bodyMaxWidth);
+
+                const blockHeight = 5 + bodyLines.length * 5 + 3;
+                currentYPosition = checkForNewPage(
+                  currentYPosition,
+                  blockHeight,
+                );
+
+                // Bold prefix on its own line
+                currentYPosition = checkForNewPage(
+                  currentYPosition,
+                  blockHeight,
+                );
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.text(prefix, leftMargin, currentYPosition);
+                currentYPosition += 5;
+
+                // Justified body lines
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8.5);
+                const lastLineIndex = bodyLines.length - 1;
+                bodyLines.forEach((line, i) => {
+                  const lineWidth = doc.getTextWidth(line.trim());
+                  const isLast =
+                    i === lastLineIndex || lineWidth < bodyMaxWidth * 0.75;
+                  currentYPosition = checkForNewPage(currentYPosition, 5);
+                  doc.setFont("helvetica", "normal");
+                  doc.setFontSize(8.5);
+
+                  // Use superscript renderer if line has ^N pattern
+                  if (/\^\d|\^R|\^TM/.test(line)) {
+                    renderTextWithSuperscripts(
+                      line,
+                      indentX,
+                      currentYPosition,
+                      8.5,
+                    );
+                  } else {
+                    justifyLine(
+                      line,
+                      indentX,
+                      currentYPosition,
+                      bodyMaxWidth,
+                      isLast,
+                    );
+                  }
+
+                  currentYPosition += 5;
+                });
+                currentYPosition += 3;
+              });
+            });
+            currentYPosition += 2;
+          }
+          currentYPosition += 4;
+        });
+      }
+      isMolBioSection = false;
+      // ── End of mol bio block ──────────────────────────────────────────────────
+
+      isTableStarted = false;
+
+      const ensureSpaceForFooter = (currentYPosition) => {
+        const pageHeight = doc.internal.pageSize.height;
+        const footerStart = pageHeight - (footerHeight + signatureHeight - 1);
+        if (currentYPosition + 5 >= footerStart) {
+          addSignatures();
+          doc.addPage();
+          pageCount++;
+          addHeaderFooter(showNablLogo);
+          return addPatientInfo(contentYStart) + 12;
+        }
+        return currentYPosition;
+      };
+
+      currentYPosition = ensureSpaceForFooter(currentYPosition);
+
+      // ── Verified by for Molecular Biology ──────────────────────────────────
+      const molBioVerifiedSet = new Set();
+      orderedTests.forEach((test) => {
+        if (
+          test.department === "Molecular Biology" &&
+          test.verified_by &&
+          test.verified_by.trim() !== ""
+        ) {
+          molBioVerifiedSet.add(test.verified_by.trim());
+        }
+      });
+
+      if (molBioVerifiedSet.size > 0) {
+        currentYPosition = checkForNewPage(currentYPosition, 10);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(
+          `Verified by: ${Array.from(molBioVerifiedSet).join(", ")}`,
+          leftMargin,
+          currentYPosition,
+        );
+        currentYPosition += 8;
+      }
+      // ── End verified by ─────────────────────────────────────────────────────
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      const centerX = leftMargin + contentWidth / 2;
+      doc.text("**End of the Report**", centerX, currentYPosition, {
+        align: "center",
+      });
+      currentYPosition += 6;
+
+      const allTestStatuses = patient.test_statuses || (patientDetails && patientDetails.test_statuses) || [];
+      const rawSampleStatus = (patientDetails && patientDetails.sample_status) || (patient && patient.sample_status) || [];
+      const sampleStatusList = typeof rawSampleStatus === "string"
+        ? (() => { try { return JSON.parse(rawSampleStatus); } catch (e) { return []; } })()
+        : Array.isArray(rawSampleStatus) ? rawSampleStatus : [];
+
+      const unapprovedTests = allTestStatuses.filter((hmsTest) => {
+        const isReportedTest = tests.some(
+          (sortingTest) => String(sortingTest.test_id) === String(hmsTest.test_id)
+        );
+        if (isReportedTest) return false;
+
+        let samplestatus = hmsTest.samplestatus || "";
+        if (!samplestatus && sampleStatusList.length > 0) {
+          const matchSample = sampleStatusList.find(
+            (s) => String(s.test_id) === String(hmsTest.test_id)
+          );
+          if (matchSample) {
+            samplestatus = matchSample.samplestatus || "";
+          }
+        }
+
+        const isPending =
+          String(samplestatus).trim().toLowerCase() === "pending" ||
+          String(samplestatus).trim().toLowerCase() === "sample pending" ||
+          String(hmsTest.status).trim().toLowerCase() === "pending";
+
+        if (isPending) return false;
+
+        return true;
+      });
+
+      if (unapprovedTests.length > 0) {
+        currentYPosition = checkForNewPage(currentYPosition, 10);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("Result/s to follow:", leftMargin, currentYPosition);
+        currentYPosition += 4.5;
+
+        doc.setFont("helvetica", "normal");
+        unapprovedTests.forEach((t) => {
+          currentYPosition = checkForNewPage(currentYPosition, 5);
+          doc.text(`- ${t.test_name}`, leftMargin + 2, currentYPosition);
+          currentYPosition += 4.5;
+        });
+      }
+
+      addSignatures();
+
+      const finalPageCount = pageCount;
+      const barcodeX = rightValueX + doc.getTextWidth(patientRefNoNumber) - 10;
+      const pageNumberX = barcodeX + 12.5; // Centered under the barcode
+      for (let i = 1; i <= finalPageCount; i++) {
+        doc.setPage(i);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(
+          `Page ${i} of ${finalPageCount}`,
+          pageNumberX,
+          patientInfoEndY + 4,
+          { align: "center" },
+        );
+      }
+
+      // Generate the PDF as a Blob
+      const pdfBlob = doc.output("blob");
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+
+      // Open the PDF in a new tab for preview
+      window.open(pdfUrl, "_blank");
+
+      return pdfBlob;
+    } catch (error) {
+      console.error("Error while generating the PDF:", error);
+      toast.error("An unexpected error occurred while generating the PDF");
+    }
+  };
+
+  const handleWhatsAppShare = async (patient, withLetterpad = true) => {
+    if (!patient || !patient.phone) {
+      toast.error("Patient phone number is missing");
+      return;
+    }
+
+    const phoneNumber = patient.phone.startsWith("+91")
+      ? patient.phone.replace("+", "")
+      : `91${patient.phone}`;
+
+    try {
+      const pdfBlob = await handlePrint(withLetterpad); // Generate PDF (no download)
+      if (!pdfBlob) {
+        toast.error("Failed to generate the PDF");
+        return;
+      }
+
+      const pdfName = `${patient.patient_name || "Patient"}_TestDetails.pdf`;
+      const pdfFile = new File([pdfBlob], pdfName, { type: "application/pdf" });
+
+      // Upload PDF to server
+      const formData = new FormData();
+      formData.append("file", pdfFile);
+
+      const uploadResponse = await axios.post(
+        `${Labbaseurl}upload-pdf/`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+
+      const fileUrl = uploadResponse.data.file_url;
+      if (!fileUrl) {
+        toast.error("File upload failed");
+        return;
+      }
+
+      // Call Django proxy instead of Botify directly
+      const res = await axios.post(`${Labbaseurl}send-whatsapp/`, {
+        patient_name: patient.patient_name || "Valued Patient",
+        phone: phoneNumber,
+        collection_time: patient.collection_time || "N/A",
+        collected_date: patient.collected_date || "N/A",
+        file_url: fileUrl,
+        pdf_name: pdfName,
+        patient_id: patient.patient_id,
+        barcode: patient.barcode || "",
+      });
+
+      if (res.data.success) {
+        toast.success("WhatsApp PDF message sent successfully!");
+      } else {
+        toast.error("Failed to send WhatsApp template message.");
+        console.error("Backend error:", res.data.error);
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp message:", error);
+      toast.error("Error sending WhatsApp message.");
+    }
+  };
+
+  const filteredTests = tests.filter((test) => {
+    const query = searchTerm.toLowerCase();
+    const matchesTestName = test.test_name.toLowerCase().includes(query);
+    const matchesParam = test.parameters?.some(
+      (p) =>
+        (p.name && p.name.toLowerCase().includes(query)) ||
+        (p.test_code && p.test_code.toLowerCase().includes(query)),
+    );
+    return matchesTestName || matchesParam;
+  });
+
+  return (
+    <ModalOverlay>
+      <ModalContent>
+        {isLoading && (
+          <LoadingOverlay>
+            <LoadingSpinner />
+            <LoadingText>{loadingMessage}</LoadingText>
+          </LoadingOverlay>
+        )}
+        <ModalHeader>
+          <div>
+            <Title>Sort Pathology Tests - {patient?.patient_name}</Title>
+            <Subtitle>
+              Select tests in desired print order. The sequence numbers (Seq #) indicate the order tests will appear in the report.
+            </Subtitle>
+          </div>
+        </ModalHeader>
+
+        <SearchContainer>
+          <SearchInput
+            type="text"
+            placeholder="Search tests..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <SearchIcon>
+            <Search size={18} />
+          </SearchIcon>
+        </SearchContainer>
+
+        <SelectAllContainer>
+          <CheckboxContainer
+            checked={selectAllChecked}
+            onClick={handleSelectAll}
+          >
+            {selectAllChecked && <Check size={14} color="white" />}
+          </CheckboxContainer>
+          <span>Select All</span>
+          {selectedTests.length > 0 && (
+            <SelectedCount>{selectedTests.length} selected</SelectedCount>
+          )}
+          <DispatchButton
+            style={{ marginLeft: "auto" }}
+            dispatched={tests.every((t) => dispatchedTests.has(t.test_id))}
+            disabled={tests.every((t) => dispatchedTests.has(t.test_id))}
+            onClick={handleDispatchAll}
+            title="Dispatch all undispatched tests"
+          >
+            <Flag size={14} />
+            {tests.every((t) => dispatchedTests.has(t.test_id))
+              ? "All Dispatched"
+              : "Dispatch All"}
+          </DispatchButton>
+        </SelectAllContainer>
+
+        <TestList>
+          {filteredTests.length === 0 ? (
+            <div
+              style={{ padding: "20px", textAlign: "center", color: "#888" }}
+            >
+              No tests found matching your search
+            </div>
+          ) : (
+            filteredTests.map((test) => {
+              const selectedIndex = selectedTests.findIndex(
+                (t) => t.test_id === test.test_id,
+              );
+              const isSelected = selectedIndex !== -1;
+              const sequenceNumber = isSelected ? selectedIndex + 1 : null;
+              const selectedEntry = isSelected ? selectedTests[selectedIndex] : null;
+              const isDispatched = dispatchedTests.has(test.test_id);
+              const hasParameters = test.parameters && test.parameters.length > 0;
+              const isExpanded = expandedTests.has(test.test_id) || (searchTerm && hasParameters);
+
+              const selectedParamCodes = selectedEntry
+                ? selectedEntry.selectedParamCodes || test.parameters.map((p) => p.test_code)
+                : [];
+              const selectedParamCount = hasParameters ? selectedParamCodes.length : 0;
+
+              return (
+                <React.Fragment key={test.test_id}>
+                  <TestItem onClick={() => handleSelectTest(test)}>
+                    <TestInfo>
+                      <CheckboxContainer checked={isSelected}>
+                        {isSelected && sequenceNumber}
+                      </CheckboxContainer>
+                      <TestName selected={isSelected}>
+                        {test.test_name}
+                        {test.NABL && <span className="nabl-asterisk">*</span>}
+                      </TestName>
+                      {isSelected && (
+                        <SequenceBadgeWrapper onClick={(e) => e.stopPropagation()}>
+                          <SequenceBadge title={`Selected print sequence: ${sequenceNumber}`}>
+                            Seq #{sequenceNumber}
+                          </SequenceBadge>
+                          {selectedTests.length > 1 && (
+                            <ReorderButtons>
+                              <ReorderBtn
+                                disabled={selectedIndex === 0}
+                                onClick={(e) => handleMoveTest(test.test_id, -1, e)}
+                                title="Move up in print order"
+                              >
+                                <ChevronUp size={12} />
+                              </ReorderBtn>
+                              <ReorderBtn
+                                disabled={selectedIndex === selectedTests.length - 1}
+                                onClick={(e) => handleMoveTest(test.test_id, 1, e)}
+                                title="Move down in print order"
+                              >
+                                <ChevronDown size={12} />
+                              </ReorderBtn>
+                            </ReorderButtons>
+                          )}
+                        </SequenceBadgeWrapper>
+                      )}
+                      {hasParameters && (
+                        <>
+                          <ParamCountBadge>
+                            {isSelected
+                              ? `${selectedParamCount}/${test.parameters.length} selected`
+                              : `${test.parameters.length} params`}
+                          </ParamCountBadge>
+                          <ExpandButton
+                            onClick={(e) => handleToggleExpand(test.test_id, e)}
+                            title={isExpanded ? "Collapse parameters" : "Expand parameters"}
+                          >
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </ExpandButton>
+                        </>
+                      )}
+                    </TestInfo>
+                    <DispatchButton
+                      dispatched={isDispatched}
+                      onClick={(e) => handleDispatchTest(test, e)}
+                      disabled={isDispatched}
+                      title={
+                        isDispatched ? "Already Dispatched" : "Dispatch Test"
+                      }
+                    >
+                      <Flag size={14} />
+                      {isDispatched ? "Dispatched" : "Dispatch"}
+                    </DispatchButton>
+                  </TestItem>
+
+                  {hasParameters && isExpanded && (
+                    <ParameterListContainer>
+                      {test.parameters.map((param) => {
+                        const isParamChecked = isSelected && selectedParamCodes.includes(param.test_code);
+
+                        return (
+                          <ParameterItem key={param.test_code || param.name}>
+                            <ParameterInfo
+                              onClick={(e) => handleSelectParameter(test, param, e)}
+                            >
+                              <CheckboxContainer checked={isParamChecked}>
+                                {isParamChecked && <Check size={14} color="white" />}
+                              </CheckboxContainer>
+                              <ParameterName selected={isParamChecked}>
+                                {param.name}
+                              </ParameterName>
+                              {param.test_code && param.test_code !== param.name && (
+                                <ParameterCodeBadge>
+                                  {param.test_code}
+                                </ParameterCodeBadge>
+                              )}
+                            </ParameterInfo>
+                          </ParameterItem>
+                        );
+                      })}
+                    </ParameterListContainer>
+                  )}
+                </React.Fragment>
+              );
+            })
+          )}
+        </TestList>
+
+        <ModalFooter>
+          <Button secondary onClick={onClose}>
+            <X size={16} />
+            Close
+          </Button>
+
+          <ButtonGroup>
+            {/* WhatsApp Dropdown */}
+            <div style={{ position: "relative" }}>
+              <Button
+                primary
+                disabled={selectedTests.length === 0}
+                onClick={() => {
+                  setShowPrintOptions(false);
+                  setShowWhatsAppOptions(!showWhatsAppOptions);
+                }}
+                style={{ backgroundColor: "#25D366" }}
+              >
+                <MessageCircle size={16} />
+                WhatsApp
+                {showWhatsAppOptions ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </Button>
+
+              <PrintOptions show={showWhatsAppOptions}>
+                <PrintOption
+                  onClick={() => {
+                    handleWhatsAppShare(patient, true);
+                    setShowWhatsAppOptions(false);
+                  }}
+                >
+                  <MessageCircle size={16} />
+                  Send with Letterhead
+                </PrintOption>
+                <PrintOption
+                  onClick={() => {
+                    handleWhatsAppShare(patient, false);
+                    setShowWhatsAppOptions(false);
+                  }}
+                >
+                  <MessageCircle size={16} />
+                  Send without Letterhead
+                </PrintOption>
+              </PrintOptions>
+            </div>
+            {/* Print Dropdown */}
+            <div style={{ position: "relative" }}>
+              <Button
+                primary
+                disabled={selectedTests.length === 0}
+                onClick={() => {
+                  setShowWhatsAppOptions(false);
+                  setShowPrintOptions(!showPrintOptions);
+                }}
+              >
+                <Printer size={16} />
+                Print Options
+                {showPrintOptions ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </Button>
+
+              <PrintOptions show={showPrintOptions}>
+                <PrintOption onClick={() => handlePrint(true)}>
+                  <Printer size={16} />
+                  Print with Letterhead
+                </PrintOption>
+                <PrintOption onClick={() => handlePrint(false)}>
+                  <Printer size={16} />
+                  Print without Letterhead
+                </PrintOption>
+              </PrintOptions>
+            </div>
+          </ButtonGroup>
+        </ModalFooter>
+      </ModalContent>
+    </ModalOverlay>
+  );
+};
+
+export default PathologyTestSorting;

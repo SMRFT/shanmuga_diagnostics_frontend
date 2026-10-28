@@ -1195,6 +1195,12 @@ const Sidebar = () => {
                     M/B Report Generation
                   </SubLink>
                   <SubLink
+                    to="/PathologyPatientDetails"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    Pathology Report Generation
+                  </SubLink>
+                  <SubLink
                     to="/PatientList"
                     onClick={() => setIsSidebarOpen(false)}
                   >
@@ -1402,6 +1408,12 @@ const Sidebar = () => {
                     M/B Report Generation
                   </SubLink>
                   <SubLink
+                    to="/PathologyPatientDetails"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    Pathology Report Generation
+                  </SubLink>
+                  <SubLink
                     to="/PatientList"
                     onClick={() => setIsSidebarOpen(false)}
                   >
@@ -1418,6 +1430,12 @@ const Sidebar = () => {
                     onClick={() => setIsSidebarOpen(false)}
                   >
                     M/B Report Authorization
+                  </SubLink>
+                  <SubLink
+                    to="/PathologyPatientList"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    Pathology Report Authorization
                   </SubLink>
                   <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
                     Work List
@@ -2094,6 +2112,12 @@ const Sidebar = () => {
                     M/B Report Generation
                   </SubLink>
                   <SubLink
+                    to="/PathologyPatientDetails"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    Pathology Report Generation
+                  </SubLink>
+                  <SubLink
                     to="/PatientList"
                     onClick={() => setIsSidebarOpen(false)}
                   >
@@ -2110,6 +2134,12 @@ const Sidebar = () => {
                     onClick={() => setIsSidebarOpen(false)}
                   >
                     M/B Report Authorization
+                  </SubLink>
+                  <SubLink
+                    to="/PathologyPatientList"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    Pathology Report Authorization
                   </SubLink>
                   <SubLink to="/WorkList" onClick={() => setIsSidebarOpen(false)}>
                     Work List
