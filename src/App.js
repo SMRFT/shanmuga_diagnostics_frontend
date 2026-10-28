@@ -85,6 +85,10 @@ import MBPatientDetails from "./Components/Microbiology/MBPatientDetails";
 import MBTestDetails from "./Components/Microbiology/MBTestDetails";
 import MBPatientList from "./Components/Microbiology/MBPatientList";
 import MBDoctorForm from "./Components/Microbiology/MBDoctorForm";
+import PathologyPatientDetails from "./Components/Pathology/PathologyPatientDetails";
+import PathologyTestDetails from "./Components/Pathology/PathologyTestDetails";
+import PathologyPatientList from "./Components/Pathology/PathologyPatientList";
+import PathologyDoctorForm from "./Components/Pathology/PathologyDoctorForm";
 import MBTestSorting from "./Components/Report/MBTestSorting";
 import HMSMBTestSorting from "./Components/HMSReport/HMSMBTestSorting";
 import ClinicalDashboard from "./Components/ClinicalReports/ClinicalDashboard";
@@ -250,6 +254,7 @@ function App() {
       "/TestDetails": "Test Details",
       "/WorkList": "Work List",
       "/MBPatientDetails": "Microbiology Patient Details",
+      "/PathologyPatientDetails": "Pathology Patient Details",
       "/MBTestDetails": "Microbiology Test Details",
       "/OutSourceDetails": "Outsource Details",
       "/OSTestDetails": "Outsource Test Details",
@@ -265,6 +270,7 @@ function App() {
       "/PatientList": "Patient List",
       "/DoctorForm": "Doctor Form",
       "/MBPatientList": "Microbiology Patient List",
+      "/PathologyPatientList": "Pathology Patient List",
       "/MBDoctorForm": "Microbiology Doctor Form",
       "/CustomerComplaints": "Customer Complaints",
       "/CustomercomplaintsQRScan": "Customer Complaints QR Scan",
@@ -538,6 +544,8 @@ function App() {
             <Route path="/TestDetails" element={<TestDetails />} />
             <Route path="/WorkList" element={<WorkList />} />
             <Route path="/MBPatientDetails" element={<MBPatientDetails />} />
+            <Route path="/PathologyPatientDetails" element={<PathologyPatientDetails />} />
+            <Route path="/PathologyTestDetails" element={<PathologyTestDetails />} />
             <Route path="/MBTestDetails" element={<MBTestDetails />} />
             <Route path="/OutSourceDetails" element={<OutSourceDetails />} />
             <Route path="/OSTestDetails" element={<OSTestDetails />} />
@@ -567,6 +575,8 @@ function App() {
             <Route path="/ApprovedList" element={<ApprovedList />} />
             <Route path="/EditForm" element={<EditForm />} />
             <Route path="/MBPatientList" element={<MBPatientList />} />
+            <Route path="/PathologyPatientList" element={<PathologyPatientList />} />
+            <Route path="/PathologyDoctorForm" element={<PathologyDoctorForm />} />
             <Route path="/MBDoctorForm" element={<MBDoctorForm />} />
 
             {/* Sales */}
