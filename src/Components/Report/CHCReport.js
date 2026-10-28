@@ -19,7 +19,7 @@ import "react-toastify/dist/ReactToastify.css";
 import headerImage from "../Images/Header.png";
 import FooterImage from "../Images/Footer.png";
 import NABLImage from "../Images/NABL.png";
-import Muhsina from "../Images/Muhsina.png";
+import Shikha from "../Images/Shikha.png";
 import drarun from "../Images/drarun.png";
 import DRPS from "../Images/DRPS.png";
 import Shanmuga360QR from "../Images/Shanmuga360QR.png";
@@ -2440,18 +2440,22 @@ const CHCReport = () => {
           doc.text(impressionLines, leftMargin, yPos);
           yPos += impressionLines.length * 5.5 + 20;
           if (isXRay) {
-            const sx = leftMargin + 120;
-            if (Muhsina) doc.addImage(Muhsina, "PNG", sx, yPos, 35, 15);
+            const sx = leftMargin + 85;
+            if (Shikha) doc.addImage(Shikha, "PNG", sx, yPos, 35, 18);
             yPos += 20;
             doc.setFont("helvetica", "bold");
             doc.setFontSize(9);
-            doc.text("DR. MUHSINA ABOOBAKER, MBBS, MDRD", sx, yPos);
+            doc.text(
+              "DR.K.C. SHIKHA, MBBS, DNB (Resp. Med.), EDARM (Swiss.)",
+              sx,
+              yPos,
+            );
             yPos += 5;
             doc.setFont("helvetica", "normal");
             doc.setFontSize(9);
-            doc.text("CONSULTANT RADIOLOGIST", sx, yPos);
+            doc.text("CONSULTANT PULMONOLOGY & SLEEP  MEDICINE", sx, yPos);
             yPos += 5;
-            doc.text("REG NO: 143512 (TNMC)", sx, yPos);
+            doc.text("REG NO: 182903", sx, yPos);
           }
           if (isEcho) {
             const sx = leftMargin + 110;
