@@ -852,6 +852,8 @@ const PatientOverview = () => {
     if (patient.pathology_status) {
       return (
         patient.pathology_status === "Approved" ||
+        patient.pathology_status === "Partially Approved" ||
+        patient.pathology_status === "Partially Dispatched" ||
         patient.pathology_status === "Dispatched"
       );
     }
@@ -859,7 +861,11 @@ const PatientOverview = () => {
     const pathTests = testStatuses.filter((t) => t.is_pathology);
     if (pathTests.length === 0) return false;
     return pathTests.some(
-      (t) => t.status === "Approved" || t.status === "Dispatched"
+      (t) =>
+        t.status === "Approved" ||
+        t.status === "Partially Approved" ||
+        t.status === "Partially Dispatched" ||
+        t.status === "Dispatched"
     );
   };
   const isOnlyPathology = (patient) => {

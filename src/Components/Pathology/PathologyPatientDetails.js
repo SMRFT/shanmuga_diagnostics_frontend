@@ -35,8 +35,8 @@ import apiRequest from "../Auth/apiRequest";
 
 const theme = {
   colors: {
-    primary: "#0178A1",
-    primaryHover: "#015d80",
+    primary: "#a777e3",
+    primaryHover: "#8b5cf6",
     secondary: "#6B7280",
     success: "#10B981",
     warning: "#F59E0B",
@@ -102,70 +102,114 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 const Container = styled.div`
-  max-width: 1400px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: ${(props) => props.theme.colors.backgroundAlt};
-  border-radius: ${(props) => props.theme.borderRadius.xl};
-  box-shadow: ${(props) => props.theme.shadows.lg};
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    margin: 1rem;
-    padding: 1rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  background: transparent;
+  box-shadow: none;
+  @media (max-width: 768px) {
+    padding: 0.35rem 0.5rem;
   }
 `;
 
-const Header = styled.div`
-  margin-bottom: 1.5rem;
-  text-align: center;
+const CardContainer = styled.div`
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  padding: 0.85rem 1rem;
+  @media (max-width: 768px) {
+    padding: 0.65rem 0.75rem;
+  }
+`;
+
+// ── Top Header & Tab Navigation Bar ──
+const TopBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.65rem;
+  border-bottom: 1px solid #e2e8f0;
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 `;
 
 const Title = styled.h1`
-  color: ${(props) => props.theme.colors.primary};
-  font-size: 1.875rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    font-size: 1.5rem;
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: -0.2px;
+`;
+
+const Subtitle = styled.span`
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+  padding-left: 0.5rem;
+  border-left: 2px solid #cbd5e1;
+  @media (max-width: 640px) {
+    display: none;
   }
 `;
 
-// ── Tab Navigation Styles ──
 const TabsContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  border-bottom: 2px solid ${(props) => props.theme.colors.border};
-  padding-bottom: 0.75rem;
-  justify-content: center;
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 0.2rem;
+  border-radius: 8px;
+  gap: 0.3rem;
+  border: 1px solid #e2e8f0;
   flex-wrap: wrap;
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: stretch;
+  }
 `;
 
 const TabButton = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.75rem 1.75rem;
-  font-size: 1rem;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  border-radius: ${(props) => props.theme.borderRadius.lg};
-  border: 1px solid
-    ${(props) =>
-      props.active ? props.theme.colors.primary : props.theme.colors.border};
+  border-radius: 6px;
+  border: none;
   cursor: pointer;
-  transition: ${(props) => props.theme.transitions.default};
-  background: ${(props) =>
-    props.active ? props.theme.colors.primary : props.theme.colors.backgroundAlt};
-  color: ${(props) => (props.active ? "#FFFFFF" : props.theme.colors.text)};
+  transition: all 0.15s ease-in-out;
+  background: ${(props) => (props.active ? "#a777e3" : "transparent")};
+  color: ${(props) => (props.active ? "#FFFFFF" : "#475569")};
   box-shadow: ${(props) =>
-    props.active ? "0 4px 14px rgba(1, 120, 161, 0.3)" : props.theme.shadows.sm};
+    props.active ? "0 2px 6px rgba(167, 119, 227, 0.28)" : "none"};
 
   &:hover {
+    color: ${(props) => (props.active ? "#FFFFFF" : "#0f172a")};
     background: ${(props) =>
-      props.active
-        ? props.theme.colors.primaryHover
-        : props.theme.colors.backgroundHover};
-    border-color: ${(props) => props.theme.colors.primary};
-    transform: translateY(-1px);
+      props.active ? "#8b5cf6" : "rgba(255, 255, 255, 0.65)"};
+  }
+
+  @media (max-width: 768px) {
+    flex: 1;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.78rem;
   }
 `;
 
@@ -173,137 +217,140 @@ const TabBadge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.2rem 0.65rem;
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  font-size: 0.75rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
   font-weight: 700;
+  line-height: 1.2;
   background: ${(props) =>
-    props.active ? "rgba(255, 255, 255, 0.25)" : props.theme.colors.background};
-  color: ${(props) => (props.active ? "#FFFFFF" : props.theme.colors.primary)};
+    props.active ? "rgba(255, 255, 255, 0.25)" : "#e2e8f0"};
+  color: ${(props) => (props.active ? "#FFFFFF" : "#a777e3")};
 `;
 
+// ── Compact Filter Toolbar ──
 const Controls = styled.div`
   display: flex;
-  gap: 1rem;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 2rem;
+  gap: 0.45rem 0.55rem;
+  margin-bottom: 0.75rem;
   flex-wrap: wrap;
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    flex-direction: column;
-    align-items: stretch;
-  }
+  background: #f8fafc;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 `;
 
 const DateRangeWrapper = styled.div`
-  display: flex;
-  gap: 1rem;
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    flex-direction: column;
-    width: 100%;
-  }
+  gap: 0.3rem;
+  background: #ffffff;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  height: 32px;
 `;
 
 const DatePickerWrapper = styled.div`
-  gap: 0.1rem;
+  display: flex;
   align-items: center;
-  background: ${(props) => props.theme.colors.backgroundAlt};
-  padding: 0.5rem;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  border: 1px solid ${(props) => props.theme.colors.border};
-  transition: ${(props) => props.theme.transitions.default};
-  min-width: 100px;
-  &:hover {
-    border-color: ${(props) => props.theme.colors.primary};
-  }
+  gap: 0.2rem;
   label {
-    color: ${(props) => props.theme.colors.textLight};
-    font-size: 0.875rem;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
     white-space: nowrap;
   }
   .react-datepicker-wrapper {
-    width: 100px;
+    width: 74px;
   }
   input {
     border: none;
     background: transparent;
-    color: ${(props) => props.theme.colors.text};
-    font-size: 0.875rem;
-    padding: 0.25rem;
+    color: #0f172a;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0;
     cursor: pointer;
-    min-width: 80px;
+    width: 74px;
     &:focus {
       outline: none;
     }
   }
 `;
 
-const SearchWrapper = styled.div`
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    max-width: 100%;
-  }
-`;
-
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  font-size: 0.875rem;
-  transition: ${(props) => props.theme.transitions.default};
-  &:focus {
-    outline: none;
-    border-color: ${(props) => props.theme.colors.primary};
-    box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
-  }
-`;
-
-const SearchIcon = styled.div`
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: ${(props) => props.theme.colors.textLight};
-  pointer-events: none;
+const DateRangeLabel = styled.span`
+  color: #94a3b8;
+  font-size: 0.74rem;
+  font-weight: 500;
 `;
 
 const BarcodeSearchWrapper = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  height: 32px;
+  flex: 1 1 180px;
+  max-width: 260px;
+  min-width: 155px;
+`;
+
+const SearchWrapper = styled.div`
+  position: relative;
   flex: 1;
-  min-width: 420px;
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    max-width: 100%;
+  height: 100%;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  height: 100%;
+  padding: 0.2rem 0.45rem 0.2rem 1.75rem;
+  border: 1px solid #cbd5e1;
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  font-size: 0.8rem;
+  background: #ffffff;
+  transition: all 0.15s ease-in-out;
+  &:focus {
+    outline: none;
+    border-color: #a777e3;
+    box-shadow: 0 0 0 2px rgba(167, 119, 227, 0.15);
   }
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
 `;
 
 const StepButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 26px;
+  height: 100%;
   flex-shrink: 0;
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  background: ${(props) => props.theme.colors.backgroundAlt};
-  color: ${(props) => props.theme.colors.primary};
-  font-size: 1.25rem;
-  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #a777e3;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: ${(props) => props.theme.transitions.default};
+  transition: all 0.15s ease-in-out;
   line-height: 1;
+  &:first-of-type {
+    border-right: none;
+  }
+  &:last-of-type {
+    border-radius: 0 6px 6px 0;
+  }
   &:hover {
-    background: ${(props) => props.theme.colors.primary};
+    background: #a777e3;
     color: white;
-    border-color: ${(props) => props.theme.colors.primary};
-    box-shadow: 0 2px 8px ${(props) => props.theme.colors.primary}40;
+    border-color: #a777e3;
   }
   &:active {
     transform: scale(0.95);
@@ -311,173 +358,302 @@ const StepButton = styled.button`
 `;
 
 const FilterSelect = styled.select`
-  padding: 0.75rem 2.5rem 0.75rem 1rem;
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  font-size: 0.875rem;
-  color: ${(props) => props.theme.colors.text};
-  background-color: ${(props) => props.theme.colors.backgroundAlt};
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  height: 32px;
+  padding: 0.2rem 1.4rem 0.2rem 0.45rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #1e293b;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 16px;
+  background-position: right 0.45rem center;
+  background-size: 14px;
   cursor: pointer;
-  transition: ${(props) => props.theme.transitions.default};
+  transition: all 0.15s ease-in-out;
   appearance: none;
-  min-width: 150px;
   &:hover {
-    border-color: ${(props) => props.theme.colors.primary};
+    border-color: #a777e3;
   }
   &:focus {
     outline: none;
-    border-color: ${(props) => props.theme.colors.primary};
-    box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}20;
-  }
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
-    width: 100%;
+    border-color: #a777e3;
+    box-shadow: 0 0 0 2px rgba(167, 119, 227, 0.15);
   }
 `;
 
 const ClearButton = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  border: 1px solid ${(props) => props.theme.colors.border};
-  background-color: ${(props) => props.theme.colors.backgroundAlt};
-  color: ${(props) => props.theme.colors.text};
-  font-size: 0.875rem;
-  font-weight: 500;
+  gap: 0.3rem;
+  height: 32px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: ${(props) => props.theme.transitions.default};
+  transition: all 0.15s ease-in-out;
   white-space: nowrap;
+  margin-left: auto;
 
   &:hover {
-    background-color: ${(props) => props.theme.colors.danger}15;
-    color: ${(props) => props.theme.colors.danger};
-    border-color: ${(props) => props.theme.colors.danger};
-    box-shadow: 0 2px 6px ${(props) => props.theme.colors.danger}25;
+    background-color: #fee2e2;
+    color: #dc2626;
+    border-color: #fca5a5;
   }
 
   &:active {
     transform: scale(0.97);
   }
 
-  @media (max-width: ${(props) => props.theme.breakpoints.md}) {
+  @media (max-width: 768px) {
     width: 100%;
     justify-content: center;
+    margin-left: 0;
   }
 `;
 
 // ── Table Section Styling ──
 const TableSection = styled.div`
-  margin-bottom: 3rem;
+  margin-bottom: 0.85rem;
 `;
 
 const SectionHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  padding: 0.85rem 1.25rem;
-  background: ${(props) =>
-    props.backlog ? "#FFFBEB" : props.theme.colors.primary + "0C"};
-  border-left: 4px solid
-    ${(props) => (props.backlog ? "#F59E0B" : props.theme.colors.primary)};
-  border-radius: ${(props) => props.theme.borderRadius.md};
+  margin-bottom: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  background: ${(props) => (props.backlog ? "#FFFBEB" : "#faf5ff")};
+  border-left: 3.5px solid ${(props) => (props.backlog ? "#F59E0B" : "#a777e3")};
+  border-radius: 6px;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.4rem;
 `;
 
 const SectionTitleGroup = styled.div`
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.45rem;
   flex-wrap: wrap;
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: ${(props) => (props.backlog ? "#92400E" : props.theme.colors.primary)};
-  display: flex;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: ${(props) => (props.backlog ? "#92400E" : "#7c3aed")};
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  margin: 0;
 `;
 
 const SectionSubtitle = styled.span`
-  font-size: 0.85rem;
-  color: ${(props) => props.theme.colors.textLight};
-  font-weight: 400;
+  font-size: 0.76rem;
+  color: #64748b;
+  font-weight: 500;
 `;
 
 const SectionBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${(props) =>
-    props.backlog ? "#FEF3C7" : props.theme.colors.primary + "18"};
-  color: ${(props) =>
-    props.backlog ? "#92400E" : props.theme.colors.primary};
-  border: 1px solid
-    ${(props) =>
-      props.backlog ? "#FCD34D" : props.theme.colors.primary + "40"};
+  gap: 0.3rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: ${(props) => (props.backlog ? "#FEF3C7" : "#f5f0fb")};
+  color: ${(props) => (props.backlog ? "#92400E" : "#7c3aed")};
+  border: 1px solid ${(props) => (props.backlog ? "#FCD34D" : "#ddd6fe")};
 `;
 
-const TableWrapper = styled.div`
+const TopScrollTrack = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 12px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-bottom: none;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  &::-webkit-scrollbar {
+    height: 9px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #a777e3;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #8b5cf6;
+  }
+`;
+
+const TableWrapperContainer = styled.div`
   position: relative;
   overflow-x: auto;
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.borderRadius.lg};
-  box-shadow: ${(props) => props.theme.shadows.sm};
+  border: 1px solid #e2e8f0;
+  border-radius: ${(props) => (props.hasTopTrack ? "0 0 8px 8px" : "8px")};
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    height: 0;
+  }
 `;
+
+const TableWrapper = ({ children, style, className }) => {
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const isSyncingTop = useRef(false);
+  const isSyncingBottom = useRef(false);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (bottomScrollRef.current) {
+        const sw = bottomScrollRef.current.scrollWidth;
+        const cw = bottomScrollRef.current.clientWidth;
+        setScrollWidth(sw);
+        setHasOverflow(sw > cw + 2);
+      }
+    };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    if (bottomScrollRef.current) {
+      observer.observe(bottomScrollRef.current);
+    }
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, []);
+
+  const handleTopScroll = () => {
+    if (!isSyncingTop.current) {
+      isSyncingBottom.current = true;
+      if (bottomScrollRef.current && topScrollRef.current) {
+        bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+      }
+    }
+    isSyncingTop.current = false;
+  };
+
+  const handleBottomScroll = () => {
+    if (!isSyncingBottom.current) {
+      isSyncingTop.current = true;
+      if (topScrollRef.current && bottomScrollRef.current) {
+        topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+      }
+    }
+    isSyncingBottom.current = false;
+  };
+
+  return (
+    <div style={{ width: "100%", position: "relative" }}>
+      {hasOverflow && (
+        <TopScrollTrack ref={topScrollRef} onScroll={handleTopScroll}>
+          <div style={{ width: `${scrollWidth}px`, height: "1px" }} />
+        </TopScrollTrack>
+      )}
+      <TableWrapperContainer
+        ref={bottomScrollRef}
+        onScroll={handleBottomScroll}
+        hasTopTrack={hasOverflow}
+        style={style}
+        className={className}
+      >
+        {children}
+      </TableWrapperContainer>
+    </div>
+  );
+};
 
 const Table = styled.table`
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 0.875rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+`;
+
+const TableHead = styled.thead`
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #a777e3 0%, #8b5cf6 100%);
+  color: #ffffff;
+
+  th {
+    padding: 0.65rem 0.65rem;
+    text-align: left;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    border: none;
+    color: #ffffff;
+    background: transparent;
+
+    &:first-child {
+      border-top-left-radius: 8px;
+      padding-left: 0.85rem;
+    }
+
+    &:last-child {
+      border-top-right-radius: 8px;
+      padding-right: 0.85rem;
+    }
+  }
 `;
 
 const Th = styled.th`
-  padding: 1rem;
+  padding: 0.65rem 0.65rem;
   text-align: left;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.text};
-  background-color: ${(props) => props.theme.colors.background};
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: #ffffff;
+  border: none;
   white-space: nowrap;
-  top: 0;
-  z-index: 10;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  background: transparent;
   &:first-child {
-    padding-left: 1.5rem;
+    padding-left: 0.85rem;
   }
   &:last-child {
-    padding-right: 1.5rem;
+    padding-right: 0.85rem;
   }
 `;
 
 const Td = styled.td`
-  padding: 1rem;
-  color: ${(props) => props.theme.colors.text};
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+  padding: 0.5rem 0.65rem;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
   vertical-align: top;
   &:first-child {
-    padding-left: 1.5rem;
+    padding-left: 0.75rem;
   }
   &:last-child {
-    padding-right: 1.5rem;
+    padding-right: 0.75rem;
   }
 `;
 
 const Tr = styled.tr`
+  transition: background-color 0.15s ease;
   &:hover {
-    background-color: ${(props) => props.theme.colors.backgroundHover};
+    background-color: #f8fafc;
   }
   &:last-child td {
     border-bottom: none;
@@ -487,31 +663,29 @@ const Tr = styled.tr`
 const TestButton = styled.button`
   display: inline-flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  background: ${(props) => props.theme.colors.backgroundAlt};
-  color: ${(props) => props.theme.colors.text};
-  font-size: 0.875rem;
+  gap: 0.35rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: ${(props) => props.theme.transitions.default};
+  transition: all 0.15s ease-in-out;
   width: 100%;
   text-align: left;
   flex-direction: column;
   &:hover:not(:disabled) {
-    background: ${(props) => props.theme.colors.background};
-    border-color: ${(props) => props.theme.colors.primary};
-    color: ${(props) => props.theme.colors.primary};
+    background: #f0f9ff;
+    border-color: #a777e3;
+    color: #a777e3;
   }
   &:disabled {
     background: #f8fafc;
-    color: ${(props) => props.theme.colors.textLight};
-    border-color: ${(props) => props.theme.colors.border};
+    color: #94a3b8;
+    border-color: #e2e8f0;
     cursor: not-allowed !important;
-    opacity: 0.65;
-    box-shadow: none;
-    transform: none;
+    opacity: 0.7;
     * {
       cursor: not-allowed !important;
     }
@@ -523,52 +697,58 @@ const TestNameRow = styled.div`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 0.5rem;
+  gap: 0.35rem;
 `;
 
 const UserInfoRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: ${(props) => props.theme.colors.textLight};
-  margin-top: 0.25rem;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 0.15rem;
 `;
 
 const TATIndicator = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.72rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 0.375rem;
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
   font-weight: 600;
-  min-width: 105px;
+  min-width: 90px;
   justify-content: center;
   opacity: 1 !important;
   background-color: ${(props) => {
-    if (props.isRerun) return props.theme.colors.danger || "#dc3545";
-    if (props.secondsLeft === null || props.secondsLeft === undefined || isNaN(props.secondsLeft))
+    if (props.isRerun) return "#dc2626";
+    if (
+      props.secondsLeft === null ||
+      props.secondsLeft === undefined ||
+      isNaN(props.secondsLeft)
+    )
       return "#e0e7ff";
-    if (props.secondsLeft < 0) return "#dc3545"; // Red - Overdue / Late
-    if (props.secondsLeft < 7200) return "#ffc107"; // Yellow - Critical (< 2 hours)
-    return "#28a745"; // Green - On track
+    if (props.secondsLeft < 0) return "#dc2626"; // Overdue
+    if (props.secondsLeft < 7200) return "#f59e0b"; // Critical (< 2h)
+    return "#16a34a"; // Normal
   }};
   color: ${(props) =>
     props.isRerun ||
-    (props.secondsLeft !== null && props.secondsLeft !== undefined && !isNaN(props.secondsLeft))
+    (props.secondsLeft !== null &&
+      props.secondsLeft !== undefined &&
+      !isNaN(props.secondsLeft))
       ? "white"
       : "#3730a3"};
 `;
 
 const TATText = styled.span`
   white-space: nowrap;
-  font-family: "Courier New", monospace;
-  letter-spacing: 0.5px;
+  font-family: monospace;
+  letter-spacing: 0.3px;
 `;
 
 const TATLabel = styled.div`
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   opacity: 0.9;
   text-transform: uppercase;
   line-height: 1;
@@ -577,10 +757,10 @@ const TATLabel = styled.div`
 const UserBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.125rem 0.375rem;
-  background: ${(props) => props.theme.colors.background};
-  border-radius: ${(props) => props.theme.borderRadius.sm};
+  gap: 0.2rem;
+  padding: 0.1rem 0.3rem;
+  background: #f1f5f9;
+  border-radius: 4px;
   white-space: nowrap;
 `;
 
@@ -588,38 +768,43 @@ const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  font-size: 0.75rem;
-  font-weight: 500;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
   white-space: nowrap;
   ${(props) => {
     switch (props.status) {
       case "Approved":
       case "Waiting for Dispatch":
         return css`
-          background-color: ${props.theme.colors.success}20;
-          color: ${props.theme.colors.success};
+          background-color: #dcfce7;
+          color: #15803d;
+          border: 1px solid #bbf7d0;
         `;
       case "Dispatched":
         return css`
           background-color: #d1fae5;
           color: #065f46;
+          border: 1px solid #a7f3d0;
         `;
       case "Rerun Initiated":
         return css`
-          background-color: ${props.theme.colors.danger}20;
-          color: ${props.theme.colors.danger};
+          background-color: #fee2e2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
         `;
       case "Waiting for Doctor's Approval":
         return css`
           background-color: #fef3c7;
-          color: #d97706;
+          color: #b45309;
+          border: 1px solid #fde68a;
         `;
       default:
         return css`
-          background-color: ${props.theme.colors.warning}20;
-          color: ${props.theme.colors.warning};
+          background-color: #f1f5f9;
+          color: #475569;
+          border: 1px solid #e2e8f0;
         `;
     }
   }}
@@ -630,27 +815,28 @@ const EmptyState = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1rem;
+  padding: 1.5rem 1rem;
   text-align: center;
-  background: ${(props) => props.theme.colors.backgroundAlt};
-  border-radius: ${(props) => props.theme.borderRadius.lg};
-  border: 2px dashed ${(props) => props.theme.colors.border};
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1.5px dashed #cbd5e1;
 `;
 
 const EmptyStateText = styled.p`
-  color: ${(props) => props.theme.colors.textLight};
-  margin-top: 1rem;
+  color: #64748b;
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
   max-width: 28rem;
 `;
 
 const LoadingSpinner = styled.div`
   display: inline-block;
-  width: 2rem;
-  height: 2rem;
-  border: 2px solid ${(props) => props.theme.colors.border};
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid #cbd5e1;
+  border-top-color: #a777e3;
   border-radius: 50%;
-  border-top-color: ${(props) => props.theme.colors.primary};
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
   @keyframes spin {
     to {
       transform: rotate(360deg);
@@ -662,30 +848,24 @@ const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 3rem;
+  padding: 2rem;
 `;
 
 const PatientInfo = styled.div`
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: ${(props) => props.theme.colors.text};
-  font-size: 0.875rem;
+  color: #334155;
+  font-size: 0.8rem;
   svg {
-    color: ${(props) => props.theme.colors.textLight};
+    color: #94a3b8;
   }
 `;
 
 const TestList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const DateRangeLabel = styled.span`
-  color: ${(props) => props.theme.colors.textLight};
-  font-size: 0.875rem;
-  margin: 0 0.5rem;
+  gap: 0.35rem;
 `;
 
 const blink = keyframes` 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } `;
@@ -693,67 +873,51 @@ const blink = keyframes` 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } `;
 const EmergencyBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: ${(props) => props.theme.borderRadius.full};
+  gap: 0.2rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 9999px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   ${(props) =>
     props.emergency &&
     css`
-      background-color: ${props.theme.colors.danger};
+      background-color: #ef4444;
       color: white;
       animation: ${blink} 1.5s ease-in-out infinite;
     `}
   ${(props) =>
     props.normal &&
     css`
-      background-color: ${props.theme.colors.success}20;
-      color: ${props.theme.colors.success};
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
     `}
 `;
 
 const DepartmentGroup = styled.div`
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.45rem;
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const DepartmentHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: ${(props) => props.theme.colors.background};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: ${(props) => props.theme.colors.primary};
-`;
-
-const HistoryButton = styled.button`
-  display: inline-flex;
-  align-items: center;
   gap: 0.35rem;
-  margin-top: 0.5rem;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  border: 1px solid ${(props) => props.theme.colors.primary}60;
-  background: ${(props) => props.theme.colors.primary}10;
-  color: ${(props) => props.theme.colors.primary};
-  cursor: pointer;
-  transition: ${(props) => props.theme.transitions.default};
-  white-space: nowrap;
-  &:hover {
-    background: ${(props) => props.theme.colors.primary};
-    color: white;
-    border-color: ${(props) => props.theme.colors.primary};
-    box-shadow: 0 2px 8px ${(props) => props.theme.colors.primary}40;
-  }
+  padding: 0.25rem 0.55rem;
+  background: #faf5ff;
+  border: 1px solid #ede9fe;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+  font-size: 0.74rem;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 `;
 
 const PriorityCell = styled.div`
@@ -762,8 +926,10 @@ const PriorityCell = styled.div`
   align-items: flex-start;
   gap: 0.25rem;
 `;
-
 const PathologyPatientDetails = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -1639,7 +1805,7 @@ const PathologyPatientDetails = () => {
               <col style={{ width: "41%", minWidth: "420px" }} />
               <col style={{ width: "10%", minWidth: "110px" }} />
             </colgroup>
-            <thead>
+            <TableHead>
               <tr>
                 <Th style={{ width: "8%", minWidth: "85px" }}>Date</Th>
                 <Th style={{ width: "18%", minWidth: "180px" }}>Patient Info</Th>
@@ -1651,7 +1817,7 @@ const PathologyPatientDetails = () => {
                 </Th>
                 <Th style={{ width: "10%", minWidth: "110px" }}>Status</Th>
               </tr>
-            </thead>
+            </TableHead>
             <tbody>
               {patients.map((patient, index) => {
                 const relevantTests = (patient.testdetails || []).filter(
@@ -1709,61 +1875,44 @@ const PathologyPatientDetails = () => {
                         style={{
                           display: "flex",
                           flexDirection: "column",
-                          gap: "0.5rem",
+                          gap: "0.2rem",
                         }}
                       >
-                        <PatientInfo>
-                          <User size={14} />
-                          <strong>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.85rem" }}>
                             {patient.patientname || "Unknown Patient"}
-                          </strong>
-                        </PatientInfo>
-                        <PatientInfo>
-                          <Tag size={14} />
-                          ID: {patient.patient_id || "Unknown ID"}
-                        </PatientInfo>
-                        {patient.ref_doctor && (
-                          <PatientInfo>
-                            <Tag size={14} />
-                            Ref. By: {patient.ref_doctor || "Unknown Referral"}
-                          </PatientInfo>
+                          </span>
+                          {(patient.age || patient.gender) && (
+                            <span style={{ fontSize: "0.72rem", background: "#f1f5f9", padding: "0.08rem 0.35rem", borderRadius: "4px", color: "#475569", fontWeight: 600 }}>
+                              {patient.age ? `${patient.age}Y` : ""} {patient.gender ? `• ${patient.gender}` : ""}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap", fontSize: "0.78rem" }}>
+                          <span style={{ color: "#64748b" }}>
+                            ID: <strong style={{ color: "#334155" }}>{patient.patient_id || "N/A"}</strong>
+                          </span>
+                          {patient.barcode && (
+                            <span style={{ fontFamily: "monospace", color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "0.05rem 0.35rem", borderRadius: "4px", fontWeight: 700 }}>
+                              {patient.barcode}
+                            </span>
+                          )}
+                        </div>
+
+                        {(patient.ref_doctor || patient.phone) && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap", fontSize: "0.74rem", color: "#64748b" }}>
+                            {patient.ref_doctor && <span>Ref: <strong style={{ color: "#334155" }}>{patient.ref_doctor}</strong></span>}
+                            {patient.phone && <span>Ph: <span style={{ color: "#334155" }}>{patient.phone}</span></span>}
+                          </div>
                         )}
-                        {patient.phone && (
-                          <PatientInfo>
-                            <Tag size={14} />
-                            Phone: {patient.phone || "Unknown Phone"}
-                          </PatientInfo>
+
+                        {(patient.barcode_by || patient.barcode_date) && (
+                          <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
+                            {patient.barcode_by ? `B/B: ${patient.barcode_by}` : ""}
+                            {patient.barcode_date ? ` (${format(new Date(new Date(patient.barcode_date).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })), "MMM dd, hh:mm a")})` : ""}
+                          </div>
                         )}
-                        <PatientInfo>
-                          <FileText size={14} />
-                          Barcode: {patient.barcode || "N/A"}
-                        </PatientInfo>
-                        {patient.barcode_by && (
-                          <PatientInfo>
-                            <User size={14} />
-                            Barcode By: {patient.barcode_by}
-                          </PatientInfo>
-                        )}
-                        {patient.barcode_date && (
-                          <PatientInfo>
-                            <Calendar size={14} />
-                            Barcode Date:{" "}
-                            {format(
-                              new Date(
-                                new Date(patient.barcode_date).toLocaleString(
-                                  "en-US",
-                                  { timeZone: "Asia/Kolkata" },
-                                ),
-                              ),
-                              "MMM dd, yyyy hh:mm a",
-                            )}
-                          </PatientInfo>
-                        )}
-                        <PatientInfo>
-                          <User size={14} />
-                          Age: {patient.age || "Unknown"} |{" "}
-                          {patient.gender || "N/A"}
-                        </PatientInfo>
                       </div>
                     </Td>
                     <Td>
@@ -1790,39 +1939,7 @@ const PathologyPatientDetails = () => {
                             Normal
                           </EmergencyBadge>
                         )}
-                        {patient.patient_id && (
-                          <HistoryButton
-                            onClick={() =>
-                              handleHistoryClick(patient.patient_id)
-                            }
-                            title={
-                              !(patient.location_id || "")
-                                .toLowerCase()
-                                .includes("hms")
-                                ? "History only available for HMS patients"
-                                : `View full history for ${patient.patientname}`
-                            }
-                            disabled={
-                              !(patient.location_id || "")
-                                .toLowerCase()
-                                .includes("hms")
-                            }
-                            style={
-                              !(patient.location_id || "")
-                                .toLowerCase()
-                                .includes("hms")
-                                ? {
-                                    opacity: 0.4,
-                                    cursor: "not-allowed",
-                                    pointerEvents: "none",
-                                  }
-                                : {}
-                            }
-                          >
-                            <History size={12} />
-                            History
-                          </HistoryButton>
-                        )}
+                        
                       </PriorityCell>
                     </Td>
 
@@ -1999,263 +2116,273 @@ const PathologyPatientDetails = () => {
     <ThemeProvider theme={theme}>
       <GlobalStyle />
       <Container>
-        <Header>
-          <Title style={{ fontSize: "1.85rem", fontWeight: 700, color: "#0178A1", marginBottom: "0.35rem" }}>
-            Pathology Specimen Management
-          </Title>
-          <div style={{ fontSize: "0.92rem", color: theme.colors.textLight }}>
-            Real-time tracking of specimens across Technician Testing, Doctor Verification, and Dispatch.
-          </div>
-        </Header>
+        <CardContainer>
+          {/* ── Sleek Executive Header & Tabs ── */}
+          <TopBar>
+            <HeaderLeft>
+              <Title>
+                <FlaskConical size={20} color="#a777e3" />
+                Pathology Specimen Management
+              </Title>
+              <Subtitle>
+                Technician Testing • Doctor Authorization • Dispatch
+              </Subtitle>
+            </HeaderLeft>
 
-        {/* ── Three Tabs: Technicians Pending, Doctors Pending & Dispatch Pending ── */}
-        <TabsContainer>
-          <TabButton
-            type="button"
-            active={activeTab === "technician"}
-            onClick={() => handleTabSwitch("technician")}
-          >
-            <FlaskConical size={18} />
-            Technicians Pending
-            <TabBadge active={activeTab === "technician"}>
-              {techCount}
-            </TabBadge>
-          </TabButton>
-          <TabButton
-            type="button"
-            active={activeTab === "doctor"}
-            onClick={() => handleTabSwitch("doctor")}
-          >
-            <UserCheck size={18} />
-            Doctors Pending
-            <TabBadge active={activeTab === "doctor"}>
-              {docCount}
-            </TabBadge>
-          </TabButton>
-          <TabButton
-            type="button"
-            active={activeTab === "dispatch"}
-            onClick={() => handleTabSwitch("dispatch")}
-          >
-            <Send size={18} />
-            Dispatch Pending
-            <TabBadge active={activeTab === "dispatch"}>
-              {dispatchCount}
-            </TabBadge>
-          </TabButton>
-        </TabsContainer>
+            <TabsContainer>
+              <TabButton
+                type="button"
+                active={activeTab === "technician"}
+                onClick={() => handleTabSwitch("technician")}
+              >
+                <FlaskConical size={15} />
+                Technicians Pending
+                <TabBadge active={activeTab === "technician"}>
+                  {techCount}
+                </TabBadge>
+              </TabButton>
+              <TabButton
+                type="button"
+                active={activeTab === "doctor"}
+                onClick={() => handleTabSwitch("doctor")}
+              >
+                <UserCheck size={15} />
+                Doctors Pending
+                <TabBadge active={activeTab === "doctor"}>
+                  {docCount}
+                </TabBadge>
+              </TabButton>
+              <TabButton
+                type="button"
+                active={activeTab === "dispatch"}
+                onClick={() => handleTabSwitch("dispatch")}
+              >
+                <Send size={15} />
+                Dispatch Pending
+                <TabBadge active={activeTab === "dispatch"}>
+                  {dispatchCount}
+                </TabBadge>
+              </TabButton>
+            </TabsContainer>
+          </TopBar>
 
-        <Controls>
-          <DateRangeWrapper>
-            <DatePickerWrapper>
-              <Calendar size={16} color={theme.colors.textLight} />
-              <label>From:</label>
-              <DatePicker
-                ref={fromDateRef}
-                selected={fromDate}
-                onChange={(date) => setFromDate(date)}
-                dateFormat="yyyy-MM-dd"
-                placeholderText="From date"
-                selectsStart
-                startDate={fromDate}
-                endDate={toDate}
-                maxDate={toDate}
-              />
-            </DatePickerWrapper>
-            <DateRangeLabel>to</DateRangeLabel>
-            <DatePickerWrapper>
-              <CalendarDays size={16} color={theme.colors.textLight} />
-              <label>To:</label>
-              <DatePicker
-                ref={toDateRef}
-                selected={toDate}
-                onChange={(date) => setToDate(date)}
-                dateFormat="yyyy-MM-dd"
-                placeholderText="To date"
-                selectsEnd
-                startDate={fromDate}
-                endDate={toDate}
-                minDate={fromDate}
-              />
-            </DatePickerWrapper>
-          </DateRangeWrapper>
+          {/* ── Unified Compact Filter Toolbar ── */}
+          <Controls>
+            <DateRangeWrapper>
+              <DatePickerWrapper>
+                <Calendar size={13} color="#64748b" />
+                <label>From:</label>
+                <DatePicker
+                  ref={fromDateRef}
+                  selected={fromDate}
+                  onChange={(date) => setFromDate(date)}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="From date"
+                  selectsStart
+                  startDate={fromDate}
+                  endDate={toDate}
+                  maxDate={toDate}
+                />
+              </DatePickerWrapper>
+              <DateRangeLabel>to</DateRangeLabel>
+              <DatePickerWrapper>
+                <CalendarDays size={13} color="#64748b" />
+                <label>To:</label>
+                <DatePicker
+                  ref={toDateRef}
+                  selected={toDate}
+                  onChange={(date) => setToDate(date)}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="To date"
+                  selectsEnd
+                  startDate={fromDate}
+                  endDate={toDate}
+                  minDate={fromDate}
+                />
+              </DatePickerWrapper>
+            </DateRangeWrapper>
 
-          <BarcodeSearchWrapper>
-            <SearchWrapper style={{ flex: 1, minWidth: 0 }}>
-              <SearchIcon>
-                <Search size={16} />
-              </SearchIcon>
-              <SearchInput
-                type="text"
-                placeholder="Enter Barcode, Name or ID"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </SearchWrapper>
-            <StepButton
-              type="button"
-              title="Decrement barcode number"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                fromDateRef.current?.setOpen(false);
-                toDateRef.current?.setOpen(false);
-                handleBarcodeStep(-1);
-              }}
+            <BarcodeSearchWrapper>
+              <SearchWrapper>
+                <SearchIcon>
+                  <Search size={14} />
+                </SearchIcon>
+                <SearchInput
+                  type="text"
+                  placeholder="Barcode, Name or ID"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </SearchWrapper>
+              <StepButton
+                type="button"
+                title="Decrement barcode number"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  fromDateRef.current?.setOpen(false);
+                  toDateRef.current?.setOpen(false);
+                  handleBarcodeStep(-1);
+                }}
+              >
+                −
+              </StepButton>
+              <StepButton
+                type="button"
+                title="Increment barcode number"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  fromDateRef.current?.setOpen(false);
+                  toDateRef.current?.setOpen(false);
+                  handleBarcodeStep(1);
+                }}
+              >
+                +
+              </StepButton>
+            </BarcodeSearchWrapper>
+
+            <FilterSelect
+              value={fromFilter}
+              onChange={(e) => setFromFilter(e.target.value)}
+              style={{ flex: "1 1 125px", maxWidth: "150px" }}
             >
-              −
-            </StepButton>
+              <option value="all">All Locations</option>
+              {getUniqueLocations().map((location, idx) => (
+                <option key={idx} value={location}>
+                  {location}
+                </option>
+              ))}
+            </FilterSelect>
 
-            <StepButton
-              type="button"
-              title="Increment barcode number"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                fromDateRef.current?.setOpen(false);
-                toDateRef.current?.setOpen(false);
-                handleBarcodeStep(1);
-              }}
+            <FilterSelect
+              value={opipFilter}
+              onChange={(e) => setOpipFilter(e.target.value)}
+              style={{ flex: "0 1 80px", minWidth: "75px" }}
             >
-              +
-            </StepButton>
-          </BarcodeSearchWrapper>
+              <option value="all">All Type</option>
+              <option value="OP">OP</option>
+              <option value="IP">IP</option>
+            </FilterSelect>
 
-          <FilterSelect
-            value={fromFilter}
-            onChange={(e) => setFromFilter(e.target.value)}
-          >
-            <option value="all">All Locations</option>
-            {getUniqueLocations().map((location, idx) => (
-              <option key={idx} value={location}>
-                {location}
-              </option>
-            ))}
-          </FilterSelect>
+            <FilterSelect
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              style={{ flex: "1 1 130px", maxWidth: "155px" }}
+            >
+              <option value="all">All Departments</option>
+              {getAllDepartments().map((dept, idx) => (
+                <option key={idx} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </FilterSelect>
 
-          <FilterSelect
-            value={opipFilter}
-            onChange={(e) => setOpipFilter(e.target.value)}
-          >
-            <option value="all">All Type</option>
-            <option value="OP">OP</option>
-            <option value="IP">IP</option>
-          </FilterSelect>
+            <FilterSelect
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ flex: "1 1 130px", maxWidth: "155px" }}
+            >
+              {activeTab === "technician" ? (
+                <>
+                  <option value="all">All Status</option>
+                  <option value="technician">Waiting for Tech</option>
+                  <option value="rerun">Rerun Initiated</option>
+                </>
+              ) : activeTab === "doctor" ? (
+                <option value="all">All Status (Waiting Doctor)</option>
+              ) : (
+                <option value="all">All Status (Waiting Dispatch)</option>
+              )}
+            </FilterSelect>
 
-          <FilterSelect
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-          >
-            <option value="all">All Departments</option>
-            {getAllDepartments().map((dept, idx) => (
-              <option key={idx} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </FilterSelect>
+            <FilterSelect
+              value={emergencyFilter}
+              onChange={(e) => setEmergencyFilter(e.target.value)}
+              style={{ flex: "0 1 100px", minWidth: "95px" }}
+            >
+              <option value="all">All Priority</option>
+              <option value="emergency">Emergency</option>
+              <option value="normal">Normal</option>
+            </FilterSelect>
 
-          <FilterSelect
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            {activeTab === "technician" ? (
-              <>
-                <option value="all">All Status</option>
-                <option value="technician">Waiting for Technician</option>
-                <option value="rerun">Rerun Initiated</option>
-              </>
-            ) : activeTab === "doctor" ? (
-              <option value="all">All Status (Waiting for Doctor)</option>
-            ) : (
-              <option value="all">All Status (Waiting for Dispatch)</option>
+            <ClearButton
+              type="button"
+              onClick={handleClearFilters}
+              title="Clear all filters and reset to today"
+            >
+              <RotateCcw size={14} />
+              Clear Filters
+            </ClearButton>
+          </Controls>
+
+          {/* ── TABLE 1: Selected Date Pending Data ── */}
+          <TableSection>
+            <SectionHeader>
+              <SectionTitleGroup>
+                <SectionTitle>
+                  <Calendar size={15} />
+                  {activeTab === "technician"
+                    ? "Technicians Pending - Selected Date"
+                    : activeTab === "doctor"
+                      ? "Doctors Pending - Selected Date"
+                      : "Dispatch Pending - Selected Date"}
+                </SectionTitle>
+                <SectionSubtitle>
+                  ({format(fromDate, "MMM dd, yyyy")} to{" "}
+                  {format(toDate, "MMM dd, yyyy")})
+                </SectionSubtitle>
+              </SectionTitleGroup>
+              <SectionBadge>
+                {currentSelectedPatients.length} Patients
+              </SectionBadge>
+            </SectionHeader>
+
+            {renderPatientTable(
+              currentSelectedPatients,
+              currentSelectedLoading,
+              currentSelectedError,
+              `No ${
+                activeTab === "technician"
+                  ? "technician"
+                  : activeTab === "doctor"
+                    ? "doctor"
+                    : "dispatch"
+              } pending tests found for the selected date range.`,
+              false,
             )}
-          </FilterSelect>
+          </TableSection>
 
-          <FilterSelect
-            value={emergencyFilter}
-            onChange={(e) => setEmergencyFilter(e.target.value)}
-          >
-            <option value="all">All Priority</option>
-            <option value="emergency">Emergency</option>
-            <option value="normal">Normal</option>
-          </FilterSelect>
+          {/* ── TABLE 2: All Days Pending Backlog ── */}
+          <TableSection>
+            <SectionHeader backlog>
+              <SectionTitleGroup>
+                <SectionTitle backlog>
+                  <Clock size={15} />
+                  {activeTab === "technician"
+                    ? "Waiting for Technician's Approval - All Days Backlog"
+                    : activeTab === "doctor"
+                      ? "Waiting for Doctor's Approval - All Days Backlog"
+                      : "Waiting for Dispatch - All Days Backlog"}
+                </SectionTitle>
+                <SectionSubtitle>
+                  (Pending requests from previous days / other dates)
+                </SectionSubtitle>
+              </SectionTitleGroup>
+              <SectionBadge backlog>
+                {currentAllDaysPatients.length} Backlog Patients
+              </SectionBadge>
+            </SectionHeader>
 
-          <ClearButton
-            type="button"
-            onClick={handleClearFilters}
-            title="Clear all filters and reset to today"
-          >
-            <RotateCcw size={16} />
-            Clear Filters
-          </ClearButton>
-        </Controls>
-
-        {/* ── TABLE 1: Selected Date Pending Data ── */}
-        <TableSection>
-          <SectionHeader>
-            <SectionTitleGroup>
-              <SectionTitle>
-                <Calendar size={18} />
-                {activeTab === "technician"
-                  ? "Technicians Pending - Selected Date"
-                  : activeTab === "doctor"
-                    ? "Doctors Pending - Selected Date"
-                    : "Dispatch Pending - Selected Date"}
-              </SectionTitle>
-              <SectionSubtitle>
-                ({format(fromDate, "MMM dd, yyyy")} to{" "}
-                {format(toDate, "MMM dd, yyyy")})
-              </SectionSubtitle>
-            </SectionTitleGroup>
-            <SectionBadge>
-              {currentSelectedPatients.length} Patients
-            </SectionBadge>
-          </SectionHeader>
-
-          {renderPatientTable(
-            currentSelectedPatients,
-            currentSelectedLoading,
-            currentSelectedError,
-            `No ${
-              activeTab === "technician"
-                ? "technician"
-                : activeTab === "doctor"
-                  ? "doctor"
-                  : "dispatch"
-            } pending tests found for the selected date range.`,
-            false,
-          )}
-        </TableSection>
-
-        {/* ── TABLE 2: All Days Pending Backlog ── */}
-        <TableSection>
-          <SectionHeader backlog>
-            <SectionTitleGroup>
-              <SectionTitle backlog>
-                <Clock size={18} />
-                {activeTab === "technician"
-                  ? "Waiting for Technician's Approval - All Days Backlog"
-                  : activeTab === "doctor"
-                    ? "Waiting for Doctor's Approval - All Days Backlog"
-                    : "Waiting for Dispatch - All Days Backlog"}
-              </SectionTitle>
-              <SectionSubtitle>
-                (Pending requests from previous days / other dates)
-              </SectionSubtitle>
-            </SectionTitleGroup>
-            <SectionBadge backlog>
-              {currentAllDaysPatients.length} Backlog Patients
-            </SectionBadge>
-          </SectionHeader>
-
-          {renderPatientTable(
-            currentAllDaysPatients,
-            currentAllDaysLoading,
-            currentAllDaysError,
-            `No pending backlog tests found across all days.`,
-            true,
-          )}
-        </TableSection>
+            {renderPatientTable(
+              currentAllDaysPatients,
+              currentAllDaysLoading,
+              currentAllDaysError,
+              `No pending backlog tests found across all days.`,
+              true,
+            )}
+          </TableSection>
+        </CardContainer>
       </Container>
     </ThemeProvider>
   );

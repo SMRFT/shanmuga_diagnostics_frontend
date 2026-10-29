@@ -9,6 +9,7 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
 import CorporateTestSorting from "./CorporateTestSorting";
+import PathologyTestSorting from "../Report/PathologyTestSorting";
 import {
   DEPARTMENT_ORDER,
   sortTestsWithDepartmentAndOrder,
@@ -19,6 +20,7 @@ import {
   Search,
   Printer,
   Mail,
+  FileText,
   Flag,
   X,
   List,
@@ -671,6 +673,7 @@ const CorporatePatientOverview = () => {
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [isPathologyTestModalOpen, setIsPathologyTestModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -811,6 +814,38 @@ const CorporatePatientOverview = () => {
     status === "Partially Approved" ||
     status === "Partially Dispatched" ||
     status === "Dispatched";
+
+  const hasPathologyTests = (patient) => {
+    if (patient.has_pathology !== undefined) return Boolean(patient.has_pathology);
+    const testStatuses = patient.test_statuses || [];
+    return testStatuses.some((t) => t.is_pathology);
+  };
+
+  const isPathologyTestSortingEnabled = (patient) => {
+    if (patient.pathology_status) {
+      return (
+        patient.pathology_status === "Approved" ||
+        patient.pathology_status === "Partially Approved" ||
+        patient.pathology_status === "Partially Dispatched" ||
+        patient.pathology_status === "Dispatched"
+      );
+    }
+    const testStatuses = patient.test_statuses || [];
+    const pathTests = testStatuses.filter((t) => t.is_pathology);
+    if (pathTests.length === 0) return false;
+    return pathTests.some(
+      (t) =>
+        t.status === "Approved" ||
+        t.status === "Partially Approved" ||
+        t.status === "Partially Dispatched" ||
+        t.status === "Dispatched"
+    );
+  };
+
+  const openPathologyTestModal = (patient) => {
+    setSelectedPatient(patient);
+    setIsPathologyTestModalOpen(true);
+  };
 
   useEffect(() => {
     const startOfDay = new Date(startDate);
@@ -2449,6 +2484,7 @@ const CorporatePatientOverview = () => {
                     patientStatus.barcode || patient.barcode || "N/A";
                   const isPrintMailEnabled = isPrintAndMailEnabled(status);
                   const isSortingEnabledFlag = isSortingEnabled(status);
+                  const isPathologySortingEnabledFlag = isPathologyTestSortingEnabled(patient);
                   const badgeColor = getBadgeColor(status);
 
                   return (
@@ -2511,6 +2547,19 @@ const CorporatePatientOverview = () => {
                       </td>
                       <td>
                         <ActionContainer>
+                          <ActionButton
+                            onClick={() => openPathologyTestModal(patient)}
+                            title={
+                              !hasPathologyTests(patient)
+                                ? "No Pathology Tests"
+                                : isPathologySortingEnabledFlag
+                                  ? "Sort Pathology Tests"
+                                  : "Pathology not approved"
+                            }
+                            disabled={!isPathologySortingEnabledFlag}
+                          >
+                            <FileText size={16} />
+                          </ActionButton>
                           <ActionButton
                             onClick={() => openTestModal(patient)}
                             title="Sort Tests"
@@ -2614,6 +2663,13 @@ const CorporatePatientOverview = () => {
         <CorporateTestSorting
           patient={selectedPatient}
           onClose={() => setIsTestModalOpen(false)}
+        />
+      )}
+      {/* Pathology Test Sorting Modal */}
+      {isPathologyTestModalOpen && (
+        <PathologyTestSorting
+          patient={selectedPatient}
+          onClose={() => setIsPathologyTestModalOpen(false)}
         />
       )}
 

@@ -10,6 +10,7 @@ import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
 import FranchiseTestSorting from "./FranchiseTestSorting";
 import FranchiseMBTestSorting from "./FranchiseMBTestSorting";
+import PathologyTestSorting from "../Report/PathologyTestSorting";
 import {
   DEPARTMENT_ORDER,
   sortTestsWithDepartmentAndOrder,
@@ -20,6 +21,7 @@ import {
   Search,
   Printer,
   Mail,
+  FileText,
   Flag,
   X,
   List,
@@ -713,6 +715,7 @@ const FranchiseOverview = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [isMBTestModalOpen, setIsMBTestModalOpen] = useState(false);
+  const [isPathologyTestModalOpen, setIsPathologyTestModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -946,6 +949,32 @@ const FranchiseOverview = () => {
     return (
       microbiologyStatus === "Approved" || microbiologyStatus === "Dispatched"
     );
+  };
+
+  const hasPathologyTests = (patient) => {
+    if (patient.has_pathology !== undefined) return Boolean(patient.has_pathology);
+    const testStatuses = patient.test_statuses || [];
+    return testStatuses.some((t) => t.is_pathology);
+  };
+
+  const isPathologyTestSortingEnabled = (patient) => {
+    if (patient.pathology_status) {
+      return (
+        patient.pathology_status === "Approved" ||
+        patient.pathology_status === "Dispatched"
+      );
+    }
+    const testStatuses = patient.test_statuses || [];
+    const pathTests = testStatuses.filter((t) => t.is_pathology);
+    if (pathTests.length === 0) return false;
+    return pathTests.some(
+      (t) => t.status === "Approved" || t.status === "Dispatched"
+    );
+  };
+
+  const openPathologyTestModal = (patient) => {
+    setSelectedPatient(patient);
+    setIsPathologyTestModalOpen(true);
   };
   // Returns true if the patient has ONLY Microbiology as their department
   const isOnlyMicrobiology = (patient) => {
@@ -2608,6 +2637,8 @@ const FranchiseOverview = () => {
                     patientStatus.barcode || patient.barcode || "N/A";
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
+                  const isPathologySortingEnabledFlag =
+                    isPathologyTestSortingEnabled(patient);
                   const onlyMB = isOnlyMicrobiology(patient);
                   const onlyMolBio = isOnlyMolecularBiology(patient);
                   const isPrintMailEnabled =
@@ -2682,6 +2713,19 @@ const FranchiseOverview = () => {
                             disabled={!isMBSortingEnabledFlag}
                           >
                             <List size={16} />
+                          </ActionButton>
+                          <ActionButton
+                            onClick={() => openPathologyTestModal(patient)}
+                            title={
+                              !hasPathologyTests(patient)
+                                ? "No Pathology Tests"
+                                : isPathologySortingEnabledFlag
+                                  ? "Sort Pathology Tests"
+                                  : "Pathology not approved"
+                            }
+                            disabled={!isPathologySortingEnabledFlag}
+                          >
+                            <FileText size={16} />
                           </ActionButton>
                           <ActionButton
                             onClick={() => openTestModal(patient)}
@@ -2793,6 +2837,13 @@ const FranchiseOverview = () => {
         <FranchiseMBTestSorting
           patient={selectedPatient}
           onClose={() => setIsMBTestModalOpen(false)}
+        />
+      )}
+      {/* Pathology Test Sorting Modal */}
+      {isPathologyTestModalOpen && (
+        <PathologyTestSorting
+          patient={selectedPatient}
+          onClose={() => setIsPathologyTestModalOpen(false)}
         />
       )}
       {/* Test Status Modal */}

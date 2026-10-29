@@ -10,6 +10,7 @@ import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
 import TestSorting from "./360testsorting";
 import MBTestSorting from "./360mbtestsorting";
+import PathologyTestSorting from "../Report/PathologyTestSorting";
 import PatientOverallReport from "../Finance/PatientOverallReport";
 import {
   DEPARTMENT_ORDER,
@@ -21,6 +22,7 @@ import {
   Search,
   Printer,
   Mail,
+  FileText,
   Flag,
   X,
   List,
@@ -670,6 +672,7 @@ const PatientOverview = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [isMBTestModalOpen, setIsMBTestModalOpen] = useState(false);
+  const [isPathologyTestModalOpen, setIsPathologyTestModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -781,6 +784,32 @@ const PatientOverview = () => {
     return (
       microbiologyStatus === "Approved" || microbiologyStatus === "Dispatched"
     );
+  };
+
+  const hasPathologyTests = (patient) => {
+    if (patient.has_pathology !== undefined) return Boolean(patient.has_pathology);
+    const testStatuses = patient.test_statuses || [];
+    return testStatuses.some((t) => t.is_pathology);
+  };
+
+  const isPathologyTestSortingEnabled = (patient) => {
+    if (patient.pathology_status) {
+      return (
+        patient.pathology_status === "Approved" ||
+        patient.pathology_status === "Dispatched"
+      );
+    }
+    const testStatuses = patient.test_statuses || [];
+    const pathTests = testStatuses.filter((t) => t.is_pathology);
+    if (pathTests.length === 0) return false;
+    return pathTests.some(
+      (t) => t.status === "Approved" || t.status === "Dispatched"
+    );
+  };
+
+  const openPathologyTestModal = (patient) => {
+    setSelectedPatient(patient);
+    setIsPathologyTestModalOpen(true);
   };
   const isOnlyMicrobiology = (patient) => {
     if (!patient.department) return false;
@@ -2606,6 +2635,8 @@ const PatientOverview = () => {
                   const barcodeVal = patient.barcode || patientStatus.barcode || "N/A";
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
+                  const isPathologySortingEnabledFlag =
+                    isPathologyTestSortingEnabled(patient);
                   const onlyMB = isOnlyMicrobiology(patient);
                   const onlyMolBio = isOnlyMolecularBiology(patient);
                   const isPrintMailEnabled =
@@ -2694,6 +2725,19 @@ const PatientOverview = () => {
                             disabled={!isMBSortingEnabledFlag}
                           >
                             <List size={16} />
+                          </ActionButton>
+                          <ActionButton
+                            onClick={() => openPathologyTestModal(patient)}
+                            title={
+                              !hasPathologyTests(patient)
+                                ? "No Pathology Tests"
+                                : isPathologySortingEnabledFlag
+                                  ? "Sort Pathology Tests"
+                                  : "Pathology not approved"
+                            }
+                            disabled={!isPathologySortingEnabledFlag}
+                          >
+                            <FileText size={16} />
                           </ActionButton>
                           <ActionButton
                             onClick={() => openTestModal(patient)}
@@ -2877,6 +2921,15 @@ const PatientOverview = () => {
           patient={selectedPatient}
           onClose={() => {
             setIsMBTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
+        />
+      )}
+      {isPathologyTestModalOpen && (
+        <PathologyTestSorting
+          patient={selectedPatient}
+          onClose={() => {
+            setIsPathologyTestModalOpen(false);
             fetchCombinedPatientData();
           }}
         />

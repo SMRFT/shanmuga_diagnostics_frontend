@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
 import { toast, ToastContainer } from "react-toastify";
@@ -22,9 +22,9 @@ import apiRequest from "../Auth/apiRequest";
 // Global styles
 const GlobalStyle = createGlobalStyle`
   :root {
-    --primary: #4361ee;
-    --primary-light: #4895ef;
-    --secondary: #3f37c9;
+    --primary: #a777e3;
+    --primary-light: #c3abef;
+    --secondary: #8b5cf6;
     --success: #4cc9f0;
     --danger: #f72585;
     --warning: #f8961e;
@@ -119,7 +119,7 @@ const StyledToastContainer = styled(ToastContainer)`
       background: #3b82f6;
     }
     .Toastify__close-button {
-      color: #3b82f6;
+      color: #7c3aed;
     }
   }
 `;
@@ -167,17 +167,17 @@ const HistoryButton = styled.button`
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: 9999px;
-  border: 1px solid var(--primary, #4361ee)60;
-  background: var(--primary, #4361ee)10;
-  color: var(--primary, #4361ee);
+  border: 1px solid var(--primary, #a777e3)60;
+  background: var(--primary, #a777e3)10;
+  color: var(--primary, #a777e3);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
   &:hover:not(:disabled) {
-    background: var(--primary, #4361ee);
+    background: var(--primary, #a777e3);
     color: white;
-    border-color: var(--primary, #4361ee);
-    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.35);
+    border-color: var(--primary, #a777e3);
+    box-shadow: 0 2px 8px rgba(167, 119, 227, 0.35);
   }
   &:disabled {
     opacity: 0.45;
@@ -218,7 +218,7 @@ const InfoItem = styled.div`
   padding: 0.85rem 1.15rem;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e2e8f0;
+  border: 1px solid #ede9fe;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -278,7 +278,7 @@ const CommentNote = styled.div`
   gap: 0.5rem;
   margin-top: 0.5rem;
   padding: 0.5rem;
-  background-color: rgba(67, 97, 238, 0.08);
+  background-color: rgba(167, 119, 227, 0.08);
   border-left: 3px solid var(--primary);
   border-radius: 4px;
   font-size: 0.85rem;
@@ -296,21 +296,128 @@ const CommentText = styled.span`
   line-height: 1.4;
 `;
 
-const TableContainer = styled.div`
+const TopScrollTrack = styled.div`
+  width: 100%;
   overflow-x: auto;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-  margin-top: 1rem;
+  overflow-y: hidden;
+  height: 12px;
+  background: #faf5ff;
+  border: 1px solid #cbd5e1;
+  border-bottom: none;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  margin-top: 0.85rem;
   &::-webkit-scrollbar {
-    height: 7px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 10px;
+    background-color: #a777e3;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #8b5cf6;
   }
 `;
+
+const InnerTableContainer = styled.div`
+  overflow-x: auto;
+  background-color: white;
+  border-radius: ${(props) => (props.hasTopTrack ? "0 0 10px 10px" : "10px")};
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid #ede9fe;
+  margin-top: ${(props) => (props.hasTopTrack ? "0" : "0.85rem")};
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none !important;
+    height: 0px !important;
+    width: 0px !important;
+  }
+  &::-webkit-scrollbar:horizontal {
+    display: none !important;
+    height: 0px !important;
+    width: 0px !important;
+  }
+  &::-webkit-scrollbar-thumb:horizontal {
+    display: none !important;
+  }
+  &::-webkit-scrollbar-track:horizontal {
+    display: none !important;
+  }
+`;
+
+const TableContainer = ({ children, style, className }) => {
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const isSyncingTop = useRef(false);
+  const isSyncingBottom = useRef(false);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (bottomScrollRef.current) {
+        const sw = bottomScrollRef.current.scrollWidth;
+        const cw = bottomScrollRef.current.clientWidth;
+        setScrollWidth(sw);
+        setHasOverflow(sw > cw + 2);
+      }
+    };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    if (bottomScrollRef.current) {
+      observer.observe(bottomScrollRef.current);
+    }
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, []);
+
+  const handleTopScroll = () => {
+    if (!isSyncingTop.current) {
+      isSyncingBottom.current = true;
+      if (bottomScrollRef.current && topScrollRef.current) {
+        bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+      }
+    }
+    isSyncingTop.current = false;
+  };
+
+  const handleBottomScroll = () => {
+    if (!isSyncingBottom.current) {
+      isSyncingTop.current = true;
+      if (topScrollRef.current && bottomScrollRef.current) {
+        topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+      }
+    }
+    isSyncingBottom.current = false;
+  };
+
+  return (
+    <div style={{ width: "100%", position: "relative" }}>
+      {hasOverflow && (
+        <TopScrollTrack ref={topScrollRef} onScroll={handleTopScroll}>
+          <div style={{ width: `${scrollWidth}px`, height: "1px" }} />
+        </TopScrollTrack>
+      )}
+      <InnerTableContainer
+        ref={bottomScrollRef}
+        onScroll={handleBottomScroll}
+        hasTopTrack={hasOverflow}
+        style={style}
+        className={className}
+      >
+        {children}
+      </InnerTableContainer>
+    </div>
+  );
+};
 
 const Table = styled.table`
   width: 100%;
@@ -319,87 +426,97 @@ const Table = styled.table`
 `;
 
 const TableHead = styled.thead`
-  background-color: var(--primary);
-  color: white;
+  background: linear-gradient(135deg, #a777e3 0%, #8b5cf6 100%);
+  color: #ffffff;
 
   th {
-    padding: 1rem;
+    padding: 0.65rem 0.65rem;
     text-align: left;
-    font-weight: 500;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
     white-space: nowrap;
+    border: none;
+    color: #ffffff;
 
     &:first-child {
-      border-top-left-radius: var(--border-radius);
+      border-top-left-radius: 10px;
     }
 
     &:last-child {
-      border-top-right-radius: var(--border-radius);
+      border-top-right-radius: 10px;
     }
   }
 `;
 
 const TableBody = styled.tbody`
   tr {
-    border-bottom: 1px solid var(--gray-light);
+    border-bottom: 1px solid #f1f5f9;
 
     &:last-child {
       border-bottom: none;
     }
 
     &:hover {
-      background-color: rgba(67, 97, 238, 0.05);
+      background-color: #f8fafc;
     }
   }
 
   td {
-    padding: 1rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.82rem;
+    color: #1e293b;
     vertical-align: middle;
   }
 `;
 
 const TestHeaderRow = styled.tr`
-  background-color: rgba(67, 97, 238, 0.15) !important;
+  background-color: #faf5ff !important;
+  border-bottom: 1.5px solid #ede9fe;
 
   &:hover {
-    background-color: rgba(67, 97, 238, 0.2) !important;
+    background-color: #e2e8f0 !important;
   }
 `;
 
 const ParameterRow = styled.tr`
   &:hover {
-    background-color: rgba(67, 97, 238, 0.05);
+    background-color: rgba(167, 119, 227, 0.05);
   }
 `;
 
 const TestTitleCell = styled.td`
   font-weight: 700 !important;
-  font-size: 1.1rem;
-  color: var(--primary);
-  padding: 1.5rem 1rem !important;
-  background-color: rgba(67, 97, 238, 0.1);
-  border-left: 4px solid var(--primary);
+  font-size: 0.95rem;
+  color: #0f172a;
+  padding: 0.6rem 0.85rem !important;
+  background-color: #f1f5f9;
+  border-left: 3.5px solid #a777e3;
 `;
 
 const TestTitleCellMerged = styled.td`
   font-weight: 700 !important;
-  font-size: 1.1rem;
-  color: var(--primary);
-  padding: 1.5rem 1rem !important;
-  background-color: rgba(67, 97, 238, 0.1);
-  border-left: 4px solid var(--primary);
+  font-size: 0.95rem;
+  color: #0f172a;
+  padding: 0.6rem 0.85rem !important;
+  background-color: #f1f5f9;
+  border-left: 3.5px solid #a777e3;
 `;
 
 const TestRemarksCell = styled.td`
   font-weight: 500 !important;
-  color: var(--secondary);
+  color: #64748b;
   font-style: italic;
-  padding: 1.5rem 1rem !important;
+  font-size: 0.82rem;
+  padding: 0.6rem 0.75rem !important;
 `;
 
 const ParameterNameCell = styled.td`
-  padding-left: 2rem !important;
-  font-weight: 500;
-  color: var(--dark);
+  padding: 0.5rem 0.65rem 0.5rem 1.35rem !important;
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: #1e293b;
 `;
 
 const NoData = styled.td`
@@ -429,7 +546,7 @@ const Button = styled.button`
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.3);
   }
 
   &:disabled {
@@ -449,27 +566,34 @@ const BackButton = styled(Button)`
 
 const ApproveButton = styled(Button)`
   background-color: ${(props) =>
-    props.disabled ? "var(--gray-light)" : "var(--success)"};
-  color: ${(props) => (props.disabled ? "var(--gray)" : "white")};
+    props.disabled ? "#dcfce7" : "#10b981"};
+  color: ${(props) => (props.disabled ? "#15803d" : "#ffffff")};
+  border: ${(props) => (props.disabled ? "1px solid #86efac" : "none")};
   padding: 0.35rem 0.75rem;
-  font-size: 0.875rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: ${(props) => (props.disabled ? "none" : "0 2px 6px rgba(16, 185, 129, 0.25)")};
 
   &:hover {
     background-color: ${(props) =>
-    props.disabled ? "var(--gray-light)" : "var(--info)"};
+      props.disabled ? "#dcfce7" : "#059669"};
   }
 `;
 
 const RerunButton = styled(Button)`
   background-color: ${(props) =>
-    props.disabled ? "var(--gray-light)" : "var(--warning)"};
-  color: ${(props) => (props.disabled ? "var(--gray)" : "white")};
+    props.disabled ? "#fee2e2" : "#ffffff"};
+  color: ${(props) => (props.disabled ? "#dc2626" : "#d97706")};
+  border: ${(props) => (props.disabled ? "1px solid #fca5a5" : "1px solid #fcd34d")};
   padding: 0.35rem 0.75rem;
-  font-size: 0.875rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 6px;
 
   &:hover {
     background-color: ${(props) =>
-    props.disabled ? "var(--gray-light)" : "#f9844a"};
+      props.disabled ? "#fee2e2" : "#fef3c7"};
   }
 `;
 
@@ -523,10 +647,16 @@ const ValueContainer = styled.div`
   gap: 0.25rem;
 `;
 
-const ValueText = styled.span`
-  font-weight: 500;
-  white-space: pre-wrap;
-  line-height: 1.5;
+const ValueText = styled.div`
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  white-space: pre-line;
+  background: #faf5ff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ede9fe;
 `;
 
 const BadgeContainer = styled.div`
@@ -537,21 +667,19 @@ const BadgeContainer = styled.div`
 `;
 
 const SubTitleRow = styled.tr`
-  background-color: rgba(67, 97, 238, 0.08) !important;
-
-  &:hover {
-    background-color: rgba(67, 97, 238, 0.12) !important;
-  }
+  background-color: #faf5ff !important;
+  border-bottom: 1px solid #e2e8f0;
 `;
 
 const SubTitleCell = styled.td`
-  font-weight: 600 !important;
-  font-size: 0.95rem;
-  color: var(--secondary);
-  padding: 0.75rem 1rem !important;
-  padding-left: 2rem !important;
-  font-style: italic;
-  border-left: 3px solid var(--secondary);
+  font-weight: 700 !important;
+  font-size: 0.8rem;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.4rem 0.75rem 0.4rem 1.35rem !important;
+  background-color: #f8fafc;
+  border-left: 3.5px solid #c3abef;
 `;
 
 const OutsourcedBadge = styled(StatusBadge)`
@@ -603,7 +731,7 @@ const RequiredHint = styled.span`
 
 const ExpandToggleCell = styled.td`
   padding: 0.25rem 1rem !important;
-  background-color: rgba(67, 97, 238, 0.04);
+  background-color: rgba(167, 119, 227, 0.04);
   border-bottom: 1px solid var(--gray-light);
 `;
 
@@ -621,7 +749,7 @@ const ExpandButton = styled.button`
   gap: 0.3rem;
   transition: var(--transition);
   &:hover {
-    background-color: rgba(67, 97, 238, 0.08);
+    background-color: rgba(167, 119, 227, 0.08);
   }
 `;
 
@@ -705,22 +833,22 @@ const InfoTable = styled.table`
 // ── Modern Responsive UI Components for Doctor Form ──
 const PatientBannerCard = styled.div`
   background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  border: 1px solid #ede9fe;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
 `;
 
 const PatientBannerHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
+  padding: 0.6rem 1rem;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
 `;
 
 const PatientIdentityGroup = styled.div`
@@ -755,9 +883,9 @@ const TagPill = styled.span`
 
 const PatientGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.85rem 1.25rem;
-  padding: 1rem 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.5rem 1rem;
+  padding: 0.65rem 1rem;
   background: #ffffff;
 `;
 
@@ -1613,22 +1741,23 @@ function PathologyDoctorForm() {
   };
 
   return (
-    <Container style={{ maxWidth: "1350px", padding: "1.5rem 2rem 4rem 2rem" }}>
+    <Container style={{ maxWidth: "1400px", width: "100%", margin: "0 auto", padding: "0.75rem 1rem 1.5rem" }}>
       <GlobalStyle />
       <StyledToastContainer />
 
       {/* ── Top Header ── */}
-      <Header style={{ marginBottom: "1.25rem" }}>
-        <div>
-          <Title style={{ fontSize: "1.6rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.25rem" }}>
+      <Header style={{ marginBottom: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+          <FlaskConical size={22} color="#a777e3" />
+          <Title style={{ fontSize: "1.25rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>
             Pathology Authorization
           </Title>
-          <div style={{ fontSize: "0.88rem", color: "#64748b" }}>
-            Review findings, verify morphology interpretations, and authorize diagnostic reports.
-          </div>
+          <span style={{ fontSize: "0.78rem", color: "#64748b", borderLeft: "2px solid #cbd5e1", paddingLeft: "0.6rem" }}>
+            Review findings, verify morphology interpretations and authorize reports
+          </span>
         </div>
-        <BackButton onClick={handleBack} style={{ borderRadius: "8px", border: "1px solid #cbd5e1" }}>
-          <ChevronLeft size={18} />
+        <BackButton onClick={handleBack} style={{ borderRadius: "6px", border: "1px solid #cbd5e1", padding: "0.35rem 0.75rem", fontSize: "0.82rem", height: "32px", gap: "0.35rem" }}>
+          <ChevronLeft size={16} />
           Back to Worklist
         </BackButton>
       </Header>
@@ -1642,8 +1771,8 @@ function PathologyDoctorForm() {
                 width: "38px",
                 height: "38px",
                 borderRadius: "50%",
-                backgroundColor: "#e0e7ff",
-                color: "#4361ee",
+                backgroundColor: "#f5f0fb",
+                color: "#a777e3",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1671,37 +1800,16 @@ function PathologyDoctorForm() {
                     <Building size={12} /> {testValues[0].locationId}
                   </TagPill>
                 )}
+                {(testValues[0]?.lab_id || testValues[0]?.testdetails?.[0]?.lab_id) && (
+                  <TagPill bg="#e0e7ff" color="#3730a3" border="1.5px solid #818cf8" style={{ fontWeight: 700 }}>
+                    <FlaskConical size={12} /> Lab ID: {testValues[0].lab_id || testValues[0].testdetails?.[0]?.lab_id}
+                  </TagPill>
+                )}
               </div>
             </div>
           </PatientIdentityGroup>
 
-          <div>
-            {patientId && (
-              <HistoryButton
-                onClick={handleHistoryClick}
-                title={
-                  !isHMS
-                    ? "History only available for HMS patients"
-                    : `View full history for ${testValues[0]?.patientname || patientId}`
-                }
-                disabled={!isHMS}
-                style={{
-                  padding: "0.3rem 0.75rem",
-                  fontSize: "0.76rem",
-                  ...(!isHMS
-                    ? {
-                      opacity: 0.4,
-                      cursor: "not-allowed",
-                      pointerEvents: "none",
-                    }
-                    : {}),
-                }}
-              >
-                <History size={13} />
-                HMS History
-              </HistoryButton>
-            )}
-          </div>
+          
         </PatientBannerHeader>
 
         <PatientGrid>
@@ -1711,8 +1819,18 @@ function PathologyDoctorForm() {
           </GridCol>
           <GridCol>
             <ColLabel><FileText size={12} /> Barcode</ColLabel>
-            <ColValue style={{ fontFamily: "monospace", color: "#4361ee" }}>
+            <ColValue style={{ fontFamily: "monospace", color: "#a777e3" }}>
               {testValues[0]?.barcode || "N/A"}
+            </ColValue>
+          </GridCol>
+          <GridCol style={{ backgroundColor: "#f5f0fb", padding: "0.5rem 0.85rem", borderRadius: "8px", border: "1.5px solid #a777e3" }}>
+            <ColLabel style={{ color: "#7c3aed", fontWeight: 700 }}>
+              <FlaskConical size={12} /> Pathology Specimen Lab ID
+            </ColLabel>
+            <ColValue style={{ fontSize: "1.1rem", fontWeight: 800, color: "#581c87", letterSpacing: "0.5px" }}>
+              {testValues[0]?.lab_id || testValues[0]?.testdetails?.[0]?.lab_id || (
+                <span style={{ color: "#dc2626", fontSize: "0.85rem", fontWeight: 600 }}>⚠ Not Assigned</span>
+              )}
             </ColValue>
           </GridCol>
           <GridCol>
@@ -1722,145 +1840,12 @@ function PathologyDoctorForm() {
         </PatientGrid>
       </PatientBannerCard>
 
-      {/* ── Prominent Separate Lab ID Display ── */}
-      {testValues.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "0.75rem",
-            padding: "1rem 1.35rem",
-            backgroundColor: "#ffffff",
-            border: "2px solid #4361ee",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(67, 97, 238, 0.08)",
-            marginBottom: "1.25rem",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "10px",
-                backgroundColor: "#e0e7ff",
-                color: "#4361ee",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <FlaskConical size={22} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: "0.76rem",
-                  fontWeight: 700,
-                  color: "#4361ee",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Pathology Specimen Lab ID
-              </div>
-              <strong style={{ fontSize: "1.2rem", color: "#0f172a", letterSpacing: "0.5px" }}>
-                {testValues[0].lab_id || testValues[0].testdetails?.[0]?.lab_id || (
-                  <span style={{ color: "#dc2626", fontSize: "0.95rem" }}>⚠ Not Assigned</span>
-                )}
-              </strong>
-            </div>
-          </div>
-          <div style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 500 }}>
-            Specimen Identifier for Authorization & Report Printing
-          </div>
-        </div>
-      )}
 
-      {/* ── Patient Clinical History ── */}
-      {patientHistory && (
-        <PatientHistoryCard style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-          <HistoryHeader>
-            <HistoryTitle style={{ marginBottom: 0 }}>
-              <FileText size={18} />
-              Patient Clinical History
-            </HistoryTitle>
-            {patientId && (
-              <HistoryButton
-                onClick={handleHistoryClick}
-                title={
-                  !isHMS
-                    ? "History only available for HMS patients"
-                    : `View full history for ${testValues[0]?.patientname || patientId}`
-                }
-                disabled={!isHMS}
-                style={{
-                  padding: "0.25rem 0.65rem",
-                  fontSize: "0.75rem",
-                  ...(!isHMS
-                    ? {
-                      opacity: 0.4,
-                      cursor: "not-allowed",
-                      pointerEvents: "none",
-                    }
-                    : {}),
-                }}
-              >
-                <History size={13} />
-                View Full Work List / History
-              </HistoryButton>
-            )}
-          </HistoryHeader>
-          <HistoryContent style={{ background: "#f8fafc", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-            {patientHistory}
-          </HistoryContent>
-        </PatientHistoryCard>
-      )}
-
-      {!patientHistory && testValues.length > 0 && (
-        <PatientHistoryCard style={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-          <HistoryHeader>
-            <HistoryTitle style={{ marginBottom: 0 }}>
-              <FileText size={18} />
-              Patient Clinical History
-            </HistoryTitle>
-            {patientId && (
-              <HistoryButton
-                onClick={handleHistoryClick}
-                title={
-                  !isHMS
-                    ? "History only available for HMS patients"
-                    : `View full history for ${testValues[0]?.patientname || patientId}`
-                }
-                disabled={!isHMS}
-                style={{
-                  padding: "0.25rem 0.65rem",
-                  fontSize: "0.75rem",
-                  ...(!isHMS
-                    ? {
-                      opacity: 0.4,
-                      cursor: "not-allowed",
-                      pointerEvents: "none",
-                    }
-                    : {}),
-                }}
-              >
-                <History size={13} />
-                View Full Work List / History
-              </HistoryButton>
-            )}
-          </HistoryHeader>
-          <NoHistory>No clinical patient history recorded.</NoHistory>
-        </PatientHistoryCard>
-      )}
 
       {/* ── Authorization Table ── */}
-      <TableContainer style={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)" }}>
+      <TableContainer>
         <Table>
-          <TableHead style={{ background: "linear-gradient(135deg, #3a0ca3 0%, #4361ee 100%)" }}>
+          <TableHead>
             <tr>
               <th style={{ width: "50px", textAlign: "center" }}>Sl.</th>
               <th>Test Name / Parameters</th>
