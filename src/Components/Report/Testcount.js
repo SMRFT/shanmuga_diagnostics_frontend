@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import apiRequest from "../Auth/apiRequest";
-import { FaSearch, FaFileDownload, FaCalendarAlt, FaFlask, FaRupeeSign } from "react-icons/fa";
+import {
+  FaSearch,
+  FaFileDownload,
+  FaCalendarAlt,
+  FaFlask,
+  FaRupeeSign,
+  FaBuilding,
+  FaNotesMedical,
+} from "react-icons/fa";
 
 // Animations
 const fadeIn = keyframes`
@@ -36,6 +44,57 @@ const Container = styled.div`
   animation: ${fadeIn} 0.6s ease-out;
 `;
 
+// Tabs Bar
+const TabsContainer = styled.div`
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 0.3rem;
+  border-radius: 12px;
+  gap: 0.4rem;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1.25rem;
+  width: fit-content;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    display: flex;
+  }
+`;
+
+const TabButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  background: ${(props) =>
+    props.active
+      ? "linear-gradient(135deg, #6e8efb, #a777e3)"
+      : "transparent"};
+  color: ${(props) => (props.active ? "#ffffff" : "#64748b")};
+  box-shadow: ${(props) =>
+    props.active ? "0 4px 12px rgba(167, 119, 227, 0.3)" : "none"};
+
+  &:hover {
+    color: ${(props) => (props.active ? "#ffffff" : "#1e293b")};
+    background: ${(props) =>
+      props.active
+        ? "linear-gradient(135deg, #6e8efb, #a777e3)"
+        : "rgba(255, 255, 255, 0.7)"};
+  }
+
+  @media (max-width: 768px) {
+    flex: 1;
+    justify-content: center;
+    padding: 0.45rem 0.75rem;
+  }
+`;
+
 // Stats Cards
 const StatsGrid = styled.div`
   display: grid;
@@ -68,8 +127,8 @@ const StatIcon = styled.div`
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  background: ${props => props.bg || '#f0f2f5'};
-  color: ${props => props.color || '#636e72'};
+  background: ${(props) => props.bg || "#f0f2f5"};
+  color: ${(props) => props.color || "#636e72"};
 `;
 
 const StatInfo = styled.div`
@@ -236,17 +295,17 @@ const THead = styled.thead`
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
   
   th {
-    padding: 16px;
-    color: #4a5568;
-    font-weight: 600;
-    font-size: 0.85rem;
+    padding: 14px 16px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #edf2f7;
-    background: #f8f9fa; /* Ensure header isn't transparent */
+    border: none;
+    background: transparent;
   }
 `;
 
@@ -303,55 +362,102 @@ const EmptyState = styled.div`
 `;
 
 export default function TestSummary() {
+  // Active Tab state: "diagnostics" | "chc"
+  const [activeTab, setActiveTab] = useState("diagnostics");
+
   // Initialize dates with current month range
   const [fromDate, setFromDate] = useState(() => {
     const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    return new Date(date.getFullYear(), date.getMonth(), 1)
+      .toISOString()
+      .split("T")[0];
   });
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
 
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const payload = {
           search: search.trim(),
           from_date: fromDate,
-          to_date: toDate
+          to_date: toDate,
+          source: activeTab,
         };
-        const result = await apiRequest(`${Labbaseurl}test-summary/`, 'POST', payload);
-        if (result.success) {
+
+        const endpoint =
+          activeTab === "chc"
+            ? `${Labbaseurl}chc-test-summary/`
+            : `${Labbaseurl}test-summary/`;
+
+        let result;
+        try {
+          result = await apiRequest(endpoint, "POST", payload);
+        } catch (err) {
+          // Fallback to test-summary with source: activeTab
+          result = await apiRequest(`${Labbaseurl}test-summary/`, "POST", payload);
+        }
+
+        if (result && result.success) {
+          setData(result.data || []);
+        } else if (Array.isArray(result)) {
+          setData(result);
+        } else if (result && Array.isArray(result.data)) {
           setData(result.data);
         } else {
-          console.error(result.error);
+          console.error(result?.error);
+          setData([]);
         }
       } catch (err) {
         console.error(err);
+        setData([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
-  }, [search, fromDate, toDate, Labbaseurl]);
+  }, [search, fromDate, toDate, activeTab, Labbaseurl]);
 
   const totalCount = data.reduce((sum, row) => sum + Number(row.count || 0), 0);
-  const totalAmount = data.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
+  const totalAmount = data.reduce(
+    (sum, row) => sum + Number(row.total_amount || 0),
+    0,
+  );
 
-    const exportCSV = () => {
+  const exportCSV = () => {
     if (!data.length) return;
+    const tabLabel = activeTab === "chc" ? "CHC" : "Diagnostics";
     const csvRows = [
-      ["Test Name", "Count", "Male Count", "Female Count", "Total Amount"].join(","),
-      ...data.map(row =>
+      [
+        "Test Name",
+        "Count",
+        "Male Count",
+        "Female Count",
+        "Total Amount",
+      ].join(","),
+      ...data.map((row) =>
         [
           `"${(row?.test_name ?? "").replace(/"/g, '""')}"`,
           row.count,
           row.male_count || 0,
           row.female_count || 0,
-          row.total_amount
-        ].join(",")
+          row.total_amount,
+        ].join(","),
       ),
-      ["Total", totalCount, data.reduce((sum, row) => sum + Number(row.male_count || 0), 0), data.reduce((sum, row) => sum + Number(row.female_count || 0), 0), totalAmount].join(","),
+      [
+        "Total",
+        totalCount,
+        data.reduce((sum, row) => sum + Number(row.male_count || 0), 0),
+        data.reduce((sum, row) => sum + Number(row.female_count || 0), 0),
+        totalAmount,
+      ].join(","),
     ];
     const csvString = csvRows.join("\n");
     const blob = new Blob([csvString], { type: "text/csv" });
@@ -359,7 +465,7 @@ export default function TestSummary() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `test_summary_${fromDate}_to_${toDate}.csv`;
+    a.download = `${tabLabel}_test_summary_${fromDate}_to_${toDate}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -369,14 +475,34 @@ export default function TestSummary() {
   return (
     <Wrapper>
       <Container>
+        {/* Navigation Tabs */}
+        <TabsContainer>
+          <TabButton
+            active={activeTab === "diagnostics"}
+            onClick={() => setActiveTab("diagnostics")}
+          >
+            <FaFlask />
+            Diagnostics Test Count
+          </TabButton>
+          <TabButton
+            active={activeTab === "chc"}
+            onClick={() => setActiveTab("chc")}
+          >
+            <FaBuilding />
+            CHC Test Count
+          </TabButton>
+        </TabsContainer>
+
         {/* Top Stats Area */}
         <StatsGrid>
           <StatCard>
             <StatIcon bg="rgba(110, 142, 251, 0.1)" color="#6e8efb">
-              <FaFlask />
+              {activeTab === "chc" ? <FaBuilding /> : <FaFlask />}
             </StatIcon>
             <StatInfo>
-              <StatLabel>Total Tests Performed</StatLabel>
+              <StatLabel>
+                Total {activeTab === "chc" ? "CHC" : "Diagnostics"} Tests
+              </StatLabel>
               <StatValue>{totalCount.toLocaleString()}</StatValue>
             </StatInfo>
           </StatCard>
@@ -395,32 +521,42 @@ export default function TestSummary() {
         {/* Main Content Card */}
         <MainCard>
           <CardHeader>
-            <Title>Test Analysis</Title>
+            <Title>
+              {activeTab === "chc"
+                ? "Corporate Health Checkup (CHC) Test Analysis"
+                : "Diagnostics Test Analysis"}
+            </Title>
             <ControlsGrid>
               <InputGroup>
-                <Icon><FaSearch /></Icon>
+                <Icon>
+                  <FaSearch />
+                </Icon>
                 <Input
                   type="text"
                   placeholder="Search test names..."
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </InputGroup>
               <InputGroup>
-                <Icon><FaCalendarAlt /></Icon>
+                <Icon>
+                  <FaCalendarAlt />
+                </Icon>
                 <Input
                   type="date"
                   value={fromDate}
                   max={toDate || new Date().toISOString().split("T")[0]}
-                  onChange={e => setFromDate(e.target.value)}
+                  onChange={(e) => setFromDate(e.target.value)}
                 />
               </InputGroup>
               <InputGroup>
-                <Icon><FaCalendarAlt /></Icon>
+                <Icon>
+                  <FaCalendarAlt />
+                </Icon>
                 <Input
                   type="date"
                   value={toDate}
-                  onChange={e => setToDate(e.target.value)}
+                  onChange={(e) => setToDate(e.target.value)}
                   min={fromDate}
                 />
               </InputGroup>
@@ -442,19 +578,31 @@ export default function TestSummary() {
                 </tr>
               </THead>
               <tbody>
-                {data.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <EmptyState>
+                        <FaFlask />
+                        <p>Loading test data...</p>
+                      </EmptyState>
+                    </td>
+                  </tr>
+                ) : data.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
                       <EmptyState>
                         <FaSearch />
-                        <p>No test data found for the selected period</p>
+                        <p>
+                          No {activeTab === "chc" ? "CHC" : "Diagnostics"} test data
+                          found for the selected period
+                        </p>
                       </EmptyState>
                     </td>
                   </tr>
                 ) : (
                   data.map((t, i) => (
                     <TRow key={i}>
-                      <TCell style={{ fontWeight: '500' }}>{t.test_name}</TCell>
+                      <TCell style={{ fontWeight: "600" }}>{t.test_name}</TCell>
                       <TCell className="count">
                         <span>{t.count}</span>
                       </TCell>
@@ -464,7 +612,9 @@ export default function TestSummary() {
                       <TCell className="count">
                         <span>{t.female_count || 0}</span>
                       </TCell>
-                      <TCell className="amount">₹{Number(t.total_amount || 0).toLocaleString()}</TCell>
+                      <TCell className="amount">
+                        ₹{Number(t.total_amount || 0).toLocaleString()}
+                      </TCell>
                     </TRow>
                   ))
                 )}

@@ -6,7 +6,7 @@ import apiRequest from "../Auth/apiRequest";
 
 const GlobalStyle = createGlobalStyle`
   :root {
-    --primary: #4361ee; --primary-light: #4895ef; --secondary: #3f37c9;
+    --primary: #a777e3; --primary-light: #c3abef; --secondary: #8b5cf6;
     --success: #4cc9f0; --danger: #f72585; --warning: #f8961e;
     --info: #90e0ef; --light: #f8f9fa; --dark: #212529;
     --gray: #6c757d; --gray-light: #e9ecef;
@@ -21,22 +21,23 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0.75rem 1rem 1.5rem;
   @media (max-width: 768px) {
-    padding: 1rem;
+    padding: 0.5rem 0.5rem 1.25rem;
   }
 `;
 const Header = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2rem;
+  margin-bottom: 0.75rem;
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.5rem;
   }
 `;
 const HeaderActions = styled.div`
@@ -53,17 +54,17 @@ const HistoryButton = styled.button`
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: 9999px;
-  border: 1px solid var(--primary, #4361ee)60;
-  background: var(--primary, #4361ee)10;
-  color: var(--primary, #4361ee);
+  border: 1px solid var(--primary, #a777e3)60;
+  background: var(--primary, #a777e3)10;
+  color: var(--primary, #a777e3);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
   &:hover:not(:disabled) {
-    background: var(--primary, #4361ee);
+    background: var(--primary, #a777e3);
     color: white;
-    border-color: var(--primary, #4361ee);
-    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.35);
+    border-color: var(--primary, #a777e3);
+    box-shadow: 0 2px 8px rgba(167, 119, 227, 0.35);
   }
   &:disabled {
     opacity: 0.45;
@@ -118,7 +119,7 @@ const Button = styled.button`
   }
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.3);
   }
   &:disabled {
     background-color: var(--gray-light);
@@ -135,15 +136,25 @@ const BackButton = styled(Button)`
   }
 `;
 const SaveButton = styled(Button)`
-  background-color: var(--success);
-  &:hover {
-    background-color: var(--info);
+  background-color: #a777e3;
+  color: white;
+  padding: 0.45rem 1.15rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(167, 119, 227, 0.3);
+
+  &:hover:not(:disabled) {
+    background-color: #8b5cf6;
+    box-shadow: 0 4px 10px rgba(167, 119, 227, 0.4);
   }
+
   &:disabled {
     background-color: var(--gray-light);
     color: var(--gray);
     cursor: not-allowed;
     opacity: 0.6;
+    box-shadow: none;
   }
 `;
 const NoData = styled.div`
@@ -169,11 +180,13 @@ const TestCard = styled.div`
   overflow: hidden;
 `;
 const TestHeader = styled.div`
-  background-color: var(--primary);
+  background: linear-gradient(135deg, #a777e3 0%, #8b5cf6 100%);
   color: white;
-  padding: 1rem;
-  font-weight: 600;
-  font-size: 1.125rem;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.3px;
+  border-radius: 8px 8px 0 0;
 `;
 const TestContent = styled.div`
   padding: 1rem;
@@ -206,7 +219,7 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
   &:disabled {
     background-color: var(--gray-light);
@@ -233,7 +246,7 @@ const TextArea = styled.textarea`
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
 `;
 const CommentBox = styled.div`
@@ -293,8 +306,16 @@ const ParameterCard = styled.div`
 `;
 const ButtonContainer = styled.div`
   display: flex;
-  justify-content: flex-end;
-  margin-top: 2rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1.15rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 `;
 const RemarksSection = styled.div`
   margin-top: 1rem;
@@ -308,14 +329,14 @@ const SubtitleSection = styled.div`
   }
 `;
 const SubtitleHeader = styled.div`
-  background: linear-gradient(135deg, var(--secondary), var(--primary));
+  background: linear-gradient(135deg, #a777e3 0%, #8b5cf6 100%);
   color: white;
-  padding: 0.75rem 1rem;
-  border-radius: var(--border-radius);
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0.6rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.75rem;
 `;
 const ParameterGrid = styled.div`
   display: grid;
@@ -340,7 +361,7 @@ const Select = styled.select`
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
   &:disabled {
     background-color: var(--gray-light);
@@ -367,7 +388,7 @@ const MultiSelect = styled.select`
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
   &:disabled {
     background-color: var(--gray-light);
@@ -942,7 +963,7 @@ const MultiSelectDropdown = ({ options, value, onChange, disabled }) => {
           outline: "none",
         }}
         onFocus={(e) => {
-          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(67,97,238,0.1)";
+          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(167, 119, 227,0.1)";
           e.currentTarget.style.borderColor = "var(--primary)";
         }}
         onBlur={(e) => {
@@ -1119,22 +1140,22 @@ const QUICK_CHIPS = {
 // ── Modern Responsive UI Styled Components ──
 const PatientCard = styled.div`
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   overflow: hidden;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.85rem;
 `;
 
 const PatientCardHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
+  padding: 0.65rem 1rem;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
 `;
 
 const PatientIdentity = styled.div`
@@ -1169,9 +1190,9 @@ const PillBadge = styled.span`
 
 const PatientDetailsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.85rem 1.25rem;
-  padding: 1rem 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.65rem 1rem;
+  padding: 0.75rem 1rem;
   background: #ffffff;
 `;
 
@@ -1253,12 +1274,12 @@ function PathologyTestDetails() {
       const current = prev[testname]
         ? [...prev[testname]]
         : [
-            { id: 1, name: "Polymorphs", value: "" },
-            { id: 2, name: "Lymphocytes", value: "" },
-            { id: 3, name: "Eosinophils", value: "" },
-            { id: 4, name: "Monocytes", value: "" },
-            { id: 5, name: "Basophils", value: "" },
-          ];
+          { id: 1, name: "Polymorphs", value: "" },
+          { id: 2, name: "Lymphocytes", value: "" },
+          { id: 3, name: "Eosinophils", value: "" },
+          { id: 4, name: "Monocytes", value: "" },
+          { id: 5, name: "Basophils", value: "" },
+        ];
       current[index] = { ...current[index], [field]: newValue };
       return { ...prev, [testname]: current };
     });
@@ -1269,12 +1290,12 @@ function PathologyTestDetails() {
       const current = prev[testname]
         ? [...prev[testname]]
         : [
-            { id: 1, name: "Polymorphs", value: "" },
-            { id: 2, name: "Lymphocytes", value: "" },
-            { id: 3, name: "Eosinophils", value: "" },
-            { id: 4, name: "Monocytes", value: "" },
-            { id: 5, name: "Basophils", value: "" },
-          ];
+          { id: 1, name: "Polymorphs", value: "" },
+          { id: 2, name: "Lymphocytes", value: "" },
+          { id: 3, name: "Eosinophils", value: "" },
+          { id: 4, name: "Monocytes", value: "" },
+          { id: 5, name: "Basophils", value: "" },
+        ];
       return {
         ...prev,
         [testname]: [...current, { id: Date.now(), name: "", value: "" }],
@@ -2008,78 +2029,57 @@ function PathologyTestDetails() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <Container style={{ paddingBottom: "6rem" }}>
+    <Container style={{ paddingBottom: "1.5rem" }}>
       <GlobalStyle />
 
       {/* ── Top Header Navigation ── */}
-      <Header style={{ marginBottom: "1.25rem" }}>
-        <div>
-          <Title style={{ fontSize: "1.6rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.25rem" }}>
+      <Header style={{ marginBottom: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+          <FlaskConical size={22} color="#a777e3" />
+          <Title style={{ fontSize: "1.25rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>
             Pathology Test Entry
           </Title>
-          <div style={{ fontSize: "0.88rem", color: "#64748b" }}>
-            Record morphological findings, differential cell counts, and specimen impressions.
-          </div>
+          <span style={{ fontSize: "0.78rem", color: "#64748b", borderLeft: "2px solid #cbd5e1", paddingLeft: "0.5rem" }}>
+            Morphological findings, differential counts & impressions
+          </span>
         </div>
         <HeaderActions>
-          {patientId && (
-            <HistoryButton
-              onClick={handleHistoryClick}
-              title={
-                !isHMS
-                  ? "History only available for HMS patients"
-                  : `View full history for ${patientname || patientId}`
-              }
-              disabled={!isHMS}
-              style={
-                !isHMS
-                  ? {
-                    opacity: 0.4,
-                    cursor: "not-allowed",
-                    pointerEvents: "none",
-                  }
-                  : {}
-              }
-            >
-              <History size={14} />
-              Full History
-            </HistoryButton>
-          )}
-          <BackButton onClick={handleBack} style={{ borderRadius: "8px", border: "1px solid #cbd5e1" }}>
-            <ArrowLeft size={16} />
+          <BackButton onClick={handleBack} style={{ borderRadius: "6px", border: "1px solid #cbd5e1", padding: "0.35rem 0.75rem", fontSize: "0.82rem", height: "32px", gap: "0.35rem" }}>
+            <ArrowLeft size={14} />
             Back to Patients
           </BackButton>
         </HeaderActions>
       </Header>
 
-      {/* ── Unified Patient Demographics Banner Card ── */}
+      {/* ── First Container: Unified Patient Demographics & Pathology Lab ID ── */}
       {patientId && (
         <PatientCard>
           <PatientCardHeader>
             <PatientIdentity>
               <div
                 style={{
-                  width: "38px",
-                  height: "38px",
+                  width: "32px",
+                  height: "32px",
                   borderRadius: "50%",
-                  backgroundColor: "#e0e7ff",
-                  color: "#4361ee",
+                  backgroundColor: "#f5f0fb",
+                  color: "#a777e3",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontWeight: 700,
-                  fontSize: "1rem",
+                  fontSize: "0.9rem",
+                  flexShrink: 0,
                 }}
               >
-                <User size={20} />
+                <User size={16} />
               </div>
               <div>
-                <PatientNameTitle>
+                <PatientNameTitle style={{ fontSize: "1.05rem" }}>
                   {patientname || "Unnamed Patient"}
                 </PatientNameTitle>
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "0.35rem", alignItems: "center", marginTop: "0.15rem", flexWrap: "wrap" }}>
                   <PillBadge bg="#e0e7ff" color="#3730a3" border="1px solid #c7d2fe">
-                    <Tag size={12} /> ID: {patientId}
+                    <Tag size={11} /> ID: {patientId}
                   </PillBadge>
                   {age && (
                     <PillBadge bg="#f1f5f9" color="#334155" border="1px solid #e2e8f0">
@@ -2088,35 +2088,24 @@ function PathologyTestDetails() {
                   )}
                   {locationId && (
                     <PillBadge bg="#f0fdf4" color="#166534" border="1px solid #bbf7d0">
-                      <Building size={12} /> {locationId}
+                      <Building size={11} /> {locationId}
+                    </PillBadge>
+                  )}
+                  {labId && labId.trim() !== "" && (
+                    <PillBadge bg="#e0e7ff" color="#3730a3" border="1px solid #c7d2fe" style={{ fontWeight: 700 }}>
+                      <FlaskConical size={11} /> Lab ID: {labId}
                     </PillBadge>
                   )}
                 </div>
               </div>
             </PatientIdentity>
-
-            <div>
-              <HistoryButton
-                onClick={handleHistoryClick}
-                title={!isHMS ? "History only available for HMS patients" : "View patient history"}
-                disabled={!isHMS}
-                style={{
-                  padding: "0.3rem 0.75rem",
-                  fontSize: "0.76rem",
-                  ...(!isHMS ? { opacity: 0.4, cursor: "not-allowed", pointerEvents: "none" } : {}),
-                }}
-              >
-                <History size={13} />
-                HMS History
-              </HistoryButton>
-            </div>
           </PatientCardHeader>
 
           <PatientDetailsGrid>
             {barcode && (
               <GridItem>
                 <GridLabel><FileText size={12} /> Specimen Barcode</GridLabel>
-                <GridValue style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "#4361ee" }}>
+                <GridValue style={{ fontFamily: "monospace", fontSize: "0.9rem", color: "#a777e3" }}>
                   {barcode}
                 </GridValue>
               </GridItem>
@@ -2161,95 +2150,43 @@ function PathologyTestDetails() {
                 </GridValue>
               </GridItem>
             )}
+
+            {/* ── Pathology Specimen Lab ID Integrated into First Container ── */}
+            <GridItem
+              style={{
+                backgroundColor: "#f5f0fb",
+                padding: "0.45rem 0.65rem",
+                borderRadius: "8px",
+                border: "1.5px solid #a777e3",
+                minWidth: "210px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
+                <GridLabel style={{ color: "#7c3aed", fontWeight: 700 }}>
+                  <FlaskConical size={12} /> Pathology Specimen Lab ID
+                </GridLabel>
+              </div>
+              <Input
+                type="text"
+                value={labId}
+                onChange={(e) => setLabId(e.target.value)}
+                placeholder="e.g. PS - 616/26"
+                style={{
+                  height: "34px",
+                  padding: "0.3rem 0.65rem",
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  backgroundColor: "#ffffff",
+                  letterSpacing: "0.5px",
+                }}
+              />
+            </GridItem>
           </PatientDetailsGrid>
         </PatientCard>
       )}
-
-      {/* ── Separate Prominent Mandatory Lab ID Card ── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "1.25rem",
-          padding: "1.25rem 1.5rem",
-          backgroundColor: "#ffffff",
-          border: "2px solid",
-          borderColor: !labId || labId.trim() === "" ? "#ef4444" : "#4361ee",
-          borderRadius: "12px",
-          boxShadow: !labId || labId.trim() === ""
-            ? "0 4px 14px rgba(239, 68, 68, 0.12)"
-            : "0 4px 14px rgba(67, 97, 238, 0.12)",
-          marginBottom: "1.5rem",
-          transition: "all 0.2s ease",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.85rem", maxWidth: "600px" }}>
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              backgroundColor: !labId || labId.trim() === "" ? "#fee2e2" : "#e0e7ff",
-              color: !labId || labId.trim() === "" ? "#dc2626" : "#4361ee",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <FlaskConical size={24} />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
-                Pathology Specimen Lab ID
-              </span>
-              <span
-                style={{
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
-                  padding: "0.2rem 0.6rem",
-                  borderRadius: "9999px",
-                  backgroundColor: !labId || labId.trim() === "" ? "#fee2e2" : "#dcfce7",
-                  color: !labId || labId.trim() === "" ? "#b91c1c" : "#15803d",
-                  border: !labId || labId.trim() === "" ? "1px solid #f87171" : "1px solid #86efac",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {!labId || labId.trim() === "" ? "Mandatory *" : "Assigned ✓"}
-              </span>
-            </div>
-            <div style={{ fontSize: "0.84rem", color: "#64748b", marginTop: "0.2rem" }}>
-              Enter the unique lab number for this specimen. Required for doctor authorization and printing reports.
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: "260px", flex: "1 1 320px", maxWidth: "420px" }}>
-          <Input
-            type="text"
-            value={labId}
-            onChange={(e) => setLabId(e.target.value)}
-            placeholder="e.g. PS - 616/26"
-            style={{
-              width: "100%",
-              height: "46px",
-              padding: "0.6rem 1rem",
-              fontSize: "1.05rem",
-              fontWeight: 700,
-              color: "#0f172a",
-              letterSpacing: "0.5px",
-              border: !labId || labId.trim() === "" ? "2px solid #ef4444" : "2px solid #4361ee",
-              borderRadius: "8px",
-              backgroundColor: !labId || labId.trim() === "" ? "#fff5f5" : "#ffffff",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
-            }}
-          />
-        </div>
-      </div>
 
       {/* ── Test Content Area ── */}
       {testDetails.length === 0 ? (
@@ -2301,7 +2238,7 @@ function PathologyTestDetails() {
                     flexWrap: "wrap",
                     gap: "0.75rem",
                     padding: "1rem 1.35rem",
-                    background: "linear-gradient(135deg, #3a0ca3 0%, #4361ee 100%)",
+                    background: "linear-gradient(135deg, #a777e3 0%, #8b5cf6 100%)",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
@@ -2338,7 +2275,7 @@ function PathologyTestDetails() {
                                   gap: "0.5rem",
                                   fontSize: "0.95rem",
                                   fontWeight: 700,
-                                  color: "#3a0ca3",
+                                  color: "#7c3aed",
                                   textTransform: "uppercase",
                                   letterSpacing: "0.6px",
                                   marginBottom: "1.25rem",
@@ -2346,7 +2283,7 @@ function PathologyTestDetails() {
                                   borderBottom: "2px solid #e2e8f0",
                                 }}
                               >
-                                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#4361ee" }}></span>
+                                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#a777e3" }}></span>
                                 {subtitle}
                               </div>
                             )}
@@ -2540,7 +2477,7 @@ function PathologyTestDetails() {
                                           padding: "0.45rem 0.95rem",
                                           fontSize: "0.85rem",
                                           fontWeight: 600,
-                                          backgroundColor: "#e0e7ff",
+                                          backgroundColor: "#f5f0fb",
                                           color: "#4338ca",
                                           border: "1.5px dashed #818cf8",
                                           borderRadius: "8px",
@@ -2709,19 +2646,14 @@ function PathologyTestDetails() {
           })}
 
           {/* ── Docked Bottom Action Bar ── */}
-          <StickyActionBar>
+          <ButtonContainer>
             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-              {!labId || labId.trim() === "" ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#dc2626", fontWeight: 600, fontSize: "0.88rem" }}>
-                  <AlertCircle size={17} />
-                  <span>Lab ID is required to save test values.</span>
-                </div>
-              ) : (
+              {labId && labId.trim() !== "" ? (
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#16a34a", fontWeight: 600, fontSize: "0.88rem" }}>
                   <CheckCircle2 size={17} />
-                  <span>Lab ID: <strong>{labId}</strong> verified. Ready to save.</span>
+                  <span>Lab ID: <strong>{labId}</strong></span>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -2751,7 +2683,7 @@ function PathologyTestDetails() {
                 {isSubmitting ? "Saving..." : "Save Test Details"}
               </SaveButton>
             </div>
-          </StickyActionBar>
+          </ButtonContainer>
         </Form>
       )}
     </Container>

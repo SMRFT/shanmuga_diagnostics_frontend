@@ -10,6 +10,7 @@ import "jspdf-autotable";
 import "react-datepicker/dist/react-datepicker.css";
 import HMSTestSorting from "./HMSTestSorting";
 import HMSMBTestSorting from "./HMSMBTestSorting";
+import PathologyTestSorting from "../Report/PathologyTestSorting";
 import {
   compareTestsByOrderId,
   sortTestsWithDepartmentAndOrder,
@@ -20,6 +21,7 @@ import {
   Search,
   Printer,
   Mail,
+  FileText,
   Flag,
   X,
   Check,
@@ -836,6 +838,7 @@ const HMSPatientOverview = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [isMBTestModalOpen, setIsMBTestModalOpen] = useState(false);
+  const [isPathologyTestModalOpen, setIsPathologyTestModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState(
@@ -1243,6 +1246,38 @@ const HMSPatientOverview = () => {
       microbiologyStatus === "Partially Dispatched" ||
       microbiologyStatus === "Dispatched"
     );
+  };
+
+  const hasPathologyTests = (patient) => {
+    if (patient.has_pathology !== undefined) return Boolean(patient.has_pathology);
+    const testStatuses = patient.test_statuses || [];
+    return testStatuses.some((t) => t.is_pathology);
+  };
+
+  const isPathologyTestSortingEnabled = (patient) => {
+    if (patient.pathology_status) {
+      return (
+        patient.pathology_status === "Approved" ||
+        patient.pathology_status === "Partially Approved" ||
+        patient.pathology_status === "Partially Dispatched" ||
+        patient.pathology_status === "Dispatched"
+      );
+    }
+    const testStatuses = patient.test_statuses || [];
+    const pathTests = testStatuses.filter((t) => t.is_pathology);
+    if (pathTests.length === 0) return false;
+    return pathTests.some(
+      (t) =>
+        t.status === "Approved" ||
+        t.status === "Partially Approved" ||
+        t.status === "Partially Dispatched" ||
+        t.status === "Dispatched"
+    );
+  };
+
+  const openPathologyTestModal = (patient) => {
+    setSelectedPatient(patient);
+    setIsPathologyTestModalOpen(true);
   };
   // Returns true if the patient has ONLY Microbiology as their department
   const isOnlyMicrobiology = (patient) => {
@@ -2998,6 +3033,8 @@ const HMSPatientOverview = () => {
                     patientStatus.barcode || patient.barcode || "N/A";
                   const isMBSortingEnabledFlag =
                     isMBTestSortingEnabled(patient);
+                  const isPathologySortingEnabledFlag =
+                    isPathologyTestSortingEnabled(patient);
                   const onlyMB = isOnlyMicrobiology(patient);
                   const onlyMolBio = isOnlyMolecularBiology(patient);
                   const isPrintMailEnabled =
@@ -3121,6 +3158,19 @@ const HMSPatientOverview = () => {
                             disabled={!isMBSortingEnabledFlag}
                           >
                             <List size={16} />
+                          </ActionButton>
+                          <ActionButton
+                            onClick={() => openPathologyTestModal(patient)}
+                            title={
+                              !hasPathologyTests(patient)
+                                ? "No Pathology Tests"
+                                : isPathologySortingEnabledFlag
+                                  ? "Sort Pathology Tests"
+                                  : "Pathology not approved"
+                            }
+                            disabled={!isPathologySortingEnabledFlag}
+                          >
+                            <FileText size={16} />
                           </ActionButton>
                           <ActionButton
                             onClick={() => openTestModal(patient)}
@@ -3275,6 +3325,16 @@ const HMSPatientOverview = () => {
           patient={selectedPatient}
           onClose={() => {
             setIsMBTestModalOpen(false);
+            fetchCombinedPatientData();
+          }}
+        />
+      )}
+      {/* Pathology Test Sorting Modal */}
+      {isPathologyTestModalOpen && (
+        <PathologyTestSorting
+          patient={selectedPatient}
+          onClose={() => {
+            setIsPathologyTestModalOpen(false);
             fetchCombinedPatientData();
           }}
         />

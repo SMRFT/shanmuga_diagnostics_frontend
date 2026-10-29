@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -25,10 +25,10 @@ import apiRequest from "../Auth/apiRequest";
 // ===== Global styles =====
 const GlobalStyle = createGlobalStyle`
   :root {
-    --primary: #4361ee;
-    --primary-light: #4895ef;
-    --primary-dark: #3a0ca3;
-    --secondary: #3f37c9;
+    --primary: #a777e3;
+    --primary-light: #c3abef;
+    --primary-dark: #7c3aed;
+    --secondary: #8b5cf6;
     --success: #4cc9f0;
     --danger: #f72585;
     --warning: #f8961e;
@@ -61,7 +61,7 @@ const GlobalStyle = createGlobalStyle`
     transition: var(--transition);
     min-width: 100px;
     max-width: 110px;
-    &:hover, &:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1); }
+    &:hover, &:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(167, 119, 227, 0.1); }
   }
   .react-datepicker { border: none; box-shadow: var(--box-shadow); font-family: inherit; z-index: 1000 !important; border: 1px solid var(--gray-light); }
   .react-datepicker-popper { z-index: 1000 !important; }
@@ -80,10 +80,11 @@ const blink = keyframes`
 
 const Container = styled.div`
   max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0.65rem 1rem 1.5rem;
   @media (max-width: 768px) {
-    padding: 1rem;
+    padding: 0.5rem 0.5rem 1.25rem;
   }
 `;
 const Card = styled.div`
@@ -105,7 +106,7 @@ const SectionHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background-color: ${(props) => (props.backlog ? "#fffbeb" : "#f8f9fa")};
+  background-color: ${(props) => (props.backlog ? "#fffbeb" : "#faf5ff")};
   border-bottom: 1px solid var(--gray-light);
   border-left: 4px solid
     ${(props) => (props.backlog ? "var(--warning)" : "var(--primary)")};
@@ -121,7 +122,7 @@ const SectionTitleGroup = styled.div`
 const SectionTitle = styled.h2`
   font-size: 1rem;
   font-weight: 600;
-  color: ${(props) => (props.backlog ? "#92400e" : "var(--primary-dark)")};
+  color: ${(props) => (props.backlog ? "#92400e" : "#7c3aed")};
   margin: 0;
   display: flex;
   align-items: center;
@@ -142,8 +143,8 @@ const SectionBadge = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
   background-color: ${(props) =>
-    props.backlog ? "rgba(248, 150, 30, 0.15)" : "rgba(67, 97, 238, 0.1)"};
-  color: ${(props) => (props.backlog ? "var(--warning)" : "var(--primary)")};
+    props.backlog ? "rgba(248, 150, 30, 0.15)" : "rgba(167, 119, 227, 0.1)"};
+  color: ${(props) => (props.backlog ? "var(--warning)" : "#7c3aed")};
 `;
 
 const Header = styled.div`
@@ -198,7 +199,7 @@ const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.1);
   }
 `;
 const SearchIconWrapper = styled.div`
@@ -240,7 +241,7 @@ const StepButton = styled.button`
     background-color: var(--primary);
     color: white;
     border-color: var(--primary);
-    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.4);
+    box-shadow: 0 2px 8px rgba(167, 119, 227, 0.4);
   }
   &:active {
     transform: scale(0.95);
@@ -264,7 +265,7 @@ const FilterButton = styled.button`
   }
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.3);
   }
 `;
 const ClearButton = styled.button`
@@ -298,29 +299,141 @@ const Select = styled.select`
   &:focus {
     border-color: var(--primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+    box-shadow: 0 0 0 2px rgba(167, 119, 227, 0.1);
   }
 `;
 
 /* ── KEY FIX: removed rotateX(180deg) from both container and table,
    added overflow-y: auto so the container itself scrolls vertically.
    This allows position: sticky on thead to work correctly. ── */
-const TableContainer = styled.div`
+const TopScrollTrack = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 12px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-bottom: none;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  &::-webkit-scrollbar {
+    height: 9px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--primary, #a777e3);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #7c3aed;
+  }
+`;
+
+const InnerTableContainer = styled.div`
   overflow-x: auto;
   overflow-y: auto;
   max-height: 600px;
+  border-radius: ${(props) => (props.hasTopTrack ? "0 0 8px 8px" : "8px")};
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   &::-webkit-scrollbar {
     width: 6px;
-    height: 6px;
+    height: 0px !important;
   }
-  &::-webkit-scrollbar-track {
-    background: var(--gray-light);
+  &::-webkit-scrollbar:horizontal {
+    display: none !important;
+    height: 0px !important;
+    width: 0px !important;
+    opacity: 0 !important;
   }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--gray);
+  &::-webkit-scrollbar-thumb:horizontal {
+    display: none !important;
+    background: transparent !important;
+  }
+  &::-webkit-scrollbar-track:horizontal {
+    display: none !important;
+    background: transparent !important;
+  }
+  &::-webkit-scrollbar-track:vertical {
+    background: var(--gray-light, #e9ecef);
+  }
+  &::-webkit-scrollbar-thumb:vertical {
+    background-color: var(--gray, #6c757d);
     border-radius: 20px;
   }
 `;
+
+const TableContainer = ({ children, style, className }) => {
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const isSyncingTop = useRef(false);
+  const isSyncingBottom = useRef(false);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (bottomScrollRef.current) {
+        const sw = bottomScrollRef.current.scrollWidth;
+        const cw = bottomScrollRef.current.clientWidth;
+        setScrollWidth(sw);
+        setHasOverflow(sw > cw + 2);
+      }
+    };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    if (bottomScrollRef.current) {
+      observer.observe(bottomScrollRef.current);
+    }
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, []);
+
+  const handleTopScroll = () => {
+    if (!isSyncingTop.current) {
+      isSyncingBottom.current = true;
+      if (bottomScrollRef.current && topScrollRef.current) {
+        bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+      }
+    }
+    isSyncingTop.current = false;
+  };
+
+  const handleBottomScroll = () => {
+    if (!isSyncingBottom.current) {
+      isSyncingTop.current = true;
+      if (topScrollRef.current && bottomScrollRef.current) {
+        topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+      }
+    }
+    isSyncingBottom.current = false;
+  };
+
+  return (
+    <div style={{ width: "100%", position: "relative" }}>
+      {hasOverflow && (
+        <TopScrollTrack ref={topScrollRef} onScroll={handleTopScroll}>
+          <div style={{ width: `${scrollWidth}px`, height: "1px" }} />
+        </TopScrollTrack>
+      )}
+      <InnerTableContainer
+        ref={bottomScrollRef}
+        onScroll={handleBottomScroll}
+        hasTopTrack={hasOverflow}
+        style={style}
+        className={className}
+      >
+        {children}
+      </InnerTableContainer>
+    </div>
+  );
+};
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -333,20 +446,31 @@ const Table = styled.table`
 const TableHead = styled.thead`
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 10;
+  background: linear-gradient(135deg, #a777e3 0%, #8b5cf6 100%);
+  color: #ffffff;
+
   th {
-    padding: 1rem;
+    padding: 0.65rem 0.65rem;
     text-align: left;
-    font-weight: 600;
-    color: var(--gray);
-    font-size: 0.75rem;
+    font-size: 0.76rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.4px;
     white-space: nowrap;
-    background-color: var(--gray-light);
-    box-shadow:
-      0 1px 0 var(--gray-light),
-      0 2px 0 #dee2e6;
+    border: none;
+    color: #ffffff;
+    background: transparent;
+
+    &:first-child {
+      border-top-left-radius: 8px;
+      padding-left: 0.85rem;
+    }
+
+    &:last-child {
+      border-top-right-radius: 8px;
+      padding-right: 0.85rem;
+    }
   }
 `;
 const TableBody = styled.tbody`
@@ -356,7 +480,7 @@ const TableBody = styled.tbody`
       border-bottom: none;
     }
     &:hover {
-      background-color: rgba(67, 97, 238, 0.05);
+      background-color: rgba(167, 119, 227, 0.05);
     }
   }
   td {
@@ -425,7 +549,7 @@ const Button = styled.button`
   }
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.3);
   }
 `;
 const ViewButton = styled(Button)`
