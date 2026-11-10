@@ -2637,6 +2637,9 @@ const CHCReport = () => {
         return yPos;
       };
       const addLabReportHeader = (yPos) => {
+        if (!withLetterpad) {
+          yPos += 15;
+        }
         doc.setFontSize(10);
         const firstTest = labTests[0];
         const rows = [
