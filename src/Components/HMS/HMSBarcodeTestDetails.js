@@ -582,7 +582,10 @@ const HMSBarcodeTestDetails = () => {
         extra_barcode: patientBarcode,
       };
       // Save the barcode using your apiRequest method
-      const saveUrl = `${Labbaseurl}save-hms-barcodes/`;
+      const barcodeSource = location?.state?.barcodeSource || "HMS";
+      const saveUrl = barcodeSource === "SH"
+        ? `${Labbaseurl}save-sh-hms-barcodes/`
+        : `${Labbaseurl}save-hms-barcodes/`;
       const saveResponse = await apiRequest(saveUrl, "POST", payload);
 
       // Check if save was successful and handle errors properly
@@ -821,11 +824,13 @@ const HMSBarcodeTestDetails = () => {
     // Clean any tube suffix like -F, -E, etc. so it returns the base barcode
     const cleanBarcode = String(rawBarcode).replace(/-[A-Za-z0-9]+$/, "").trim();
 
+    const barcodeSource = location?.state?.barcodeSource || "HMS";
     navigate("/HMSBarcodeGeneration", {
       state: {
         fromDate: fromDateParam || new Date().toISOString().split("T")[0],
         toDate: toDateParam || new Date().toISOString().split("T")[0],
         searchTerm: cleanBarcode,
+        barcodeSource: barcodeSource,
       },
     });
   };
@@ -835,9 +840,13 @@ const HMSBarcodeTestDetails = () => {
       // ✅ USE SELECTED DATE, NOT TODAY
       const fromDateStr = selectedDate;
       const toDateStr = selectedDate;
+      const barcodeSource = location?.state?.barcodeSource || "HMS";
+      const endpoint = barcodeSource === "SH"
+        ? "sh_hms_patients_get_barcode/"
+        : "hms_patients_get_barcode/";
 
       const patientResult = await apiRequest(
-        `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDateStr}&to_date=${toDateStr}`,
+        `${Labbaseurl}${endpoint}?from_date=${fromDateStr}&to_date=${toDateStr}`,
         "GET",
       );
 
