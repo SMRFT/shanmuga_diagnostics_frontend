@@ -367,6 +367,9 @@ const HMSBarcodeGeneration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [ipopFilter, setIpopFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [barcodeSource, setBarcodeSource] = useState(
+    () => location?.state?.barcodeSource || "HMS"
+  );
 
   const patientsPerPage = 15;
   const Labbaseurl = process.env.REACT_APP_BACKEND_LAB_BASE_URL;
@@ -390,11 +393,14 @@ const HMSBarcodeGeneration = () => {
 
 
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (source = barcodeSource) => {
+    const fromDateStr = typeof fromDate === "string" ? fromDate : fromDate.toISOString().split("T")[0];
+    const toDateStr = typeof toDate === "string" ? toDate : toDate.toISOString().split("T")[0];
     setIsLoading(true);
     try {
+      const endpoint = source === "SH" ? "sh_hms_patients_get_barcode/" : "hms_patients_get_barcode/";
       const response = await apiRequest(
-        `${Labbaseurl}hms_patients_get_barcode/?from_date=${fromDate}&to_date=${toDate}`,
+        `${Labbaseurl}${endpoint}?from_date=${fromDateStr}&to_date=${toDateStr}`,
         "GET",
       );
 
@@ -424,6 +430,14 @@ const HMSBarcodeGeneration = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBarcodeSourceChange = (e) => {
+    const newSource = e.target.value;
+    setBarcodeSource(newSource);
+    fetchPatients(newSource);
+    setSearchTerm("");
+    setCurrentPage(1);
   };
 
   const extractBarcodeFromBillNo = (billNumber, billType) => {
@@ -471,12 +485,13 @@ const HMSBarcodeGeneration = () => {
         fromDate: fromDate,
         toDate: toDate,
         searchTerm: effectiveSearchTerm,
+        barcodeSource: barcodeSource,
       },
     });
   };
 
   useEffect(() => {
-    fetchPatients();
+    fetchPatients(barcodeSource);
   }, [fromDate, toDate]);
 
   const goToPage = (page) => {
@@ -615,7 +630,7 @@ const HMSBarcodeGeneration = () => {
           <Calendar size={22} color="#a777e3" />
           <Title>HMS Patient Barcode Generation</Title>
         </TitleGroup>
-        <IconBtn bg="#f1f5f9" color="#a777e3" onClick={() => { setSearchTerm(""); fetchPatients(); }} disabled={isLoading} title="Refresh">
+        <IconBtn bg="#f1f5f9" color="#a777e3" onClick={() => { setSearchTerm(""); fetchPatients(barcodeSource); }} disabled={isLoading} title="Refresh">
           <RefreshCw size={16} />
         </IconBtn>
       </TopBar>
@@ -623,6 +638,13 @@ const HMSBarcodeGeneration = () => {
       <Card>
         {/* Unified Responsive Filter Row */}
         <FilterBar>
+          <FGroup minW="110px">
+            <FLabel>Source</FLabel>
+            <FSelect value={barcodeSource} onChange={handleBarcodeSourceChange}>
+              <option value="HMS">HMS</option>
+              <option value="SH">SH</option>
+            </FSelect>
+          </FGroup>
           <FGroup minW="140px">
             <FLabel>From Date</FLabel>
             <FInput
