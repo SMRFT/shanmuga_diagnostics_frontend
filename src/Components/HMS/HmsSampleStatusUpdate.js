@@ -619,9 +619,9 @@ const CalendarDay = styled.button`
 
   &:hover:not(:disabled) {
     background: ${(props) =>
-      props.selected
-        ? props.theme.colors.primaryHover
-        : props.theme.colors.backgroundAlt};
+    props.selected
+      ? props.theme.colors.primaryHover
+      : props.theme.colors.backgroundAlt};
   }
 `;
 
@@ -1088,6 +1088,7 @@ const HmsSampleStatusUpdate = () => {
         "PUT",
         {
           barcode: selectedPatient.barcode,
+          billnumber: selectedPatient.billnumber,
           updates: testsToUpdate,
         },
       );
@@ -1109,22 +1110,22 @@ const HmsSampleStatusUpdate = () => {
           prevSamples.map((sample) =>
             sample.barcode === barcode
               ? {
-                  ...sample,
-                  testdetails: sample.testdetails.map((detail, idx) => {
-                    const update = testsToUpdate.find(
-                      (t) => t.test_id === detail.test_id,
-                    );
-                    if (update) {
-                      return {
-                        ...detail,
-                        samplestatus: update.samplestatus,
-                        remarks: update.remarks,
-                        outsource_lab: update.outsource_lab,
-                      };
-                    }
-                    return detail;
-                  }),
-                }
+                ...sample,
+                testdetails: sample.testdetails.map((detail, idx) => {
+                  const update = testsToUpdate.find(
+                    (t) => t.test_id === detail.test_id,
+                  );
+                  if (update) {
+                    return {
+                      ...detail,
+                      samplestatus: update.samplestatus,
+                      remarks: update.remarks,
+                      outsource_lab: update.outsource_lab,
+                    };
+                  }
+                  return detail;
+                }),
+              }
               : sample,
           ),
         );
@@ -1573,7 +1574,7 @@ const HmsSampleStatusUpdate = () => {
                             <Select
                               value={
                                 statusChanges[selectedPatient.barcode]?.[
-                                  testIndex
+                                testIndex
                                 ] ?? detail.samplestatus
                               }
                               onChange={(e) =>
@@ -1595,63 +1596,63 @@ const HmsSampleStatusUpdate = () => {
                             {statusChanges[selectedPatient.barcode]?.[
                               testIndex
                             ] === "Outsource" && (
-                              <div>
-                                <Select
-                                  value={
-                                    selectedOutsourceLab[
+                                <div>
+                                  <Select
+                                    value={
+                                      selectedOutsourceLab[
                                       `${selectedPatient.barcode}-${testIndex}`
-                                    ] || ""
-                                  }
-                                  onChange={(e) =>
-                                    handleOutsourceLabChange(
-                                      selectedPatient.barcode,
-                                      testIndex,
-                                      e.target.value,
-                                    )
-                                  }
-                                  disabled={isSaving || isSaved}
-                                >
-                                  <option value="">Select Outsource Lab</option>
-                                  {Array.isArray(outsourceLabs) &&
-                                  outsourceLabs.length > 0 ? (
-                                    outsourceLabs.map((lab, index) => (
-                                      <option
-                                        key={lab.labID || index}
-                                        value={lab.labName}
-                                      >
-                                        {lab.labName}
+                                      ] || ""
+                                    }
+                                    onChange={(e) =>
+                                      handleOutsourceLabChange(
+                                        selectedPatient.barcode,
+                                        testIndex,
+                                        e.target.value,
+                                      )
+                                    }
+                                    disabled={isSaving || isSaved}
+                                  >
+                                    <option value="">Select Outsource Lab</option>
+                                    {Array.isArray(outsourceLabs) &&
+                                      outsourceLabs.length > 0 ? (
+                                      outsourceLabs.map((lab, index) => (
+                                        <option
+                                          key={lab.labID || index}
+                                          value={lab.labName}
+                                        >
+                                          {lab.labName}
+                                        </option>
+                                      ))
+                                    ) : (
+                                      <option value="" disabled>
+                                        No labs available
                                       </option>
-                                    ))
-                                  ) : (
-                                    <option value="" disabled>
-                                      No labs available
-                                    </option>
-                                  )}
-                                </Select>
-                              </div>
-                            )}
+                                    )}
+                                  </Select>
+                                </div>
+                              )}
                           </Td>
                           <Td>
                             {statusChanges[selectedPatient.barcode]?.[
                               testIndex
                             ] === "Rejected" && (
-                              <Textarea
-                                value={
-                                  remarks[
+                                <Textarea
+                                  value={
+                                    remarks[
                                     `${selectedPatient.barcode}-${testIndex}`
-                                  ] || ""
-                                }
-                                onChange={(e) =>
-                                  handleRemarksChange(
-                                    selectedPatient.barcode,
-                                    testIndex,
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder="Enter rejection reason"
-                                disabled={isSaving || isSaved}
-                              />
-                            )}
+                                    ] || ""
+                                  }
+                                  onChange={(e) =>
+                                    handleRemarksChange(
+                                      selectedPatient.barcode,
+                                      testIndex,
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Enter rejection reason"
+                                  disabled={isSaving || isSaved}
+                                />
+                              )}
                           </Td>
                           <Td>
                             <Checkbox
