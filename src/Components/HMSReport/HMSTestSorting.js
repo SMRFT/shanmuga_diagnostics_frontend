@@ -705,6 +705,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
         {
           test_id: test.test_id,
           created_date: test.created_date,
+          billnumber: patient.billnumber,
         },
         {
           "Content-Type": "application/json",
@@ -751,7 +752,7 @@ const HMSTestSorting = ({ patient, onClose }) => {
         const response = await apiRequest(
           `${Labbaseurl}update_printed_status/${patient.barcode}/`,
           "PATCH",
-          { test_id: test.test_id, created_date: test.created_date },
+          { test_id: test.test_id, created_date: test.created_date, billnumber: patient.billnumber },
           { "Content-Type": "application/json" },
         );
         if (response.success) {
