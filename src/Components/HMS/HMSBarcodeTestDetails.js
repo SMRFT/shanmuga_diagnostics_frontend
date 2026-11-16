@@ -582,7 +582,7 @@ const HMSBarcodeTestDetails = () => {
         extra_barcode: patientBarcode,
       };
       // Save the barcode using your apiRequest method
-      const barcodeSource = location?.state?.barcodeSource || "HMS";
+      const barcodeSource = location?.state?.barcodeSource || "SH";
       const saveUrl = barcodeSource === "SH"
         ? `${Labbaseurl}save-sh-hms-barcodes/`
         : `${Labbaseurl}save-hms-barcodes/`;
@@ -824,7 +824,7 @@ const HMSBarcodeTestDetails = () => {
     // Clean any tube suffix like -F, -E, etc. so it returns the base barcode
     const cleanBarcode = String(rawBarcode).replace(/-[A-Za-z0-9]+$/, "").trim();
 
-    const barcodeSource = location?.state?.barcodeSource || "HMS";
+    const barcodeSource = location?.state?.barcodeSource || "SH";
     navigate("/HMSBarcodeGeneration", {
       state: {
         fromDate: fromDateParam || new Date().toISOString().split("T")[0],
@@ -840,29 +840,34 @@ const HMSBarcodeTestDetails = () => {
       // ✅ USE SELECTED DATE, NOT TODAY
       const fromDateStr = selectedDate;
       const toDateStr = selectedDate;
-      const barcodeSource = location?.state?.barcodeSource || "HMS";
+      const barcodeSource = location?.state?.barcodeSource || "SH";
       const endpoint = barcodeSource === "SH"
         ? "sh_hms_patients_get_barcode/"
         : "hms_patients_get_barcode/";
 
+      const billNoParam = bill_no ? `&bill_no=${encodeURIComponent(bill_no)}` : "";
       const patientResult = await apiRequest(
-        `${Labbaseurl}${endpoint}?from_date=${fromDateStr}&to_date=${toDateStr}`,
+        `${Labbaseurl}${endpoint}?from_date=${fromDateStr}&to_date=${toDateStr}${billNoParam}`,
         "GET",
       );
 
-      if (!patientResult.success) {
-        console.error("Error fetching test details:", patientResult.error);
-        toast.error(patientResult.error || "Failed to fetch test details.");
-        return;
+      let patientData = null;
+      if (patientResult?.success && Array.isArray(patientResult?.data?.data)) {
+        patientData = patientResult.data.data.find(
+          (patient) =>
+            (bill_no && String(patient.bill_no).trim() === String(bill_no).trim()) ||
+            (patientId && String(patient.patient_id).trim() === String(patientId).trim())
+        );
       }
 
-      const patientData = patientResult.data.data.find(
-        (patient) =>
-          patient.patient_id === patientId && patient.bill_no === bill_no,
-      );
+      // Fallback to patientData passed via navigation state if not found by date query
+      if (!patientData && location?.state?.patientData) {
+        patientData = location.state.patientData;
+      }
 
       if (!patientData) {
-        toast.error("Patient not found.");
+        console.error("Error fetching test details:", patientResult?.error);
+        toast.error(patientResult?.error || "Patient not found.");
         return;
       }
 
