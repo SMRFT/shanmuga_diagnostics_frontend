@@ -368,7 +368,7 @@ const HMSBarcodeGeneration = () => {
   const [ipopFilter, setIpopFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [barcodeSource, setBarcodeSource] = useState(
-    () => location?.state?.barcodeSource || "HMS"
+    () => location?.state?.barcodeSource || "SH"
   );
 
   const patientsPerPage = 15;
@@ -486,6 +486,7 @@ const HMSBarcodeGeneration = () => {
         toDate: toDate,
         searchTerm: effectiveSearchTerm,
         barcodeSource: barcodeSource,
+        patientData: patient,
       },
     });
   };
@@ -617,6 +618,7 @@ const HMSBarcodeGeneration = () => {
     setSearchTerm("");
     setIpopFilter("ALL");
     setStatusFilter("ALL");
+    setBarcodeSource("SH");
     const today = getTodayStr();
     setFromDate(today);
     setToDate(today);
@@ -641,8 +643,8 @@ const HMSBarcodeGeneration = () => {
           <FGroup minW="110px">
             <FLabel>Source</FLabel>
             <FSelect value={barcodeSource} onChange={handleBarcodeSourceChange}>
-              <option value="HMS">HMS</option>
               <option value="SH">SH</option>
+              <option value="HMS">HMS</option>
             </FSelect>
           </FGroup>
           <FGroup minW="140px">
@@ -650,9 +652,13 @@ const HMSBarcodeGeneration = () => {
             <FInput
               type="date"
               value={fromDate}
-              max={toDate || getTodayStr()}
+              max={getTodayStr()}
               onChange={(e) => {
-                setFromDate(e.target.value);
+                const newFrom = e.target.value;
+                setFromDate(newFrom);
+                if (toDate && newFrom > toDate) {
+                  setToDate(newFrom);
+                }
                 setSearchTerm("");
               }}
             />
@@ -666,7 +672,11 @@ const HMSBarcodeGeneration = () => {
               min={fromDate}
               max={getTodayStr()}
               onChange={(e) => {
-                setToDate(e.target.value);
+                const newTo = e.target.value;
+                setToDate(newTo);
+                if (fromDate && newTo < fromDate) {
+                  setFromDate(newTo);
+                }
                 setSearchTerm("");
               }}
             />
