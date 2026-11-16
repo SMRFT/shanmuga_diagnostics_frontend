@@ -578,6 +578,7 @@ const HMSBarcodeTestDetails = () => {
         ipnumber: selectedPatient?.ipnumber || "",
         IPOPType: selectedPatient?.IPOPType || "",
         ref_doctor: selectedPatient?.ref_doctor || "",
+        ref_doctor_id: selectedPatient?.ref_doctor_id || "",
         source: selectedPatient?.source || "core_hmspatientbilling",
         extra_barcode: patientBarcode,
       };
