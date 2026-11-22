@@ -1832,7 +1832,7 @@ const PatientForm = () => {
           toast.success(`Bill created successfully for revisit patient!`)
           resetForm()
         } else {
-          toast.error("Failed to create bill. Please try again.")
+          toast.error(billResult?.error || billResult?.data?.error || "Failed to create bill. Please try again.")
         }
       } else {
         try {
@@ -1854,10 +1854,10 @@ const PatientForm = () => {
               toast.success(`Patient registered and bill created successfully! Patient ID: ${actualPatientId}`, { autoClose: 5000 })
               resetForm()
             } else {
-              toast.error("Patient created but failed to create bill. Please create bill manually.")
+              toast.error(billResult?.error || billResult?.data?.error || "Patient created but failed to create bill. Please create bill manually.")
             }
           } else {
-            toast.error("Failed to create patient. Please try again.")
+            toast.error(patientResult?.error || patientResult?.data?.error || "Failed to create patient. Please try again.")
           }
         } catch (error) {
           console.error("Error in patient/bill creation:", error)
